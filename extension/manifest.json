@@ -1,0 +1,33 @@
+{
+    "author": "Piotr Mitros",
+    "manifest_version": 2,
+    "name": "Writing Process",
+    "homepage_url": "http://mitros.org/",
+    "incognito": "not_allowed",
+    "offline_enabled": true,
+    "version": "1.0",
+    "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
+
+    "page_action": {
+	"browser_style": true,
+	"default_title": "Writing Process",
+	"default_popup": "popup/settings.html",
+	"default_icon": {
+	    "48": "icons/lousy-fountain-pen-48.png"
+	}
+    },
+
+    "content_scripts": [
+	{
+	    "matches": ["*://docs.google.com/*", "*://*.mozilla.org/*"],
+	    "js": ["writing.js"]
+	}],
+    "background": {
+	    "scripts": ["background.js"]
+	},
+    "permissions": [
+	"webRequest",
+	"*://docs.google.com/*",
+	"clipboardRead"
+    ]
+}
