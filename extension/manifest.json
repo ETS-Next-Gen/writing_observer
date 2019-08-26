@@ -19,7 +19,7 @@
 
     "content_scripts": [
 	{
-	    "matches": ["*://docs.google.com/*", "*://*.mozilla.org/*"],
+	    "matches": ["*://docs.google.com/*", "*://*.mozilla.org/*", "*://mail.google.com/*"],
 	    "js": ["writing.js"]
 	}],
     "background": {
@@ -28,6 +28,7 @@
     "permissions": [
 	"webRequest",
 	"*://docs.google.com/*",
+	"*://mail.google.com/*",
 	"clipboardRead"
     ]
 }

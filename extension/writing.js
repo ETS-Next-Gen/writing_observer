@@ -1,3 +1,7 @@
+/* 
+Page script. This is injected into each web page on associated web sites.
+*/ 
+
 var WRITINGJS_SERVER = "https://test.mitros.org/webapi/";
 
 function writingjs_ajax(data) {
@@ -16,7 +20,10 @@ function writing_eventlistener(event) {
     for (var property in properties) {
 	event_data[properties[property]] = event[properties[property]];
     }
-    event_data['date'] = new Date().toLocaleString('en-US')
+    event_data['date'] = new Date().toLocaleString('en-US');
+    event_data['url'] = window.location.href;
+    console.log(event_data['url']);
+
     console.log(JSON.stringify(event_data));
     writingjs_ajax(event_data);
 }
