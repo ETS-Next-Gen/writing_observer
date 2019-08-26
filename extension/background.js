@@ -2,40 +2,18 @@
 Background script. This works across all of Google Chrome. 
 */
 
-var WRITINGJS_SERVER = "https://test.mitros.org/webapi/";
-
-function gmail_text() {
-    /*
-      This function returns all the editable text in the current gmail
-      window. Note that in a threaded discussion, it's possible to
-      have several open on the same page.
-
-      This is brittle; Google may change implementation and this will
-      break.
-     */
-    var documents = document.getElementsByClassName("editable");
-    for(document in documents) {
-	documents[document] = documents[document].innerHTML;
+function this_a_google_docs_save(request) {
+    /* 
+       Check if this is a Google Docs save request. Return true for something like:
+       https://docs.google.com/document/d/1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU/save?id=dfhjklhsjklsdhjklsdhjksdhkjlsdhkjsdhsdkjlhsd&sid=dhsjklhsdjkhsdas&vc=2&c=2&w=2&smv=2&token=lasjklhasjkhsajkhsajkhasjkashjkasaajhsjkashsajksas&includes_info_params=true
+       And false otherwise
+    */
+    if(request.url.match(/.*:\/\/docs\.google\.com\/document\/d\/([^\/]*)\/save/i)) {
+	return true;
     }
-    return documents;
+    return false;
 }
 
-function writingjs_ajax(data) {
-    /*
-      Helper function to send a logging AJAX request to the server.
-      This function takes a JSON dictionary of data.
-
-      TODO: Convert to a queue for offline operation using Chrome
-      Storage API? Cache to Chrome Storage? Chrome Storage doesn't
-      support meaningful concurrency,
-
-      TODO: Abstract out into a common function,
-     */
-    httpRequest = new XMLHttpRequest();
-    //httpRequest.withCredentials = true;
-    httpRequest.open("POST", WRITINGJS_SERVER);
-    httpRequest.send(JSON.stringify(data));
-}
 
 function writing_eventlistener(event) {
     /* 
@@ -53,7 +31,34 @@ function writing_eventlistener(event) {
     writingjs_ajax(event_data);
 }
 
+var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. Perhaps this should be a cookie or browser.storage? 
+
 chrome.webRequest.onBeforeRequest.addListener(
+    /*
+      This allows us to log web requests. There are two types of web requests:
+      * Ones we understand (SEMANTIC)
+      * Ones we don't (RAW/DEBUG)
+
+      There is an open question as to how we ought to handle RAW/DEBUG
+      events. We will reduce potential issues around collecting data
+      we don't want (privacy, storage, bandwidth) if we silently drop
+      these. On the other hand, we significantly increase risk of
+      losing user data should Google ever change their web API. If we
+      log everything, we have good odds of being able to
+      reverse-engineer the new API, and reconstruct what happened.
+
+      Our current strategy is to:
+      * Log the former requests in a clean way, extracting the data we
+        want
+      * Have a flag to log the debug requests (which includes the 
+        unparsed version of events we want).
+      We should step through and see how this code manages failures, 
+
+      For development purposes, both modes of operation are
+      helpful. Having these is nice for reverse-engineering,
+      especially new pages. They do inject a lot of noise, though, and
+      from there, being able to easily ignore these is nice. 
+     */
     function(request) {
 	var formdata = {};
 	if(request.requestBody) {
@@ -62,11 +67,22 @@ chrome.webRequest.onBeforeRequest.addListener(
 	if(!formdata) {
 	    formdata = {};
 	}
-	writingjs_ajax({
-	    'event_type':'request',
-	    'url': request.url,
-	    'from_data': formdata
-	});
+	if(RAW_DEBUG) {
+	    writingjs_ajax({
+		'event_type': 'raw_request',
+		'url':  request.url,
+		'form_data': formdata
+	    });
+	}
+	if(this_a_google_docs_save(request)) {
+	    writingjs_ajax({
+		'event_type': 'google_docs_save',
+		'doc_id':  googledocs_id_from_url(request.url),
+		'bundles': JSON.parse(formdata.bundles),
+		'rev': formdata.rev,
+		'timestamp': parseInt(request.timeStamp, 10)
+	    });
+	}
     },
     { urls: ["*://docs.google.com/*"/*, "*://mail.google.com/*"*/] },
     ['requestBody']

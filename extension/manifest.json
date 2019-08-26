@@ -17,14 +17,13 @@
 	}
     },
 
-    "content_scripts": [
-	{
-	    "matches": ["*://docs.google.com/*", "*://*.mozilla.org/*", "*://mail.google.com/*"],
-	    "js": ["writing.js"]
-	}],
+    "content_scripts": [ {
+	"matches": ["*://docs.google.com/*", "*://*.mozilla.org/*", "*://mail.google.com/*"],
+	"js": ["writing_common.js", "writing.js"]
+    }],
     "background": {
-	    "scripts": ["background.js"]
-	},
+	"scripts": ["writing_common.js", "background.js"]
+    },
     "permissions": [
 	"webRequest",
 	"*://docs.google.com/*",
