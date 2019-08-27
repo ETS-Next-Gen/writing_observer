@@ -93,3 +93,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 });*/
 
 writingjs_ajax({"Loaded now": true});
+
+chrome.identity.getProfileUserInfo(function callback(userInfo) {
+    writingjs_ajax(userInfo);
+});

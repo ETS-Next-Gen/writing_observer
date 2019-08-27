@@ -19,15 +19,18 @@
 
     "content_scripts": [ {
 	"matches": ["*://docs.google.com/*", "*://*.mozilla.org/*", "*://mail.google.com/*"],
-	"js": ["writing_common.js", "writing.js"]
+	"js": ["3rdparty/sha256.js", "writing_common.js", "writing.js"]
     }],
     "background": {
 	"scripts": ["writing_common.js", "background.js"]
     },
     "permissions": [
 	"webRequest",
+	"identity",
+	"identity.email",
 	"*://docs.google.com/*",
 	"*://mail.google.com/*",
-	"clipboardRead"
+	"clipboardRead",
+	"storage"
     ]
 }
