@@ -8,8 +8,7 @@
     "version": "1.0",
     "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
 
-    "page_action": {
-	"browser_style": true,
+    "browser_action": {
 	"default_title": "Writing Process",
 	"default_popup": "popup/settings.html",
 	"default_icon": {
@@ -32,5 +31,8 @@
 	"*://mail.google.com/*",
 	"clipboardRead",
 	"storage"
-    ]
+    ],
+    "icons": {
+	"48": "icons/lousy-fountain-pen-48.png"
+    }
 }
