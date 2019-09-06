@@ -1,3 +1,5 @@
 pandas
 tornado
 ipython
+asyncpg
+
