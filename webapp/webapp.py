@@ -4,12 +4,7 @@ import tornado.web
 import asyncio
 import asyncpg
 
-def initialize_database():
-    conn=asyncpg.connect()
-    await conn.execute(open("init.sql").read())
-
-def add_record(idx, ty, si, ei, ibi, s, ft):
-    pass
+import orm
 
 class MainHandler(tornado.web.RequestHandler):
     def set_default_headers(self): 
@@ -41,7 +36,7 @@ def make_app():
     ])
 
 if __name__ == "__main__":
-    conn = initialize_database()
     app = make_app()
     app.listen(8888)
+    print("Starting event loop")
     tornado.ioloop.IOLoop.current().start()

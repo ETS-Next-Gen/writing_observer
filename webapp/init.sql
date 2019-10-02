@@ -5,7 +5,7 @@ reset: |
   DROP FUNCTION IF EXISTS insert_writing_delta;
 
 init: |
-  CREATE TABLE USERS (
+  CREATE TABLE IF NOT EXISTS USERS (
          idx          SERIAL PRIMARY KEY,
          username     text UNIQUE,
          email        text,
@@ -21,7 +21,7 @@ init: |
   CREATE TABLE IF NOT EXISTS WRITING_DELTAS (
          idx      SERIAL PRIMARY KEY,
          user_id  integer REFERENCES USERS (idx),  -- Who is editing?
-	 document integer REFERENCES DOCUMENTS (idx), -- Which document?
+         document integer REFERENCES DOCUMENTS (idx), -- Which document?
          date_created timestamp NOT NULL DEFAULT NOW(),
          ty       char(2), -- Type of edit. Insert, delete, alter
          si       integer, -- Start index for deletion
@@ -67,7 +67,7 @@ init: |
               users.idx, documents.idx, ty, si, ei, ibi, s, ft
           FROM
              users, documents where users.username=gusername and documents.docstring=gdocstring)
-	  RETURNING 1)
+          RETURNING 1)
        SELECT COUNT(*) INTO affected_rows FROM INSERT_ROW_COUNT;
     
     -- This is a little bit awkward, but we return:
@@ -79,46 +79,22 @@ init: |
   END;
   $$;
   -- Example: SELECT insert_writing_delta('pmitros', 'random-google-doc-id', 'is', 7,8,4,'hello','temp');
-  
-  CREATE OR REPLACE FUNCTION load_writing_deltas(
-         gusername text,
-         gdocstring char(48)
-  ) RETURNS refcursor
-  LANGUAGE plpsgwwql
-  AS $$
-  DECLARE
-    ref refcursor;
-  BEGIN
-  OPEN ref FOR
-    SELECT
-      WRITING_DELTAS.idx, WRITING_DELTAS.date_created, ty, si, ei, ibi, s, ft
-    FROM
-      WRITING_DELTAS, USERS, DOCUMENTS
-    WHERE
-      WRITING_DELTAS.user_id = USERS.idx AND
-      WRITING_DELTAS.document = DOCUMENTS.idx AND
-      DOCUMENTS.docstring = gdocstring AND
-      USERS.username = gusername;
-    return ref;
-  END;
-  $$;
-  
 
-insert_writing_delta: |
-  -- PREPARE insert_into_WRITING_DELTAS (username, document, ty, si, ei, ipi, s, ft) AS
-  --        INSERT INTO WRITING_DELTAS
-  --               (ty, si, ei, ipi, s,  ft)
-  --        VALUES
-  --               ($1, $2, $3, $4,  $5, $6);
+stored_procedures:
+  insert_writing_delta: |
+    -- PREPARE insert_writing_delta (text, char(48), char(2), integer, integer, integer, text, text) AS
+      SELECT insert_writing_delta($1, $2, $3, $4, $5, $6, $7, $8);
 
-fetch_writing_deltas : |
-  PREPARE fetch_writing_deltas (gusername, gdocument) AS
-    SELECT
-      WRITING_DELTAS.idx, WRITING_DELTAS.date_created, ty, si, ei, ibi, s, ft
-    FROM
-      WRITING_DELTAS, USERS, DOCUMENTS
-    WHERE
-      WRITING_DELTAS.user_id = USERS.idx AND
-      WRITING_DELTAS.document = DOCUMENTS.idx AND
-      DOCUMENTS.docstring = gdocstring AND
-      USERS.username = gusername;
+  fetch_writing_deltas: |
+    -- PREPARE fetch_writing_deltas (text, char(48)) AS  -- username, document string
+      SELECT
+        WRITING_DELTAS.idx, WRITING_DELTAS.date_created, ty, si, ei, ibi, s, ft
+      FROM
+        WRITING_DELTAS, USERS, DOCUMENTS
+      WHERE
+        WRITING_DELTAS.user_id = USERS.idx AND
+        WRITING_DELTAS.document = DOCUMENTS.idx AND
+        DOCUMENTS.docstring = $2 AND
+        USERS.username = $1
+      ORDER BY
+        WRITING_DELTAS.idx;
