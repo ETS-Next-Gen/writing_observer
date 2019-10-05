@@ -2,4 +2,6 @@ pandas
 tornado
 ipython
 asyncpg
-yaml
+pyyaml
+aiohttp
+aiohttp_cors

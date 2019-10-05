@@ -1,3 +1,10 @@
+'''
+Prototyping which framework makes most sense for this application. This may be throw-away code.
+'''
+
+
+import json
+
 import tornado.ioloop
 import tornado.web
 
@@ -17,12 +24,15 @@ class MainHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "text/plain")
         self.write("okay")
         print(url)
+        print("GET")
         print(self.request.body)
 
     def post(self, url):
         self.write("okay")
         print(url)
-        print(self.request.body)
+        print("POST")
+        event = json.loads(self.request.body)
+        print(event)
 
     def options(self):
         # no body

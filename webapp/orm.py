@@ -2,6 +2,7 @@
 import asyncio
 import functools
 
+import json
 import yaml
 
 import asyncpg
@@ -12,11 +13,14 @@ conn = None
 
 stored_procedures = {}
 
-async def initialize():
+async def initialize(reset=False):
     global conn
     print("Connecting to database...")
     # Connect to the database
     conn = await asyncpg.connect()
+    if reset:
+        await conn.execute(sql_statements['reset'])
+    
     # Set up tables and stored procedures, if they don't exist.
     await conn.execute(sql_statements['init'])
 
@@ -29,18 +33,25 @@ async def initialize():
 asyncio.get_event_loop().run_until_complete(initialize())
 
 # TODO: This should be done with a decorator, rather than cut-and-paste
-def fetch_writing_deltas(username, docstring):
-    return stored_procedures['fetch_writing_deltas'].cursor(username, docstring)
+def fetch_events(username, docstring):
+    return stored_procedures['fetch_events'].cursor(username, docstring)
 
-async def insert_writing_delta (username, docstring, ty, si, ei, ibi, s, ft):
-    rv = await stored_procedures['insert_writing_delta'].fetchval(username, docstring, ty, si, ei, ibi, s, ft)
+async def insert_event (username, docstring, event):
+    rv = await stored_procedures['insert_event'].fetchval(username, docstring, event)
     return rv
     
 if __name__ == '__main__':
     async def test():
-        print(await insert_writing_delta ("pmitros", "doc", "ts", 5, 7, 2, "hel", "lo"))
+        print(await insert_event ("pmitros", "doc", json.dumps({
+            "ty": "ts",
+            "si": 5,
+            "ei": 7,
+            "ibi": 2,
+            "s": "hel",
+            "f": "lo"
+        })))
         async with conn.transaction():
-            cursor = fetch_writing_deltas("pmitros", "doc")
+            cursor = fetch_events("pmitros", "doc")
             async for record in cursor:
                 print (record)
         
