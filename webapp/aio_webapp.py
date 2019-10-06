@@ -5,6 +5,8 @@ from aiohttp import web
 import aiohttp_cors
 from aiohttp.web import middleware
 
+import orm
+
 async def debug_signal(request, handler):
     print(request)
 
@@ -24,6 +26,7 @@ async def hello(request):
         'server': server_data,
         'client': client_data
     }
+    # response = await orm.insert_event (username, docstring, event):
     print(event)
     print(server_data)
     return web.Response(text="Acknowledged!")
