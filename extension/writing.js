@@ -25,6 +25,11 @@ function this_is_a_google_doc() {
     return window.location.href.search("://docs.google.com/") != -1;
 }
 
+function log_event(event) {
+    chrome.runtime.sendMessage(event);
+    //writingjs_ajax(event);
+}
+
 function writing_eventlistener(event) {
     var event_data = {};
     event_data["event_type"] = "keypress";
@@ -33,11 +38,11 @@ function writing_eventlistener(event) {
 	event_data[properties[property]] = event[properties[property]];
     }
     event_data['date'] = new Date().toLocaleString('en-US');
-    event_data['id'] = doc_id();
+    event_data['doc_id'] = doc_id();
     console.log(event_data['url']);
 
     console.log(JSON.stringify(event_data));
-    writingjs_ajax(event_data);
+    log_event(event_data);
 }
 
 
@@ -158,12 +163,12 @@ function google_docs_version_history() {
 
 function writing_onload() {
     if(this_is_a_google_doc()) {
-	writingjs_ajax({
+	log_event({
 	    "event_type": "Google Docs loaded",
 	    "partial_text": google_docs_partial_text(),
 	    //    "partial_html": google_docs_partial_html(),
 	    "title": google_docs_title(),
-	    "id": doc_id
+	    "doc_id": doc_id
 	})
 	google_docs_version_history();
     }

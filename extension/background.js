@@ -14,23 +14,6 @@ function this_a_google_docs_save(request) {
     return false;
 }
 
-
-function writing_eventlistener(event) {
-    /* 
-       Here, we process keystroke events and send them to the server. We want fine-grained writing data
-       with timing.
-     */
-    var event_data = {};
-    event_data["event_type"] = "keypress";
-    properties = ['altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode', 'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'timeStemp', 'type'];
-    for (var property in properties) {
-	event_data[properties[property]] = event[properties[property]];
-    }
-    event_data['date'] = new Date().toLocaleString('en-US');
-    console.log(JSON.stringify(event_data));
-    writingjs_ajax(event_data);
-}
-
 var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. Perhaps this should be a cookie or browser.storage? 
 
 chrome.webRequest.onBeforeRequest.addListener(
@@ -60,6 +43,7 @@ chrome.webRequest.onBeforeRequest.addListener(
       from there, being able to easily ignore these is nice. 
      */
     function(request) {
+	chrome.extension.getBackgroundPage().console.log("Web request");
 	var formdata = {};
 	if(request.requestBody) {
 	    formdata = request.requestBody.formData;
@@ -74,19 +58,34 @@ chrome.webRequest.onBeforeRequest.addListener(
 		'form_data': formdata
 	    });
 	}
-	if(this_a_google_docs_save(request)) {
-	    writingjs_ajax({
+	if(this_a_google_docs_save(request)){
+	    event = {
 		'event_type': 'google_docs_save',
 		'doc_id':  googledocs_id_from_url(request.url),
 		'bundles': JSON.parse(formdata.bundles),
 		'rev': formdata.rev,
 		'timestamp': parseInt(request.timeStamp, 10)
-	    });
+	    };
+	    chrome.extension.getBackgroundPage().console.log("Google Docs keypress");
+	    chrome.extension.getBackgroundPage().console.log(event);
+	    writingjs_ajax(event);
+	} else {
+	    chrome.extension.getBackgroundPage().console.log("Not a save");
 	}
+	
     },
     { urls: ["*://docs.google.com/*"/*, "*://mail.google.com/*"*/] },
     ['requestBody']
 )
+
+chrome.runtime.onMessage.addListener(
+    function(request, sender, sendResponse) {
+	chrome.extension.getBackgroundPage().console.log("Got message");
+	chrome.extension.getBackgroundPage().console.log(request);
+	writingjs_ajax(request);
+    }
+);
+
 
 /*chrome.tabs.executeScript({
     code: 'console.log("addd")'
@@ -97,3 +96,5 @@ writingjs_ajax({"Loaded now": true});
 chrome.identity.getProfileUserInfo(function callback(userInfo) {
     writingjs_ajax(userInfo);
 });
+
+chrome.extension.getBackgroundPage().console.log("Loaded");
