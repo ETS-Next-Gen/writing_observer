@@ -2,47 +2,46 @@
 Page script. This is injected into each web page on associated web sites.
 */ 
 
+/* For debugging purposes: we know the extension is active */
 document.body.style.border = "5px solid blue";
 
-var writing_lasthash = "";
-function unique_id() {
-    var shaObj = new jsSHA("SHA-256", "TEXT");
-    shaObj.update(writing_lasthash);
-    shaObj.update(Math.random().toString());
-    shaObj.update(Date.now().toString());
-    shaObj.update(document.cookie);
-    shaObj.update("NaCl");
-    shaObj.update(window.location.href);
-    writing_lasthash = shaObj.getHash("HEX");
-    return writing_lasthash;
-}
-
 function doc_id() {
+    /*
+      Extract the Google document ID from the window
+     */
     return googledocs_id_from_url(window.location.href);
 }
 
 function this_is_a_google_doc() {
+    /*
+      Returns 'true' if we are in a Google Doc
+     */
     return window.location.href.search("://docs.google.com/") != -1;
 }
 
-function log_event(event) {
+function log_event(event_type, event) {
+    /*
+      We pass an event, annotated with the page document ID and title,
+      to the background script
+    */
+    event["title"] = google_docs_title();
+    event["doc_id"] = doc_id();
+    event['date'] = new Date().toLocaleString('en-US');
+
     chrome.runtime.sendMessage(event);
-    //writingjs_ajax(event);
 }
 
 function writing_eventlistener(event) {
+    /*
+      Listen for keystroke events, and pass them back to the background page.
+     */
     var event_data = {};
     event_data["event_type"] = "keypress";
     properties = ['altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode', 'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'timeStemp', 'type'];
     for (var property in properties) {
 	event_data[properties[property]] = event[properties[property]];
     }
-    event_data['date'] = new Date().toLocaleString('en-US');
-    event_data['doc_id'] = doc_id();
-    console.log(event_data['url']);
-
-    console.log(JSON.stringify(event_data));
-    log_event(event_data);
+    log_event("keystroke", event_data);
 }
 
 
@@ -59,7 +58,6 @@ for(iframe in iframes){
 	iframes[iframe].contentDocument.addEventListener("keyup", writing_eventlistener);
     }
 }
-
 
 function gmail_text() {
     /*
@@ -142,10 +140,12 @@ function google_docs_version_history() {
 	    var first_revision = tiles.firstRev;
 	    var last_revision = tiles.tileInfo[tiles.tileInfo.length - 1].end;
 	    version_history_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/load?id="+doc_id()+"&start="+first_revision+"&end="+last_revision;
-	    console.log(version_history_url);
 	    fetch(version_history_url).then(function(history_response) {
 		history_response.text().then(function(history_text) {
-		    console.log(history_text);
+		    log_event(
+			"document_history",
+			{'history': history_text}
+		    )
 		});
 	    });
 	});
@@ -163,17 +163,11 @@ function google_docs_version_history() {
 
 function writing_onload() {
     if(this_is_a_google_doc()) {
-	log_event({
-	    "event_type": "Google Docs loaded",
-	    "partial_text": google_docs_partial_text(),
-	    //    "partial_html": google_docs_partial_html(),
-	    "title": google_docs_title(),
-	    "doc_id": doc_id
+	log_event("document_loaded", {
+	    "partial_text": google_docs_partial_text()
 	})
 	google_docs_version_history();
     }
 }
 
 window.addEventListener("load", writing_onload);
-
-console.log(unique_id());
