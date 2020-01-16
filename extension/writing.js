@@ -5,6 +5,14 @@ Page script. This is injected into each web page on associated web sites.
 /* For debugging purposes: we know the extension is active */
 document.body.style.border = "5px solid blue";
 
+/* On startup, log the identity information the browser has. We want oauth at some point, but 
+   perhaps not at all points. */
+chrome.identity.getProfileInfo(function(userInfo)) {
+    log_event("chrome_identity", {"email": userInfo.email,
+				  "id": userInfo.id
+				 });
+}
+
 function doc_id() {
     /*
       Extract the Google document ID from the window
@@ -144,22 +152,13 @@ function google_docs_version_history() {
 		history_response.text().then(function(history_text) {
 		    log_event(
 			"document_history",
-			{'history': history_text}
-		    )
+			{'history': JSON.parse(history_text.substring(4))}
+		    );
 		});
 	    });
 	});
     });
 }
-
-// https://docs.google.com/document/d/1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU/revisions/load?id=1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU&start=1&end=300
-
-// {"tileInfo":[{"start":1,"end":1,"endMillis":1565618108628,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"DXjr1gUIKJye-Q"},{"start":2,"end":25,"endMillis":1565618606428,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"tzzZJD5qs1k8YQ"},{"start":26,"end":26,"endMillis":1565687165389,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"EFaHxMq5RwIbiA"},{"start":27,"end":131,"endMillis":1565887557347,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"IktkTE-OHb_a4w"},{"start":132,"end":199,"endMillis":1565895985511,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"4-jj6h3QR26WOA"},{"start":200,"end":238,"endMillis":1565906888993,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"u3yYJvJBiVfImg"},{"start":239,"end":243,"endMillis":1566036118386,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"fGom_rH071Lfzg"},{"start":244,"end":248,"endMillis":1566692983735,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"sxMGFwhfT9Akbg"},{"start":249,"end":262,"endMillis":1566748493846,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"Rya8bp1glL8XtQ"},{"start":263,"end":266,"endMillis":1566814345191,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"K7B8GTV1UvSR_g"},{"start":267,"end":268,"endMillis":1566830127167,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"jEfJ5MRCmwhZlg"},{"start":269,"end":301,"endMillis":1566838256185,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"uy2uqc9q0pBQnQ"},{"start":302,"end":302,"endMillis":1566840996445,"users":["10308288613201963581"],"systemRevs":[],"expandable":false,"revisionMac":"pAikpOJ2fomhZg"},{"start":303,"end":307,"endMillis":1566849461292,"users":["10308288613201963581"],"systemRevs":[],"expandable":true,"revisionMac":"OR8lknfQhBqmuQ"}],"userMap":{"10308288613201963581":{"name":"Piotr Mitros","photo":"//lh3.googleusercontent.com/a-/AAuE7mBPq-BL5P1ZZg1N0mh9BPLSSkgBqeN3wnLVH0tZ\u003ds50-c-k-no","defaultPhoto":false,"color":"#26A69A","anonymous":false}},"firstRev":1}
-
-// cookie: S=documents=-0139lI8XPtj5RlM3yMiSMm65NpEPhb1; SID=nAd7sht2a_QMpTbmZR0YK3gCseKEBX_ie8HEMZIDsv9btLkzJuNKN15D4IzbSWAL8eym7Q.; HSID=APez4e6AmTL1EVx2o; SSID=Az1RQ_epFl_39Hmwk; APISID=DY4P1zvmTBZhHgP5/A1yeGjd8U74GTzJ-x; SAPISID=yGBiRuDtlmqqwzs4/AsINvELYvon8jWvGt; ANID=AHWqTUk__nHk8xzlNlnhj60_p6JhVxs6Q7-kDkQvaG82i-nU7_PG1q2K0i96y5S9; SEARCH_SAMESITE=CgQI1o0B; S=explorer=PDpeyuS6wzjoz7SlIiZ9Y6dAiLQ0AGKP; NID=188=ZppA1vlmd9N7uDI7Re0NOBuGAAi9Fgv5CYEMw1y0akPcMuSHTIBmd_MWivVercGRr-ZCOIadtyhK8Rm9ZUzcqwAzJOeXGnALMqpuPamh0lQguPPZjjldOckFCaPSrICJUCZ4zW31hAyGNBtPMFe-SYe6UdIBN_k5DlsprTZDUc_fmFpMbgEwlGG_kIKyonhpWX4OdkaUYPLJJCYqCNrJSEA3YpLkTFyY5ArVd2HthIyd7UpshgxAYw1lqh_XHIEe1Kb4v2rSeS9IuOl70CoOqydi69b6N5bjoGc2qi_QZeFmSLp-RU72XYpcGVB5dNVC-mvUsNzfRQaUyaonl7I44_R6Off6aZ3TwiOe5ZnPxw2BiqdPqsE3CgeZi4ZdSw3JXXPliNMlvt9IIwuQ7aDzaGbLH-CFueO6g8B92JDGcJ0P; 1P_JAR=2019-8-26-19; SIDCC=AN0-TYvNZxiSjuj5_gFXAjiyFnr1RDCQjEedbdU0SHElyA1F12Cek9tYKjiDrDJhOdX7YvQb_lfPVg; GFE_RTT=71
-
-// }
-
 
 function writing_onload() {
     if(this_is_a_google_doc()) {
