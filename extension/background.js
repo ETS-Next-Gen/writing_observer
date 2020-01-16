@@ -35,18 +35,26 @@ function dequeue_events() {
 
 function reset_websocket() {
     if((webSocket == null) || (webSocket.readyState != 1) ) {
-	webSocket = new WebSocket("wss://test.mitros.org/wsapi/");
+	webSocket = new WebSocket("wss://writing.hopto.org/wsapi/");
 	webSocket.onopen = dequeue_events;
     }
 }
 
 function enqueue_event(event) {
-    event_queue.push(event);
-    dequeue_events();
+    if(EXPERIMENTAL_WEBSOCKET) {
+	event_queue.push(event);
+	dequeue_events();
+    }
+    else {
+	writingjs_ajax(event)
+    }
 }
 
 enqueue_event({"event": "extension_loaded"});
-reset_websocket();
+
+if(EXPERIMENTAL_WEBSOCKET) {
+    reset_websocket();
+}
 
 function this_a_google_docs_save(request) {
     /* 

@@ -11,7 +11,7 @@ import tornado.web
 import asyncio
 import asyncpg
 
-import orm
+# import orm
 
 class MainHandler(tornado.web.RequestHandler):
     def set_default_headers(self): 

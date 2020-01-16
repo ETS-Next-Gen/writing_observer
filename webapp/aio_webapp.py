@@ -6,7 +6,7 @@ from aiohttp import web
 import aiohttp_cors
 from aiohttp.web import middleware
 
-import orm
+# import orm
 
 async def debug_signal(request, handler):
     print(request)

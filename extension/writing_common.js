@@ -1,4 +1,6 @@
-var WRITINGJS_SERVER = "https://test.mitros.org/webapi/";
+var WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
+var WRITINGJS_WSS_SERVER = "https://writing.hopto.org/webapi/";
+var EXPERIMENTAL_WEBSOCKET = false;
 
 function writingjs_ajax(data) {
     /*
@@ -12,7 +14,7 @@ function writingjs_ajax(data) {
 
     httpRequest = new XMLHttpRequest();
     //httpRequest.withCredentials = true;
-    httpRequest.open("POST", WRITINGJS_SERVER);
+    httpRequest.open("POST", WRITINGJS_AJAX_SERVER);
     httpRequest.send(JSON.stringify(data));
 }
 
