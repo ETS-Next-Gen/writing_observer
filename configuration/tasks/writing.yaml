@@ -37,6 +37,11 @@
   - libjpeg-dev
   - python3-opencv
   - python3-virtualenv
+  - python3-aiohttp
+  - python3-aiohttp-cors
+  - python3-tornado
+  - python3-yaml
+  - python3-asyncpg
 
 - name: Server
   apt: name={{ item }} 
