@@ -43,3 +43,4 @@
   with_items:
   - postgresql
   - nginx
+  - certbot
