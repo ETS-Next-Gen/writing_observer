@@ -1,0 +1,44 @@
+- apt: upgrade=dist update_cache=yes
+
+- name: Basic utils
+  apt: name={{ item }} 
+  with_items:
+  - curl
+  - emacs
+  - git
+  - git-core
+  - git-core
+  - links
+  - lynx
+  - mosh
+  - nmap
+  - whois
+  - screen
+  - wipe
+  - build-essential
+  - awscli
+
+- name: Python
+  apt: name={{ item }} 
+  with_items:
+  - ipython3
+  - libxml2-dev
+  - libxslt1-dev
+  - python3-boto
+  - python3-bson
+  - python3-dev
+  - python3-matplotlib
+  - python3-numpy
+  - python3-pandas
+  - python3-pip
+  - python3-scipy
+  - python3-setuptools
+  - python3-sklearn
+  - virtualenvwrapper
+  - libjpeg-dev
+  - python3-opencv
+  - python3-virtualenv
+
+- name: Server
+  - postgresql
+  - nginx
