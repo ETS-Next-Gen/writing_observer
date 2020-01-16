@@ -40,5 +40,7 @@
   - python3-virtualenv
 
 - name: Server
+  apt: name={{ item }} 
+  with_items:
   - postgresql
   - nginx
