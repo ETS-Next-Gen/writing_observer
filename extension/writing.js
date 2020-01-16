@@ -7,11 +7,11 @@ document.body.style.border = "5px solid blue";
 
 /* On startup, log the identity information the browser has. We want oauth at some point, but 
    perhaps not at all points. */
-chrome.identity.getProfileInfo(function(userInfo)) {
+/*chrome.identity.getProfileInfo(function(userInfo) {
     log_event("chrome_identity", {"email": userInfo.email,
 				  "id": userInfo.id
 				 });
-}
+});*/
 
 function doc_id() {
     /*
