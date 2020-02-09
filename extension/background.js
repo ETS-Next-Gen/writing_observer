@@ -2,28 +2,52 @@
 Background script. This works across all of Google Chrome. 
 */
 
+
 var event_queue = [];
+
+/* To avoid race conditions, we keep track of events we've successfully sent */
+var sent_events = new Set();
+
 var webSocket = null;
 
-/* On startup, log the identity information the browser has. We want oauth at some point, but 
-   perhaps not at all points. */
-/*chrome.identity.getProfileInfo(function(userInfo) {
-    log_event("chrome_identity", {"email": userInfo.email,
-				  "id": userInfo.id
-				 });
-});*/
+//var WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
+//var WRITINGJS_WSS_SERVER = "https://writing.hopto.org/webapi/";
 
-var WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
-var WRITINGJS_WSS_SERVER = "https://writing.hopto.org/webapi/";
+var WRITINGJS_AJAX_SERVER = null;
+
 var EXPERIMENTAL_WEBSOCKET = false;
 
+/*
+  FSM
 
-chrome.storage.sync.get(['process-server'], function(result) {
-    var WRITINGJS_AJAX_SERVER = result['process-server'];
-    if(!WRITINGJS_AJAX_SERVER) {
-	WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
-    }
-});
+  +----------------------+
+  | Load server settings |
+  | from chrome.storage  |
+  +----------------------+
+            |
+            v
+  +-------------------+
+  | Connect to server |
+  +-------------------+
+
+    Load events queue 
+   from chrome.storage
+
+
+Dequeue events
+*/
+
+function dequeue_events() {
+/*    while(event_queue.length > 0) {
+	if((webSocket == null) || (webSocket.readyState != 1) ) {
+	    window.setTimeout(reset_websocket, 1000);
+	    return;
+	}
+	var event = event_queue.shift();
+	webSocket.send(JSON.stringify(event));
+    }*/
+}
+
 
 function writingjs_ajax(data) {
     /*
@@ -41,41 +65,6 @@ function writingjs_ajax(data) {
     httpRequest.send(JSON.stringify(data));
 }
 
-var writing_lasthash = "";
-function unique_id() {
-    /*
-      This function is used to generate a (hopefully) unique ID for
-      each event.
-    */
-    var shaObj = new jsSHA("SHA-256", "TEXT");
-    shaObj.update(writing_lasthash);
-    shaObj.update(Math.random().toString());
-    shaObj.update(Date.now().toString());
-    shaObj.update(document.cookie);
-    shaObj.update("NaCl");
-    shaObj.update(window.location.href);
-    writing_lasthash = shaObj.getHash("HEX");
-    return writing_lasthash;
-}
-
-function dequeue_events() {
-    while(event_queue.length > 0) {
-	if((webSocket == null) || (webSocket.readyState != 1) ) {
-	    window.setTimeout(reset_websocket, 1000);
-	    return;
-	}
-	var event = event_queue.shift();
-	webSocket.send(JSON.stringify(event));
-    }
-}
-
-function reset_websocket() {
-    if((webSocket == null) || (webSocket.readyState != 1) ) {
-	webSocket = new WebSocket("wss://writing.hopto.org/wsapi/");
-	webSocket.onopen = dequeue_events;
-    }
-}
-
 function enqueue_event(event) {
     if(EXPERIMENTAL_WEBSOCKET) {
 	event_queue.push(event);
@@ -86,10 +75,33 @@ function enqueue_event(event) {
     }
 }
 
-enqueue_event({"event": "extension_loaded"});
 
-if(EXPERIMENTAL_WEBSOCKET) {
-    reset_websocket();
+
+
+function send_chrome_identity() {
+    /* 
+       We sometimes may want to log the user's identity, as stored in
+       Google Chrome. Note that this is not secure; we need oauth to do
+       that. oauth can be distracting in that (at least in the workflow
+       we used), it requires the user to confirm permissions. 
+
+       Perhaps want to do oauth exactly once per device, and use a
+       unique token stored as a cookie or in browser.storage?
+
+       Note this function is untested, following a refactor.
+    */
+    chrome.identity.getProfileInfo(function(userInfo) {
+	enqueue_event("chrome_identity", {"email": userInfo.email,
+					  "id": userInfo.id
+					 });
+    });
+}
+
+function reset_websocket() {
+    if((webSocket == null) || (webSocket.readyState != 1) ) {
+	webSocket = new WebSocket("wss://writing.hopto.org/wsapi/");
+	webSocket.onopen = dequeue_events;
+    }
 }
 
 function this_a_google_docs_save(request) {
@@ -106,6 +118,26 @@ function this_a_google_docs_save(request) {
 
 var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. Perhaps this should be a cookie or browser.storage? 
 
+// Figure out the system settings. Note this is asynchronous, so we
+// chain dequeue_events when this is done.
+chrome.storage.sync.get(['process-server'], function(result) {
+    //WRITINGJS_AJAX_SERVER = result['process-server'];
+    if(!WRITINGJS_AJAX_SERVER) {
+	WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
+    }
+    dequeue_events();
+});
+
+// Listen for the keystroke messages from the page script and forward to the server.
+chrome.runtime.onMessage.addListener(
+    function(request, sender, sendResponse) {
+	chrome.extension.getBackgroundPage().console.log("Got message");
+	chrome.extension.getBackgroundPage().console.log(request);
+	enqueue_event(request);
+    }
+);
+
+// Listen for web loads, and forward relevant ones (e.g. saves) to the server.
 chrome.webRequest.onBeforeRequest.addListener(
     /*
       This allows us to log web requests. There are two types of web requests:
@@ -168,23 +200,13 @@ chrome.webRequest.onBeforeRequest.addListener(
     ['requestBody']
 )
 
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-	chrome.extension.getBackgroundPage().console.log("Got message");
-	chrome.extension.getBackgroundPage().console.log(request);
-	enqueue_event(request);
-    }
-);
+// Let the server know we've loaded.
+enqueue_event({"event": "extension_loaded"});
 
-
-/*chrome.tabs.executeScript({
-    code: 'console.log("addd")'
-});*/
-
-enqueue_event({"Loaded now": true});
-
+// Send the server the user info. This might not always be available.
 chrome.identity.getProfileUserInfo(function callback(userInfo) {
     enqueue_event(userInfo);
 });
 
+// And let the console know we've loaded
 chrome.extension.getBackgroundPage().console.log("Loaded");
