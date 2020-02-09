@@ -1,23 +1,28 @@
 /* 
-Page script. This is injected into each web page on associated web sites.
+   Page script. This is injected into each web page on associated web sites.
 */ 
 
 /* For debugging purposes: we know the extension is active */
 document.body.style.border = "5px solid blue";
 
-/* On startup, log the identity information the browser has. We want oauth at some point, but 
-   perhaps not at all points. */
-/*chrome.identity.getProfileInfo(function(userInfo) {
-    log_event("chrome_identity", {"email": userInfo.email,
-				  "id": userInfo.id
-				 });
-});*/
+function log_error(error_string) {
+    /* 
+       We should send errors to the server, but for now, we
+       log to the console.
+     */ 
+    console.log(error_string);
+}
 
 function doc_id() {
     /*
       Extract the Google document ID from the window
-     */
-    return googledocs_id_from_url(window.location.href);
+    */
+    try {
+	return googledocs_id_from_url(window.location.href);
+    } catch(error) {
+	log_error("Couldn't read document id");
+	return null;
+    }
 }
 
 function this_is_a_google_doc() {
@@ -87,9 +92,16 @@ function gmail_text() {
 
 function google_docs_title() {
     /*
-      Return the title of a Google Docs document
-     */
-    return document.getElementsByClassName("docs-title-input")[0].value;
+      Return the title of a Google Docs document.
+
+      Note this is not guaranteed 100% reliable.
+    */
+    try {
+	return document.getElementsByClassName("docs-title-input")[0].value;
+    } catch(error) {
+	log_error("Couldn't read document title");
+	return null;
+    }
 }
 
 function google_docs_partial_text() {
@@ -99,7 +111,12 @@ function google_docs_partial_text() {
       pages may be lazy-loaded. The text omits formatting, which is
       helpful for many types of analysis
      */
-    return document.getElementsByClassName("kix-page")[0].innerText;
+    try {
+	return document.getElementsByClassName("kix-page")[0].innerText;
+    } catch(error) {
+	log_error("Could get document text");
+	return null;
+    }
 }
 
 function google_docs_partial_html() {

@@ -5,6 +5,14 @@ Background script. This works across all of Google Chrome.
 var event_queue = [];
 var webSocket = null;
 
+/* On startup, log the identity information the browser has. We want oauth at some point, but 
+   perhaps not at all points. */
+/*chrome.identity.getProfileInfo(function(userInfo) {
+    log_event("chrome_identity", {"email": userInfo.email,
+				  "id": userInfo.id
+				 });
+});*/
+
 var writing_lasthash = "";
 function unique_id() {
     /*

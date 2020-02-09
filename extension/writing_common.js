@@ -2,6 +2,14 @@ var WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
 var WRITINGJS_WSS_SERVER = "https://writing.hopto.org/webapi/";
 var EXPERIMENTAL_WEBSOCKET = false;
 
+
+chrome.storage.sync.get(['process-server'], function(result) {
+    var WRITINGJS_AJAX_SERVER = result['process-server'];
+    if(!WRITINGJS_AJAX_SERVER) {
+	WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
+    }
+});
+
 function writingjs_ajax(data) {
     /*
       Helper function to send a logging AJAX request to the server.

@@ -10,7 +10,7 @@
 
     "browser_action": {
 	"default_title": "Writing Process",
-	"default_popup": "popup/settings.html",
+	"default_popup": "pages/settings.html",
 	"default_icon": {
 	    "48": "icons/lousy-fountain-pen-48.png"
 	}
@@ -34,5 +34,9 @@
     ],
     "icons": {
 	"48": "icons/lousy-fountain-pen-48.png"
+    },
+    "options_ui": {
+	"page": "pages/options.html",
+	"chrome_style": true
     }
 }
