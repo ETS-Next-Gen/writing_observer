@@ -14,7 +14,6 @@ var webSocket = null;
 //var WRITINGJS_WSS_SERVER = "https://writing.hopto.org/webapi/";
 
 var WRITINGJS_AJAX_SERVER = null;
-
 var EXPERIMENTAL_WEBSOCKET = false;
 
 /*
@@ -38,7 +37,16 @@ Dequeue events
 */
 
 function dequeue_events() {
-/*    while(event_queue.length > 0) {
+    // If we have not yet initialized, we rely on the queue to be
+    // flushed once we are initialized.
+    if(!WRITINGJS_AJAX_SERVER) {
+	return
+    }
+    while(event_queue.length > 0) {
+	writingjs_ajax(event_queue.shift());
+    }
+    /*
+	if(EXPERIMENTAL_WEBSOCKET) {
 	if((webSocket == null) || (webSocket.readyState != 1) ) {
 	    window.setTimeout(reset_websocket, 1000);
 	    return;
@@ -66,17 +74,9 @@ function writingjs_ajax(data) {
 }
 
 function enqueue_event(event) {
-    if(EXPERIMENTAL_WEBSOCKET) {
-	event_queue.push(event);
-	dequeue_events();
-    }
-    else {
-	writingjs_ajax(event)
-    }
+    event_queue.push(event);
+    dequeue_events();
 }
-
-
-
 
 function send_chrome_identity() {
     /* 
