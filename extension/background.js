@@ -2,19 +2,14 @@
 Background script. This works across all of Google Chrome. 
 */
 
+var WRITINGJS_AJAX_SERVER = null;
+
+var webSocket = null;
+var EXPERIMENTAL_WEBSOCKET = false;
+
 
 var event_queue = [];
 
-/* To avoid race conditions, we keep track of events we've successfully sent */
-var sent_events = new Set();
-
-var webSocket = null;
-
-//var WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
-//var WRITINGJS_WSS_SERVER = "https://writing.hopto.org/webapi/";
-
-var WRITINGJS_AJAX_SERVER = null;
-var EXPERIMENTAL_WEBSOCKET = false;
 
 /*
   FSM
