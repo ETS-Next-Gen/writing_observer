@@ -47,8 +47,10 @@ function zip(a1, a2) {
     });
 }
 
-function make_deanne_graph(div) {
-    var svg = d3.select(div).append("svg")
+export const name = 'deanne3';
+
+export function deanne_graph(div) {
+    var svg = div.append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "-"
             + adj + " -"
@@ -78,7 +80,7 @@ function make_deanne_graph(div) {
 	.attr("transform", "translate(0, "+height+")")
 	.attr('class', 'x axis') // specify classes
 	.call(xAxis);            // let the axis do its thing
-    
+
     svg.append('g')              // create a <g> element
 	.attr('class', 'y axis') // specify classes
 	.call(yAxis);            // let the axis do its thing
@@ -86,11 +88,11 @@ function make_deanne_graph(div) {
     var lines = d3.line();
 
     var length_data = zip(x_edit.map(xScale), y_length.map(yScale));
-    
+
     var cursor_data = zip(x_edit.map(xScale), y_cursor.map(yScale));
-    
+
     var pathData = lines(length_data);
-    
+
     svg.append('g')                           // create a <g> element
 	.attr('class', 'essay-length lines')
 	.append('path')
@@ -98,9 +100,9 @@ function make_deanne_graph(div) {
 	.attr('fill', 'none')
 	.attr('stroke', 'black')
 	.attr('stroke-width','3');
-    
+
     pathData = lines(cursor_data);
-    
+
     svg.append('g')                           // create a <g> element
 	.attr('class', 'essay-length lines')
 	.append('path')
@@ -108,6 +110,8 @@ function make_deanne_graph(div) {
 	.attr('fill', 'none')
 	.attr('stroke', 'black')
 	.attr('stroke-width','3');
+    
+    return svg;
 }
 
-make_deanne_graph("#deanne")
+d3.select("#deanne").call(deanne_graph).call(console.log);
