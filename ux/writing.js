@@ -41,7 +41,7 @@ function select_tab(tab) {
     }
 };
 
-var tabs = ["typing", "deanne", "summary", "outline", "revision", "contact"];
+var tabs = ["typing", "deanne", "summary", "outline", "timeline", "contact"];
 for(var i=0; i<tabs.length; i++) {
     d3.select(".tilenav-"+tabs[i]).on("click", select_tab(tabs[i]));
 }
