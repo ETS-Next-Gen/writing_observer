@@ -1,3 +1,11 @@
+.wa-row-tile {
+    min-height: 350px;
+}
+
+.wa-col-tile {
+    min-height: 350px;
+}
+
 /* Flip based on https://davidwalsh.name/css-flip */
 .wa-flip-container {
     perspective: 1000px;

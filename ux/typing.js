@@ -26,7 +26,7 @@ export function typing(div, ici=200, text=SAMPLE_TEXT) {
 
     var start = 0;
     var stop = 1;
-    const MAXIMUM_LENGTH = 300;
+    const MAXIMUM_LENGTH = 250;
 
     function updateText() {
 	//document.getElementsByClassName("typing")[0].innerText=text.substr(start, stop-start);

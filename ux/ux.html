@@ -19,9 +19,47 @@
     <meta charset="utf-8">
     <title> Writing Analysis </title>
     <!--link rel="stylesheet" href="da.css"/-->
-    </style>
   </head>
   <body>
+    <script id="template-tile" type="x-tmpl">
+      <div class="tile is-parent">
+	<article class="tile is-child box">
+	  <nav class="level">
+	    <div class="level-left"><a href="https://voice.google.com/u/0/calls?a=nc,%2B{{phone}}"><span class="icon"> <i class="fas fa-phone-square"></i> </span></a> </div>
+	    <div class="level-item"><p class="title">{{name}}</p></div>
+	    <div class="level-right"><span class="icon"> <i class="fas fa-expand"></i> </span></div>
+	  </nav>
+	  <div class="typing wa-tilebody">
+	    <p><span class="typing-text"></span>❙</p>
+	  </div>
+	  <div class="deanne is-hidden wa-tilebody">
+	  </div>
+	  <div class="contact is-hidden wa-tilebody">
+	    <p> <a href="mailto:{{email}}"> <span class="icon"> <i class="fas fa-envelope"></i> </span> {{email}}</a> <img src="media/hubspot/{{avatar}}" height="40%" width="40%" align="right"/><br> 
+	      <a href="https://voice.google.com/u/0/calls?a=nc,%2B{{phone}}"><span class="icon"> <i class="fas fa-phone-square"></i> </span> {{phone}}</a> </p>
+	      {{address}} <br>
+	    <span class="icon">
+	      <i class="fas fa-facebook-square"></i>
+	    </span>
+	  </div>
+	</article>
+      </div>
+    </script>
+
+    <script id="template-typing-tile" type="x-tmpl">
+    </script>
+
+    <script id="template-outline-tile" type="x-tmpl">
+    </script>
+
+    <script id="template-deanne-tile" type="x-tmpl">
+    </script>
+
+    <script id="template-revisions-tile" type="x-tmpl">
+    </script>
+
+    <script id="template-revisions-contact" type="x-tmpl">
+    </script>
 
     <nav class="navbar" role="navigation" aria-label="main navigation">
       <div class="navbar-brand">
@@ -57,15 +95,14 @@
             </div>
 	  </div>
 	</div>
-	
       </div>
     </nav>
-    
+
     <section class="section">
       <div class="container">
 	<div class="tabs">
 	  <ul>
-	    <li class="is-active tilenav tilenav-current"><a><span class="icon"><i class="fas fa-edit"></i></span>Current Writing</a></li>
+	    <li class="is-active tilenav tilenav-typing"><a><span class="icon"><i class="fas fa-edit"></i></span>Current Typing</a></li>
 	    <li class="tilenav tilenav-deanne"><a><span class="icon"><i class="fas fa-chart-line"></i></span>Deanne Graphs</a></li>
 	    <li class="tilenav tilenav-summary"><a><span class="icon"><i class="fas fa-chart-bar"></i></span>Summary Stats</a></li>
 	    <li class="tilenav tilenav-outline"><a><span class="icon"><i class="fas fa-list"></i></span>Outlines</a></li>
@@ -73,28 +110,28 @@
 	    <li class="tilenav tilenav-contact"><a><span class="icon"><i class="fas fa-address-card"></i></span>Contact</a></li>
 	  </ul>
 	</div>
-	
+	<div class="wa-tile-sheet">
 	<div class="tile is-ancestor" style="min-height:350px;">
 	  <div class="tile is-parent wa-flip-container">
 	    <article class="tile is-child box wa-flipper">
 	      <div>
-	      <div class="wa-front">
-		<nav class="level">
-		  <div class="level-item has-text-left">
-	            <p class="title has-text-left">Helene</p>
-		  </div>
-		  <div class="level-item">
-	            <p class="has-text-right">
-		      <a><span class="icon"><i class="fas fa-edit"></i></span></a>
-		    </p>
-		  </div>
-		</nav>
-		<p><span class="typing"></span>❙</p>
-	      </div>
+		<div class="wa-front">
+		  <nav class="level">
+		    <div class="level-item has-text-left">
+	              <p class="title has-text-left">Helene</p>
+		    </div>
+		    <div class="level-item">
+	              <p class="has-text-right">
+			<a><span class="icon"><i class="fas fa-edit"></i></span></a>
+		      </p>
+		    </div>
+		  </nav>
+		  <p><span class="typing"></span>❙</p>
+		</div>
 	      </div>
 	      <!--div class="wa-back">
-		This is the back
-	      </div-->
+		  This is the back
+		  </div-->
 	    </article>
 	  </div>
 	  <div class="tile is-parent">
@@ -130,118 +167,116 @@
 	    </article>
 	  </div>
 	</div>
-	
-      	<div class="tile is-ancestor">
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">One</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Two</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Three</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Four</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	</div>
-	
-      	<div class="tile is-ancestor">
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">One</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Two</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Three</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Four</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	</div>
-	
-      	<div class="tile is-ancestor">
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">One</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Two</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Three</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Four</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	</div>
-	
-      	<div class="tile is-ancestor">
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">One</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Two</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Three</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	  <div class="tile is-parent">
-	    <article class="tile is-child box">
-	      <p class="title">Four</p>
-	      <p class="subtitle">Subtitle</p>
-	    </article>
-	  </div>
-	</div>
-	
 
-	
-      </div>
+      	<div class="tile is-ancestor">
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">One</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Two</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Three</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Four</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	</div>
+
+      	<div class="tile is-ancestor">
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">One</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Two</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Three</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Four</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	</div>
+
+      	<div class="tile is-ancestor">
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">One</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Two</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Three</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Four</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	</div>
+
+      	<div class="tile is-ancestor">
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">One</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Two</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Three</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	  <div class="tile is-parent">
+	    <article class="tile is-child box">
+	      <p class="title">Four</p>
+	      <p class="subtitle">Subtitle</p>
+	    </article>
+	  </div>
+	</div>
+	</div>
+	</div>
     </section>      
     
   </body>

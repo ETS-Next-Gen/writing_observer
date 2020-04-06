@@ -6,50 +6,9 @@ const margin = 5;
 const padding = 5;
 const adj = 30;
 
-function consecutive_array(n) {
-    /* 
-       This creates an array of length n [0,1,2,3,4...n] 
-     */
-    return Array(n).fill().map((e,i)=>i+1);
-};
+export const name = 'summary_stats';
 
-function randn_bm() {
-    /* Approximately Gaussian distribution, mean 0.5
-       From https://stackoverflow.com/questions/25582882/javascript-math-random-normal-distribution-gaussian-bell-curve */
-    let u = 0, v = 0;
-    while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-    while(v === 0) v = Math.random();
-    let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
-    num = num / 10.0 + 0.5; // Translate to 0 -> 1
-    if (num > 1 || num < 0) return randn_bm(); // resample between 0 and 1
-    return num;
-}
-
-
-function length_array(x) {
-    /*
-      Essay length
-     */
-    return x.map((e,i)=> (e*randn_bm(e) + e)/2);
-}
-
-function cursor_array(x) {
-    /*
-      Essay cursor position
-     */
-    var length_array = x.map((e,i)=> (e*Math.random()/2 + e*randn_bm()/2));
-    return length_array;
-}
-
-function zip(a1, a2) {
-    return a1.map(function(e, i) {
-	return [e, a2[i]];
-    });
-}
-
-export const name = 'deanne3';
-
-export function deanne_graph(div) {
+export function summary_stats(div) {
     var svg = div.append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "-"
@@ -62,11 +21,15 @@ export function deanne_graph(div) {
       .style("border", "1px solid lightgray")
       .classed("svg-content", true);
 
-    var x_edit = consecutive_array(LENGTH);
-    var y_length = length_array(x_edit);
-    var y_cursor = cursor_array(y_length);
-
-
+    data = {
+	'Active Time': 901,
+	'Date Started': 5,
+	'Characters Typed': 4065,
+	'Text Complexity': 8,
+	'Time Since Last Edit': 3,
+	'Word Count': 678
+    };
+    
     const yScale = d3.scaleLinear().range([height, 0]).domain([0, LENGTH])
     const xScale = d3.scaleLinear().range([0, width]).domain([0, LENGTH])
 
@@ -114,4 +77,4 @@ export function deanne_graph(div) {
     return svg;
 }
 
-d3.select("#debug_testing_deanne").call(deanne_graph).call(console.log);
+d3.select("#debug_testing_summary").call(summary_stats).call(console.log);
