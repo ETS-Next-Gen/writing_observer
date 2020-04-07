@@ -1,5 +1,7 @@
 import { deanne_graph } from './deanne3.js'
 import { typing } from './typing.js'
+import { summary_stats } from './summary_stats.js'
+import { outline } from './outline.js'
 
 var student_data = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19]];
 
@@ -29,6 +31,12 @@ function populate_tiles(tilesheet) {
 	})
 	.each(function(d) {
 	    d3.select(this).select(".deanne").call(deanne_graph);
+	})
+	.each(function(d) {
+	    d3.select(this).select(".summary").call(summary_stats, d);
+	})
+	.each(function(d) {
+	    d3.select(this).select(".outline").call(outline, d);
 	});
 }
 

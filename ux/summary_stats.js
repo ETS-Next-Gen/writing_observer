@@ -1,14 +1,40 @@
 const LENGTH = 30;
 
 const width = 960;
-const height = 500;
+const height = 650;
 const margin = 5;
 const padding = 5;
 const adj = 30;
 
 export const name = 'summary_stats';
 
-export function summary_stats(div) {
+var bar_names = {
+    "speed": "Typing speed",
+    "essay_length": "Length",
+    "writing_time": "Writing time",
+    "text_complexity": "Text complexity",
+    "time_idle": "Time idle"
+};
+
+var maxima = {
+    "ici": 1000,
+    "speed": 1300,
+    "essay_length": 10000,
+    "writing_time": 60,
+    "text_complexity": 12,
+    "time_idle": 30
+}
+
+var test_data = {
+    "ici": 729.664923175084,
+    "essay_length": 2221,
+    "writing_time": 42.05237247614963,
+    "text_complexity": 4.002656228025943,
+    "time_idle": 0.24548328432300075
+};
+
+
+export function summary_stats(div, data=test_data) {
     var svg = div.append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "-"
@@ -21,59 +47,75 @@ export function summary_stats(div) {
       .style("border", "1px solid lightgray")
       .classed("svg-content", true);
 
-    data = {
-	'Active Time': 901,
-	'Date Started': 5,
-	'Characters Typed': 4065,
-	'Text Complexity': 8,
-	'Time Since Last Edit': 3,
-	'Word Count': 678
-    };
+    data['speed'] = 60000 / data['ici']
     
-    const yScale = d3.scaleLinear().range([height, 0]).domain([0, LENGTH])
-    const xScale = d3.scaleLinear().range([0, width]).domain([0, LENGTH])
+    var data_ordered = [
+	['essay_length', data['essay_length']],
+	['time_idle', data['time_idle']],
+	['writing_time', data['writing_time']],
+	['text_complexity', data['text_complexity']],
+	['speed', data['speed']]
+    ];
 
+    const yScale = d3.scaleBand().range([height, 0]).domain(data_ordered.map(d=>d[0])); //labels);
+    const xScale = d3.scaleLinear().range([0, width]).domain([0, 1])
 
-    var xAxis = d3.axisBottom(xScale)
-	.ticks(4); // specify the number of ticks
-    var yAxis = d3.axisLeft(yScale)
-	.ticks(4); // specify the number of ticks
+    var y = (d) => data[d];
+    var normed_x = (x) => data[x] / maxima[x];
 
-    svg.append('g')              // create a <g> element
-	.attr("transform", "translate(0, "+height+")")
-	.attr('class', 'x axis') // specify classes
-	.call(xAxis);            // let the axis do its thing
+    function rendertime(t) {
+	function str(i) {
+	    if(i<10) {
+		return "0"+String(i);
+	    }
+	    return String(i)
+	}
+	var seconds = Math.floor((t - Math.floor(t)) * 60);
+	var minutes = Math.floor(t) % 60;
+	var hours = Math.floor(t/60) % 60;
+	var rendered = str(seconds);
+	if (minutes>0 || hours>0) {
+	    rendered = str(minutes)+":"+rendered;
+	} else {
+	    rendered = rendered + " sec";
+	}
+	if (hours>0) {
+	    rendered = str(rendered)+":"+rendered;
+	}
+	return rendered
+    }
 
-    svg.append('g')              // create a <g> element
-	.attr('class', 'y axis') // specify classes
-	.call(yAxis);            // let the axis do its thing
+    function label(d) {
+	var prettyprint = {
+	    'essay_length': (d) => String(d) +" characters",
+	    'time_idle': rendertime,
+	    'writing_time': rendertime,
+	    'text_complexity': Math.floor,
+	    'speed': (d) => Math.floor(d) + " CPM"
+	}
+	return bar_names[d[0]] + ": " + prettyprint[d[0]](String(d[1]));
+    }
 
-    var lines = d3.line();
+    svg.selectAll(".barRect")
+	.data(data_ordered)
+	.enter()
+	.append("rect")
+	.attr("x", xScale(0))
+	.attr("y", function(d) { return yScale(d[0]);})
+	.attr("width", function(d) { return xScale(normed_x(d[0]));})
+	.attr("height", yScale.bandwidth())
+	.attr("fill", "#ccccff")
 
-    var length_data = zip(x_edit.map(xScale), y_length.map(yScale));
-
-    var cursor_data = zip(x_edit.map(xScale), y_cursor.map(yScale));
-
-    var pathData = lines(length_data);
-
-    svg.append('g')                           // create a <g> element
-	.attr('class', 'essay-length lines')
-	.append('path')
-	.attr('d', pathData)
-	.attr('fill', 'none')
-	.attr('stroke', 'black')
-	.attr('stroke-width','3');
-
-    pathData = lines(cursor_data);
-
-    svg.append('g')                           // create a <g> element
-	.attr('class', 'essay-length lines')
-	.append('path')
-	.attr('d', pathData)
-	.attr('fill', 'none')
-	.attr('stroke', 'black')
-	.attr('stroke-width','3');
-    
+    svg.selectAll(".barText")
+	.data(data_ordered)
+	.enter()
+	.append("text")
+	.attr("x", 0)
+	.attr("y", (d) => yScale(d[0]) + yScale.bandwidth()/2)
+	.attr("font-size", "3.5em")
+	.attr("font-family", 'BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif')
+	.text((d) => label(d))
+    ;
     return svg;
 }
 
