@@ -35,6 +35,8 @@ var test_data = {
 
 
 export function summary_stats(div, data=test_data) {
+    div.html("");
+    div.append("p").text("In progress -- just piping data in")
     var svg = div.append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "-"
@@ -55,7 +57,7 @@ export function summary_stats(div, data=test_data) {
 	['writing_time', data['writing_time']],
 	['text_complexity', data['text_complexity']],
 	['speed', data['speed']]
-    ];
+    ].reverse();
 
     const yScale = d3.scaleBand().range([height, 0]).domain(data_ordered.map(d=>d[0])); //labels);
     const xScale = d3.scaleLinear().range([0, width]).domain([0, 1])
@@ -101,8 +103,8 @@ export function summary_stats(div, data=test_data) {
 	.enter()
 	.append("rect")
 	.attr("x", xScale(0))
-	.attr("y", function(d) { return yScale(d[0]);})
-	.attr("width", function(d) { return xScale(normed_x(d[0]));})
+	.attr("y", (d) => yScale(d[0]))
+	.attr("width", (d) => xScale(normed_x(d[0])))
 	.attr("height", yScale.bandwidth())
 	.attr("fill", "#ccccff")
 

@@ -69,6 +69,7 @@ function writingjs_ajax(data) {
 }
 
 function enqueue_event(event) {
+    // TODO: Add timestamp, user, etc.
     event_queue.push(event);
     dequeue_events();
 }
@@ -103,9 +104,14 @@ function this_a_google_docs_save(request) {
     /* 
        Check if this is a Google Docs save request. Return true for something like:
        https://docs.google.com/document/d/1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU/save?id=dfhjklhsjklsdhjklsdhjksdhkjlsdhkjsdhsdkjlhsd&sid=dhsjklhsdjkhsdas&vc=2&c=2&w=2&smv=2&token=lasjklhasjkhsajkhsajkhasjkashjkasaajhsjkashsajksas&includes_info_params=true
-       And false otherwise
+       And false otherwise.
+
+       Note that while `save` is often early in the URL, on the first
+       few requests of a web page load, it can be towards the end. We
+       went from a conservative regexp to a liberal one. We should
+       confirm this never catches extra requests, though.
     */
-    if(request.url.match(/.*:\/\/docs\.google\.com\/document\/d\/([^\/]*)\/save/i)) {
+    if(request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/save/i)) {
 	return true;
     }
     return false;
@@ -160,7 +166,7 @@ chrome.webRequest.onBeforeRequest.addListener(
       from there, being able to easily ignore these is nice. 
      */
     function(request) {
-	chrome.extension.getBackgroundPage().console.log("Web request:"+request.url);
+	chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
 	var formdata = {};
 	if(request.requestBody) {
 	    formdata = request.requestBody.formData;
@@ -175,6 +181,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 		'form_data': formdata
 	    });
 	}
+
 	if(this_a_google_docs_save(request)){
 	    chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
 	    console.log(formdata.bundles);
