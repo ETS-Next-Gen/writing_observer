@@ -1,13 +1,25 @@
 import json
 import time
 
+import yaml
+
+import logging
+
 import asyncio
 import aiohttp
 from aiohttp import web
 import aiohttp_cors
 from aiohttp.web import middleware
 
+
 import log_event
+
+creds = yaml.safe_load(open("../creds.yaml"))
+
+import receivexmpp
+
+async def debug_signal(request, handler):
+    print(request)
 
 routes = web.RouteTableDef()
 
@@ -26,9 +38,29 @@ async def hello(request):
         'server': server_data,
         'client': client_data
     }
+    # response = await orm.insert_event (username, docstring, event):
     print(event)
     log_event.log_event(event)
     return web.Response(text="Acknowledged!")
+
+async def incoming_websocket_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            print(msg)
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            print('ws connection closed with exception %s' %
+                  ws.exception())
+
+    print('websocket connection closed')
+    return ws
+
+async def outgoing_websocket_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+    await ws.send_str("Connected")
 
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
@@ -51,12 +83,13 @@ async def websocket_handler(request):
 
 app = web.Application()
 
-
-async def debug_signal(request, handler):
-    print(request)
 app.on_response_prepare.append(debug_signal)
 
-app.add_routes([web.get('/wsapi/', websocket_handler)])
+app.add_routes([
+    web.get('/wsapi/', websocket_handler),
+    web.get('/wsapi/in/', incoming_websocket_handler),
+    web.get('/wsapi/out/', outgoing_websocket_handler)    
+])
 
 app.add_routes([
     web.get('/webapi/', hello),
@@ -70,5 +103,8 @@ cors = aiohttp_cors.setup(app, defaults={
         allow_headers="*",
     )
 })
+
+xmpp = receivexmpp.ReceiveXMPP(creds['xmpp']['sink']['jid'], creds['xmpp']['sink']['password'])
+xmpp.connect()
 
 web.run_app(app, port=8888)
