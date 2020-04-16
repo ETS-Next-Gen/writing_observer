@@ -5,6 +5,9 @@ import yaml
 
 import logging
 
+#logging.basicConfig(level=logging.DEBUG,
+#                    format='%(levelname)-8s %(message)s')
+
 import asyncio
 import aiohttp
 from aiohttp import web
@@ -17,6 +20,7 @@ import log_event
 creds = yaml.safe_load(open("../creds.yaml"))
 
 import receivexmpp
+import sendxmpp
 
 async def debug_signal(request, handler):
     print(request)
@@ -46,10 +50,13 @@ async def hello(request):
 async def incoming_websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
+    xmpp = sendxmpp.SendXMPP(creds['xmpp']['source']['jid'], creds['xmpp']['source']['password'])
+    xmpp.connect()
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
-            print(msg)
+            print(msg.data)
+            xmpp.send_event(mto="sink@localhost", mbody=msg.data)
         elif msg.type == aiohttp.WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
                   ws.exception())
@@ -60,7 +67,16 @@ async def incoming_websocket_handler(request):
 async def outgoing_websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
+    xmpp = receivexmpp.ReceiveXMPP(creds['xmpp']['sink']['jid'], creds['xmpp']['sink']['password'])
+    xmpp.connect()
+    print("Awaiting")
     await ws.send_str("Connected")
+    while True:
+        print("waiting")
+        message = await xmpp.receive()
+        print(message)
+        await ws.send_str(message)
+    await ws.send_str("Done")
 
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
@@ -103,8 +119,5 @@ cors = aiohttp_cors.setup(app, defaults={
         allow_headers="*",
     )
 })
-
-xmpp = receivexmpp.ReceiveXMPP(creds['xmpp']['sink']['jid'], creds['xmpp']['sink']['password'])
-xmpp.connect()
 
 web.run_app(app, port=8888)
