@@ -39,7 +39,7 @@ function log_event(event_type, event) {
     */
     event["title"] = google_docs_title();
     event["doc_id"] = doc_id();
-    event['date'] = new Date().toLocaleString('en-US');
+    event['event'] = event_type
 
     chrome.runtime.sendMessage(event);
 }
@@ -50,10 +50,15 @@ function writing_eventlistener(event) {
      */
     var event_data = {};
     event_data["event_type"] = "keypress";
-    properties = ['altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode', 'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'timeStemp', 'type'];
+    properties = [
+	'altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
+	'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted',
+	'timeStamp', 'type'];
+    var keystroke_data = {};
     for (var property in properties) {
-	event_data[properties[property]] = event[properties[property]];
+	keystroke_data[properties[property]] = event[properties[property]];
     }
+    event['keystroke'] = keystroke_data;
     log_event("keystroke", event_data);
 }
 

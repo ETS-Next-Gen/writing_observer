@@ -68,9 +68,20 @@ function writingjs_ajax(data) {
     httpRequest.send(JSON.stringify(data));
 }
 
-function enqueue_event(event) {
-    // TODO: Add timestamp, user, etc.
+function enqueue_event(event_type, event) {
+    // TODO: Add username
+    event['source'] = 'org.mitros.writing-analytics';
+    event['version'] = 'alpha';
+    event['ts'] = Date.now();
+    event['human_ts'] = Date();
+    event['iso_ts'] = new Date().toISOString;
+    event['event'] = event_type;
+    if(event['wa-source'] = null) {
+	event['wa-source'] = 'background-page';
+    }
+
     event_queue.push(event);
+
     dequeue_events();
 }
 
@@ -134,7 +145,9 @@ chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
 	chrome.extension.getBackgroundPage().console.log("Got message");
 	chrome.extension.getBackgroundPage().console.log(request);
-	enqueue_event(request);
+	console.log(sender);
+	request['wa-source'] = 'client-page';
+	enqueue_event(request['event'], request);
     }
 );
 
@@ -175,8 +188,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 	    formdata = {};
 	}
 	if(RAW_DEBUG) {
-	    enqueue_event({
-		'event_type': 'raw_request',
+	    enqueue_event('raw_http_request', {
 		'url':  request.url,
 		'form_data': formdata
 	    });
@@ -186,14 +198,13 @@ chrome.webRequest.onBeforeRequest.addListener(
 	    chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
 	    console.log(formdata.bundles);
 	    event = {
-		'event_type': 'google_docs_save',
 		'doc_id':  googledocs_id_from_url(request.url),
 		'bundles': JSON.parse(formdata.bundles),
 		'rev': formdata.rev,
 		'timestamp': parseInt(request.timeStamp, 10)
 	    };
 	    chrome.extension.getBackgroundPage().console.log(event);
-	    enqueue_event(event);
+	    enqueue_event('google_docs_save', event);
 	} else {
 	    chrome.extension.getBackgroundPage().console.log("Not a save: "+request.url);
 	}
@@ -203,11 +214,11 @@ chrome.webRequest.onBeforeRequest.addListener(
 )
 
 // Let the server know we've loaded.
-enqueue_event({"event": "extension_loaded"});
+enqueue_event("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
 chrome.identity.getProfileUserInfo(function callback(userInfo) {
-    enqueue_event(userInfo);
+    enqueue_event("google-chrome-identity", userInfo);
 });
 
 // And let the console know we've loaded
