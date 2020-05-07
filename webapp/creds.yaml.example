@@ -1,0 +1,19 @@
+xmpp:
+  sink: # Receives messages. We'll need many of these.
+    jid: sink@localhost
+    password: {xmpp-sink-password}
+  source: # Sends messages.
+    jid: source@localhost
+    password: {xmpp-source-password}
+  stream: # For debugging
+    jid: stream@localhost
+    password: {xmpp-stream-password}
+google-oauth:
+  web:
+    client_id: {google-oauth-client-id},
+    project_id: {google-oauth-project-id},
+    auth_uri: https://accounts.google.com/o/oauth2/auth,
+    token_uri: https://oauth2.googleapis.com/token,
+    auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs,
+    client_secret: {google-client-secret},
+    javascript_origins: ["{url}"]

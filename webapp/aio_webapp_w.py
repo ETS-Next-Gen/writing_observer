@@ -13,7 +13,7 @@ from aiohttp import web
 import aiohttp_cors
 from aiohttp.web import middleware
 
-
+import init
 import log_event
 
 creds = yaml.safe_load(open("../creds.yaml"))
@@ -66,14 +66,26 @@ around several streaming systems:
 This should move into a config file.
 '''
 
-import dynamic_assessment
-import writing_analysis
-
 analytics_modules = {
-    "org.mitros.dynamic-assessment": {'event_processor': dynamic_assessment.process_event},
     "org.mitros.mirror": {'event_processor': lambda x: x},
-    "org.mitros.writing-analytics": {'event_processor': writing_analysis.pipeline()}
 }
+
+try:
+    import dynamic_assessment
+    analytics_modules.update({
+        "org.mitros.dynamic-assessment": {'event_processor': dynamic_assessment.process_event},
+    })
+except ModuleNotFoundError:
+    print("Module dynamic_assessment not found. Starting without dynamic assessment")
+
+try:
+    import writing_analysis
+    analytics_modules.update({
+        "org.mitros.writing-analytics": {'event_processor': writing_analysis.pipeline()}
+    })
+except ModuleNotFoundError:
+    print("Module writing-analytics not found. Starting without writing analytics.")
+
 
 def debug_log(text):
     '''
