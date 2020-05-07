@@ -1,10 +1,17 @@
-const LENGTH = 30;
-
-const width = 960;
-const height = 500;
-const margin = 5;
-const padding = 5;
+const width = 960;  // svg width
+const height = 500; // svg height
+const margin = 5;   // svg margin
+const padding = 5;  // svg padding
 const adj = 30;
+
+/*-------------------------*\
+*                           *
+| Synthetic data generation |
+| for testing and debugging |
+*                           *
+\*-------------------------*/
+
+const LENGTH = 30;
 
 function consecutive_array(n) {
     /* 
@@ -36,7 +43,7 @@ function length_array(x) {
 function cursor_array(x) {
     /*
       Essay cursor position
-     */
+    */
     var length_array = x.map((e,i)=> (e*Math.random()/2 + e*randn_bm()/2));
     return length_array;
 }
@@ -47,9 +54,17 @@ function zip(a1, a2) {
     });
 }
 
-export const name = 'deanne3';
 
-export function deanne_graph(div) {
+
+/*-------------------------*\
+*                           *
+|     Deane graph code      |
+*                           *
+\*-------------------------*/
+
+export const name = 'deane3';
+
+export function setup_deane_graph(div) {
     var svg = div.append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "-"
@@ -61,8 +76,13 @@ export function deanne_graph(div) {
       .style("margin", margin)
       .style("border", "1px solid lightgray")
       .classed("svg-content", true);
+    return svg;
+};
 
-    var x_edit = consecutive_array(LENGTH);
+export function deane_graph(div) {
+    var svg = setup_deane_graph(div);
+
+    var x_edit = consecutive_array(LENGTH);  // 
     var y_length = length_array(x_edit);
     var y_cursor = cursor_array(y_length);
 
@@ -114,4 +134,4 @@ export function deanne_graph(div) {
     return svg;
 }
 
-d3.select("#debug_testing_deanne").call(deanne_graph).call(console.log);
+d3.select("#debug_testing_deane").call(deane_graph).call(console.log);

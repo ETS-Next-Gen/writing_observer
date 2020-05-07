@@ -1,4 +1,4 @@
-import { deanne_graph } from './deanne3.js'
+import { deane_graph } from './deane.js'
 import { typing } from './typing.js'
 import { summary_stats } from './summary_stats.js'
 import { outline } from './outline.js'
@@ -23,14 +23,14 @@ function populate_tiles(tilesheet) {
 	    return Mustache.render(tile_template, d);
 	    /*{
 		name: d.name,
-		body: document.getElementById('template-deanne-tile').innerHTML
+		body: document.getElementById('template-deane-tile').innerHTML
 	    });*/
 	})
 	.each(function(d) {
 	    d3.select(this).select(".typing-text").call(typing, d.ici, d.essay);
 	})
 	.each(function(d) {
-	    d3.select(this).select(".deanne").call(deanne_graph);
+	    d3.select(this).select(".deane").call(deane_graph);
 	})
 	.each(function(d) {
 	    d3.select(this).select(".summary").call(summary_stats, d);
@@ -49,7 +49,7 @@ function select_tab(tab) {
     }
 };
 
-var tabs = ["typing", "deanne", "summary", "outline", "timeline", "contact"];
+var tabs = ["typing", "deane", "summary", "outline", "timeline", "contact"];
 for(var i=0; i<tabs.length; i++) {
     d3.select(".tilenav-"+tabs[i]).on("click", select_tab(tabs[i]));
 }
