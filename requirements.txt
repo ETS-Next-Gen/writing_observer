@@ -1,7 +1,15 @@
 pandas
-tornado
 ipython
 asyncpg
 pyyaml
 aiohttp
 aiohttp_cors
+cython
+numpy
+scipy
+pyasn1
+aiodns
+lxml
+pep8
+pylint
+google-auth
