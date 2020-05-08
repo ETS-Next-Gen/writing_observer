@@ -19,14 +19,39 @@ class google_text(object):
         o = object.__new__(cls)
         o._text = ""
         o._position = 0
-        o._deane = []
+        o._edit_metadata = {}
+        o.fix_validity()
         return o
+
+    def assert_validity(self):
+        length_difference = len(self._edit_metadata["cursor"]) - len(self._edit_metadata["length"])
+        if length_difference != 0:
+            raise Exception("Edit metadata length doesn't match. This should never happen.")
+
+    def fix_validity(self):
+        if "cursor" not in self._edit_metadata:
+            self._edit_metadata["cursor"] = []
+        if "length" not in self._edit_metadata:
+            self._edit_metadata["length"] = []
+
+        # We expect edit metadata to be the same length. We went
+        # from tabular to columnar which does not guarantee this
+        # invariant, unfortunately. We should evaluate if this
+        # optimization was premature, but it's a lot more compact.
+        length_difference = len(self._edit_metadata["cursor"]) - len(self._edit_metadata["length"])
+        if length_difference > 0:
+            print("Mismatching lengths. This should never happen!")
+            self._edit_metadata["length"] += [0] * length_difference
+        if length_difference < 0:
+            print("Mismatching lengths. This should never happen!")
+            self._edit_metadata["cursor"] += [0] * -length_difference
 
     def from_json(cls, json):
         o = google_text.__new__()
         o._text = json['text']
         o._position = json.get('position', 0)
-        o._deane = json.get('deane', [])
+        o._edit_metadata = json.get('deane', {})
+        o.fix_validity()
 
     def update(self, text):
         self._text = text
@@ -40,12 +65,13 @@ class google_text(object):
 
     @position.setter
     def position(self, p):
-        self._deane.append([len(self._text), p])
+        self._edit_metadata['length'].append(len(self._text))
+        self._edit_metadata['cursor'].append(p)
         self._position = p
 
     @property
     def deane(self):
-        return self._deane
+        return self._edit_metadata
 
     def __str__(self):
         return self._text
@@ -55,7 +81,7 @@ class google_text(object):
         return {
             'text': self._text,
             'position': self._position,
-            'deane': self._deane
+            'edit_metadata': self._edit_metadata
         }
 
 def command_list(doc, commands):
