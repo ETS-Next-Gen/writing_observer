@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <h1> Google Docs debug </h1>
+    <p> Time-on-task: <span class="time-on-task"> </span> </p>
+    <p> Time idle: <span class="time-idle"> 0 </span> </p>
+    <br>
+    <p> Document </p>
+    <div style="width:800px; border:solid;" class="gdocs-text"></div>
+  </body>
+  <script>
+    let socket_out = new WebSocket("wss://writing.hopto.org/wsapi/out/");
+
+    socket_out.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        console.log(data);
+        document.querySelector(".gdocs-text").innerText = data['text'];
+        document.querySelector(".time-on-task").innerText = data['total-time-on-task'];
+        document.querySelector(".time-idle").innerText = 0;
+    };
+
+    window.setInterval(function() {
+        document.querySelector(".time-idle").innerText = Number(document.querySelector(".time-idle").innerText)+1;
+    }, 1000);
+  </script>
+</html>
