@@ -107,14 +107,14 @@ export function setup_deane_graph(div) {
 	.attr('class', 'essay-length-lines')
 	.attr('fill', 'none')
 	.attr('stroke', 'black')
-	.attr('stroke-width','3');
+	.attr('stroke-width','2');
 
     // Line graph for cursor position
     svg.append('g')
 	.append('path')
 	.attr('class', 'essay-cursor-lines')
 	.attr('fill', 'none')
-	.attr('stroke', 'black')
+	.attr('stroke', 'blue')
 	.attr('stroke-width','3');
 
     // Add x-axis
@@ -128,7 +128,8 @@ export function setup_deane_graph(div) {
     return svg;
 };
 
-export function populate_data(svg, data, max_x=null, max_y=null) {
+export function populate_deane_graph_data(div, data, max_x=null, max_y=null) {
+    var svg = div.select('svg');
     if(max_x === null) {
 	max_x = data['length'].length;
     }
@@ -177,8 +178,8 @@ export function deane_graph(div) {
     var y_length = data['length'];
     var y_cursor = data['cursor'];
 
-    populate_data(div.select('svg'), data);
+    populate_deane_graph_data(div, data);
     return svg;
 }
 
-d3.select("#debug_testing_deane").call(deane_graph).call(console.log);
+d3.select("#debug_testing_deane").call(deane_graph);

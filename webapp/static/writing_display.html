@@ -10,9 +10,16 @@
     <br>
     <p> Document </p>
     <div style="width:800px; border:solid;" class="gdocs-text"></div>
+    <div class="deane"> </div>
   </body>
-  <script>
+  <script type="module">
+    import { deane_graph, setup_deane_graph, populate_deane_graph_data } from './deane.js'
+
     let socket_out = new WebSocket("wss://writing.hopto.org/wsapi/out/");
+
+    d3.select(".deane").call(setup_deane_graph).call(function(div) {
+        populate_deane_graph_data(div, {'length':[], 'cursor': []}, 500, 500);
+    });
 
     socket_out.onmessage = function(event) {
         var data = JSON.parse(event.data);
@@ -20,6 +27,9 @@
         document.querySelector(".gdocs-text").innerText = data['text'];
         document.querySelector(".time-on-task").innerText = data['total-time-on-task'];
         document.querySelector(".time-idle").innerText = 0;
+        d3.select(".deane").call(setup_deane_graph).call(function(div) {
+            populate_deane_graph_data(div, data['edit_metadata']);
+        });
     };
 
     window.setInterval(function() {
