@@ -19,14 +19,18 @@ import log_event
 creds = yaml.safe_load(open("../creds.yaml"))
 
 '''
-We have two models for pub-sub. We can use xmpp, which can run over
-prosody or eJabberd. These are wickedly scaleable. We're not
-necessarily finished (as of the time of this writing), which is to say
-they kind of work, but we sometimes lose messages, and we can't direct
-them the right places.
+We have several models for pub-sub:
 
-We have a stubbed-in version. This only supports one user. It's
+1) We can use xmpp, which can run over prosody or eJabberd. These are
+wickedly scaleable. We're not necessarily finished (as of the time of
+this writing), which is to say they kind of work, but we sometimes
+lose messages, and we can't direct them the right places.
+
+2) We have a stubbed-in version. This only supports one user. It's
 helpful for development and demos.
+
+3) We're going to play with redis, which seems easier (but less scalable)
+than xmpp, but is probably right approach for pilots.
 '''
 
 PUBSUB='stub'
@@ -34,21 +38,31 @@ PUBSUB='stub'
 if PUBSUB=='xmpp':
     import receivexmpp
     import sendxmpp
-    def pubsub_send():
-        sender = sendxmpp.SendXMPP(creds['xmpp']['source']['jid'], creds['xmpp']['source']['password'], debug_log)
+    async def pubsub_send():
+        sender = sendxmpp.SendXMPP(creds['xmpp']['source']['jid'], creds['xmpp']['source']['password'], debug_log, mto='sink@localhost')
         sender.connect()
         return sender
-    def pubsub_receive():
+    async def pubsub_receive():
         receiver = receivexmpp.ReceiveXMPP(creds['xmpp']['sink']['jid'], creds['xmpp']['sink']['password'], debug_log)
         receiver.connect()
         return receiver
 elif PUBSUB=='stub':
     import pubstub
-    def pubsub_send():
+    async def pubsub_send():
         sender = pubstub.SendStub()
         return sender
-    def pubsub_receive():
+    async def pubsub_receive():
         receiver = pubstub.ReceiveStub()
+        return receiver
+elif PUBSUB=='redis':
+    import redis_pubsub
+    async def pubsub_send():
+        sender = redis_pubsub.SendStub()
+        await sender.connect()
+        return sender
+    async def pubsub_receive():
+        receiver = redis_pubsub.ReceiveStub()
+        await receiver.connect()
         return receiver
 else:
     raise Exception("Unknown pubsub: "+PUBSUB)
@@ -135,29 +149,32 @@ async def ajax_event_request(request):
     This is the original HTTP AJAX logging API. It is deprecated in
     favor of WebSockets.
 
-    This opens a new XMPP connection every time, and would be too
-    slow for production use. We could have a global XMPP connection,
-    but as the code evolves, we anticipate we will likely have many
-    users, each with their own XMPP pipeline. This is TBD, since we
-    could still have one sender, or an XMPP pub/sub or otherwise.
+    Using AJAX opens a new connection to pubsub every time, and so
+    would be too slow for production use. We could have a global
+    shared connection connection, but we anticipate this might run
+    into scalability issues with some pubsub systems (depending on
+    whether different users can share a connection, or whether 
+    each user has their own sender account).
 
-    In either case, this is okay for small-scale debugging.
+    In either case, this is handler is helpful for small-scale debugging.
+
     '''
     debug_log("AJAX Request received")
     client_event = await request.json()
-    handle_incoming_client_event()(request, client_event)
+    handler = await handle_incoming_client_event()
+    await handler(request, client_event)
     return web.Response(text="Acknowledged!")
 
-def handle_incoming_client_event():
+async def handle_incoming_client_event():
     '''
     Common handler for both Websockets and AJAX events. This is just a thin 
-    pipe to XMPP with some logging.
+    pipe to pubsub with some logging.
     '''
-    debug_log("Connecting to XMPP source")
-    xmpp = pubsub_send()
+    debug_log("Connecting to pubsub source")
+    pubsub = await pubsub_send()
     debug_log("Connected")
-    def handler(request, client_event):
-        debug_log("Compiling event for XMPP: "+client_event["event"]) 
+    async def handler(request, client_event):
+        debug_log("Compiling event for PubSub: "+client_event["event"]) 
         event = {
             "client": client_event,
             "server": compile_server_data(request)
@@ -165,19 +182,20 @@ def handle_incoming_client_event():
 
         log_event.log_event(event)
         log_event.log_event(json.dumps(event, indent=2, sort_keys=True), "incoming_websocket", preencoded=True, timestamp=True)
-        xmpp.send_event(mto="sink@localhost", mbody=json.dumps(event, sort_keys=True))
-        debug_log("Sent event to XMPP: "+client_event["event"]) 
+        print(pubsub)
+        await pubsub.send_event(mbody=json.dumps(event, sort_keys=True))
+        debug_log("Sent event to PubSub: "+client_event["event"]) 
     return handler
 
 async def incoming_websocket_handler(request):
     '''
     This handles incoming WebSockets requests. It does some minimal processing on them,
-    and then relays them on via XMPP to be aggregated. It also logs them.
+    and then relays them on via PubSub to be aggregated. It also logs them.
     '''
     debug_log("Incoming web socket connected") 
     ws = web.WebSocketResponse()
     await ws.prepare(request)
-    event_handler = handle_incoming_client_event()
+    event_handler = await handle_incoming_client_event()
 
     async for msg in ws:
         debug_log("Web socket message received")
@@ -195,7 +213,7 @@ async def incoming_websocket_handler(request):
 async def outgoing_websocket_handler(request):
     '''
     This pipes analytics back to the browser. It:
-    1. Handles incoming XMPP connections
+    1. Handles incoming PubSub connections
     2. Processes the data
     3. Sends it back to the browser
 
@@ -204,16 +222,16 @@ async def outgoing_websocket_handler(request):
     debug_log('Outgoing analytics web socket connection')
     ws = web.WebSocketResponse()
     await ws.prepare(request)
-    xmpp = pubsub_receive()
-    debug_log("Awaitng XMPP messages")
+    pubsub = await pubsub_receive()
+    debug_log("Awaiting PubSub messages")
     while True:
-        message = await xmpp.receive()
+        message = await pubsub.receive()
         parsed_message = json.loads(message)
-        debug_log("XMPP event received: "+parsed_message['client']['event'])
-        log_event.log_event(message, "incoming_xmpp", preencoded=True, timestamp=True)
+        debug_log("PubSub event received: "+parsed_message['client']['event'])
+        log_event.log_event(message, "incoming_pubsub", preencoded=True, timestamp=True)
         client_source = parsed_message["client"]["source"]
         if client_source in analytics_modules:
-            debug_log("Processing XMPP message {event} from {source}".format(event=parsed_message["client"]["event"], source=client_source))
+            debug_log("Processing PubSub message {event} from {source}".format(event=parsed_message["client"]["event"], source=client_source))
             analytics_module = analytics_modules[client_source]
             event_processor = analytics_module['event_processor']
             if(isinstance(message, str)):

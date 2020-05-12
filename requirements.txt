@@ -13,3 +13,5 @@ lxml
 pep8
 pylint
 google-auth
+redis
+asyncio_redis

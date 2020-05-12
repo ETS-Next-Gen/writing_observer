@@ -2,8 +2,9 @@ from slixmpp import ClientXMPP
 from slixmpp.exceptions import IqError, IqTimeout
 
 class SendXMPP(ClientXMPP):
-    def __init__(self, jid, password, debug_log):
+    def __init__(self, jid, password, debug_log, mto):
         self.debug_log = debug_log
+        self.mto = mto
         ClientXMPP.__init__(self, jid, password)
         self.add_event_handler("session_start", self.session_start)
         self.add_event_handler("message", self.message)
@@ -17,9 +18,9 @@ class SendXMPP(ClientXMPP):
         pass
         #print("Unexpected! I shouldn't get messages")
 
-    def send_event(self, mto, mbody):
+    async def send_event(self, mbody):
         self.send_message(
-            mto=mto,
+            mto=self.mto,
             mbody=mbody,
             mtype='chat')
         self.debug_log("XMPP message sent")

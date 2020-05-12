@@ -3,17 +3,25 @@ This is a stubbed-in version of the XMPP send/receive code. It is
 helpful for development and debugging.
 '''
 
+import collections
 import asyncio
 
-queue = asyncio.Queue()
+queue = collections.defaultdict(lambda:asyncio.Queue())
 
 class SendStub():
-    def send_event(self, mbody, mto=None):
-        queue.put_nowait(mbody)
+    def __init__(self, channel='dummy'):
+        self.channel = channel
+
+    async def send_event(self, mbody):
+        queue[self.channel].put_nowait(mbody)
+        return True
 
 class ReceiveStub():
+    def __init__(self, channel='dummy'):
+        self.channel = channel
+
     async def receive(self):
-        return await queue.get()
+        return await queue[self.channel].get()
 
 if __name__ == '__main__':
     async def main():
