@@ -22,7 +22,7 @@ class SendStub():
         if self.s_connection is None:
             await self.connect()
             print("Redis send reconnected")
-        n = await self.s_connection.publish('dummy_channel', mbody)
+        n = await self.s_connection.publish(self.channel, mbody)
         print("Sent event to "+str(n))
 
 class ReceiveStub():
