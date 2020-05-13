@@ -202,7 +202,7 @@ async def incoming_websocket_handler(request):
         if msg.type == aiohttp.WSMsgType.TEXT:
             client_event = json.loads(msg.data)
             debug_log("Dispatching incoming websocket event: " + client_event['event'])
-            event_handler(request, client_event)
+            await event_handler(request, client_event)
         elif msg.type == aiohttp.WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
                   ws.exception())
