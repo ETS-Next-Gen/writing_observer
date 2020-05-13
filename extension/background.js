@@ -101,8 +101,8 @@ loggers_enabled = [
 */
 loggers_enabled = [
     console_logger(),
-    ajax_logger("https://writing.hopto.org/webapi/")//,
-    //websocket_logger("wss://writing.hopto.org/wsapi/in/")
+    //ajax_logger("https://writing.hopto.org/webapi/")//,
+    websocket_logger("wss://writing.hopto.org/wsapi/in/")
 ];
 
 function log_event(event_type, event) {
