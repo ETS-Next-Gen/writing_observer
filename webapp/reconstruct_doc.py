@@ -9,6 +9,7 @@ See: `http://features.jsomers.net/how-i-reverse-engineered-google-docs/`
 
 import json
 
+
 class google_text(object):
     '''
     We encapsulate a string object to support a Google Doc snapshot at a
@@ -16,73 +17,129 @@ class google_text(object):
     we might annotate formatting and similar properties.
     '''
     def __new__(cls):
-        o = object.__new__(cls)
-        o._text = ""
-        o._position = 0
-        o._edit_metadata = {}
-        o.fix_validity()
-        return o
+        '''
+        Constructor. We create a blank document to be populated.
+        '''
+        new_object = object.__new__(cls)
+        new_object._text = ""
+        new_object._position = 0
+        new_object._edit_metadata = {}
+        new_object.fix_validity()
+        return new_object
 
     def assert_validity(self):
-        length_difference = len(self._edit_metadata["cursor"]) - len(self._edit_metadata["length"])
+        '''
+        We do integrity checks. We store cursor length and text length in
+        two lists for efficiency, and for now, this just confirms they're
+        the same length.
+        '''
+        cursor_array_length = len(self._edit_metadata["cursor"])
+        textlength_array_length = len(self._edit_metadata["length"])
+        length_difference = cursor_array_length - textlength_array_length
         if length_difference != 0:
-            raise Exception("Edit metadata length doesn't match. This should never happen.")
+            raise Exception(
+                "Edit metadata length doesn't match. This should never happen."
+            )
 
     def fix_validity(self):
+        '''
+        Check we satisify invariants, and if not, fix them. This is helpful
+        for graceful degredation. We also use this to initalize the object.
+        '''
+        errors_found = []
+
         if "cursor" not in self._edit_metadata:
             self._edit_metadata["cursor"] = []
+            errors_found.append("No cursor array")
         if "length" not in self._edit_metadata:
             self._edit_metadata["length"] = []
+            errors_found.append("No length array")
 
         # We expect edit metadata to be the same length. We went
         # from tabular to columnar which does not guarantee this
         # invariant, unfortunately. We should evaluate if this
         # optimization was premature, but it's a lot more compact.
-        length_difference = len(self._edit_metadata["cursor"]) - len(self._edit_metadata["length"])
+        cursor_array_length = len(self._edit_metadata["cursor"])
+        textlength_array_length = len(self._edit_metadata["length"])
+        length_difference = cursor_array_length - textlength_array_length
         if length_difference > 0:
             print("Mismatching lengths. This should never happen!")
             self._edit_metadata["length"] += [0] * length_difference
+            errors_found.append("Mismatching lengths")
         if length_difference < 0:
             print("Mismatching lengths. This should never happen!")
             self._edit_metadata["cursor"] += [0] * -length_difference
+            errors_found.append("Mismatching lengths")
+        return errors_found
 
-    def from_json(cls, json):
-        o = google_text.__new__()
-        o._text = json['text']
-        o._position = json.get('position', 0)
-        o._edit_metadata = json.get('deane', {})
-        o.fix_validity()
+    def from_json(cls, json_rep):
+        '''
+        Class method to deserialize from JSON
+        '''
+        new_object = google_text.__new__()
+        new_object._text = json_rep['text']
+        new_object._position = json_rep.get('position', 0)
+        new_object._edit_metadata = json_rep.get('deane', {})
+        new_object.fix_validity()
 
     def update(self, text):
+        '''
+        Update the text. Note that we should probably combine this
+        with updating the cursor position, since if text updates,
+        the cursor should always update too.
+        '''
         self._text = text
 
     def len(self):
+        '''
+        Length of the string
+        '''
         return len(self._text)
 
     @property
     def position(self):
+        '''
+        Cursor postion. Perhaps we should rename this?
+        '''
         return self._position
 
     @position.setter
     def position(self, p):
+        '''
+        Update cursor position.
+
+        Side effect: Update Deane arrays.
+        '''
         self._edit_metadata['length'].append(len(self._text))
         self._edit_metadata['cursor'].append(p)
         self._position = p
 
     @property
     def deane(self):
+        '''
+        Return edit metadata. For now, this is length / cursor position
+        arrays, but perhaps we should rename this as we expect more
+        analytics.
+        '''
         return self._edit_metadata
 
     def __str__(self):
+        '''
+        This returns __just__ the text of the document (no metadata)
+        '''
         return self._text
 
     @property
     def json(self):
+        '''
+        This serializes to JSON.
+        '''
         return {
             'text': self._text,
             'position': self._position,
             'edit_metadata': self._edit_metadata
         }
+
 
 def command_list(doc, commands):
     '''
@@ -149,6 +206,7 @@ def alter(doc, si, ei, st, sm, ty):
     '''
     return doc
 
+
 def null(doc, **kwargs):
     '''
     Do nothing. Google sometimes makes null requests. There are also
@@ -162,8 +220,12 @@ def null(doc, **kwargs):
 
 # This dictionary maps the `ty` parameter to the function which
 # handles data of that type.
+
+# TODO: `ae,``ue,` `de,` and `te` need to be
+# reverse-engineered. These happens if we e.g. make a new bullet
+# list, or add an image.
 dispatch = {
-    'ae': null,    ## TODO: `ae,``ue,` `de,` and `te` need to be reverse-engineered. These happens if we e.g. make a new bullet list, or add an image.
+    'ae': null,
     'ue': null,
     'de': null,
     'te': null,

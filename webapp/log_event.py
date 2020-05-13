@@ -5,9 +5,10 @@ import json
 mainlog = open("logs/main_log.json", "ab", 0)
 files = {}
 
+
 def log_event(event, filename=None, preencoded=False, timestamp=False):
     if filename is None:
-        fp = mainlog;
+        fp = mainlog
     elif filename in files:
         return files[filename]
     else:
