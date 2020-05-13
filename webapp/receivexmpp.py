@@ -79,7 +79,7 @@ class ReceiveXMPP(ClientXMPP):
 
     def session_start(self, event):
         '''
-        Some XMPP servers require us to `send_presence` and 
+        Some XMPP servers require us to `send_presence` and
         `get_roster` before they'll talk to us.
         '''
         self.send_presence()
