@@ -1,18 +1,12 @@
 /*
-Background script. This works across all of Google Chrome. 
+Background script. This works across all of Google Chrome.
 */
 
-var WRITINGJS_AJAX_SERVER = null;
-
-var webSocket = null;
-var EXPERIMENTAL_WEBSOCKET = false;
-
-
-var event_queue = [];
+var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. Perhaps this should be a cookie or browser.storage?
 
 
 /*
-  FSM
+  TODO: FSM
 
   +----------------------+
   | Load server settings |
@@ -24,73 +18,121 @@ var event_queue = [];
   | Connect to server |
   +-------------------+
 
-    Load events queue 
+    Load events queue
    from chrome.storage
 
 
 Dequeue events
 */
 
-function dequeue_events() {
-    // If we have not yet initialized, we rely on the queue to be
-    // flushed once we are initialized.
-    if(!WRITINGJS_AJAX_SERVER) {
-	return
-    }
-    while(event_queue.length > 0) {
-	writingjs_ajax(event_queue.shift());
-    }
+
+function console_logger() {
     /*
-	if(EXPERIMENTAL_WEBSOCKET) {
-	if((webSocket == null) || (webSocket.readyState != 1) ) {
-	    window.setTimeout(reset_websocket, 1000);
-	    return;
-	}
-	var event = event_queue.shift();
-	webSocket.send(JSON.stringify(event));
-    }*/
-}
-
-
-function writingjs_ajax(data) {
-    /*
-      Helper function to send a logging AJAX request to the server.
-      This function takes a JSON dictionary of data.
-
-      TODO: Convert to a queue for offline operation using Chrome
-      Storage API? Cache to Chrome Storage? Chrome Storage doesn't
-      support meaningful concurrency,
+      Log to browser JavaScript console
      */
-
-    httpRequest = new XMLHttpRequest();
-    //httpRequest.withCredentials = true;
-    httpRequest.open("POST", WRITINGJS_AJAX_SERVER);
-    httpRequest.send(JSON.stringify(data));
+    return console.log;
 }
 
-function enqueue_event(event_type, event) {
-    // TODO: Add username
+function websocket_logger(server) {
+    /*
+       Log to web socket server.
+    */
+    var socket = new WebSocket(server);
+    var queue = [];
+
+    function dequeue() {
+	if(socket.readyState === socket.OPEN) {
+	    while(queue.length > 1) {
+		var event = queue.shift();
+		socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
+	    }
+	} else if(socket.readyState == socket.CLOSED) {
+	    /*
+	      If we lost the connection, we wait a second and try to open it again.
+	    */
+	    socket = null;
+	    setTimeout(function() {
+		socket = new WebSocket(server);
+		/* Optional:
+
+		   We could resend events, or just wait for the next event.
+
+		   socket.onopen = function(event) {
+		        dequeue();
+		}*/
+	    }, 1000);
+	}
+    }
+
+    return function(data) {
+	queue.push(data);
+	dequeue();
+    }
+}
+
+function ajax_logger(ajax_server) {
+    /*
+      HTTP event per request.
+
+      To do: Handle failures / dropped connections
+     */
+    var server = ajax_server;
+    return function(data) {
+	/*
+	  Helper function to send a logging AJAX request to the server.
+	  This function takes a JSON dictionary of data.
+	*/
+
+	httpRequest = new XMLHttpRequest();
+	//httpRequest.withCredentials = true;
+	httpRequest.open("POST", ajax_server);
+	httpRequest.send(data);
+    }
+}
+
+/*
+List of loggers. For example, if we want to send to the server twice, and log on console:
+
+loggers_enabled = [
+    console_logger(),
+    ajax_logger("https://localhost/webapi/"),
+    websocket_logger("wss://localhost/wsapi/in/")
+];
+*/
+loggers_enabled = [
+    console_logger(),
+    ajax_logger("https://writing.hopto.org/webapi/")//,
+    //websocket_logger("wss://writing.hopto.org/wsapi/in/")
+];
+
+function log_event(event_type, event) {
+    /*
+       Eventually, this will send an event to the server. For now, we
+       either ignore it, or print it on our console.
+    */
     event['source'] = 'org.mitros.writing-analytics';
     event['version'] = 'alpha';
+    event['event'] = event_type;
     event['ts'] = Date.now();
     event['human_ts'] = Date();
     event['iso_ts'] = new Date().toISOString;
-    event['event'] = event_type;
+    // TODO: Add username
     if(event['wa-source'] = null) {
 	event['wa-source'] = 'background-page';
     }
+    var json_encoded_event = JSON.stringify(event);
 
-    event_queue.push(event);
-
-    dequeue_events();
+    for (var i=0; i<loggers_enabled.length; i++) {
+	loggers_enabled[i](json_encoded_event);
+    }
 }
 
 function send_chrome_identity() {
-    /* 
+    /*
        We sometimes may want to log the user's identity, as stored in
        Google Chrome. Note that this is not secure; we need oauth to do
        that. oauth can be distracting in that (at least in the workflow
-       we used), it requires the user to confirm permissions. 
+       we used), it requires the user to confirm permissions.
 
        Perhaps want to do oauth exactly once per device, and use a
        unique token stored as a cookie or in browser.storage?
@@ -98,21 +140,14 @@ function send_chrome_identity() {
        Note this function is untested, following a refactor.
     */
     chrome.identity.getProfileInfo(function(userInfo) {
-	enqueue_event("chrome_identity", {"email": userInfo.email,
+	log_event("chrome_identity", {"email": userInfo.email,
 					  "id": userInfo.id
 					 });
     });
 }
 
-function reset_websocket() {
-    if((webSocket == null) || (webSocket.readyState != 1) ) {
-	webSocket = new WebSocket("wss://writing.hopto.org/wsapi/");
-	webSocket.onopen = dequeue_events;
-    }
-}
-
 function this_a_google_docs_save(request) {
-    /* 
+    /*
        Check if this is a Google Docs save request. Return true for something like:
        https://docs.google.com/document/d/1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU/save?id=dfhjklhsjklsdhjklsdhjksdhkjlsdhkjsdhsdkjlhsd&sid=dhsjklhsdjkhsdas&vc=2&c=2&w=2&smv=2&token=lasjklhasjkhsajkhsajkhasjkashjkasaajhsjkashsajksas&includes_info_params=true
        And false otherwise.
@@ -128,17 +163,18 @@ function this_a_google_docs_save(request) {
     return false;
 }
 
-var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. Perhaps this should be a cookie or browser.storage? 
-
 // Figure out the system settings. Note this is asynchronous, so we
 // chain dequeue_events when this is done.
+/*
+var WRITINGJS_AJAX_SERVER = null;
+
 chrome.storage.sync.get(['process-server'], function(result) {
     //WRITINGJS_AJAX_SERVER = result['process-server'];
     if(!WRITINGJS_AJAX_SERVER) {
 	WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
     }
     dequeue_events();
-});
+});*/
 
 // Listen for the keystroke messages from the page script and forward to the server.
 chrome.runtime.onMessage.addListener(
@@ -147,7 +183,7 @@ chrome.runtime.onMessage.addListener(
 	chrome.extension.getBackgroundPage().console.log(request);
 	console.log(sender);
 	request['wa-source'] = 'client-page';
-	enqueue_event(request['event'], request);
+	log_event(request['event'], request);
     }
 );
 
@@ -169,14 +205,14 @@ chrome.webRequest.onBeforeRequest.addListener(
       Our current strategy is to:
       * Log the former requests in a clean way, extracting the data we
         want
-      * Have a flag to log the debug requests (which includes the 
+      * Have a flag to log the debug requests (which includes the
         unparsed version of events we want).
-      We should step through and see how this code manages failures, 
+      We should step through and see how this code manages failures,
 
       For development purposes, both modes of operation are
       helpful. Having these is nice for reverse-engineering,
       especially new pages. They do inject a lot of noise, though, and
-      from there, being able to easily ignore these is nice. 
+      from there, being able to easily ignore these is nice.
      */
     function(request) {
 	chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
@@ -188,7 +224,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 	    formdata = {};
 	}
 	if(RAW_DEBUG) {
-	    enqueue_event('raw_http_request', {
+	    log_event('raw_http_request', {
 		'url':  request.url,
 		'form_data': formdata
 	    });
@@ -196,15 +232,27 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 	if(this_a_google_docs_save(request)){
 	    chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
-	    console.log(formdata.bundles);
-	    event = {
-		'doc_id':  googledocs_id_from_url(request.url),
-		'bundles': JSON.parse(formdata.bundles),
-		'rev': formdata.rev,
-		'timestamp': parseInt(request.timeStamp, 10)
-	    };
-	    chrome.extension.getBackgroundPage().console.log(event);
-	    enqueue_event('google_docs_save', event);
+	    try {
+		event = {
+		    'doc_id':  googledocs_id_from_url(request.url),
+		    'bundles': JSON.parse(formdata.bundles),
+		    'rev': formdata.rev,
+		    'timestamp': parseInt(request.timeStamp, 10)
+		}
+		chrome.extension.getBackgroundPage().console.log(event);
+		log_event('google_docs_save', event);
+	    } catch(err) {
+		/*
+		  Oddball events, like text selections.
+		 */
+		event = {
+		    'doc_id':  googledocs_id_from_url(request.url),
+		    'formdata': formdata,
+		    'rev': formdata.rev,
+		    'timestamp': parseInt(request.timeStamp, 10)
+		}
+		log_event('google_docs_save_extra', event);
+	    }
 	} else {
 	    chrome.extension.getBackgroundPage().console.log("Not a save: "+request.url);
 	}
@@ -214,11 +262,11 @@ chrome.webRequest.onBeforeRequest.addListener(
 )
 
 // Let the server know we've loaded.
-enqueue_event("extension_loaded", {});
+log_event("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
 chrome.identity.getProfileUserInfo(function callback(userInfo) {
-    enqueue_event("google-chrome-identity", userInfo);
+    log_event("google-chrome-identity", userInfo);
 });
 
 // And let the console know we've loaded

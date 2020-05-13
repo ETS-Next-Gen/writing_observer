@@ -28,7 +28,7 @@ function doc_id() {
 function this_is_a_google_doc() {
     /*
       Returns 'true' if we are in a Google Doc
-     */
+    */
     return window.location.href.search("://docs.google.com/") != -1;
 }
 
@@ -39,7 +39,7 @@ function log_event(event_type, event) {
     */
     event["title"] = google_docs_title();
     event["doc_id"] = doc_id();
-    event['event'] = event_type
+    event['event'] = event_type;
 
     chrome.runtime.sendMessage(event);
 }
@@ -85,6 +85,8 @@ function gmail_text() {
 
       This is brittle; Google may change implementation and this will
       break.
+
+      We will probably disable gmail analytics in the pilot.
      */
     var documents = document.getElementsByClassName("editable");
     for(document in documents) {
@@ -99,7 +101,8 @@ function google_docs_title() {
     /*
       Return the title of a Google Docs document.
 
-      Note this is not guaranteed 100% reliable.
+      Note this is not guaranteed 100% reliable since Google
+      may change the page structure.
     */
     try {
 	return document.getElementsByClassName("docs-title-input")[0].value;
@@ -115,6 +118,9 @@ function google_docs_partial_text() {
       documents, this may not be the *complete* text since off-screen
       pages may be lazy-loaded. The text omits formatting, which is
       helpful for many types of analysis
+
+      We want this for redundancy: we'd like to confirm we're correctly
+      reconstructing text.
      */
     try {
 	return document.getElementsByClassName("kix-page")[0].innerText;
@@ -132,9 +138,14 @@ function google_docs_partial_html() {
       may be helpful, but is incredibly messy.
       
       I hate Google's HTML. What's wrong with simple, clean, semantic
-      <b> tags? Why do we need something like this instead:
+      <b> tags and classes? Why do we need something like this instead:
+
       <span class="kix-wordhtmlgenerator-word-node" style="font-size:14.666666666666666px;font-family:Arial;color:#000000;background-color:transparent;font-weight:700;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;">
-      Seriously, Google? 
+
+      Seriously, Google?
+
+      And yes, if you download documents from Google, it's a mess like
+      this too.
      */
     return document.getElementsByClassName("kix-page")[0].innerHTML;
 }
@@ -162,8 +173,22 @@ function executeOnPageSpace(code){
 }
 
 function google_docs_version_history() {
+    /*
+      Grab the _complete_ version history of a Google Doc. We do this
+      on page load. Note that this may lead to a lot of data. But this
+      lets us do most of our analytics on documents created or edited
+      without our extension.
+
+      Note that if Google changes their implementation, this may
+      break. We don't want to promise to users this will always
+      work. But it's good to have for the pilot.
+
+      It also lets us debug the system.
+     */
     var token = executeOnPageSpace("_docs_flag_initialData.info_params.token");
+
     metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true"
+
     fetch(metainfo_url).then(function(response) {
 	response.text().then(function(text) {
 	    tiles = JSON.parse(text.substring(5)); // Google adds a header to prevent JavaScript injection. This removes it.
