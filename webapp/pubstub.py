@@ -6,9 +6,16 @@ helpful for development and debugging.
 import collections
 import asyncio
 
-queue = collections.defaultdict(lambda:asyncio.Queue())
+# We should eventually have a list of queues: One for each
+# subscriber. For now, we only support one subscriber.
+queue = collections.defaultdict(lambda: asyncio.Queue())
+
 
 class SendStub():
+    '''
+    Minimal class for sending events over a channel. Perhaps
+    this should be a closure?
+    '''
     def __init__(self, channel='dummy'):
         self.channel = channel
 
@@ -16,12 +23,18 @@ class SendStub():
         queue[self.channel].put_nowait(mbody)
         return True
 
+
 class ReceiveStub():
+    '''
+    Minimal class for receiving events over a channel. Perhaps
+    this should be a closure?
+    '''
     def __init__(self, channel='dummy'):
         self.channel = channel
 
     async def receive(self):
         return await queue[self.channel].get()
+
 
 if __name__ == '__main__':
     async def main():

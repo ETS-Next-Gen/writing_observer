@@ -1,22 +1,27 @@
+'''
+This is the main file for processing event data for student writing. This
+system is designed for our writing analysis project, but is designed to
+generalize to learning process data from multiple systems. We have a few
+small applications we are testing this system with as well (e.g. dynamic
+assessment).
+'''
+
+
 import datetime
 import inspect
 import json
-import logging
 import time
 import traceback
 import uuid
 import yaml
 
-import asyncio
 import aiohttp
-from aiohttp import web
 import aiohttp_cors
-from aiohttp.web import middleware
 
 import init
 import log_event
 
-creds = yaml.safe_load(open("../creds.yaml"))
+CREDS = yaml.safe_load(open("../creds.yaml"))
 
 '''
 We have several models for pub-sub:
@@ -31,37 +36,55 @@ helpful for development and demos.
 
 3) We're going to play with redis, which seems easier (but less scalable)
 than xmpp, but is probably right approach for pilots.
+
+One project which came up which might be relevant:
+https://github.com/encode/broadcaster
 '''
 
-PUBSUB='stub'
+PUBSUB = 'redis'
 
-if PUBSUB=='xmpp':
+if PUBSUB == 'xmpp':
     import receivexmpp
     import sendxmpp
+
     async def pubsub_send():
-        sender = sendxmpp.SendXMPP(creds['xmpp']['source']['jid'], creds['xmpp']['source']['password'], debug_log, mto='sink@localhost')
+        sender = sendxmpp.SendXMPP(
+            CREDS['xmpp']['source']['jid'],
+            CREDS['xmpp']['source']['password'],
+            debug_log,
+            mto='sink@localhost'
+        )
         sender.connect()
         return sender
+
     async def pubsub_receive():
-        receiver = receivexmpp.ReceiveXMPP(creds['xmpp']['sink']['jid'], creds['xmpp']['sink']['password'], debug_log)
+        receiver = receivexmpp.ReceiveXMPP(
+            CREDS['xmpp']['sink']['jid'],
+            CREDS['xmpp']['sink']['password'],
+            debug_log
+        )
         receiver.connect()
         return receiver
-elif PUBSUB=='stub':
+elif PUBSUB == 'stub':
     import pubstub
+
     async def pubsub_send():
         sender = pubstub.SendStub()
         return sender
+
     async def pubsub_receive():
         receiver = pubstub.ReceiveStub()
         return receiver
-elif PUBSUB=='redis':
+elif PUBSUB == 'redis':
     import redis_pubsub
+
     async def pubsub_send():
-        sender = redis_pubsub.SendStub()
+        sender = redis_pubsub.RedisSend()
         await sender.connect()
         return sender
+
     async def pubsub_receive():
-        receiver = redis_pubsub.ReceiveStub()
+        receiver = redis_pubsub.RedisReceive()
         await receiver.connect()
         return receiver
 else:
@@ -87,18 +110,24 @@ analytics_modules = {
 try:
     import dynamic_assessment
     analytics_modules.update({
-        "org.mitros.dynamic-assessment": {'event_processor': dynamic_assessment.process_event},
+        "org.mitros.dynamic-assessment": {
+            'event_processor': dynamic_assessment.process_event
+        },
     })
 except ModuleNotFoundError:
-    print("Module dynamic_assessment not found. Starting without dynamic assessment")
+    print("Module dynamic_assessment not found. "
+          "Starting without dynamic assessment")
 
 try:
     import writing_analysis
     analytics_modules.update({
-        "org.mitros.writing-analytics": {'event_processor': writing_analysis.pipeline()}
+        "org.mitros.writing-analytics": {
+            'event_processor': writing_analysis.pipeline()
+        }
     })
 except ModuleNotFoundError:
-    print("Module writing-analytics not found. Starting without writing analytics.")
+    print("Module writing-analytics not found. "
+          "Starting without writing analytics.")
 
 
 def debug_log(text):
@@ -114,9 +143,9 @@ def debug_log(text):
     '''
     stack = inspect.stack()
     stack_trace = "{s1}/{s2}/{s3}".format(
-        s1= stack[1].function,
-        s2= stack[2].function,
-        s3= stack[3].function,
+        s1=stack[1].function,
+        s2=stack[2].function,
+        s3=stack[3].function,
     )
 
     message = "{time}: {st:60}\t{body}".format(
@@ -126,7 +155,9 @@ def debug_log(text):
     )
     print(message)
 
-routes = web.RouteTableDef()
+
+routes = aiohttp.web.RouteTableDef()
+
 
 def compile_server_data(request):
     '''
@@ -153,7 +184,7 @@ async def ajax_event_request(request):
     would be too slow for production use. We could have a global
     shared connection connection, but we anticipate this might run
     into scalability issues with some pubsub systems (depending on
-    whether different users can share a connection, or whether 
+    whether different users can share a connection, or whether
     each user has their own sender account).
 
     In either case, this is handler is helpful for small-scale debugging.
@@ -163,37 +194,43 @@ async def ajax_event_request(request):
     client_event = await request.json()
     handler = await handle_incoming_client_event()
     await handler(request, client_event)
-    return web.Response(text="Acknowledged!")
+    return aiohttp.web.Response(text="Acknowledged!")
+
 
 async def handle_incoming_client_event():
     '''
-    Common handler for both Websockets and AJAX events. This is just a thin 
+    Common handler for both Websockets and AJAX events. This is just a thin
     pipe to pubsub with some logging.
     '''
     debug_log("Connecting to pubsub source")
     pubsub = await pubsub_send()
     debug_log("Connected")
+
     async def handler(request, client_event):
-        debug_log("Compiling event for PubSub: "+client_event["event"]) 
+        debug_log("Compiling event for PubSub: "+client_event["event"])
         event = {
             "client": client_event,
             "server": compile_server_data(request)
         }
 
         log_event.log_event(event)
-        log_event.log_event(json.dumps(event, indent=2, sort_keys=True), "incoming_websocket", preencoded=True, timestamp=True)
+        log_event.log_event(
+            json.dumps(event, indent=2, sort_keys=True),
+            "incoming_websocket", preencoded=True, timestamp=True)
         print(pubsub)
         await pubsub.send_event(mbody=json.dumps(event, sort_keys=True))
-        debug_log("Sent event to PubSub: "+client_event["event"]) 
+        debug_log("Sent event to PubSub: "+client_event["event"])
     return handler
+
 
 async def incoming_websocket_handler(request):
     '''
-    This handles incoming WebSockets requests. It does some minimal processing on them,
-    and then relays them on via PubSub to be aggregated. It also logs them.
+    This handles incoming WebSockets requests. It does some minimal
+    processing on them, and then relays them on via PubSub to be
+    aggregated. It also logs them.
     '''
-    debug_log("Incoming web socket connected") 
-    ws = web.WebSocketResponse()
+    debug_log("Incoming web socket connected")
+    ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
     event_handler = await handle_incoming_client_event()
 
@@ -201,7 +238,10 @@ async def incoming_websocket_handler(request):
         debug_log("Web socket message received")
         if msg.type == aiohttp.WSMsgType.TEXT:
             client_event = json.loads(msg.data)
-            debug_log("Dispatching incoming websocket event: " + client_event['event'])
+            debug_log(
+                "Dispatching incoming websocket event: " +
+                client_event['event']
+            )
             await event_handler(request, client_event)
         elif msg.type == aiohttp.WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
@@ -209,6 +249,7 @@ async def incoming_websocket_handler(request):
 
     debug_log('Websocket connection closed')
     return ws
+
 
 async def outgoing_websocket_handler(request):
     '''
@@ -220,7 +261,7 @@ async def outgoing_websocket_handler(request):
     TODO: Cleanly handle disconnects
     '''
     debug_log('Outgoing analytics web socket connection')
-    ws = web.WebSocketResponse()
+    ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
     pubsub = await pubsub_receive()
     debug_log("Awaiting PubSub messages")
@@ -228,13 +269,17 @@ async def outgoing_websocket_handler(request):
         message = await pubsub.receive()
         parsed_message = json.loads(message)
         debug_log("PubSub event received: "+parsed_message['client']['event'])
-        log_event.log_event(message, "incoming_pubsub", preencoded=True, timestamp=True)
+        log_event.log_event(
+            message, "incoming_pubsub", preencoded=True, timestamp=True
+        )
         client_source = parsed_message["client"]["source"]
         if client_source in analytics_modules:
-            debug_log("Processing PubSub message {event} from {source}".format(event=parsed_message["client"]["event"], source=client_source))
+            debug_log("Processing PubSub message {event} from {source}".format(
+                event=parsed_message["client"]["event"], source=client_source
+            ))
             analytics_module = analytics_modules[client_source]
             event_processor = analytics_module['event_processor']
-            if(isinstance(message, str)):
+            if isinstance(message, str):
                 message = json.loads(message)
             try:
                 processed_analytics = event_processor(message)
@@ -253,21 +298,26 @@ async def outgoing_websocket_handler(request):
                 debug_log("No updates")
                 continue
             # Transitional code.
-            # We'd eventually like to return only lists of outgoing events. No event means we send back []
-            # For now, our modules return `None` to do nothing, events, or lists of events.
+            #
+            # We'd eventually like to return only lists of outgoing
+            # events. No event means we send back [] For now, our
+            # modules return `None` to do nothing, events, or lists of
+            # events.
             if not isinstance(processed_analytics, list):
                 processed_analytics = [processed_analytics]
             for outgoing_event in processed_analytics:
-                log_event.log_event(json.dumps(outgoing_event, indent=2, sort_keys=True), "outgoing_analytics", preencoded=True, timestamp=True)
-                ## TODO: Abstract out summary text
-                #debug_log("Sending to new analytics to client "+ "/".join([key+":"+outgoing_event[key]["zone"]["zone_name"] for key in outgoing_event]))
+                log_event.log_event(
+                    json.dumps(outgoing_event, indent=2, sort_keys=True),
+                    "outgoing_analytics", preencoded=True, timestamp=True)
+                # TODO: Abstract out summary text
                 message = json.dumps(outgoing_event, sort_keys=True)
                 await ws.send_str(message)
         else:
-            debug_log("Unknown event source", parsed_message)    
+            debug_log("Unknown event source", parsed_message)
     await ws.send_str("Done")
 
-app = web.Application()
+app = aiohttp.web.Application()
+
 
 async def request_logger_middleware(request, handler):
     print(request)
@@ -275,13 +325,13 @@ async def request_logger_middleware(request, handler):
 app.on_response_prepare.append(request_logger_middleware)
 
 app.add_routes([
-    web.get('/wsapi/in/', incoming_websocket_handler),
-    web.get('/wsapi/out/', outgoing_websocket_handler)    
+    aiohttp.web.get('/wsapi/in/', incoming_websocket_handler),
+    aiohttp.web.get('/wsapi/out/', outgoing_websocket_handler)
 ])
 
 app.add_routes([
-    web.get('/webapi/', ajax_event_request),
-    web.post('/webapi/', ajax_event_request),
+    aiohttp.web.get('/webapi/', ajax_event_request),
+    aiohttp.web.post('/webapi/', ajax_event_request),
 ])
 
 cors = aiohttp_cors.setup(app, defaults={
@@ -292,4 +342,4 @@ cors = aiohttp_cors.setup(app, defaults={
     )
 })
 
-web.run_app(app, port=8888)
+aiohttp.web.run_app(app, port=8888)

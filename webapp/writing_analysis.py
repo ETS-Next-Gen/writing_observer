@@ -22,13 +22,15 @@ import reconstruct_doc
 # (e.g. all the numbers would go up/down 20%, but behavior was
 # substantatively identical).
 
-TIME_ON_TASK_THRESHOLD = 5  # Should be 60-300 in prod. 5 seconds is nice for debugging
+# Should be 60-300 in prod. 5 seconds is nice for debugging
+TIME_ON_TASK_THRESHOLD = 5
+
 
 def time_on_task(time_threshold=TIME_ON_TASK_THRESHOLD):
     '''
     This adds up time intervals between successive timestamps. If the interval
     goes above some threshold, it adds that threshold instead (so if a student
-    goes away for 2 hours without typing, we only add e.g. 5 minutes if 
+    goes away for 2 hours without typing, we only add e.g. 5 minutes if
     `time_threshold` is set to 300.
     '''
     internal_state = {
@@ -49,25 +51,34 @@ def time_on_task(time_threshold=TIME_ON_TASK_THRESHOLD):
         return internal_state
     return process_event
 
+
 def reconstruct():
     '''
     This is a thin layer to route events to `reconstruct_doc` which compiles
-    Google's deltas into a document. It returns a string-like object with 
+    Google's deltas into a document. It returns a string-like object with
     additional metadata, such as cursor position and Deane graphs.
     '''
     internal_state = {
         'doc': reconstruct_doc.google_text()
     }
+
     def process_event(event):
         if event['client']['event'] == "google_docs_save":
             bundles = event['client']['bundles']
             for bundle in bundles:
-                internal_state['doc'] = reconstruct_doc.command_list(internal_state['doc'], bundle['commands'])
+                internal_state['doc'] = reconstruct_doc.command_list(
+                    internal_state['doc'], bundle['commands']
+                )
         elif event['client']['event'] == "document_history":
-            change_list = [i[0] for i in event['client']['history']['changelog']]
-            internal_state['doc'] = reconstruct_doc.command_list(reconstruct_doc.google_text(), change_list)
+            change_list = [
+                i[0] for i in event['client']['history']['changelog']
+            ]
+            internal_state['doc'] = reconstruct_doc.command_list(
+                reconstruct_doc.google_text(), change_list
+            )
         return internal_state['doc'].json
     return process_event
+
 
 def pipeline():
     '''
@@ -76,6 +87,7 @@ def pipeline():
     for display in the dashboard.
     '''
     processors = [time_on_task(), reconstruct()]
+
     def process(event):
         external_state = {}
         for processor in processors:

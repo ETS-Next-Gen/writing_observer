@@ -12,6 +12,7 @@ aiodns
 lxml
 pep8
 pylint
+pycodestyle
 google-auth
 redis
 asyncio_redis
