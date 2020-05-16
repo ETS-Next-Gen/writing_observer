@@ -1,5 +1,6 @@
 pandas
 ipython
+aiofiles
 asyncpg
 pyyaml
 aiohttp
@@ -16,3 +17,4 @@ pycodestyle
 google-auth
 redis
 asyncio_redis
+docopt
