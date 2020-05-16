@@ -10,6 +10,7 @@ assessment).
 import datetime
 import inspect
 import json
+import sys
 import time
 import traceback
 import uuid
@@ -215,7 +216,7 @@ async def handle_incoming_client_event():
 
         log_event.log_event(event)
         log_event.log_event(
-            json.dumps(event, indent=2, sort_keys=True),
+            json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
         print(pubsub)
         await pubsub.send_event(mbody=json.dumps(event, sort_keys=True))
@@ -285,7 +286,7 @@ async def outgoing_websocket_handler(request):
                 processed_analytics = event_processor(message)
             except Exception as e:
                 traceback.print_exc()
-                filename = "critical-error-{ts}-{rnd}.tb".format(
+                filename = "logs/critical-error-{ts}-{rnd}.tb".format(
                     ts=datetime.datetime.now().isoformat(),
                     rnd=uuid.uuid4().hex
                 )
@@ -307,9 +308,8 @@ async def outgoing_websocket_handler(request):
                 processed_analytics = [processed_analytics]
             for outgoing_event in processed_analytics:
                 log_event.log_event(
-                    json.dumps(outgoing_event, indent=2, sort_keys=True),
+                    json.dumps(outgoing_event, sort_keys=True),
                     "outgoing_analytics", preencoded=True, timestamp=True)
-                # TODO: Abstract out summary text
                 message = json.dumps(outgoing_event, sort_keys=True)
                 await ws.send_str(message)
         else:

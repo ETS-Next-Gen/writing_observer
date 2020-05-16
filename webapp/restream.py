@@ -2,10 +2,11 @@
 ReStream
 
 Usage:
-    restream.py [--url=<url>] <filename>
+    restream.py [--url=<url>] [--extract-client] <filename>
 
 Options
-    --url=<url>   URL to connect [default: http://localhost:8888/]
+    --url=<url>       URL to connect [default: http://localhost:8888/]
+    --extract-client  Parse JSON and extract client-side event
 
 Overview:
     * Restream logs from a file a web sockets server
@@ -15,6 +16,7 @@ Overview:
 '''
 
 import asyncio
+import json
 import sys
 
 import aiofiles
@@ -33,11 +35,14 @@ async def run():
     block indent?
     '''
     args = docopt.docopt(__doc__)
+    print(args['--extract-client'])
 
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(args["--url"]) as web_socket:
             async with aiofiles.open(args['<filename>']) as log_file:
                 async for line in log_file:
+                    if args['--extract-client']:
+                        line = json.dumps(json.loads(line)['client'])
                     await web_socket.send_str(line.strip())
 
 try:
