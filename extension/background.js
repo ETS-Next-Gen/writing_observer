@@ -49,6 +49,10 @@ function websocket_logger(server) {
 	} else if(socket.readyState == socket.CLOSED) {
 	    /*
 	      If we lost the connection, we wait a second and try to open it again.
+
+	      Note that while socket is `null` or `CONNECTING`, we don't take either
+	      branch -- we just queue up events. We reconnect after 1 second if closed,
+	      or dequeue events if open.
 	    */
 	    socket = null;
 	    setTimeout(function() {
