@@ -22,74 +22,8 @@ import aiohttp_cors
 import init
 import log_event
 
-CREDS = yaml.safe_load(open("../creds.yaml"))
-
-'''
-We have several models for pub-sub:
-
-1) We can use xmpp, which can run over prosody or eJabberd. These are
-wickedly scaleable. We're not necessarily finished (as of the time of
-this writing), which is to say they kind of work, but we sometimes
-lose messages, and we can't direct them the right places.
-
-2) We have a stubbed-in version. This only supports one user. It's
-helpful for development and demos.
-
-3) We're going to play with redis, which seems easier (but less scalable)
-than xmpp, but is probably right approach for pilots.
-
-One project which came up which might be relevant:
-https://github.com/encode/broadcaster
-'''
-
-PUBSUB = 'redis'
-
-if PUBSUB == 'xmpp':
-    import receivexmpp
-    import sendxmpp
-
-    async def pubsub_send():
-        sender = sendxmpp.SendXMPP(
-            CREDS['xmpp']['source']['jid'],
-            CREDS['xmpp']['source']['password'],
-            debug_log,
-            mto='sink@localhost'
-        )
-        sender.connect()
-        return sender
-
-    async def pubsub_receive():
-        receiver = receivexmpp.ReceiveXMPP(
-            CREDS['xmpp']['sink']['jid'],
-            CREDS['xmpp']['sink']['password'],
-            debug_log
-        )
-        receiver.connect()
-        return receiver
-elif PUBSUB == 'stub':
-    import pubstub
-
-    async def pubsub_send():
-        sender = pubstub.SendStub()
-        return sender
-
-    async def pubsub_receive():
-        receiver = pubstub.ReceiveStub()
-        return receiver
-elif PUBSUB == 'redis':
-    import redis_pubsub
-
-    async def pubsub_send():
-        sender = redis_pubsub.RedisSend()
-        await sender.connect()
-        return sender
-
-    async def pubsub_receive():
-        receiver = redis_pubsub.RedisReceive()
-        await receiver.connect()
-        return receiver
-else:
-    raise Exception("Unknown pubsub: "+PUBSUB)
+import settings
+import pubsub
 
 '''
 Although the target is writing analytics, we would like analytics
@@ -204,7 +138,7 @@ async def handle_incoming_client_event():
     pipe to pubsub with some logging.
     '''
     debug_log("Connecting to pubsub source")
-    pubsub = await pubsub_send()
+    pubsub_client = await pubsub.pubsub_send()
     debug_log("Connected")
 
     async def handler(request, client_event):
@@ -218,8 +152,8 @@ async def handle_incoming_client_event():
         log_event.log_event(
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
-        print(pubsub)
-        await pubsub.send_event(mbody=json.dumps(event, sort_keys=True))
+        print(pubsub_client)
+        await pubsub_client.send_event(mbody=json.dumps(event, sort_keys=True))
         debug_log("Sent event to PubSub: "+client_event["event"])
     return handler
 
@@ -264,10 +198,10 @@ async def outgoing_websocket_handler(request):
     debug_log('Outgoing analytics web socket connection')
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    pubsub = await pubsub_receive()
+    pubsub_client = await pubsub.pubsub_receive()
     debug_log("Awaiting PubSub messages")
     while True:
-        message = await pubsub.receive()
+        message = await pubsub_client.receive()
         parsed_message = json.loads(message)
         debug_log("PubSub event received: "+parsed_message['client']['event'])
         log_event.log_event(
