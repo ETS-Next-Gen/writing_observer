@@ -9,6 +9,7 @@ assessment).
 import aiohttp
 import aiohttp_cors
 
+import init
 import event_pipeline
 
 

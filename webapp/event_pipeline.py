@@ -1,22 +1,15 @@
 import datetime
-import inspect
 import json
-import sys
 import time
 import traceback
 import uuid
-import yaml
 
 import aiohttp
-import aiohttp_cors
 
-import init
 import log_event
 
-import settings          # Configuration of the whole system
 import pubsub            # Pluggable pubsub subsystem
 import stream_analytics  # Individual analytics modules
-import event_pipeline    # Route messages from clients to dashboards
 
 from log_event import debug_log
 
