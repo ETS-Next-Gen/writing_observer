@@ -5,7 +5,7 @@ It just routes to smaller pipelines. Currently that's:
 1) Time-on-task
 2) Reconstruct text (+Deane graphs, etc.)
 '''
-import reconstruct_doc
+import stream_analytics.reconstruct_doc as reconstruct_doc
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.

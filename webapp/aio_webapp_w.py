@@ -22,47 +22,9 @@ import aiohttp_cors
 import init
 import log_event
 
-import settings
-import pubsub
-
-'''
-Although the target is writing analytics, we would like analytics
-to eventually have pluggable modules. To validate that we're
-maintaining with the right abstractions in place, we are developing
-around several streaming systems:
-
-* Dynamic assessment
-* Writing process analytics
-* Mirror
-
-This should move into a config file.
-'''
-
-analytics_modules = {
-    "org.mitros.mirror": {'event_processor': lambda x: x},
-}
-
-try:
-    import dynamic_assessment
-    analytics_modules.update({
-        "org.mitros.dynamic-assessment": {
-            'event_processor': dynamic_assessment.process_event
-        },
-    })
-except ModuleNotFoundError:
-    print("Module dynamic_assessment not found. "
-          "Starting without dynamic assessment")
-
-try:
-    import writing_analysis
-    analytics_modules.update({
-        "org.mitros.writing-analytics": {
-            'event_processor': writing_analysis.pipeline()
-        }
-    })
-except ModuleNotFoundError:
-    print("Module writing-analytics not found. "
-          "Starting without writing analytics.")
+import settings          # Configuration of the whole system
+import pubsub            # Pluggable pubsub subsystem
+import stream_analytics  # Individual analytics modules
 
 
 def debug_log(text):
@@ -208,11 +170,11 @@ async def outgoing_websocket_handler(request):
             message, "incoming_pubsub", preencoded=True, timestamp=True
         )
         client_source = parsed_message["client"]["source"]
-        if client_source in analytics_modules:
+        if client_source in stream_analytics.analytics_modules:
             debug_log("Processing PubSub message {event} from {source}".format(
                 event=parsed_message["client"]["event"], source=client_source
             ))
-            analytics_module = analytics_modules[client_source]
+            analytics_module = stream_analytics.analytics_modules[client_source]
             event_processor = analytics_module['event_processor']
             if isinstance(message, str):
                 message = json.loads(message)
@@ -247,7 +209,7 @@ async def outgoing_websocket_handler(request):
                 message = json.dumps(outgoing_event, sort_keys=True)
                 await ws.send_str(message)
         else:
-            debug_log("Unknown event source", parsed_message)
+            debug_log("Unknown event source" + str(parsed_message))
     await ws.send_str("Done")
 
 app = aiohttp.web.Application()
