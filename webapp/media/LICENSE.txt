@@ -1,0 +1,9 @@
+ETS_Logo.svg:
+
+The ETS Logo is a trademark of the Educational Testing Service. For
+terms-of-use, see:
+
+https://www.ets.org/legal/trademarks/owned
+
+It is not distributed under the same license as the rest of this
+system.

@@ -31,7 +31,7 @@ async def request_logger_middleware(request, handler):
 app.on_response_prepare.append(request_logger_middleware)
 
 
-def static_file_handler(request):
+def static_file_handler(basepath):
     '''
     Serve static files.
 
@@ -42,21 +42,25 @@ def static_file_handler(request):
     filenames. Before adding fancy, I'll want test cases of
     aggressive user input.
     '''
-    # Extract the filename from the request
-    filename = request.match_info['filename']
-    # Raise an exception if we get anything nasty
-    pathvalidate.validate_filename(filename)
-    # Check that the file exists
-    full_pathname = os.path.join("static", filename)
-    if not os.path.exists(full_pathname):
-        raise aiohttp.web.HTTPNotFound()
-    # And serve pack the file
-    return aiohttp.web.FileResponse(full_pathname)
-
+    def handler(request):
+        # Extract the filename from the request
+        filename = request.match_info['filename']
+        # Raise an exception if we get anything nasty
+        pathvalidate.validate_filename(filename)
+        # Check that the file exists
+        full_pathname = os.path.join(basepath, filename)
+        print(full_pathname)
+        if not os.path.exists(full_pathname):
+            raise aiohttp.web.HTTPNotFound()
+        # And serve pack the file
+        return aiohttp.web.FileResponse(full_pathname)
+    return handler
 
 # Serve static files
 app.add_routes([
-    aiohttp.web.get('/static/{filename}', static_file_handler),
+    aiohttp.web.get('/static/{filename}', static_file_handler("static")),
+    aiohttp.web.get('/static/media/{filename}', static_file_handler("media")),
+    aiohttp.web.get('/static/media/avatar/{filename}', static_file_handler("media/hubspot_persona_images/")),
 ])
 
 # Handle web sockets event requests, incoming and outgoing
