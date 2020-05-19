@@ -18,3 +18,4 @@ google-auth
 redis
 asyncio_redis
 docopt
+pathvalidate
