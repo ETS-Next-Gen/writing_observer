@@ -19,3 +19,4 @@ redis
 asyncio_redis
 docopt
 pathvalidate
+loremipsum

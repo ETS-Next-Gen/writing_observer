@@ -6,6 +6,7 @@ small applications we are testing this system with as well (e.g. dynamic
 assessment).
 '''
 
+import json
 import os
 
 import aiohttp
@@ -13,9 +14,9 @@ import aiohttp_cors
 
 import pathvalidate
 
-import init
+import init  ## Odd import which makes sure we're set up
 import event_pipeline
-
+import student_data
 
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
@@ -56,6 +57,12 @@ def static_file_handler(basepath):
         return aiohttp.web.FileResponse(full_pathname)
     return handler
 
+
+# Student data API
+app.add_routes([
+    aiohttp.web.get('/webapi/student-data/', student_data.student_data_handler)
+])
+
 # Serve static files
 app.add_routes([
     aiohttp.web.get('/static/{filename}', static_file_handler("static")),
@@ -71,8 +78,8 @@ app.add_routes([
 
 # Handle AJAX event requests, incoming
 app.add_routes([
-    aiohttp.web.get('/webapi/', event_pipeline.ajax_event_request),
-    aiohttp.web.post('/webapi/', event_pipeline.ajax_event_request),
+    aiohttp.web.get('/webapi/event/', event_pipeline.ajax_event_request),
+    aiohttp.web.post('/webapi/event/', event_pipeline.ajax_event_request),
 ])
 
 cors = aiohttp_cors.setup(app, defaults={
