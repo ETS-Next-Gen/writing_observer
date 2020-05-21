@@ -1,23 +1,29 @@
-'''Stream fake writing data
+'''
+Stream fake writing data
 
 Usage:
-    stream_writing.py [--url=<url>] [--user=<user_id>] [--ici=<secs>]
-                      [--source=<filename>] [--text-length=5]
-                      [--doc_id=<google_doc_id>]
+    stream_writing.py [--url=url] [--streams=n]
+                      [--ici=sec,s,s,...]
+                      [--users=user_id,uid,uid,...]
+                      [--source=filename,fn,fn,...]
+                      [--gdids=googledoc_id,gdi,gdi,...]
+                      [--text-length=5]
 
-Options
-    --url=<url>            URL to connect [default: http://localhost:8888/]
-    --user=<user_id>       Supply the user ID [default: 1]
-    --ici=<seconds>        Mean intercharacter interval [default: 0.1]
-    --source=<filename>    Stream text instead of lorem ipsum
-    --text-length=<n>      Number of paragraphs of lorem ipsum [default: 5]
-    --doc_id=<google_doc>  Google document ID to spoof [default: testabcd1234]
+Options:
+    --url=url                URL to connect [default: http://localhost:8888/]
+    --streams=N              How many students typing in parallel? [default: 1]
+    --users=user_id,uid,uid  Supply the user ID
+    --ici=secs,secs          Mean intercharacter interval [default: 0.1]
+    --gdids=gdi,gdi,gdi      Google document IDs of spoofed documents
+    --source=filename        Stream text instead of lorem ipsum
+    --text-length=n          Number of paragraphs of lorem ipsum [default: 5]
 
 Overview:
-
     Stream fake keystroke data to a server, emulating Google Docs
-    logging. Currently, this streams one document. It can be trivially
-    modified to stream multiple, once the server is ready.
+    logging.
+
+    Note that this has only been tested with one stream. We need
+    server support to test with more.
 '''
 
 import asyncio
@@ -32,15 +38,38 @@ import loremipsum
 ARGS = docopt.docopt(__doc__)
 print(ARGS)
 
-if ARGS['--source'] is None:
-    TEXT = "\n".join(loremipsum.get_paragraphs(5))
+STREAMS = int(ARGS["--streams"])
+
+if ARGS['--source'] == []:
+    TEXT = ["\n".join(loremipsum.get_paragraphs(5))] * STREAMS
 else:
-    TEXT = open(ARGS['--source']).read()
+    filenames = ARGS['--source']
+    if len(filenames) == 1:
+        filenames = filenames * STREAMS
+    TEXT = [open(filename).read() for filename in filenames]
 
-print(TEXT)
+if len(ARGS['--ici']) == 1:
+    ICI = ARGS['--ici']*STREAMS
+else:
+    ICI = ARGS['--ici']
+
+if ARGS['--users'] == []:
+    USERS = ["test-user-{n}".format(n=i) for i in range(STREAMS)]
+else:
+    USERS = ARGS['--users']
+
+if ARGS["--gdids"] == []:
+    DOC_IDS = ["fake-google-doc-id-{n}".format(n=i) for i in range(STREAMS)]
+else:
+    DOC_IDS = ARGS["--gdids"]
+
+assert len(TEXT) == STREAMS, "len(filenames) != STREAMS."
+assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
+assert len(USERS) == STREAMS, "len(users) != STREAMS."
+assert len(DOC_IDS) == STREAMS, "len(document IDs) != STREAMS."
 
 
-def insert(index, text):
+def insert(index, text, doc_id):
     '''
     Generate a minimal 'insert' event, of the type our Google Docs extension
     might send, but with irrelevant stuff stripped away. This is just for
@@ -50,22 +79,40 @@ def insert(index, text):
         "bundles": [{'commands': [{"ibi": index, "s": text, "ty": "is"}]}],
         "event": "google_docs_save",
         "source": "org.mitros.writing-analytics",
-        "doc_id": ARGS["--doc_id"],
+        "doc_id": doc_id,
         "origin": "stream-test-script"
     }
 
 
-async def stream_document(text):  #  to do:  user=None
+def identify(user):
+    '''
+    Send a token identifying user.
+
+    TBD: How we want to manage this. We're still figuring out auth/auth.
+    This might just be scaffolding code for now, or we might do something
+    along these lines.
+    '''
+    return {
+        "event": "test_framework_fake_identify",
+        "source": "org.mitros.writing-analytics",
+        "user": user,
+        "origin": "stream-test-script"
+    }
+
+
+async def stream_document(text, ici, user, doc_id):
     '''
     Send a document to the server. To do: Figure out how to handle
     users.
     '''
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(ARGS["--url"]) as web_socket:
+            command = identify(user)
+            await web_socket.send_str(json.dumps(command))
             for char, index in zip(text, range(len(text))):
-                command = insert(index+1, char)
+                command = insert(index+1, char, doc_id)
                 await web_socket.send_str(json.dumps(command))
-                await asyncio.sleep(float(ARGS["--ici"]))
+                await asyncio.sleep(float(ici))
 
 
 async def run():
@@ -73,8 +120,14 @@ async def run():
     Create a task to send the document to the server, and wait
     on it to finish. In the future, we'll create several tasks.
     '''
-    streamer = asyncio.create_task(stream_document(TEXT))
-    await streamer
+    streamers = [
+        asyncio.create_task(stream_document(text, ici, user, doc_id))
+        for (text, ici, user, doc_id) in zip(TEXT, ICI, USERS, DOC_IDS)
+    ]
+    print(streamers)
+    for streamer in streamers:
+        await streamer
+    print(streamers)
 
 try:
     asyncio.run(run())
