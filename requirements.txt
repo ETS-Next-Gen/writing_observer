@@ -19,4 +19,5 @@ redis
 asyncio_redis
 docopt
 pathvalidate
-loremipsum
+names
+-e git+https://github.com/testlabauto/loremipsum.git@b7bd71a6651207ef88993045cd755f20747f2a1e#egg=loremipsmum
