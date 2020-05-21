@@ -105,6 +105,45 @@ async def incoming_websocket_handler(request):
     return ws
 
 
+async def student_event_pipeline(parsed_message):
+    client_source = parsed_message["client"]["source"]
+    if True:
+        if client_source in stream_analytics.analytics_modules:
+            debug_log("Processing PubSub message {event} from {source}".format(
+                event=parsed_message["client"]["event"], source=client_source
+            ))
+            analytics_module = stream_analytics.analytics_modules[client_source]
+            event_processor = analytics_module['event_processor']
+            try:
+                processed_analytics = event_processor(parsed_message)
+            except Exception as e:
+                traceback.print_exc()
+                filename = "logs/critical-error-{ts}-{rnd}.tb".format(
+                    ts=datetime.datetime.now().isoformat(),
+                    rnd=uuid.uuid4().hex
+                )
+                fp = open(filename, "w")
+                fp.write(json.dumps(parsed_message, sort_keys=True, indent=2))
+                fp.write("\nTraceback:\n")
+                fp.write(traceback.format_exc())
+                fp.close()
+            if processed_analytics is None:
+                debug_log("No updates")
+                return []
+            # Transitional code.
+            #
+            # We'd eventually like to return only lists of outgoing
+            # events. No event means we send back [] For now, our
+            # modules return `None` to do nothing, events, or lists of
+            # events.
+            if not isinstance(processed_analytics, list):
+                processed_analytics = [processed_analytics]
+            return processed_analytics
+        else:
+            debug_log("Unknown event source" + str(parsed_message))
+            return []
+
+
 async def outgoing_websocket_handler(request):
     '''
     This pipes analytics back to the browser. It:
@@ -127,44 +166,11 @@ async def outgoing_websocket_handler(request):
             message, "incoming_pubsub", preencoded=True, timestamp=True
         )
         client_source = parsed_message["client"]["source"]
-        if client_source in stream_analytics.analytics_modules:
-            debug_log("Processing PubSub message {event} from {source}".format(
-                event=parsed_message["client"]["event"], source=client_source
-            ))
-            analytics_module = stream_analytics.analytics_modules[client_source]
-            event_processor = analytics_module['event_processor']
-            if isinstance(message, str):
-                message = json.loads(message)
-            try:
-                processed_analytics = event_processor(message)
-            except Exception as e:
-                traceback.print_exc()
-                filename = "logs/critical-error-{ts}-{rnd}.tb".format(
-                    ts=datetime.datetime.now().isoformat(),
-                    rnd=uuid.uuid4().hex
-                )
-                fp = open(filename, "w")
-                fp.write(json.dumps(message, sort_keys=True, indent=2))
-                fp.write("\nTraceback:\n")
-                fp.write(traceback.format_exc())
-                fp.close()
-            if processed_analytics is None:
-                debug_log("No updates")
-                continue
-            # Transitional code.
-            #
-            # We'd eventually like to return only lists of outgoing
-            # events. No event means we send back [] For now, our
-            # modules return `None` to do nothing, events, or lists of
-            # events.
-            if not isinstance(processed_analytics, list):
-                processed_analytics = [processed_analytics]
-            for outgoing_event in processed_analytics:
-                log_event.log_event(
-                    json.dumps(outgoing_event, sort_keys=True),
-                    "outgoing_analytics", preencoded=True, timestamp=True)
-                message = json.dumps(outgoing_event, sort_keys=True)
-                await ws.send_str(message)
-        else:
-            debug_log("Unknown event source" + str(parsed_message))
+        processed_analytics = await student_event_pipeline(parsed_message)
+        for outgoing_event in processed_analytics:
+            log_event.log_event(
+                json.dumps(outgoing_event, sort_keys=True),
+                "outgoing_analytics", preencoded=True, timestamp=True)
+            message = json.dumps(outgoing_event, sort_keys=True)
+            await ws.send_str(message)
     await ws.send_str("Done")
