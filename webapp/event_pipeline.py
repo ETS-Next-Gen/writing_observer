@@ -29,6 +29,49 @@ def compile_server_data(request):
     }
 
 
+async def student_event_pipeline(parsed_message):
+    client_source = parsed_message["client"]["source"]
+    if client_source in stream_analytics.analytics_modules:
+        debug_log("Processing PubSub message {event} from {source}".format(
+            event=parsed_message["client"]["event"], source=client_source
+        ))
+        analytics_module = stream_analytics.analytics_modules[client_source]
+        event_processor = analytics_module['event_processor']
+        try:
+            processed_analytics = event_processor(parsed_message)
+        except Exception as e:
+            traceback.print_exc()
+            filename = "logs/critical-error-{ts}-{rnd}.tb".format(
+                ts=datetime.datetime.now().isoformat(),
+                rnd=uuid.uuid4().hex
+            )
+            fp = open(filename, "w")
+            fp.write(json.dumps(parsed_message, sort_keys=True, indent=2))
+            fp.write("\nTraceback:\n")
+            fp.write(traceback.format_exc())
+            fp.close()
+        if processed_analytics is None:
+            debug_log("No updates")
+            return []
+        # Transitional code.
+        #
+        # We'd eventually like to return only lists of outgoing
+        # events. No event means we send back [] For now, our
+        # modules return `None` to do nothing, events, or lists of
+        # events.
+        #
+        # That's a major refactor away. We'd like to pass in lists /
+        # iterators of incoming events so we can handle microbatches,
+        # and generate lists of outgoing events too.
+        if not isinstance(processed_analytics, list):
+            print("FIXME: Should return list")
+            processed_analytics = [processed_analytics]
+        return processed_analytics
+    else:
+        debug_log("Unknown event source" + str(parsed_message))
+        return []
+
+
 async def ajax_event_request(request):
     '''
     This is the original HTTP AJAX logging API. It is deprecated in
@@ -53,8 +96,10 @@ async def ajax_event_request(request):
 
 async def handle_incoming_client_event():
     '''
-    Common handler for both Websockets and AJAX events. This is just a thin
-    pipe to pubsub with some logging.
+    Common handler for both Websockets and AJAX events.
+
+    We do a reduce through the event pipeline, and forward on to
+    the pubsub for aggregation on the dashboard side.
     '''
     debug_log("Connecting to pubsub source")
     pubsub_client = await pubsub.pubsub_send()
@@ -72,8 +117,10 @@ async def handle_incoming_client_event():
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
         print(pubsub_client)
-        await pubsub_client.send_event(mbody=json.dumps(event, sort_keys=True))
-        debug_log("Sent event to PubSub: "+client_event["event"])
+        outgoing = await student_event_pipeline(event)
+        for item in outgoing:
+            await pubsub_client.send_event(mbody=json.dumps(item, sort_keys=True))
+            debug_log("Sent item to PubSub triggered by: "+client_event["event"])
     return handler
 
 
@@ -105,51 +152,11 @@ async def incoming_websocket_handler(request):
     return ws
 
 
-async def student_event_pipeline(parsed_message):
-    client_source = parsed_message["client"]["source"]
-    if True:
-        if client_source in stream_analytics.analytics_modules:
-            debug_log("Processing PubSub message {event} from {source}".format(
-                event=parsed_message["client"]["event"], source=client_source
-            ))
-            analytics_module = stream_analytics.analytics_modules[client_source]
-            event_processor = analytics_module['event_processor']
-            try:
-                processed_analytics = event_processor(parsed_message)
-            except Exception as e:
-                traceback.print_exc()
-                filename = "logs/critical-error-{ts}-{rnd}.tb".format(
-                    ts=datetime.datetime.now().isoformat(),
-                    rnd=uuid.uuid4().hex
-                )
-                fp = open(filename, "w")
-                fp.write(json.dumps(parsed_message, sort_keys=True, indent=2))
-                fp.write("\nTraceback:\n")
-                fp.write(traceback.format_exc())
-                fp.close()
-            if processed_analytics is None:
-                debug_log("No updates")
-                return []
-            # Transitional code.
-            #
-            # We'd eventually like to return only lists of outgoing
-            # events. No event means we send back [] For now, our
-            # modules return `None` to do nothing, events, or lists of
-            # events.
-            if not isinstance(processed_analytics, list):
-                processed_analytics = [processed_analytics]
-            return processed_analytics
-        else:
-            debug_log("Unknown event source" + str(parsed_message))
-            return []
-
-
 async def outgoing_websocket_handler(request):
     '''
     This pipes analytics back to the browser. It:
     1. Handles incoming PubSub connections
-    2. Processes the data
-    3. Sends it back to the browser
+    2. Sends it back to the browser
 
     TODO: Cleanly handle disconnects
     '''
@@ -160,17 +167,12 @@ async def outgoing_websocket_handler(request):
     debug_log("Awaiting PubSub messages")
     while True:
         message = await pubsub_client.receive()
-        parsed_message = json.loads(message)
-        debug_log("PubSub event received: "+parsed_message['client']['event'])
+        debug_log("PubSub event received")
         log_event.log_event(
             message, "incoming_pubsub", preencoded=True, timestamp=True
         )
-        client_source = parsed_message["client"]["source"]
-        processed_analytics = await student_event_pipeline(parsed_message)
-        for outgoing_event in processed_analytics:
-            log_event.log_event(
-                json.dumps(outgoing_event, sort_keys=True),
-                "outgoing_analytics", preencoded=True, timestamp=True)
-            message = json.dumps(outgoing_event, sort_keys=True)
-            await ws.send_str(message)
+        log_event.log_event(
+            message,
+            "outgoing_analytics", preencoded=True, timestamp=True)
+        await ws.send_str(message)
     await ws.send_str("Done")
