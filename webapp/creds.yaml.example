@@ -18,4 +18,9 @@ google-oauth:
     client_secret: {google-client-secret},
     javascript_origins: ["{url}"]
 pubsub:
-  type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
+    type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
+kvs:
+    # stub for in-memory debugging
+    # redis-ephemeral for redis / debugging (object disappear)
+    # redis for deploy
+    type: stub
