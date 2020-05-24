@@ -38,7 +38,7 @@ async def student_event_pipeline(parsed_message):
         analytics_module = stream_analytics.analytics_modules[client_source]
         event_processor = analytics_module['event_processor']
         try:
-            processed_analytics = event_processor(parsed_message)
+            processed_analytics = await event_processor(parsed_message)
         except Exception as e:
             traceback.print_exc()
             filename = "logs/critical-error-{ts}-{rnd}.tb".format(
@@ -50,6 +50,7 @@ async def student_event_pipeline(parsed_message):
             fp.write("\nTraceback:\n")
             fp.write(traceback.format_exc())
             fp.close()
+            raise
         if processed_analytics is None:
             debug_log("No updates")
             return []

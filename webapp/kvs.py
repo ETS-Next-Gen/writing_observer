@@ -110,7 +110,7 @@ class EphemeralRedisKVS(_RedisKVS):
         '''
         We're just a `_RedisKVS` with expiration set
         '''
-        super().__init__(expire=5)
+        super().__init__(expire=settings.settings['kvs']['expiry'])
 
 
 class PersistentRedisKVS(_RedisKVS):
@@ -154,8 +154,11 @@ async def test():
     print((await ek1["hi"]) == 9)
     assert(await ek1["hi"]) == 9
     print("Test successful")
-    print("Please wait 5 seconds before running test again")
+    print("Please wait before running test again")
     print("redis needs to flush expiring objects")
+    print("This delay is set in the config file.")
+    print("It is typically 1s - 24h, depending on")
+    print("the work.")
 
 if __name__ == '__main__':
     asyncio.run(test())

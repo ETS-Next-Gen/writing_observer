@@ -24,3 +24,9 @@ kvs:
     # redis-ephemeral for redis / debugging (object disappear)
     # redis for deploy
     type: stub
+    # If using redis-ephemeral, persist objects for 60s = 1 minute
+    # I typically use:
+    # * 1-10s for test cases
+    # * 1-5 minutes for interactive debugging
+    # * 6-24 hours for development
+    expiry: 60

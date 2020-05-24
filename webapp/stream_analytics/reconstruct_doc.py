@@ -72,15 +72,20 @@ class google_text(object):
             errors_found.append("Mismatching lengths")
         return errors_found
 
-    def from_json(cls, json_rep):
+    def from_json(json_rep):
         '''
         Class method to deserialize from JSON
+
+        For null objects, it will create a new Google Doc.
         '''
-        new_object = google_text.__new__()
-        new_object._text = json_rep['text']
+        new_object = google_text.__new__(google_text)
+        if json_rep is None:
+            json_rep = {}
+        new_object._text = json_rep.get('text', '')
         new_object._position = json_rep.get('position', 0)
-        new_object._edit_metadata = json_rep.get('deane', {})
+        new_object._edit_metadata = json_rep.get('edit_metadata', {})
         new_object.fix_validity()
+        return new_object
 
     def update(self, text):
         '''
@@ -115,7 +120,7 @@ class google_text(object):
         self._position = p
 
     @property
-    def deane(self):
+    def edit_metadata(self):
         '''
         Return edit metadata. For now, this is length / cursor position
         arrays, but perhaps we should rename this as we expect more
@@ -244,4 +249,4 @@ if __name__ == '__main__':
     doc = command_list(doc, docs_history_short)
     print(doc)
     print(doc.position)
-    print(doc.deane)
+    print(doc.edit_metadata)

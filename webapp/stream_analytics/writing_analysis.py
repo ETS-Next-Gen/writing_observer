@@ -5,6 +5,8 @@ It just routes to smaller pipelines. Currently that's:
 1) Time-on-task
 2) Reconstruct text (+Deane graphs, etc.)
 '''
+import kvs
+
 import stream_analytics.reconstruct_doc as reconstruct_doc
 
 # How do we count the last action in a document? If a student steps away
@@ -33,12 +35,16 @@ def time_on_task(time_threshold=TIME_ON_TASK_THRESHOLD):
     goes away for 2 hours without typing, we only add e.g. 5 minutes if
     `time_threshold` is set to 300.
     '''
-    internal_state = {
+    base_internal_state = {
         'saved_ts': None,
         'total-time-on-task': 0
     }
 
-    def process_event(event):
+    taskkvs = kvs.KVS()
+    async def process_event(event):
+        internal_state = await taskkvs["writing-time-on-task"]
+        if internal_state is None:
+            internal_state = base_internal_state
         last_ts = internal_state['saved_ts']
         internal_state['saved_ts'] = event['server']['time']
 
@@ -48,6 +54,7 @@ def time_on_task(time_threshold=TIME_ON_TASK_THRESHOLD):
         if last_ts is not None:
             delta_t = min(time_threshold, internal_state['saved_ts']-last_ts)
             internal_state['total-time-on-task'] += delta_t
+        await taskkvs.set("writing-time-on-task", internal_state)
         return internal_state
     return process_event
 
@@ -58,25 +65,29 @@ def reconstruct():
     Google's deltas into a document. It returns a string-like object with
     additional metadata, such as cursor position and Deane graphs.
     '''
-    internal_state = {
-        'doc': reconstruct_doc.google_text()
-    }
+    #internal_state = {
+    #    'doc': reconstruct_doc.google_text()
+    #}
+    taskkvs = kvs.KVS()
 
-    def process_event(event):
+    async def process_event(event):
+        json_rep = await taskkvs["writing-reconstruct"]
+        internal_state = reconstruct_doc.google_text.from_json(json_rep=json_rep)
         if event['client']['event'] == "google_docs_save":
             bundles = event['client']['bundles']
             for bundle in bundles:
-                internal_state['doc'] = reconstruct_doc.command_list(
-                    internal_state['doc'], bundle['commands']
+                internal_state = reconstruct_doc.command_list(
+                    internal_state, bundle['commands']
                 )
         elif event['client']['event'] == "document_history":
             change_list = [
                 i[0] for i in event['client']['history']['changelog']
             ]
-            internal_state['doc'] = reconstruct_doc.command_list(
+            internal_state = reconstruct_doc.command_list(
                 reconstruct_doc.google_text(), change_list
             )
-        return internal_state['doc'].json
+        await taskkvs.set("writing-reconstruct", internal_state.json)
+        return internal_state.json
     return process_event
 
 
@@ -88,9 +99,9 @@ def pipeline():
     '''
     processors = [time_on_task(), reconstruct()]
 
-    def process(event):
+    async def process(event):
         external_state = {}
         for processor in processors:
-            external_state.update(processor(event))
+            external_state.update(await processor(event))
         return external_state
     return process
