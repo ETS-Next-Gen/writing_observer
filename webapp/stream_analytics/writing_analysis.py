@@ -5,6 +5,8 @@ It just routes to smaller pipelines. Currently that's:
 1) Time-on-task
 2) Reconstruct text (+Deane graphs, etc.)
 '''
+import functools
+
 import kvs
 
 import stream_analytics.reconstruct_doc as reconstruct_doc
@@ -28,35 +30,74 @@ import stream_analytics.reconstruct_doc as reconstruct_doc
 TIME_ON_TASK_THRESHOLD = 5
 
 
-def time_on_task(time_threshold=TIME_ON_TASK_THRESHOLD):
+def kvs_pipeline(namespace):
+    '''
+    Closures, anyone?
+
+    There's a bit to unpack here.
+    '''
+    def decorator(func):
+        '''
+        Top-level function. This allows us to configure the decorator (and
+        returns the decorator)
+        '''
+        @functools.wraps(func)
+        def wrapper_closure():
+            '''
+            The decorator itself. We create a function that, when called,
+            creates an event processing pipeline. It keeps a pointer
+            to the KVS inside of the closure. This way, each pipeline has
+            its own KVS. This is the level at which we want consistency,
+            want to allow sharding, etc. If two users are connected, each
+            will have their own data store connection.
+            '''
+            taskkvs = kvs.KVS()
+            async def process_event(events):
+                '''
+                This is the function which processes events. It calls the event
+                processor, passes in the event(s) and state. It takes
+                the internal state and the external state from the
+                event processor. The internal state goes into the KVS
+                for use in the next call, while the external state
+                returns to the dashboard.
+
+                The external state should include everything needed
+                for the dashboard visualization and exclude anything
+                large or private. The internal state needs everything
+                needed to continue reducing the events.
+                '''
+                internal_state = await taskkvs[namespace]
+                internal_state, external_state = await func(events, internal_state)
+                await taskkvs.set(namespace, internal_state)
+                return external_state
+            return process_event
+        return wrapper_closure
+    return decorator
+
+
+@kvs_pipeline("writing-time-on-task")
+async def time_on_task(event, internal_state):
     '''
     This adds up time intervals between successive timestamps. If the interval
     goes above some threshold, it adds that threshold instead (so if a student
     goes away for 2 hours without typing, we only add e.g. 5 minutes if
     `time_threshold` is set to 300.
     '''
-    base_internal_state = {
-        'saved_ts': None,
-        'total-time-on-task': 0
-    }
+    if internal_state is None:
+        internal_state = {
+            'saved_ts': None,
+            'total-time-on-task': 0
+        }
+    last_ts = internal_state['saved_ts']
+    internal_state['saved_ts'] = event['server']['time']
 
-    taskkvs = kvs.KVS()
-    async def process_event(event):
-        internal_state = await taskkvs["writing-time-on-task"]
-        if internal_state is None:
-            internal_state = base_internal_state
+    # Initial conditions
+    if last_ts is None:
         last_ts = internal_state['saved_ts']
-        internal_state['saved_ts'] = event['server']['time']
-
-        # Initial conditions
-        if last_ts is None:
-            last_ts = internal_state['saved_ts']
-        if last_ts is not None:
-            delta_t = min(time_threshold, internal_state['saved_ts']-last_ts)
-            internal_state['total-time-on-task'] += delta_t
-        await taskkvs.set("writing-time-on-task", internal_state)
-        return internal_state
-    return process_event
+    if last_ts is not None:
+        delta_t = min(TIME_ON_TASK_THRESHOLD, internal_state['saved_ts']-last_ts)
+        internal_state['total-time-on-task'] += delta_t
+    return internal_state, internal_state
 
 
 def reconstruct():
