@@ -100,36 +100,29 @@ async def time_on_task(event, internal_state):
     return internal_state, internal_state
 
 
-def reconstruct():
+@kvs_pipeline("reconstruct-writing")
+async def reconstruct(event, internal_state):
     '''
     This is a thin layer to route events to `reconstruct_doc` which compiles
-    Google's deltas into a document. It returns a string-like object with
-    additional metadata, such as cursor position and Deane graphs.
+    Google's deltas into a document. It also adds a bit of metadata e.g. for
+    Deane plots.
     '''
-    #internal_state = {
-    #    'doc': reconstruct_doc.google_text()
-    #}
-    taskkvs = kvs.KVS()
-
-    async def process_event(event):
-        json_rep = await taskkvs["writing-reconstruct"]
-        internal_state = reconstruct_doc.google_text.from_json(json_rep=json_rep)
-        if event['client']['event'] == "google_docs_save":
-            bundles = event['client']['bundles']
-            for bundle in bundles:
-                internal_state = reconstruct_doc.command_list(
-                    internal_state, bundle['commands']
-                )
-        elif event['client']['event'] == "document_history":
-            change_list = [
-                i[0] for i in event['client']['history']['changelog']
-            ]
+    internal_state = reconstruct_doc.google_text.from_json(json_rep=internal_state)
+    if event['client']['event'] == "google_docs_save":
+        bundles = event['client']['bundles']
+        for bundle in bundles:
             internal_state = reconstruct_doc.command_list(
-                reconstruct_doc.google_text(), change_list
+                internal_state, bundle['commands']
             )
-        await taskkvs.set("writing-reconstruct", internal_state.json)
-        return internal_state.json
-    return process_event
+    elif event['client']['event'] == "document_history":
+        change_list = [
+            i[0] for i in event['client']['history']['changelog']
+        ]
+        internal_state = reconstruct_doc.command_list(
+            reconstruct_doc.google_text(), change_list
+        )
+    state = internal_state.json
+    return state, state
 
 
 def pipeline():
