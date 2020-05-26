@@ -136,6 +136,27 @@ async def incoming_websocket_handler(request):
     await ws.prepare(request)
     event_handler = await handle_incoming_client_event()
 
+    # For now, we receive two packets to initialize:
+    # * Chrome's identity information
+    # * browser.storage identity information
+    event_metadata = {'headers': {}}
+    INIT_PIPELINE = True
+    if INIT_PIPELINE:
+        headers = {}
+        async for msg in ws:
+            json_msg = json.loads(msg.data)
+            print(json_msg)
+            if json_msg["event"] == "metadata-finished":
+                break
+            elif json_msg["event"] == "google_chrome_identity":
+                headers["chrome_identity"] = json_msg["chrome_identity"]
+            elif json_msg["event"] == "local_storage":
+                headers["local_storage"] = json_msg["local_storage"]
+        event_metadata['headers'].update(headers)
+        print(headers)
+        print(event_metadata)
+        #  init = [await ws.receive_json(), await ws.receive_json(), await ws.receive_json()]
+
     async for msg in ws:
         debug_log("Web socket message received")
         if msg.type == aiohttp.WSMsgType.TEXT:
