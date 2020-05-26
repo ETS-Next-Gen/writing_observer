@@ -1,8 +1,10 @@
 /*
   Documentation on how to create an options page
+
+  TODO: Add logging of when options change
  */
 
-const option_keys = ["teacher-tag", "user-tag", "process-server"];
+const option_keys = ["teacher-tag", "user-tag", "process-server", "unique-id"];
 
 function saveOptions(key) {
     /*

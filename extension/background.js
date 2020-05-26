@@ -25,7 +25,6 @@ var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. P
 Dequeue events
 */
 
-
 function console_logger() {
     /*
       Log to browser JavaScript console
@@ -33,15 +32,74 @@ function console_logger() {
     return console.log;
 }
 
+
+function add_event_metadata(event_type, event) {
+    /*
+      TODO: Should we add user identity?
+     */
+    event['event'] = event_type;
+
+    event['source'] = 'org.mitros.writing-analytics';
+    event['version'] = 'alpha';
+    event['ts'] = Date.now();
+    event['human_ts'] = Date();
+    event['iso_ts'] = new Date().toISOString;
+    return event;
+}
+
+
 function websocket_logger(server) {
     /*
        Log to web socket server.
+
+       Optional:
+       * We could send queued events on socket open (or on a timeout)
+       * Or we could just wait for the next event (what we do now)
+
+       The former would be a little bit more robust.
     */
     var socket = new WebSocket(server);
+    var state = new Set()
     var queue = [];
 
+    function are_we_done() {
+	if (state.has("chrome_identity") &&
+	    state.has("local_storage")) {
+	    event = {};
+	    event = add_event_metadata('metadata-finished', event);
+	    socket.send(JSON.stringify(event));
+	    state.add("ready");
+	}
+    }
+
+    function prepare_socket() {
+	// Send the server the user info. This might not always be available.
+	state = new Set();
+	chrome.identity.getProfileUserInfo(function callback(userInfo) {
+	    event = {
+		"chrome_identity": userInfo
+	    };
+	    event = add_event_metadata("chrome_identity", event);
+	    socket.send(JSON.stringify(event));
+	    state.add("chrome_identity");
+	    are_we_done();
+	});
+	chrome.storage.sync.get(["teacher-tag", "user-tag", "process-server", "unique-id"], function(result) {
+	    event = {'local_storage': result};
+	    event = add_event_metadata("local_storage", event);
+	    socket.send(JSON.stringify(event));
+	    state.add("local_storage");
+	    are_we_done();
+	});
+    }
+
+    socket.onopen=prepare_socket;
+
     function dequeue() {
-	if(socket.readyState === socket.OPEN) {
+	if(socket === null) {
+	    // Do nothing. We're reconnecting. 
+	} else if(socket.readyState === socket.OPEN &&
+	   state.has("ready")) {
 	    while(queue.length > 1) {
 		var event = queue.shift();
 		socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
@@ -55,15 +113,10 @@ function websocket_logger(server) {
 	      or dequeue events if open.
 	    */
 	    socket = null;
+	    state = new Set();
 	    setTimeout(function() {
 		socket = new WebSocket(server);
-		/* Optional:
-
-		   We could resend events, or just wait for the next event.
-
-		   socket.onopen = function(event) {
-		        dequeue();
-		}*/
+		socket.onopen=prepare_socket;
 	    }, 1000);
 	}
     }
@@ -114,12 +167,7 @@ function log_event(event_type, event) {
        Eventually, this will send an event to the server. For now, we
        either ignore it, or print it on our console.
     */
-    event['source'] = 'org.mitros.writing-analytics';
-    event['version'] = 'alpha';
-    event['event'] = event_type;
-    event['ts'] = Date.now();
-    event['human_ts'] = Date();
-    event['iso_ts'] = new Date().toISOString;
+    event = add_event_metadata(event_type, event);
     // TODO: Add username
     if(event['wa-source'] = null) {
 	event['wa-source'] = 'background-page';
@@ -237,6 +285,9 @@ chrome.webRequest.onBeforeRequest.addListener(
 	if(this_a_google_docs_save(request)){
 	    chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
 	    try {
+		/* We should think through which time stamps we should log. These are all subtly
+		   different: browser event versus request timestamp, as well as user time zone
+		   versus GMT. */
 		event = {
 		    'doc_id':  googledocs_id_from_url(request.url),
 		    'bundles': JSON.parse(formdata.bundles),
@@ -270,7 +321,7 @@ log_event("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
 chrome.identity.getProfileUserInfo(function callback(userInfo) {
-    log_event("google-chrome-identity", userInfo);
+    log_event("chrome_identity", userInfo);
 });
 
 // And let the console know we've loaded
