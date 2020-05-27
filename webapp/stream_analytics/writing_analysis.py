@@ -82,7 +82,7 @@ async def reconstruct(event, internal_state):
     return state, state
 
 
-def pipeline(metadata):
+async def pipeline(metadata):
     '''
     We pass the event through all of our analytic pipelines, and
     combine the results into a common state-of-the-universe to return

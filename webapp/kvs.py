@@ -143,6 +143,7 @@ except KeyError:
     print()
     raise
 
+
 async def test():
     '''
     Simple test case: Spin up a few KVSes, write data to them, make

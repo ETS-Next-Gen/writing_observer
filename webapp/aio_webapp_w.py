@@ -14,7 +14,7 @@ import aiohttp_cors
 
 import pathvalidate
 
-import init  ## Odd import which makes sure we're set up
+import init  # Odd import which makes sure we're set up
 import event_pipeline
 import student_data
 
@@ -67,7 +67,8 @@ app.add_routes([
 app.add_routes([
     aiohttp.web.get('/static/{filename}', static_file_handler("static")),
     aiohttp.web.get('/static/media/{filename}', static_file_handler("media")),
-    aiohttp.web.get('/static/media/avatar/{filename}', static_file_handler("media/hubspot_persona_images/")),
+    aiohttp.web.get('/static/media/avatar/{filename}',
+                    static_file_handler("media/hubspot_persona_images/")),
 ])
 
 # Handle web sockets event requests, incoming and outgoing

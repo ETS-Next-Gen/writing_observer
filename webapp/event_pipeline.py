@@ -40,7 +40,7 @@ async def student_event_pipeline(metadata):
         raise Exception("Unknown event source")
     analytics_module = stream_analytics.analytics_modules[client_source]
     # Create an event processor for this user
-    event_processor = analytics_module['event_processor'](metadata)
+    event_processor = await analytics_module['event_processor'](metadata)
 
     async def pipeline(parsed_message):
         '''
@@ -134,8 +134,12 @@ async def handle_incoming_client_event(metadata):
         print(pubsub_client)
         outgoing = await pipeline(event)
         for item in outgoing:
-            await pubsub_client.send_event(mbody=json.dumps(item, sort_keys=True))
-            debug_log("Sent item to PubSub triggered by: "+client_event["event"])
+            await pubsub_client.send_event(
+                mbody=json.dumps(item, sort_keys=True)
+            )
+            debug_log(
+                "Sent item to PubSub triggered by: "+client_event["event"]
+            )
     return handler
 
 
@@ -222,6 +226,8 @@ async def incoming_websocket_handler(request):
             json_msg = json.loads(msg.data)
             print(json_msg)
             print(json_msg["event"])
+            if 'source' in json_msg:
+                event_metadata['source'] = json_msg['source']
             print(json_msg["event"] == "metadata_finished")
             if json_msg["event"] == "metadata_finished":
                 break
@@ -231,8 +237,6 @@ async def incoming_websocket_handler(request):
                 headers["local_storage"] = json_msg["local_storage"]
             elif json_msg["event"] == "test_framework_fake_identity":
                 headers["test_framework_fake_identity"] = json_msg["user_id"]
-            if 'source' in json_msg:
-                event_metadata['source'] = json_msg['source']
         event_metadata['headers'].update(headers)
 
     event_metadata['auth'] = await auth(headers)
