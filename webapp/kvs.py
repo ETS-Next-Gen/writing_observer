@@ -96,8 +96,6 @@ class _RedisKVS():
         await self.connect()
         json.dumps(value)  # Fail early if we're not JSON
         assert isinstance(key, str), "KVS keys must be strings"
-        print("Expire")
-        print(self.expire)
         await self.connection.set(key, json.dumps(value), expire=self.expire)
         return
 
@@ -125,12 +123,25 @@ class PersistentRedisKVS(_RedisKVS):
 
 
 #  This design pattern allows us to fail on import, rather than later
-KVS = {
-    'stub': InMemoryKVS,
-    'redis-ephemeral': EphemeralRedisKVS,
-    'redis': PersistentRedisKVS
-}[settings.settings['kvs']['type']]
-
+try:
+    KVS_MAP = {
+        'stub': InMemoryKVS,
+        'redis-ephemeral': EphemeralRedisKVS,
+        'redis': PersistentRedisKVS
+    }
+    KVS = KVS_MAP[settings.settings['kvs']['type']]
+except KeyError:
+    if 'kvs' not in settings.settings:
+        print("KVS not configured in settings file")
+        print("Look at example settings file to set up KVS config")
+    else:
+        print("Invalid setting kvs/type.")
+        print("KVS config is currently ", end='')
+        print(settings.settings["kvs"])
+        print("Should have a 'type' field set to one of: ", end='')
+        print(",".join(KVS_MAP.keys()))
+    print()
+    raise
 
 async def test():
     '''
