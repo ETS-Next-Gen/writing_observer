@@ -58,9 +58,31 @@ function websocket_logger(server) {
 
        The former would be a little bit more robust.
     */
-    var socket = new WebSocket(server);
+    var socket;
     var state = new Set()
     var queue = [];
+
+    function new_websocket() {
+	socket = new WebSocket(server);
+	socket.onopen=prepare_socket;
+	socket.onerror = function(event) {
+	    console.log("Could not connect");
+	    var event = { "issue": "Could not connect" };
+	    event = add_event_metadata("warning", event);
+	    event = JSON.stringify(event);
+	    queue.push(event);
+	};
+	socket.onclose = function(event) {
+	    console.log("Lost connection");
+	    var event = { "issue": "Lost connection", "code": event.code };
+	    event = add_event_metadata("warning", event);
+	    event = JSON.stringify(event);
+	    queue.push(event);
+	};
+	return socket;
+    }
+
+    socket = new_websocket();
 
     function are_we_done() {
 	if (state.has("chrome_identity") &&
@@ -93,18 +115,17 @@ function websocket_logger(server) {
 	});
     }
 
-    socket.onopen=prepare_socket;
-
     function dequeue() {
 	if(socket === null) {
-	    // Do nothing. We're reconnecting. 
+	    // Do nothing. We're reconnecting.
+	    console.log("Event squelched; reconnecting");
 	} else if(socket.readyState === socket.OPEN &&
 	   state.has("ready")) {
 	    while(queue.length > 1) {
 		var event = queue.shift();
-		socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
+		socket.send(event);  /* TODO: We should do receipt confirmation before dropping events */
 	    }
-	} else if(socket.readyState == socket.CLOSED) {
+	} else if((socket.readyState == socket.CLOSED) || (socket.readyState == socket.CLOSING)) {
 	    /*
 	      If we lost the connection, we wait a second and try to open it again.
 
@@ -112,11 +133,12 @@ function websocket_logger(server) {
 	      branch -- we just queue up events. We reconnect after 1 second if closed,
 	      or dequeue events if open.
 	    */
+	    console.log("Re-opening connection in 1s");
 	    socket = null;
 	    state = new Set();
 	    setTimeout(function() {
-		socket = new WebSocket(server);
-		socket.onopen=prepare_socket;
+		console.log("Re-opening connection");
+		socket = new_websocket();
 	    }, 1000);
 	}
     }
@@ -192,9 +214,9 @@ function send_chrome_identity() {
        Note this function is untested, following a refactor.
     */
     chrome.identity.getProfileInfo(function(userInfo) {
-	log_event("chrome_identity", {"email": userInfo.email,
-					  "id": userInfo.id
-					 });
+	log_event("chrome_identity_load", {"email": userInfo.email,
+					   "id": userInfo.id
+					  });
     });
 }
 
@@ -231,9 +253,9 @@ chrome.storage.sync.get(['process-server'], function(result) {
 // Listen for the keystroke messages from the page script and forward to the server.
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-	chrome.extension.getBackgroundPage().console.log("Got message");
-	chrome.extension.getBackgroundPage().console.log(request);
-	console.log(sender);
+	//chrome.extension.getBackgroundPage().console.log("Got message");
+	//chrome.extension.getBackgroundPage().console.log(request);
+	//console.log(sender);
 	request['wa-source'] = 'client-page';
 	log_event(request['event'], request);
     }
@@ -267,7 +289,7 @@ chrome.webRequest.onBeforeRequest.addListener(
       from there, being able to easily ignore these is nice.
      */
     function(request) {
-	chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
+	//chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
 	var formdata = {};
 	if(request.requestBody) {
 	    formdata = request.requestBody.formData;
@@ -283,7 +305,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 	}
 
 	if(this_a_google_docs_save(request)){
-	    chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
+	    //chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
 	    try {
 		/* We should think through which time stamps we should log. These are all subtly
 		   different: browser event versus request timestamp, as well as user time zone
@@ -309,7 +331,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 		log_event('google_docs_save_extra', event);
 	    }
 	} else {
-	    chrome.extension.getBackgroundPage().console.log("Not a save: "+request.url);
+	    //chrome.extension.getBackgroundPage().console.log("Not a save: "+request.url);
 	}
     },
     { urls: ["*://docs.google.com/*"/*, "*://mail.google.com/*"*/] },
