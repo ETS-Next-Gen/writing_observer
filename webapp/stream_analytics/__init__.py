@@ -12,14 +12,14 @@ This should move into a config file.
 '''
 
 analytics_modules = {
-    "org.mitros.mirror": {'event_processor': lambda x: x},
+    "org.mitros.mirror": {'event_processor': lambda metadata: lambda event: event},
 }
 
 try:
     import stream_analytics.dynamic_assessment
     analytics_modules.update({
         "org.mitros.dynamic-assessment": {
-            'event_processor': stream_analytics.dynamic_assessment.process_event
+            'event_processor': lambda metadata: stream_analytics.dynamic_assessment.process_event
         },
     })
 except ModuleNotFoundError:
@@ -30,7 +30,7 @@ try:
     import stream_analytics.writing_analysis
     analytics_modules.update({
         "org.mitros.writing-analytics": {
-            'event_processor': stream_analytics.writing_analysis.pipeline()
+            'event_processor': stream_analytics.writing_analysis.pipeline
         }
     })
 except ModuleNotFoundError:

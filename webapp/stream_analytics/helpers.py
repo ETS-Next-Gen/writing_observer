@@ -20,7 +20,7 @@ def kvs_pipeline(streammodule):
         The decorator itself
         '''
         @functools.wraps(func)
-        def wrapper_closure(metadata=None):
+        def wrapper_closure(metadata):
             '''
             The decorator itself. We create a function that, when called,
             creates an event processing pipeline. It keeps a pointer
@@ -29,6 +29,8 @@ def kvs_pipeline(streammodule):
             want to allow sharding, etc. If two users are connected, each
             will have their own data store connection.
             '''
+            print("Metadata: ")
+            print(metadata)
             if metadata is not None and 'auth' in metadata:
                 safe_user_id = metadata['auth']['safe_user_id']
             else:

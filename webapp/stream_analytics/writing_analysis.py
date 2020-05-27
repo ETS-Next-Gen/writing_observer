@@ -82,13 +82,13 @@ async def reconstruct(event, internal_state):
     return state, state
 
 
-def pipeline():
+def pipeline(metadata):
     '''
     We pass the event through all of our analytic pipelines, and
     combine the results into a common state-of-the-universe to return
     for display in the dashboard.
     '''
-    processors = [time_on_task(), reconstruct()]
+    processors = [time_on_task(metadata), reconstruct(metadata)]
 
     async def process(event):
         external_state = {}

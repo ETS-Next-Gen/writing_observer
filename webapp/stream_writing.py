@@ -92,12 +92,18 @@ def identify(user):
     This might just be scaffolding code for now, or we might do something
     along these lines.
     '''
-    return {
-        "event": "test_framework_fake_identify",
-        "source": "org.mitros.writing-analytics",
-        "user": user,
-        "origin": "stream-test-script"
-    }
+    return [
+        {
+            "event": "test_framework_fake_identity",
+            "source": "org.mitros.writing-analytics",
+            "user_id": user,
+            "origin": "stream-test-script"
+        }, {
+            "event": "metadata_finished",
+            "source": "org.mitros.writing-analytics",
+            "origin": "stream-test-script"
+        }
+    ]
 
 
 async def stream_document(text, ici, user, doc_id):
@@ -107,8 +113,9 @@ async def stream_document(text, ici, user, doc_id):
     '''
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(ARGS["--url"]) as web_socket:
-            command = identify(user)
-            await web_socket.send_str(json.dumps(command))
+            commands = identify(user)
+            for command in commands:
+                await web_socket.send_str(json.dumps(command))
             for char, index in zip(text, range(len(text))):
                 command = insert(index+1, char, doc_id)
                 await web_socket.send_str(json.dumps(command))

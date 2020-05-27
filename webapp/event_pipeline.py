@@ -30,14 +30,26 @@ def compile_server_data(request):
     }
 
 
-async def student_event_pipeline(parsed_message, metadata=None):
-    client_source = parsed_message["client"]["source"]
-    if client_source in stream_analytics.analytics_modules:
+async def student_event_pipeline(metadata):
+    '''
+    Create an event pipeline, based on header metadata
+    '''
+    client_source = metadata["source"]
+    if client_source not in stream_analytics.analytics_modules:
+        debug_log("Unknown event source" + str(parsed_message))
+        raise Exception("Unknown event source")
+    analytics_module = stream_analytics.analytics_modules[client_source]
+    # Create an event processor for this user
+    event_processor = analytics_module['event_processor'](metadata)
+
+    async def pipeline(parsed_message):
+        '''
+        And this is the pipeline itself. It takes messages, processes them,
+        and informs consumers when there is new data.
+        '''
         debug_log("Processing PubSub message {event} from {source}".format(
             event=parsed_message["client"]["event"], source=client_source
         ))
-        analytics_module = stream_analytics.analytics_modules[client_source]
-        event_processor = analytics_module['event_processor']
         try:
             processed_analytics = await event_processor(parsed_message)
         except Exception as e:
@@ -69,9 +81,7 @@ async def student_event_pipeline(parsed_message, metadata=None):
             print("FIXME: Should return list")
             processed_analytics = [processed_analytics]
         return processed_analytics
-    else:
-        debug_log("Unknown event source" + str(parsed_message))
-        return []
+    return pipeline
 
 
 async def ajax_event_request(request):
@@ -96,7 +106,7 @@ async def ajax_event_request(request):
     return aiohttp.web.Response(text="Acknowledged!")
 
 
-async def handle_incoming_client_event(metadata=None):
+async def handle_incoming_client_event(metadata):
     '''
     Common handler for both Websockets and AJAX events.
 
@@ -106,6 +116,8 @@ async def handle_incoming_client_event(metadata=None):
     debug_log("Connecting to pubsub source")
     pubsub_client = await pubsub.pubsub_send()
     debug_log("Connected")
+
+    pipeline = await student_event_pipeline(metadata=metadata)
 
     async def handler(request, client_event):
         debug_log("Compiling event for PubSub: "+client_event["event"])
@@ -120,7 +132,7 @@ async def handle_incoming_client_event(metadata=None):
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
         print(pubsub_client)
-        outgoing = await student_event_pipeline(event, metadata=metadata)
+        outgoing = await pipeline(event)
         for item in outgoing:
             await pubsub_client.send_event(mbody=json.dumps(item, sort_keys=True))
             debug_log("Sent item to PubSub triggered by: "+client_event["event"])
@@ -142,17 +154,23 @@ async def dummy_auth(metadata):
     3. `user_id` -- a unique user identifier
     '''
     if 'local_storage' in metadata and 'user-tag' in metadata['local_storage']:
-            auth_metadata = {
-                'sec': 'unauthenticated',
-                'user_id': "ls-"+metadata['local_storage']['user_tag'],
-                'providence': 'lsu'  # local storage, unauthenticated
-            }
-    elif 'chrome_identity' in metadata and 'email' in metadata['chrome_identity']:
-            auth_metadata = {
-                'sec': 'unauthenticated',
-                'user_id': "gc-"+metadata['chrome_identity']['email'],
-                'providence': 'gcu'  # Google Chrome, unauthenticated
-            }
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "ls-"+metadata['local_storage']['user_tag'],
+            'providence': 'lsu'  # local storage, unauthenticated
+        }
+    elif 'chrome_identity' in metadata:
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "gc-"+metadata['chrome_identity']['email'],
+            'providence': 'gcu'  # Google Chrome, unauthenticated
+        }
+    elif 'test_framework_fake_identity' in metadata:
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "ts-"+metadata['test_framework_fake_identity'],
+            'providence': 'tsu'  # Test Script, unauthenticated
+        }
     else:
         auth_metadata = {
             'sec': 'none',
@@ -203,17 +221,22 @@ async def incoming_websocket_handler(request):
         async for msg in ws:
             json_msg = json.loads(msg.data)
             print(json_msg)
-            if json_msg["event"] == "metadata-finished":
+            print(json_msg["event"])
+            print(json_msg["event"] == "metadata_finished")
+            if json_msg["event"] == "metadata_finished":
                 break
             elif json_msg["event"] == "chrome_identity":
                 headers["chrome_identity"] = json_msg["chrome_identity"]
             elif json_msg["event"] == "local_storage":
                 headers["local_storage"] = json_msg["local_storage"]
+            elif json_msg["event"] == "test_framework_fake_identity":
+                headers["test_framework_fake_identity"] = json_msg["user_id"]
+            if 'source' in json_msg:
+                event_metadata['source'] = json_msg['source']
         event_metadata['headers'].update(headers)
 
+    event_metadata['auth'] = await auth(headers)
     print(event_metadata)
-    headers['auth'] = await auth(headers)
-    print(headers['auth'])
 
     event_handler = await handle_incoming_client_event(metadata=event_metadata)
 
