@@ -88,7 +88,7 @@ function websocket_logger(server) {
 	if (state.has("chrome_identity") &&
 	    state.has("local_storage")) {
 	    event = {};
-	    event = add_event_metadata('metadata-finished', event);
+	    event = add_event_metadata('metadata_finished', event);
 	    socket.send(JSON.stringify(event));
 	    state.add("ready");
 	}
