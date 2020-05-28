@@ -1,9 +1,30 @@
 '''
 Common utility functions
 '''
+import enum
 import functools
 
 import kvs
+
+
+KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
+
+
+def make_key(streammodule, safe_user_id, state_type):
+    '''
+    Create a KVS key
+
+    This joins a stream module ID, a sanitized user ID, and
+    whether this is the internal state of the module or the
+    external state.
+    '''
+    assert isinstance(state_type, KeyStateType)
+
+    return "{state_type}:{streammodule}:{user}".format(
+        state_type=state_type.name.capitalize(),
+        streammodule=streammodule,
+        user=safe_user_id
+    )
 
 
 def kvs_pipeline(streammodule):
@@ -37,10 +58,8 @@ def kvs_pipeline(streammodule):
                 safe_user_id = '[guest]'
                 # TODO: raise an exception.
 
-            keynamespace = "{streammodule}:{user}".format(
-                streammodule=streammodule,
-                user=safe_user_id
-            )
+            internal_key = make_key(streammodule, safe_user_id, KeyStateType.INTERNAL)
+            external_key = make_key(streammodule, safe_user_id, KeyStateType.EXTERNAL)
             taskkvs = kvs.KVS()
 
             async def process_event(events):
@@ -57,11 +76,12 @@ def kvs_pipeline(streammodule):
                 large or private. The internal state needs everything
                 needed to continue reducing the events.
                 '''
-                internal_state = await taskkvs[keynamespace]
+                internal_state = await taskkvs[internal_key]
                 internal_state, external_state = await func(
                     events, internal_state
                 )
-                await taskkvs.set(keynamespace, internal_state)
+                await taskkvs.set(internal_key, internal_state)
+                await taskkvs.set(external_key, external_state)
                 return external_state
             return process_event
         return wrapper_closure
