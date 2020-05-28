@@ -1,4 +1,4 @@
-# Draft Privacy Policy
+# Draft Thoughts on Privacy
 ## Piotr Mitros
 
 **Disclaimer:** This is a work-in-progress. It is a draft for
