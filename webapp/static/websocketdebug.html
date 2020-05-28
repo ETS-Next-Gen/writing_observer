@@ -14,6 +14,12 @@
   <script>
     let socket_in = new WebSocket("wss://writing.hopto.org/wsapi/in/");
     let socket_out = new WebSocket("wss://writing.hopto.org/wsapi/out/");
+    socket_in.onopen = function() {
+        socket_in.send(JSON.stringify({
+            "event": "metadata_finished",
+            "source": "org.mitros.mirror"
+        }));
+    }
 
     socket_out.onmessage = function(event) {
         document.querySelector("div").innerText = event.data;

@@ -2,6 +2,7 @@ import datetime
 import json
 import time
 import traceback
+import urllib.parse
 import uuid
 
 import aiohttp
@@ -29,14 +30,26 @@ def compile_server_data(request):
     }
 
 
-async def student_event_pipeline(parsed_message):
-    client_source = parsed_message["client"]["source"]
-    if client_source in stream_analytics.analytics_modules:
+async def student_event_pipeline(metadata):
+    '''
+    Create an event pipeline, based on header metadata
+    '''
+    client_source = metadata["source"]
+    if client_source not in stream_analytics.analytics_modules:
+        debug_log("Unknown event source" + str(parsed_message))
+        raise Exception("Unknown event source")
+    analytics_module = stream_analytics.analytics_modules[client_source]
+    # Create an event processor for this user
+    event_processor = await analytics_module['event_processor'](metadata)
+
+    async def pipeline(parsed_message):
+        '''
+        And this is the pipeline itself. It takes messages, processes them,
+        and informs consumers when there is new data.
+        '''
         debug_log("Processing PubSub message {event} from {source}".format(
             event=parsed_message["client"]["event"], source=client_source
         ))
-        analytics_module = stream_analytics.analytics_modules[client_source]
-        event_processor = analytics_module['event_processor']
         try:
             processed_analytics = await event_processor(parsed_message)
         except Exception as e:
@@ -68,9 +81,7 @@ async def student_event_pipeline(parsed_message):
             print("FIXME: Should return list")
             processed_analytics = [processed_analytics]
         return processed_analytics
-    else:
-        debug_log("Unknown event source" + str(parsed_message))
-        return []
+    return pipeline
 
 
 async def ajax_event_request(request):
@@ -95,7 +106,7 @@ async def ajax_event_request(request):
     return aiohttp.web.Response(text="Acknowledged!")
 
 
-async def handle_incoming_client_event():
+async def handle_incoming_client_event(metadata):
     '''
     Common handler for both Websockets and AJAX events.
 
@@ -106,11 +117,14 @@ async def handle_incoming_client_event():
     pubsub_client = await pubsub.pubsub_send()
     debug_log("Connected")
 
+    pipeline = await student_event_pipeline(metadata=metadata)
+
     async def handler(request, client_event):
         debug_log("Compiling event for PubSub: "+client_event["event"])
         event = {
             "client": client_event,
-            "server": compile_server_data(request)
+            "server": compile_server_data(request),
+            "metadata": metadata
         }
 
         log_event.log_event(event)
@@ -118,11 +132,77 @@ async def handle_incoming_client_event():
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
         print(pubsub_client)
-        outgoing = await student_event_pipeline(event)
+        outgoing = await pipeline(event)
         for item in outgoing:
-            await pubsub_client.send_event(mbody=json.dumps(item, sort_keys=True))
-            debug_log("Sent item to PubSub triggered by: "+client_event["event"])
+            await pubsub_client.send_event(
+                mbody=json.dumps(item, sort_keys=True)
+            )
+            debug_log(
+                "Sent item to PubSub triggered by: "+client_event["event"]
+            )
     return handler
+
+
+async def dummy_auth(metadata):
+    '''
+    This is a dummy authentication function. It trusts the metadata in the web
+    socket without auth/auth.
+
+    Our thoughts are that the auth metadata ought to contain:
+    1. Whether the user was authenticated (`sec` field):
+       * `authenticated` -- we trust who they are
+       * `unauthenticated` -- we think we know who they are, without security
+       * `guest` -- we don't know who they are
+    2. Providence: How they were authenticated (if at all), or how we believe
+       they are who they are.
+    3. `user_id` -- a unique user identifier
+    '''
+    if 'local_storage' in metadata and 'user-tag' in metadata['local_storage']:
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "ls-"+metadata['local_storage']['user_tag'],
+            'providence': 'lsu'  # local storage, unauthenticated
+        }
+    elif 'chrome_identity' in metadata:
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "gc-"+metadata['chrome_identity']['email'],
+            'providence': 'gcu'  # Google Chrome, unauthenticated
+        }
+    elif 'test_framework_fake_identity' in metadata:
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "ts-"+metadata['test_framework_fake_identity'],
+            'providence': 'tsu'  # Test Script, unauthenticated
+        }
+    else:
+        auth_metadata = {
+            'sec': 'none',
+            'user_id': 'guest',
+            'safe_user_id': 'guest',
+            'providence': 'guest'
+        }
+
+    # We don't know where user IDs will come from.
+    #
+    # We'd like a version of the user ID which can be encoded in keys,
+    # given to SQL, etc. without opening up security holes.
+    #
+    # We also want to avoid overlapping UIDs between sources. For
+    # example, we don't want an attack where e.g. a user carefully
+    # creates an account on one auth provide to collide with a pre-existing
+    # account on another auth provider. So we append providence.
+    if "safe_user_id" not in auth_metadata:
+        auth_metadata['safe_user_id'] = "{src}-{uid}".format(
+            src=auth_metadata["providence"],
+            uid=urllib.parse.quote_plus(
+                auth_metadata['user_id'],
+                safe='@'  # Keep emails more readable
+            )
+        )
+    return auth_metadata
+
+auth = dummy_auth
 
 
 async def incoming_websocket_handler(request):
@@ -134,7 +214,6 @@ async def incoming_websocket_handler(request):
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    event_handler = await handle_incoming_client_event()
 
     # For now, we receive two packets to initialize:
     # * Chrome's identity information
@@ -146,16 +225,24 @@ async def incoming_websocket_handler(request):
         async for msg in ws:
             json_msg = json.loads(msg.data)
             print(json_msg)
-            if json_msg["event"] == "metadata-finished":
+            print(json_msg["event"])
+            if 'source' in json_msg:
+                event_metadata['source'] = json_msg['source']
+            print(json_msg["event"] == "metadata_finished")
+            if json_msg["event"] == "metadata_finished":
                 break
-            elif json_msg["event"] == "google_chrome_identity":
+            elif json_msg["event"] == "chrome_identity":
                 headers["chrome_identity"] = json_msg["chrome_identity"]
             elif json_msg["event"] == "local_storage":
                 headers["local_storage"] = json_msg["local_storage"]
+            elif json_msg["event"] == "test_framework_fake_identity":
+                headers["test_framework_fake_identity"] = json_msg["user_id"]
         event_metadata['headers'].update(headers)
-        print(headers)
-        print(event_metadata)
-        #  init = [await ws.receive_json(), await ws.receive_json(), await ws.receive_json()]
+
+    event_metadata['auth'] = await auth(headers)
+    print(event_metadata)
+
+    event_handler = await handle_incoming_client_event(metadata=event_metadata)
 
     async for msg in ws:
         debug_log("Web socket message received")

@@ -17,16 +17,22 @@ import loremipsum
 import names
 
 
-def paginate(l, n):
+def paginate(data_list, nrows):
     '''
-    Paginate list `l` into `n`-item rows.
+    Paginate list `data_list` into `nrows`-item rows.
 
     This should move into the client
     '''
-    return [l[i*n:(i+1)*n] for i in range(math.ceil(len(l)/n))]
+    return [
+        data_list[i*nrows:(i+1)*nrows]
+        for i in range(math.ceil(len(data_list)/nrows))
+    ]
 
 
 def synthetic_student_data(student_id):
+    '''
+    Create fake student data for mock-up UX
+    '''
     name = names.get_first_name()
     essay = "\n".join(loremipsum.get_paragraphs(5))
     return {
@@ -38,16 +44,16 @@ def synthetic_student_data(student_id):
             pre=random.randint(200, 999),
             mid=random.randint(200, 999),
             post=random.randint(1000, 9999)),
-        'avatar': "avatar-{number}".format(number=random.randint(0,14)),
+        'avatar': "avatar-{number}".format(number=random.randint(0, 14)),
         'ici': random.uniform(100, 1000),
         'essay_length': len(essay),
         'essay': essay,
         'writing_time': random.uniform(5, 60),
-        'text_complexity': random.uniform(3,9),
+        'text_complexity': random.uniform(3, 9),
         'google_doc': "https://docs.google.com/document/d/1YbtJGn7ida2IYNgwCFk3SjhsZ0ztpG5bMzA3WNbVNhU/edit",
-        'time_idle': numpy.random.gamma(0.5,scale=5),
+        'time_idle': numpy.random.gamma(0.5, scale=5),
         'outline': [{"section": "Problem "+str(i+1),
-                     "length": random.randint(1,300)} for i in range(5)],
+                     "length": random.randint(1, 300)} for i in range(5)],
         'revisions': {}
     }
 
