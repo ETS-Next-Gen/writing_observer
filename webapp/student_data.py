@@ -18,4 +18,10 @@ def generated_student_data_handler(request):
     '''
     return aiohttp.web.json_response(synthetic_student_data.synthetic_data())
 
+async def ws_student_data_handler(request):
+    print("Serving")
+    ws = aiohttp.web.WebSocketResponse()
+    await ws.prepare(request)
+    await ws.send_json(synthetic_student_data.synthetic_data())
+
 student_data_handler = generated_student_data_handler

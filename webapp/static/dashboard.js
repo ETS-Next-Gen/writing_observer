@@ -64,7 +64,17 @@ for(var i=0; i<tabs.length; i++) {
 var ws = new WebSocket(`wss://${window.location.hostname}/wsapi/student-data/`)
 ws.onmessage = function (event) {
     console.log("Got data");
-    student_data = JSON.parse(event.data);
-    d3.select(".wa-tile-sheet").html("");
-    d3.select(".wa-tile-sheet").call(populate_tiles);
+    let data = JSON.parse(event.data);
+    student_data = data; //.student_data;
+    if(data.loggedin === false) {
+	d3.selectAll(".loading").classed("is-hidden", true);
+        d3.selectAll(".auth-form").classed("is-hidden", false);
+        d3.selectAll(".main").classed("is-hidden", true);
+    } else {
+        d3.selectAll(".loading").classed("is-hidden", true);
+        d3.selectAll(".auth-form").classed("is-hidden", true);
+        d3.selectAll(".main").classed("is-hidden", false);
+	d3.select(".wa-tile-sheet").html("");
+	d3.select(".wa-tile-sheet").call(populate_tiles);
+    }
 };

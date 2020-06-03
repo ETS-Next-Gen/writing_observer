@@ -60,7 +60,8 @@ def static_file_handler(basepath):
 
 # Student data API
 app.add_routes([
-    aiohttp.web.get('/webapi/student-data/', student_data.student_data_handler)
+    aiohttp.web.get('/webapi/student-data/', student_data.student_data_handler),
+    aiohttp.web.get('/wsapi/student-data/', student_data.ws_student_data_handler)
 ])
 
 # Serve static files

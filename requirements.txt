@@ -20,4 +20,5 @@ asyncio_redis
 docopt
 pathvalidate
 names
--e git+https://github.com/testlabauto/loremipsum.git@b7bd71a6651207ef88993045cd755f20747f2a1e#egg=loremipsmum
+git+https://github.com/testlabauto/loremipsum.git@b7bd71a6651207ef88993045cd755f20747f2a1e#egg=loremipsmum
+git+https://github.com/pmitros/tsvx.git@57efd1ab61114650326c5acdece2f850e86b2831#egg=tsvx
