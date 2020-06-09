@@ -108,8 +108,7 @@ def identify(user):
 
 async def stream_document(text, ici, user, doc_id):
     '''
-    Send a document to the server. To do: Figure out how to handle
-    users.
+    Send a document to the server.
     '''
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(ARGS["--url"]) as web_socket:

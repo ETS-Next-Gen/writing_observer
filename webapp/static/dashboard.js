@@ -1,5 +1,5 @@
 import { deane_graph } from './deane.js'
-import { typing } from './typing.js'
+import { student_text } from './text.js'
 import { summary_stats } from './summary_stats.js'
 import { outline } from './outline.js'
 
@@ -27,10 +27,14 @@ function populate_tiles(tilesheet) {
 	    });*/
 	})
 	.each(function(d) {
-	    d3.select(this).select(".typing-text").call(typing, d.ici, d.essay);
+	    d3.select(this).select(".typing-text").call(
+		student_text,
+		d["stream_analytics.writing_analysis.reconstruct"].text);
 	})
 	.each(function(d) {
-	    d3.select(this).select(".deane").call(deane_graph);
+	    d3.select(this).select(".deane").call(
+		deane_graph,
+		d["stream_analytics.writing_analysis.reconstruct"].edit_metadata);
 	})
 	.each(function(d) {
 	    d3.select(this).select(".summary").call(summary_stats, d);
@@ -54,23 +58,18 @@ for(var i=0; i<tabs.length; i++) {
     d3.select(".tilenav-"+tabs[i]).on("click", select_tab(tabs[i]));
 }
 
-// d3.json("/webapi/student-data/").then(function(data) {
-//     student_data = data;
-//     console.log("Loaded");
-//     d3.select(".wa-tile-sheet").html("");
-//     d3.select(".wa-tile-sheet").call(populate_tiles);
-// });
-
 var ws = new WebSocket(`wss://${window.location.hostname}/wsapi/student-data/`)
 ws.onmessage = function (event) {
     console.log("Got data");
     let data = JSON.parse(event.data);
     // dispatch
     if(data.logged_in === false) {
+	console.log("Not logged in");
 	d3.selectAll(".loading").classed("is-hidden", true);
         d3.selectAll(".auth-form").classed("is-hidden", false);
         d3.selectAll(".main").classed("is-hidden", true);
     } else if (data.new_student_data) {
+	console.log("New data!");
 	student_data = data.new_student_data;
         d3.selectAll(".loading").classed("is-hidden", true);
         d3.selectAll(".auth-form").classed("is-hidden", true);

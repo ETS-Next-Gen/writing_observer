@@ -1,3 +1,12 @@
+/*
+  This module simulates student typing client-side. It's used for
+  development and mockups. The side powered by server data is text.js.
+
+  At some point, it might make sense to fold some of this into
+  text.js, so if we e.g. receive 5 keystrokes between updates, we have
+  them look like typing.
+*/
+
 export const name = 'typing';
 
 const SAMPLE_TEXT = "I like the goals of this petition and the bills, but as drafted, these bills just don't add up. We want to put our economy on hold. We definitely need a rent freeze. For that to work, we also need a mortgage freeze, not a mortgage forbearance. The difference is that in a mortgage forbearance, interest adds up and at the end, your principal is higher than when you started. In a mortgage freeze, the principal doesn't change -- you just literally push back all payments by a few months.";

@@ -10,7 +10,14 @@ import kvs
 KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 
 
-def make_key(streammodule, safe_user_id, state_type):
+def fully_qualified_function_name(func):
+    return "{module}.{function}".format(
+        module=func.__module__,
+        function=func.__qualname__
+    )
+
+
+def make_key(func, safe_user_id, state_type):
     '''
     Create a KVS key
 
@@ -19,6 +26,9 @@ def make_key(streammodule, safe_user_id, state_type):
     external state.
     '''
     assert isinstance(state_type, KeyStateType)
+    assert callable(func)
+
+    streammodule = fully_qualified_function_name(func)
 
     return "{state_type}:{streammodule}:{user}".format(
         state_type=state_type.name.capitalize(),
@@ -58,8 +68,8 @@ def kvs_pipeline(streammodule):
                 safe_user_id = '[guest]'
                 # TODO: raise an exception.
 
-            internal_key = make_key(streammodule, safe_user_id, KeyStateType.INTERNAL)
-            external_key = make_key(streammodule, safe_user_id, KeyStateType.EXTERNAL)
+            internal_key = make_key(func, safe_user_id, KeyStateType.INTERNAL)
+            external_key = make_key(func, safe_user_id, KeyStateType.EXTERNAL)
             taskkvs = kvs.KVS()
 
             async def process_event(events):

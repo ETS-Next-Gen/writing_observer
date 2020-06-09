@@ -170,10 +170,15 @@ export function populate_deane_graph_data(div, data, max_x=null, max_y=null) {
 
 }
 
-export function deane_graph(div) {
+export function deane_graph(div, data=null) {
     var svg = setup_deane_graph(div);
 
-    var data = dummy_data(LENGTH);
+    // For testing. TODO: Clean up for non-test version
+    // so we can't get here by accident. null is a really
+    // bad signal
+    if (data==null) {
+	data = dummy_data(LENGTH);
+    }
 
     var y_length = data['length'];
     var y_cursor = data['cursor'];

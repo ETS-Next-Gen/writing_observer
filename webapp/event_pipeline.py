@@ -239,8 +239,8 @@ async def incoming_websocket_handler(request):
                 headers["test_framework_fake_identity"] = json_msg["user_id"]
         event_metadata['headers'].update(headers)
 
-    event_metadata['auth'] = await auth(headers)
-    print(event_metadata)
+        event_metadata['auth'] = await auth(headers)
+        print(event_metadata)
 
     event_handler = await handle_incoming_client_event(metadata=event_metadata)
 
