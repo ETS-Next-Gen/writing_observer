@@ -11,12 +11,19 @@ import os
 
 import aiohttp
 import aiohttp_cors
+import aiohttp_session
+import aiohttp_session.cookie_storage
+
+import hashlib
 
 import pathvalidate
 
 import init  # Odd import which makes sure we're set up
 import event_pipeline
 import student_data
+import auth_handlers
+
+import settings
 
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
@@ -32,11 +39,20 @@ async def request_logger_middleware(request, handler):
 app.on_response_prepare.append(request_logger_middleware)
 
 
-def static_file_handler(basepath):
+def static_file_handler(filename):
     '''
-    Serve static files.
+    Serve a single static file
+    '''
+    def handler(request):
+        return aiohttp.web.FileResponse(filename)
+    return handler
 
-    This can be done directly by nginx on deployment.
+
+def static_directory_handler(basepath):
+    '''
+    Serve static files from a directory.
+
+    This could be done directly by nginx on deployment.
 
     This is very minimal for now: No subdirectories, no gizmos,
     nothing fancy. I avoid fancy when we have user input and
@@ -66,10 +82,10 @@ app.add_routes([
 
 # Serve static files
 app.add_routes([
-    aiohttp.web.get('/static/{filename}', static_file_handler("static")),
-    aiohttp.web.get('/static/media/{filename}', static_file_handler("media")),
+    aiohttp.web.get('/static/{filename}', static_directory_handler("static")),
+    aiohttp.web.get('/static/media/{filename}', static_directory_handler("media")),
     aiohttp.web.get('/static/media/avatar/{filename}',
-                    static_file_handler("media/hubspot_persona_images/")),
+                    static_directory_handler("media/hubspot_persona_images/")),
 ])
 
 # Handle web sockets event requests, incoming and outgoing
@@ -84,6 +100,11 @@ app.add_routes([
     aiohttp.web.post('/webapi/event/', event_pipeline.ajax_event_request),
 ])
 
+app.add_routes([
+    aiohttp.web.get('/', static_file_handler("static/index.html")),
+    aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social)
+])
+
 cors = aiohttp_cors.setup(app, defaults={
     "*": aiohttp_cors.ResourceOptions(
         allow_credentials=True,
@@ -91,5 +112,14 @@ cors = aiohttp_cors.setup(app, defaults={
         allow_headers="*",
     )
 })
+
+def fernet_key(s):
+    t = hashlib.md5()
+    t.update(s.encode('utf-8'))
+    return t.hexdigest().encode('utf-8')
+
+aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
+        fernet_key(settings.settings['aio']['session_secret']),
+        max_age=settings.settings['aio']['session_max_age']))
 
 aiohttp.web.run_app(app, port=8888)
