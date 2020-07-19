@@ -7,3 +7,5 @@ https://www.ets.org/legal/trademarks/owned
 
 It is not distributed under the same license as the rest of this
 system.
+
+Flags of Poland and the US are SVGs from Wikipedia, and in the public domain
