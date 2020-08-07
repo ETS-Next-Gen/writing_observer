@@ -75,23 +75,19 @@ async def logout(request):
     return aiohttp.web.HTTPFound("/")  ## TODO: Make a proper logout page
 
 
+@aiohttp.web.middleware
+async def auth_middleware(request, handler):
+    '''
+    Move user into the request
 
-def user_to_request(handler):
-    """
-     A handler function decorator that adds user to request if user logged in.
-     :param handler: function to decorate.
-     :return: decorated function
-     """
-    @wraps(handler)
-    async def decorator(*args):
-        request = args[0]
-        session = await aiohttp_session.get_session(request)
-        request['user'] = session.get('user', None)
-        return await handler(*args)
-    return decorator
+    Save user into a cookie
+    '''
+    session = await aiohttp_session.get_session(request)
+    request['user'] = session.get('user', None)
+    resp = await handler(request)
+    return resp
 
 
-@user_to_request
 async def user_info(request):
     return aiohttp.web.json_response(request['user'])
 

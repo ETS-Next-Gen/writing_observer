@@ -129,4 +129,6 @@ aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage
         fernet_key(settings.settings['aio']['session_secret']),
         max_age=settings.settings['aio']['session_max_age']))
 
+app.middlewares.append(auth_handlers.auth_middleware)
+
 aiohttp.web.run_app(app, port=8888)
