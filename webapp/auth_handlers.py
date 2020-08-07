@@ -35,6 +35,9 @@ import aiohttp_session
 from functools import wraps
 from yarl import URL
 
+import json
+import base64
+
 
 async def social(request):
     """Handles Google sign in.
@@ -85,6 +88,23 @@ async def auth_middleware(request, handler):
     session = await aiohttp_session.get_session(request)
     request['user'] = session.get('user', None)
     resp = await handler(request)
+    if request['user'] is None:
+        userinfo = None
+    else:
+        userinfo = {
+            "name": request['user']['name'],
+            "picture": request['user']['picture']
+        }
+    # This is a dumb way to sanitize data and pass to JS.
+    #
+    # Cookies tend to get encoded and decoded in ad-hoc strings a lot, often
+    # in non-compliant ways (to see why, try to find the spec for cookies!)
+    #
+    # This avoids bugs (and, should the issue come up, injections)
+    #
+    # This should really be abstracted away into a library which passes state
+    # back-and-forth.
+    resp.set_cookie("userinfo", base64.b64encode(json.dumps(userinfo).encode('utf-8')).decode('utf-8'))
     return resp
 
 
@@ -162,23 +182,4 @@ async def _google(request):
 #             return _redirect(_get_login_url(request))
 #         return await handler(*args)
 #     return decorator
-
-
-# @user_to_request
-# @template('index.html')
-# async def index(request):
-#     """Web app home page."""
-#     return {
-#         'auth': {'cfg': cfg},
-#         'cur_user': request['user'],
-#         'url_for': _url_for,
-#     }
-
-
-# @login_required
-# @template('users.html')
-# async def users(request):
-#     """Handles an example private page that requires logging in."""
-#     return {}
-
 

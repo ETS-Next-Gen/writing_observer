@@ -43,10 +43,7 @@ def static_file_handler(filename):
     '''
     Serve a single static file
     '''
-    @auth_handlers.user_to_request
     async def handler(request):
-        foo = await aiohttp_session.get_session(request)
-        print("Foo:", foo.get("user", {}))
         return aiohttp.web.FileResponse(filename)
     return handler
 
