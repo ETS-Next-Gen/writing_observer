@@ -43,7 +43,10 @@ def static_file_handler(filename):
     '''
     Serve a single static file
     '''
-    def handler(request):
+    @auth_handlers.user_to_request
+    async def handler(request):
+        foo = await aiohttp_session.get_session(request)
+        print("Foo:", foo.get("user", {}))
         return aiohttp.web.FileResponse(filename)
     return handler
 
@@ -75,6 +78,7 @@ def static_directory_handler(basepath):
 
 
 # Student data API
+# This serves up data (currently usually dummy data) for the dashboard
 app.add_routes([
     aiohttp.web.get('/webapi/student-data/', student_data.student_data_handler),
     aiohttp.web.get('/wsapi/student-data/', student_data.ws_student_data_handler)
@@ -100,9 +104,12 @@ app.add_routes([
     aiohttp.web.post('/webapi/event/', event_pipeline.ajax_event_request),
 ])
 
+# Generic web-appy things
 app.add_routes([
     aiohttp.web.get('/', static_file_handler("static/index.html")),
-    aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social)
+    aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
+    aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
+    aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
 ])
 
 cors = aiohttp_cors.setup(app, defaults={
