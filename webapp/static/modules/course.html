@@ -1,0 +1,45 @@
+<div class="card">
+  <div class="card-header">
+    <div class="card-header-title is-centered">
+      {{ name }}
+    </div>
+  </div>
+  <div class="card-content">
+    <div class="content ">
+      <p><button class="button">  <a href="#wd_course={{id}}">
+	    <span class="icon"> <i class="fas fa-pen-nib"></i> </span> &nbsp;
+	    Writing dashboard</a> </button></p>
+      <p>
+	{{ descriptionHeading }}</p>
+    </div>
+  </div>
+  <div class="card-footer">
+    <div class="card-footer-item">
+      <p>
+      <nav class="breadcrumb is-centered">
+	<ul>
+	  <li> <a href="{{alternateLink}}">
+	      <span class="icon"> <i class="fab fa-google"></i> </span>
+	      Google Classroom</a> </li>
+	  <li>
+	    <a href="https://calendar.google.com/calendar/embed?src={{calendarId}}">
+		<span class="icon"> <i class="far fa-calendar-alt"></i> </span>
+		Calendar</a> </li>
+	  <li> <a href="{{teacherFolder.alternateLink}}">
+	      <span class="icon"> <i class="fab fa-google-drive"></i> </span>
+	      Teacher folder</a> </li>
+	  <li> <a href="mailto:{{ courseGroupEmail }}">
+	      <span class="icon"> <i class="fas fa-mail-bulk"></i> </span>
+	      Email class </a> </li>
+	  <li> <a href="mailto:{{ teacherGroupEmail }}">
+	      <span class="icon"> <i class="fas fa-envelope-open-text"></i> </span>
+	      Email course staff </a> </li>
+	</ul>
+      </nav>
+      </p>
+    </div>
+  </div>
+</div>
+
+
+

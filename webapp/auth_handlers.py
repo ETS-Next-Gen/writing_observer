@@ -36,7 +36,28 @@ from functools import wraps
 from yarl import URL
 
 import json
+import yaml
 import base64
+
+import rosters
+
+
+async def verify_teacher_account(email, google_id):
+    '''
+    Confirm the teacher is registered with the system. Eventually, we will want
+    3 versions of this:
+    * Always true (open system)
+    * Text file backed (pilots, small deploys)
+    * Database-backed (large-scale deploys)
+
+    For now, we have the file-backed version
+    '''
+    users = yaml.safe_load(open("static_data/teachers.yaml"))
+    if email not in users:
+        return False
+    if users[email]["google_id"] != google_id:
+        return False
+    return True
 
 
 async def social(request):
@@ -52,9 +73,12 @@ async def social(request):
 
     if 'user_id' in user:
         # User ID returned in 'data', authorize user.
-        await _authorize_user(request, user)
-        url = user['back_to'] or "/"
-        return aiohttp.web.HTTPFound(url)
+        authorized = await _authorize_user(request, user)
+        if authorized:
+            url = user['back_to'] or "/"
+            return aiohttp.web.HTTPFound(url)
+        else:
+            url = "/static/unauth.html"
 
     ## Login failed. TODO: Make a proper login failed page.
     return aiohttp.web.HTTPFound("/")
@@ -68,13 +92,17 @@ async def _authorize_user(request, user):
      """
      session = await aiohttp_session.get_session(request)
      session["user"] = user
+     return verify_teacher_account(user['user_id'], user['email'])
 
 
 async def logout(request):
     """Handles sign out. This is generic - does not depend on which social ID is logged in
-     (Google/Facebook/...)."""
+     (Google/Facebook/...).
+     """
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
+    session.pop("auth_headers", None)
+    print(session)
     return aiohttp.web.HTTPFound("/")  ## TODO: Make a proper logout page
 
 
@@ -87,6 +115,7 @@ async def auth_middleware(request, handler):
     '''
     session = await aiohttp_session.get_session(request)
     request['user'] = session.get('user', None)
+    request['auth_headers'] = session.get('auth_headers', None)
     resp = await handler(request)
     if request['user'] is None:
         userinfo = None
@@ -95,15 +124,16 @@ async def auth_middleware(request, handler):
             "name": request['user']['name'],
             "picture": request['user']['picture']
         }
-    # This is a dumb way to sanitize data and pass to JS.
+    # This is a dumb way to sanitize data and pass it to the front-end.
     #
     # Cookies tend to get encoded and decoded in ad-hoc strings a lot, often
     # in non-compliant ways (to see why, try to find the spec for cookies!)
     #
-    # This avoids bugs (and, should the issue come up, injections)
+    # This avoids bugs (and, should the issue come up, security issues
+    # like injections)
     #
     # This should really be abstracted away into a library which passes state
-    # back-and-forth.
+    # back-and-forth, but for now, this works.
     resp.set_cookie("userinfo", base64.b64encode(json.dumps(userinfo).encode('utf-8')).decode('utf-8'))
     return resp
 
@@ -131,7 +161,9 @@ async def _google(request):
         params.update({
             'response_type': 'code',
             'scope': ('https://www.googleapis.com/auth/userinfo.profile'
-                      ' https://www.googleapis.com/auth/userinfo.email'),
+                      ' https://www.googleapis.com/auth/userinfo.email'
+                      ' https://www.googleapis.com/auth/classroom.courses.readonly'
+                      ' https://www.googleapis.com/auth/classroom.rosters.readonly'),
         })
         if 'back_to' in request.query:
             params['state'] = request.query[back_to]
@@ -153,10 +185,20 @@ async def _google(request):
 
         # get user profile
         headers = {'Authorization': 'Bearer ' + data['access_token']}
+        session = await aiohttp_session.get_session(request)
+        session["auth_headers"] = headers
+        request["auth_headers"] = headers
+
         # Old G+ URL that's no longer supported.
         url = 'https://www.googleapis.com/oauth2/v1/userinfo'
         async with client.get(url, headers=headers) as resp:
             profile = await resp.json()
+        print(profile)
+        for course in (await rosters.courselist(request)):
+            print(json.dumps(course, indent=3))
+            print(await rosters.courseroster(request, course['id']))
+        #async with client.get('"), headers=headers) as resp:
+        #    print(await resp.text())
 
     return {
         'user_id': profile['id'],
@@ -168,18 +210,20 @@ async def _google(request):
     }
 
 
-# def login_required(handler):
-#     """
-#     A handler function decorator that enforces that the user is logged in. If not, redirects to the login page.
-#     :param handler: function to decorate.
-#     :return: decorated function
-#     """
-#     @user_to_request
-#     @wraps(handler)
-#     async def decorator(*args):
-#         request = _get_request(args)
-#         if not request[cfg.REQUEST_USER_KEY]:
-#             return _redirect(_get_login_url(request))
-#         return await handler(*args)
-#     return decorator
+def html_login_required(handler):
+     """
+     A handler function decorator that enforces that the user is logged
+     in. If not, redirects to the login page.
+
+     :param handler: function to decorate.
+     :return: decorated function
+
+     """
+     @wraps(handler)
+     async def decorator(*args):
+         user = args[0]["user"]
+         if user is None:
+             return aiohttp.web.HTTPFound("/")
+         return handler(*args)
+     return decorator
 

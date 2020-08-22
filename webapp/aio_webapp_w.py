@@ -22,6 +22,7 @@ import init  # Odd import which makes sure we're set up
 import event_pipeline
 import student_data
 import auth_handlers
+import rosters
 
 import settings
 
@@ -46,6 +47,17 @@ def static_file_handler(filename):
     async def handler(request):
         return aiohttp.web.FileResponse(filename)
     return handler
+
+
+async def index(request):
+    print(request['user'])
+    print(type(request['user']))
+    if request['user'] is None:
+        print("Index")
+        return aiohttp.web.FileResponse("static/index.html")
+    else:
+        print("Course list")
+        return aiohttp.web.FileResponse("static/courselist.html")
 
 
 def static_directory_handler(basepath):
@@ -84,6 +96,8 @@ app.add_routes([
 # Serve static files
 app.add_routes([
     aiohttp.web.get('/static/{filename}', static_directory_handler("static")),
+    aiohttp.web.get('/static/modules/{filename}', static_directory_handler("static/modules")),
+    aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler("static/3rd_party")),
     aiohttp.web.get('/static/media/{filename}', static_directory_handler("media")),
     aiohttp.web.get('/static/media/avatar/{filename}',
                     static_directory_handler("media/hubspot_persona_images/")),
@@ -99,11 +113,14 @@ app.add_routes([
 app.add_routes([
     aiohttp.web.get('/webapi/event/', event_pipeline.ajax_event_request),
     aiohttp.web.post('/webapi/event/', event_pipeline.ajax_event_request),
+    aiohttp.web.get('/webapi/courselist/', rosters.courselist_api),
+    aiohttp.web.get('/webapi/courseroster/{course_id}', rosters.courseroster_api),
 ])
 
 # Generic web-appy things
 app.add_routes([
-    aiohttp.web.get('/', static_file_handler("static/index.html")),
+#    aiohttp.web.get('/', static_file_handler("static/index.html")),
+    aiohttp.web.get('/', index),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
