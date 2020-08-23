@@ -18,6 +18,7 @@ filestring = """{filename}:
 \tst_ctime:{st_ctime}
 """
 
+
 def filesystem_state():
     '''
     Make a snapshot of the file system. Return a json object. Best
@@ -49,6 +50,7 @@ def filesystem_state():
                     }
     file_info['::git-head::'] = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
     return file_info
+
 
 if __name__ == '__main__':
     import yaml

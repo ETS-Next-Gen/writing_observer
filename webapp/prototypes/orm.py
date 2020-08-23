@@ -1,4 +1,7 @@
-''' Abstraction to access database '''
+'''
+THIS FILE IS NOT CURRENTLY USED. WE ARE PROTOTYPING.
+
+Abstraction to access database '''
 import asyncio
 import functools
 

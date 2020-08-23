@@ -50,7 +50,7 @@ async def run():
                         new_ts = json.loads(line)["server"]["time"]
                         if old_ts is not None:
                             rate = float(args["--rate"])
-                            delay = (new_ts-old_ts)*rate
+                            delay = (new_ts - old_ts) * rate
                             if args["--max-wait"] is not None:
                                 delay = min(delay, float(args["--max-wait"]))
                             print(line)

@@ -118,9 +118,9 @@ app.add_routes([
 ])
 
 # Generic web-appy things
+# Old version had: aiohttp.web.get('/', index),
 app.add_routes([
     aiohttp.web.get('/', static_file_handler("static/webapp.html")),
-#    aiohttp.web.get('/', index),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
@@ -134,14 +134,17 @@ cors = aiohttp_cors.setup(app, defaults={
     )
 })
 
+
 def fernet_key(s):
     t = hashlib.md5()
     t.update(s.encode('utf-8'))
     return t.hexdigest().encode('utf-8')
 
+
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
-        fernet_key(settings.settings['aio']['session_secret']),
-        max_age=settings.settings['aio']['session_max_age']))
+    fernet_key(settings.settings['aio']['session_secret']),
+    max_age=settings.settings['aio']['session_max_age'])
+)
 
 app.middlewares.append(auth_handlers.auth_middleware)
 

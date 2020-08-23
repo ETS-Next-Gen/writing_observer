@@ -152,7 +152,7 @@ classes = sqlalchemy.Table(
     sqlalchemy.Column("name", sqlalchemy.String(length=100)),
 )
 
-class_students =  sqlalchemy.Table(
+class_students = sqlalchemy.Table(
     "class_student",
     metadata,
     sqlalchemy.Column("student_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id")),

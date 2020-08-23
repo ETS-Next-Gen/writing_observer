@@ -49,7 +49,7 @@ else:
     TEXT = [open(filename).read() for filename in filenames]
 
 if len(ARGS['--ici']) == 1:
-    ICI = ARGS['--ici']*STREAMS
+    ICI = ARGS['--ici'] * STREAMS
 else:
     ICI = ARGS['--ici']
 
@@ -116,7 +116,7 @@ async def stream_document(text, ici, user, doc_id):
             for command in commands:
                 await web_socket.send_str(json.dumps(command))
             for char, index in zip(text, range(len(text))):
-                command = insert(index+1, char, doc_id)
+                command = insert(index + 1, char, doc_id)
                 await web_socket.send_str(json.dumps(command))
                 await asyncio.sleep(float(ici))
 

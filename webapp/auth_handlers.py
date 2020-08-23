@@ -29,11 +29,10 @@ import aiohttp.web
 import logging
 import os.path
 import settings
-#from aiohttp_jinja2 import template
-#from aiohttp.abc import AbstractView
+
 import aiohttp_session
-from functools import wraps
-from yarl import URL
+import functools
+import yarl
 
 import json
 import yaml
@@ -80,30 +79,31 @@ async def social(request):
         else:
             url = "/static/unauth.html"
 
-    ## Login failed. TODO: Make a proper login failed page.
+    #  Login failed. TODO: Make a proper login failed page.
     return aiohttp.web.HTTPFound("/")
 
 
 async def _authorize_user(request, user):
-     """
-     Logs a user in.
-     :param request: web request.
-     :param user_id: provider's user ID (e.g., Google ID).
-     """
-     session = await aiohttp_session.get_session(request)
-     session["user"] = user
-     return verify_teacher_account(user['user_id'], user['email'])
+    """
+    Logs a user in.
+    :param request: web request.
+    :param user_id: provider's user ID (e.g., Google ID).
+    """
+    session = await aiohttp_session.get_session(request)
+    session["user"] = user
+    return verify_teacher_account(user['user_id'], user['email'])
 
 
 async def logout(request):
-    """Handles sign out. This is generic - does not depend on which social ID is logged in
-     (Google/Facebook/...).
-     """
+    """
+    Handles sign out. This is generic - does not depend on which social ID is logged in
+    (Google/Facebook/...).
+    """
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
     session.pop("auth_headers", None)
     print(session)
-    return aiohttp.web.HTTPFound("/")  ## TODO: Make a proper logout page
+    return aiohttp.web.HTTPFound("/")  # TODO: Make a proper logout page
 
 
 @aiohttp.web.middleware
@@ -167,7 +167,7 @@ async def _google(request):
         })
         if 'back_to' in request.query:
             params['state'] = request.query[back_to]
-        url = URL(url).with_query(params)
+        url = yarl.URL(url).with_query(params)
         raise aiohttp.web.HTTPFound(url)
 
     # Step 2: get access token
@@ -197,8 +197,6 @@ async def _google(request):
         for course in (await rosters.courselist(request)):
             print(json.dumps(course, indent=3))
             print(await rosters.courseroster(request, course['id']))
-        #async with client.get('"), headers=headers) as resp:
-        #    print(await resp.text())
 
     return {
         'user_id': profile['id'],
@@ -211,19 +209,18 @@ async def _google(request):
 
 
 def html_login_required(handler):
-     """
-     A handler function decorator that enforces that the user is logged
-     in. If not, redirects to the login page.
+    """
+    A handler function decorator that enforces that the user is logged
+    in. If not, redirects to the login page.
 
-     :param handler: function to decorate.
-     :return: decorated function
+    :param handler: function to decorate.
+    :return: decorated function
 
-     """
-     @wraps(handler)
-     async def decorator(*args):
-         user = args[0]["user"]
-         if user is None:
-             return aiohttp.web.HTTPFound("/")
-         return handler(*args)
-     return decorator
-
+    """
+    @functools.wraps(handler)
+    async def decorator(*args):
+        user = args[0]["user"]
+        if user is None:
+            return aiohttp.web.HTTPFound("/")
+        return handler(*args)
+    return decorator

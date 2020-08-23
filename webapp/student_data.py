@@ -12,6 +12,7 @@ import stream_analytics.helpers
 import stream_analytics.writing_analysis
 import kvs
 
+
 def authenticated(request):
     '''
     Dummy function to tell if a request is logged in
@@ -84,14 +85,14 @@ async def real_student_data():
             'text_complexity': random.uniform(3, 9),
             'google_doc': "https://docs.google.com/document/d/1YbtJGn7ida2IYNgwCFk3SjhsZ0ztpG5bMzA3WNbVNhU/edit",
             'time_idle': 676,
-            'outline': [{"section": "Problem "+str(i+1),
+            'outline': [{"section": "Problem " + str(i + 1),
                          "length": random.randint(1, 300)} for i in range(5)],
             'revisions': {}
         }
         for sa_module in SA_MODULES:
             key = stream_analytics.helpers.make_key(
                 sa_module,
-                student.user_id, # TODO: Should this be safe_user_id?
+                student.user_id,  # TODO: Should this be safe_user_id?
                 stream_analytics.helpers.KeyStateType.EXTERNAL)
             data = await teacherkvs[key]
             if data is not None:

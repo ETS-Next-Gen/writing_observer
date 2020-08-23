@@ -120,7 +120,7 @@ async def handle_incoming_client_event(metadata):
     pipeline = await student_event_pipeline(metadata=metadata)
 
     async def handler(request, client_event):
-        debug_log("Compiling event for PubSub: "+client_event["event"])
+        debug_log("Compiling event for PubSub: " + client_event["event"])
         event = {
             "client": client_event,
             "server": compile_server_data(request),
@@ -138,7 +138,7 @@ async def handle_incoming_client_event(metadata):
                 mbody=json.dumps(item, sort_keys=True)
             )
             debug_log(
-                "Sent item to PubSub triggered by: "+client_event["event"]
+                "Sent item to PubSub triggered by: " + client_event["event"]
             )
     return handler
 
@@ -160,19 +160,19 @@ async def dummy_auth(metadata):
     if 'local_storage' in metadata and 'user-tag' in metadata['local_storage']:
         auth_metadata = {
             'sec': 'unauthenticated',
-            'user_id': "ls-"+metadata['local_storage']['user_tag'],
+            'user_id': "ls-" + metadata['local_storage']['user_tag'],
             'providence': 'lsu'  # local storage, unauthenticated
         }
     elif 'chrome_identity' in metadata:
         auth_metadata = {
             'sec': 'unauthenticated',
-            'user_id': "gc-"+metadata['chrome_identity']['email'],
+            'user_id': "gc-" + metadata['chrome_identity']['email'],
             'providence': 'gcu'  # Google Chrome, unauthenticated
         }
     elif 'test_framework_fake_identity' in metadata:
         auth_metadata = {
             'sec': 'unauthenticated',
-            'user_id': "ts-"+metadata['test_framework_fake_identity'],
+            'user_id': "ts-" + metadata['test_framework_fake_identity'],
             'providence': 'tsu'  # Test Script, unauthenticated
         }
     else:
@@ -249,8 +249,7 @@ async def incoming_websocket_handler(request):
         if msg.type == aiohttp.WSMsgType.TEXT:
             client_event = json.loads(msg.data)
             debug_log(
-                "Dispatching incoming websocket event: " +
-                client_event['event']
+                "Dispatch incoming ws event: " + client_event['event']
             )
             await event_handler(request, client_event)
         elif msg.type == aiohttp.WSMsgType.ERROR:

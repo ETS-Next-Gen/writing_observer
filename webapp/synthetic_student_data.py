@@ -24,8 +24,8 @@ def paginate(data_list, nrows):
     This should move into the client
     '''
     return [
-        data_list[i*nrows:(i+1)*nrows]
-        for i in range(math.ceil(len(data_list)/nrows))
+        data_list[i * nrows:(i + 1) * nrows]
+        for i in range(math.ceil(len(data_list) / nrows))
     ]
 
 
@@ -52,14 +52,14 @@ def synthetic_student_data(student_id):
         'text_complexity': random.uniform(3, 9),
         'google_doc': "https://docs.google.com/document/d/1YbtJGn7ida2IYNgwCFk3SjhsZ0ztpG5bMzA3WNbVNhU/edit",
         'time_idle': numpy.random.gamma(0.5, scale=5),
-        'outline': [{"section": "Problem "+str(i+1),
+        'outline': [{"section": "Problem " + str(i + 1),
                      "length": random.randint(1, 300)} for i in range(5)],
         'revisions': {}
     }
 
 
 def synthetic_data(n=20):
-    data=[
+    data = [
         synthetic_student_data(n)
         for i in range(n)
     ]

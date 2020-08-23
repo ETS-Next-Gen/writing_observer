@@ -6,6 +6,7 @@ import settings
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
+
 def clean_data(resp_json, key, sort_key, default=None):
     print("Response", resp_json)
     if 'error' in resp_json:
@@ -37,6 +38,7 @@ async def synthetic_ajax(request, url, key=None, sort_key=None, default=None):
     }
     return clean_data(open(synthetic_data[url]).read(), default=default)
 
+
 async def google_ajax(request, url, parameters={}, key=None, sort_key=None, default=None):
     '''
     Request information through Google's API
@@ -57,12 +59,13 @@ async def google_ajax(request, url, parameters={}, key=None, sort_key=None, defa
             resp_json = await resp.json()
             return clean_data(resp_json, key, sort_key, default=default)
 
+
 async def courselist(request):
     course_list = await google_ajax(
         request,
         url=COURSE_URL,
         key='courses',
-        sort_key=lambda x:x.get('name', 'ZZ'),
+        sort_key=lambda x: x.get('name', 'ZZ'),
         default=[]
     )
     return course_list
@@ -74,13 +77,15 @@ async def courseroster(request, course_id):
         url=ROSTER_URL,
         parameters={'courseid': int(course_id)},
         key='students',
-        sort_key=lambda x:x.get('name', {}).get('fullName', 'ZZ'),
+        sort_key=lambda x: x.get('name', {}).get('fullName', 'ZZ'),
         default=[]
     )
     return roster
 
+
 async def courselist_api(request):
     return aiohttp.web.json_response(await courselist(request))
+
 
 async def courseroster_api(request):
     course_id = int(request.match_info['course_id'])
