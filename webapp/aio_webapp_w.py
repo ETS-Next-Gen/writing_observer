@@ -118,6 +118,7 @@ app.add_routes([
 # Generic web-appy things
 # Old version had: aiohttp.web.get('/', index),
 app.add_routes([
+    aiohttp.web.get('/favicon.ico', static_file_handler("static/favicon.ico")),
     aiohttp.web.get('/', static_file_handler("static/webapp.html")),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),

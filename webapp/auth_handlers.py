@@ -41,7 +41,7 @@ import base64
 import rosters
 
 
-async def verify_teacher_account(email, google_id):
+async def verify_teacher_account(user_id, email):
     '''
     Confirm the teacher is registered with the system. Eventually, we will want
     3 versions of this:
@@ -51,11 +51,15 @@ async def verify_teacher_account(email, google_id):
 
     For now, we have the file-backed version
     '''
-    users = yaml.safe_load(open("static_data/teachers.yaml"))
-    if email not in users:
+    teachers = yaml.safe_load(open("static_data/teachers.yaml"))
+    print("Teachers:", teachers)
+    if email not in teachers:
+        print("Email not found in teachers");
         return False
-    if users[email]["google_id"] != google_id:
+    if teachers[email]["google_id"] != user_id:
+        print("Non-matching Google ID")
         return False
+    print("Teacher account verified")
     return True
 
 
@@ -75,9 +79,12 @@ async def social(request):
         authorized = await _authorize_user(request, user)
         if authorized:
             url = user['back_to'] or "/"
+            print("AUTH")
             return aiohttp.web.HTTPFound(url)
         else:
+            print("UNAUTH")
             url = "/static/unauth.html"
+            return aiohttp.web.HTTPFound(url)
 
     #  Login failed. TODO: Make a proper login failed page.
     return aiohttp.web.HTTPFound("/")
@@ -91,7 +98,7 @@ async def _authorize_user(request, user):
     """
     session = await aiohttp_session.get_session(request)
     session["user"] = user
-    return verify_teacher_account(user['user_id'], user['email'])
+    return await verify_teacher_account(user['user_id'], user['email'])
 
 
 async def logout(request):
@@ -194,9 +201,6 @@ async def _google(request):
         async with client.get(url, headers=headers) as resp:
             profile = await resp.json()
         print(profile)
-        for course in (await rosters.courselist(request)):
-            print(json.dumps(course, indent=3))
-            print(await rosters.courseroster(request, course['id']))
 
     return {
         'user_id': profile['id'],
