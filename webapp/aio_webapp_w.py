@@ -119,8 +119,8 @@ app.add_routes([
 
 # Generic web-appy things
 app.add_routes([
-#    aiohttp.web.get('/', static_file_handler("static/index.html")),
-    aiohttp.web.get('/', index),
+    aiohttp.web.get('/', static_file_handler("static/webapp.html")),
+#    aiohttp.web.get('/', index),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)

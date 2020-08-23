@@ -1,3 +1,51 @@
+# For now, we dump logs into files, crudely.
+#
+# We're not there yet, but we would like to create a 哈希树, or
+# Merkle-tree-style structure for our log files.
+#
+# Or to be specific, a Merkle DAG, like git.
+#
+# Each item is stored under its SHA hash. Note that items are not
+# guaranteed to exist. We can prune them, and leave a dangling pointer
+# with just the SHA.
+#
+# Each event log will be structured as
+#    +-----------------+     +-----------------+
+# <--- Last item (SHA) |  <--- Last item (SHA) | ...
+#    |                 |     |                 |
+#    |   Data (SHA)    |     |    Data (SHA)   |
+#    +-------|---------+     +--------|--------+
+#            |                        |
+#            v                        v    
+#        +-------+                +-------+  
+#        | Event |                | Event |  
+#        +-------+                +-------+
+#
+# Where the top objects form a linked list (each containing a pair of
+# SHA hashes, one of the previous item, and one of the associated
+# event).
+#
+# We will then have a hierarchy, where we have lists per-document,
+# documents per-student. When we run analyses, those will store the
+# hashes of where in each event log we are. Likewise, with each layer
+# of analysis, we'll store pointers to git hashes of code, as well as
+# of intermediate files (and how those were generated).
+#
+# Where data is available, we can confirm we're correctly replicating
+# prior tesults.
+#
+# The planned data structure is very similar to git, but with the
+# potential for missing data without an implosion.
+#
+# Where data might not be available is after a FERPA, CCPA, or GDPR
+# requests to change data. In those cases, we'll have dangling nodes,
+# where we'll know that data used to exist, but not what it was.
+#
+# We might also have missing intermediate files. For example, if we do
+# a dozen analyses, we'll want to know those happened and what those
+# were, but we might not keep terabytes of data around (just enough to
+# redo those analyses).
+
 import datetime
 import inspect
 import json

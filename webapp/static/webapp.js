@@ -1,17 +1,33 @@
-function getCookie(cname) {
-  var name = cname + "=";
-  var decodedCookie = decodeURIComponent(document.cookie);
-  var ca = decodedCookie.split(';');
-  for(var i = 0; i <ca.length; i++) {
-    var c = ca[i];
-    while (c.charAt(0) == ' ') {
-      c = c.substring(1);
+function decode_string_dict(stringdict) {
+    /*
+      Decode a string dictionary of the form:
+        `key1=value1; key2=value2;key3=value3`
+      This is used both to encode document hashes and for cookies.
+
+      This is inspired by a (buggy) cookie decoder from w3cschools. We
+      wrote out own since that one starts out with decodeURIComponent,
+      potentially allowing for injections.
+     */
+    var decoded = {};
+    var splitstring = stringdict.split(';');
+    for(var i = 0; i<splitstring.length; i++) {
+	var pair = splitstring[i];
+	while (pair.charAt(0) == ' ') {
+	    pair = pair.substring(1);
+	}
+	pair = pair.split('=');
+	let key = decodeURIComponent(pair[0]);
+	let value = decodeURIComponent(pair[1]);
+	decoded[key] = value;
     }
-    if (c.indexOf(name) == 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return "";
+    return decoded;
+}
+
+function getCookie(cookie_name) {
+    /*
+      Shortcut to grab a cookie. Return null if no cookie exists.
+     */
+    return decode_string_dict(document.cookie)[cookie_name];
 }
 
 function go_home() {
