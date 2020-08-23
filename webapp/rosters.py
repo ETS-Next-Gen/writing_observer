@@ -3,6 +3,8 @@ import aiohttp.web
 
 import settings
 
+import log_event
+
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
@@ -57,6 +59,7 @@ async def google_ajax(request, url, parameters={}, key=None, sort_key=None, defa
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
             resp_json = await resp.json()
+            log_event.log_ajax(url, resp_json, request)
             return clean_data(resp_json, key, sort_key, default=default)
 
 

@@ -9,14 +9,22 @@ import os
 import shutil
 import sys
 
-if not os.path.exists("logs"):
-    os.mkdir("logs")
-    print("Made logs directory")
+# These are directories we'd like created on startup. At the moment,
+# they're for different types of log files.
+directories = {
+    'logs': {'path': 'logs'},
+    'startup logs': {'path': 'logs/startup'},
+    'AJAX logs': {'path': 'logs/ajax'}
+}
 
-if not os.path.exists("logs/startup"):
-    os.mkdir("logs/startup")
-    print("Made startup logs directory")
-
+for d in directories:
+    dirpath = directories[d]['path']
+    if not os.path.exists(dirpath):
+        os.mkdir(dirpath)
+        print("Made {dirname} directory in {dirpath}".format(
+            dirname=d,
+            dirpath=dirpath
+        ))
 
 if not os.path.exists("static_data/teachers.yaml"):
     shutil.copyfile(

@@ -37,7 +37,12 @@ def filesystem_state():
     for root, dirs, files in os.walk("."):
         for name in files:
             for extension in extensions:
-                if name.endswith(extension):
+                # Check if the file has an appropriate extension, and
+                # is not a temporary file or backup.
+                if name.endswith(extension) and \
+                   "#" not in name and \
+                   "~" not in name and \
+                   not name.startswith("."):
                     filename = os.path.join(root, name)
                     stat = os.stat(filename)
                     file_info[filename] = {
@@ -53,5 +58,10 @@ def filesystem_state():
 
 
 if __name__ == '__main__':
+    # We normally do JSON, but we'll do YAML here, just to test in a different context
+    #
+    # By convention:
+    # * We always output JSON in logs/snapshots (which are read by machines)
+    # * We always input YAML in configuration files (which are written by humans)
     import yaml
     print(yaml.dump(filesystem_state()))

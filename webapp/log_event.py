@@ -57,19 +57,72 @@ mainlog = open("logs/main_log.json", "ab", 0)
 files = {}
 
 
+def encode_json_line(line):
+    '''
+    For encoding short data, such as an event.
+
+    We use a helper function so we have the same encoding
+    everywhere. Our primary goal is replicability -- if
+    we encode the same dictionary twice, we'd like to get
+    the same string, with the same hash.
+    '''
+    return json.dumps(line, sort_keys=True)
+
+
+def encode_json_block(block):
+    '''
+    For encoding large data, such as the startup log.
+
+    We use a helper function so we have the same encoding
+    everywhere. Our primary goal is replicability -- if
+    we encode the same dictionary twice, we'd like to get
+    the same string, with the same hash.
+    '''
+    return json.dumps(block, sort_keys=True, indent=3)
+
+
+def secure_hash(text):
+    '''
+    Our standard hash functions. We can either use either
+
+    * A full hash (e.g. SHA3 512) which should be secure against
+    intentional attacks (e.g. a well-resourced entity wants to temper
+    with our data, or if Moore's Law starts up again, a well-resourced
+    teenager).
+
+    * A short hash (e.g. MD5), which is no longer considered
+    cryptographically-secure, but is good enough to deter casual
+    tempering. Most "tempering" comes from bugs, rather than attackers,
+    so this is very helpful still. MD5 hashes are a bit more manageable
+    in size.
+
+    For now, we're using full hashes everywhere, but it would probably
+    make sense to alternate as makes sense. MD5 is 32 characters, while
+    SHA3_512 is 128 characters (104 if we B32 encode).
+    '''
+    return "SHA512_"+hashlib.sha3_512(text).hexdigest()
+
+
+def insecure_hash(text):
+    '''
+    See `secure_hash` above for documentation
+    '''
+    return "MD5_"+hashlib.md5(text).hexdigest()
+
+
 # We're going to save the state of the filesystem on application startup
 # This way, event logs can refer uniquely to running version
 # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
 # hexdigest?
 startup_state = json.dumps(filesystem_state.filesystem_state(), indent=3, sort_keys=True)
-STARTUP_STATE_HASH = hashlib.sha3_512(startup_state.encode('utf-8')).hexdigest()
-startup_filename = "{directory}{time}-{hash}.json".format(
+STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
+STARTUP_FILENAME = "{directory}{time}-{hash}.json".format(
     directory="logs/startup/",
     time=datetime.datetime.utcnow().isoformat(),
     hash=STARTUP_STATE_HASH
 )
 
-with open(startup_filename, "w") as fp:
+with open(STARTUP_FILENAME, "w") as fp:
     # gzip can save about 2-3x space. It makes more sense to do this
     # with larger files later. tar.gz should save a lot more
     fp.write(startup_state)
@@ -118,3 +171,27 @@ def debug_log(text):
         body=text
     )
     print(message)
+
+
+def log_ajax(url, resp_json, request):
+    '''
+    This is primarily used to log the responses of AJAX requests made
+    TO Google and similar providers. This helps us understand the
+    context of classroom activity, debug, and recover from failures 
+    '''
+    AJAX_FILENAME_TEMPLATE = "{directory}{time}-{payload_hash}.json"
+    payload = {
+        'user': request['user'],
+        'url': url,
+        'response': resp_json,
+        'timestamp': datetime.datetime.utcnow().isoformat()
+    }
+    encoded_payload = encode_json_block(payload)
+    payload_hash = secure_hash(encoded_payload.encode('utf-8'))
+    filename = AJAX_FILENAME_TEMPLATE.format(
+        directory="logs/ajax/",
+        time=datetime.datetime.utcnow().isoformat(),
+        payload_hash=payload_hash
+    )
+    with open(filename, "w") as fp:
+        fp.write(encoded_payload)

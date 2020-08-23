@@ -1,3 +1,4 @@
+
 '''
 This is the main file for processing event data for student writing. This
 system is designed for our writing analysis project, but is designed to
@@ -6,15 +7,13 @@ small applications we are testing this system with as well (e.g. dynamic
 assessment).
 '''
 
-import json
+import hashlib
 import os
 
 import aiohttp
 import aiohttp_cors
 import aiohttp_session
 import aiohttp_session.cookie_storage
-
-import hashlib
 
 import pathvalidate
 
@@ -55,9 +54,8 @@ async def index(request):
     if request['user'] is None:
         print("Index")
         return aiohttp.web.FileResponse("static/index.html")
-    else:
-        print("Course list")
-        return aiohttp.web.FileResponse("static/courselist.html")
+    print("Course list")
+    return aiohttp.web.FileResponse("static/courselist.html")
 
 
 def static_directory_handler(basepath):
@@ -143,8 +141,7 @@ def fernet_key(s):
 
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
     fernet_key(settings.settings['aio']['session_secret']),
-    max_age=settings.settings['aio']['session_max_age'])
-)
+    max_age=settings.settings['aio']['session_max_age']))
 
 app.middlewares.append(auth_handlers.auth_middleware)
 
