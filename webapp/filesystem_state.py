@@ -40,7 +40,7 @@ def filesystem_state():
                     filename = os.path.join(root, name)
                     stat = os.stat(filename)
                     file_info[filename] = {
-                        "hash":  hashlib.sha3_512(open(filename, "rb").read()).hexdigest(),
+                        "hash": hashlib.sha3_512(open(filename, "rb").read()).hexdigest(),
                         "st_mode": stat.st_mode,
                         "st_size": stat.st_size,
                         "st_atime": stat.st_atime,

@@ -49,10 +49,30 @@
 import datetime
 import inspect
 import json
+import hashlib
+
+import filesystem_state
 
 mainlog = open("logs/main_log.json", "ab", 0)
 files = {}
 
+
+### We're going to save the state of the filesystem on application startup
+### This way, event logs can refer uniquely to running version
+### Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
+### hexdigest?
+startup_state = json.dumps(filesystem_state.filesystem_state(), indent=3, sort_keys=True)
+STARTUP_STATE_HASH = hashlib.sha3_512(startup_state.encode('utf-8')).hexdigest()
+startup_filename = "{directory}{time}-{hash}.json".format(
+    directory="logs/startup/",
+    time=datetime.datetime.utcnow().isoformat(),
+    hash=STARTUP_STATE_HASH
+)
+
+with open(startup_filename, "w") as fp:
+    # gzip can save about 2-3x space. It makes more sense to do this
+    # with larger files later. tar.gz should save a lot more
+    fp.write(startup_state)
 
 def log_event(event, filename=None, preencoded=False, timestamp=False):
     if filename is None:

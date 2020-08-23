@@ -13,6 +13,10 @@ if not os.path.exists("logs"):
     os.mkdir("logs")
     print("Made logs directory")
 
+if not os.path.exists("logs/startup"):
+    os.mkdir("logs/startup")
+    print("Made startup logs directory")
+
 
 if not os.path.exists("static_data/teachers.yaml"):
     shutil.copyfile("static_data/teachers.yaml.template", "static_data/teachers.yaml")
