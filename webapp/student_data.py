@@ -66,10 +66,19 @@ async def real_student_data(course_id, roster):
         #
         # For most services, though, this would be a huge bottleneck.
         student_data = {
+            # We're copying Google's roster format here.
+            #
+            # It's imperfect, and we may want to change it later, but it seems
+            # better than reinventing our own standard.
+            'profile': {
+                'name': {
+                    'fullName': student.full_name
+                },
+                'photoUrl': "avatar-{number}".format(number=random.randint(0, 14)),
+                'emailAddress': student.email,
+            },
             'id': student.user_id,
             'name': student.name,
-            'full_name': student.full_name,
-            'email': student.email,
             'phone': student.phone,
 
             # Defaults if we have no data. If we have data, this will be overwritten.
@@ -82,7 +91,6 @@ async def real_student_data(course_id, roster):
 
             # Obsolete stuff below. We're gradually modernizing this.
             'address': "----",
-            'avatar': "avatar-{number}".format(number=random.randint(0, 14)),
             'ici': random.uniform(100, 1000),
             'essay_length': 7,
             'essay': "Test text",
@@ -126,11 +134,11 @@ async def ws_real_student_data_handler(request):
     while True:
         print("Grabbing roster for "+str(course_id))
 
-        await ws.send_json({"new_student_data": synthetic_student_data.paginate(
-            roster, 4)})
-
         #await ws.send_json({"new_student_data": synthetic_student_data.paginate(
-        #    await real_student_data(course_id, roster), 4)})
+        #    roster, 4)})
+
+        await ws.send_json({"new_student_data": synthetic_student_data.paginate(
+            await real_student_data(course_id, roster), 4)})
         await asyncio.sleep(6000)
 
 

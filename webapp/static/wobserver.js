@@ -32,7 +32,7 @@ function populate_tiles(tilesheet) {
 	    // Profile: Student name, photo, Google doc, phone number, email
 	    d3.select(this).select(".wo-tile-name").text(d.profile.name.fullName);
 	    d3.select(this).select(".wo-tile-photo").attr("src", d.profile.photoUrl);
-	    d3.select(this).select(".wo-tile-email").attr("href", "mailto:d.profile.emailAddress");
+	    d3.select(this).select(".wo-tile-email").attr("href", "mailto:"+d.profile.emailAddress);
 	    d3.select(this).select(".wo-tile-phone").attr("href", "");
 	    d3.select(this).select(".wo-tile-doc").attr("href", "");
 	    // Summary stats: Time on task, time idle, and characters in doc
