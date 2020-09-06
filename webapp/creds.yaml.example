@@ -30,3 +30,5 @@ kvs:
     # * 1-5 minutes for interactive debugging
     # * 6-24 hours for development
     expiry: 60
+roster-data:
+   source: google-api  # Can be set to google-api or synthetic

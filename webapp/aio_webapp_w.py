@@ -1,4 +1,3 @@
-
 '''
 This is the main file for processing event data for student writing. This
 system is designed for our writing analysis project, but is designed to
@@ -87,8 +86,8 @@ def static_directory_handler(basepath):
 # Student data API
 # This serves up data (currently usually dummy data) for the dashboard
 app.add_routes([
-    aiohttp.web.get('/webapi/student-data/', student_data.student_data_handler),
-    aiohttp.web.get('/wsapi/student-data/', student_data.ws_student_data_handler)
+    aiohttp.web.get('/webapi/writing-observer/{course_id}/', student_data.student_data_handler),
+    aiohttp.web.get('/wsapi/writing-observer/{course_id}/', student_data.ws_student_data_handler)
 ])
 
 # Serve static files

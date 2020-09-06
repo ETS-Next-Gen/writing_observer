@@ -8,17 +8,17 @@ var student_data = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19]];
 const tile_template = document.getElementById('template-tile').innerHTML
 
 function populate_tiles(tilesheet) {
-    var rows=tilesheet.selectAll("div.wa-row-tile")
+    var rows=tilesheet.selectAll("div.wo-row-tile")
 	.data(student_data)
 	.enter()
 	.append("div")
-	.attr("class", "tile is-ancestor wa-row-tile");
+	.attr("class", "tile is-ancestor wo-row-tile");
 
-    var cols=rows.selectAll("div.wa-col-tile")
+    var cols=rows.selectAll("div.wo-col-tile")
 	.data(function(d) { return d; })
 	.enter()
 	.append("div")
-	.attr("class", "tile is-parent wa-col-tile wa-flip-container is-3")
+	.attr("class", "tile is-parent wo-col-tile wo-flip-container is-3")
 	.html(function(d) {
 	    return Mustache.render(tile_template, d);
 	    /*{
@@ -48,7 +48,7 @@ function select_tab(tab) {
     return function() {
 	d3.selectAll(".tilenav").classed("is-active", false);
 	d3.selectAll(".tilenav-"+tab).classed("is-active", true);
-	d3.selectAll(".wa-tilebody").classed("is-hidden", true);
+	d3.selectAll(".wo-tilebody").classed("is-hidden", true);
 	d3.selectAll("."+tab).classed("is-hidden", false);
     }
 };
@@ -74,8 +74,8 @@ ws.onmessage = function (event) {
         d3.selectAll(".loading").classed("is-hidden", true);
         d3.selectAll(".auth-form").classed("is-hidden", true);
         d3.selectAll(".main").classed("is-hidden", false);
-	d3.select(".wa-tile-sheet").html("");
-	d3.select(".wa-tile-sheet").call(populate_tiles);
+	d3.select(".wo-tile-sheet").html("");
+	d3.select(".wo-tile-sheet").call(populate_tiles);
     } else {
 	console.log(data);
 	console.log("Unrecognized JSON");

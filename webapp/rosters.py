@@ -1,3 +1,5 @@
+import json
+
 import aiohttp
 import aiohttp.web
 
@@ -26,7 +28,7 @@ def clean_data(resp_json, key, sort_key, default=None):
     return resp_json
 
 
-async def synthetic_ajax(request, url, key=None, sort_key=None, default=None):
+async def synthetic_ajax(request, url, parameters={}, key=None, sort_key=None, default=None):
     '''
     Stub similar to google_ajax, but grabbing data from local files.
 
@@ -38,7 +40,7 @@ async def synthetic_ajax(request, url, key=None, sort_key=None, default=None):
         COURSE_URL: "static_data/courses.json",
         ROSTER_URL: "static_data/students.json"
     }
-    return clean_data(open(synthetic_data[url]).read(), default=default)
+    return clean_data(json.load(open(synthetic_data[url])), key, sort_key, default=default)
 
 
 async def google_ajax(request, url, parameters={}, key=None, sort_key=None, default=None):
@@ -62,9 +64,23 @@ async def google_ajax(request, url, parameters={}, key=None, sort_key=None, defa
             log_event.log_ajax(url, resp_json, request)
             return clean_data(resp_json, key, sort_key, default=default)
 
+if 'roster-data' not in settings.settings or 'source' not in settings.settings['roster-data']:
+    print("Settings file needs a `roster-data` element with a `source` element")
+    sys.exit(-1)
+elif settings.settings['roster-data']['source'] == "synthetic":
+    ajax = synthetic_ajax
+elif settings.settings['roster-data']['source'] == "google-api":
+    ajax = google_ajax
+else:
+    print("Settings file `roster-data` element should have `source` field set to either:")
+    print("  synthetic     (retrieve roster data from static data files)")
+    print("  google-api    (retrieve roster data from Google)")
+    print("In the future, we may offer finer-grained options")
+    sys.exit(-1)
+
 
 async def courselist(request):
-    course_list = await google_ajax(
+    course_list = await ajax(
         request,
         url=COURSE_URL,
         key='courses',
@@ -75,7 +91,7 @@ async def courselist(request):
 
 
 async def courseroster(request, course_id):
-    roster = await google_ajax(
+    roster = await ajax(
         request,
         url=ROSTER_URL,
         parameters={'courseid': int(course_id)},

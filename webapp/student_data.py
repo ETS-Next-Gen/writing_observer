@@ -12,6 +12,7 @@ import stream_analytics.helpers
 import stream_analytics.writing_analysis
 import kvs
 
+import rosters
 
 def authenticated(request):
     '''
@@ -24,6 +25,8 @@ async def static_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data
     '''
+    course_id = int(request.match_info['course_id'])
+
     return aiohttp.web.json_response({
         "new_student_data": json.load(open("static/student_data.js"))
     })
@@ -33,6 +36,8 @@ async def generated_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data dynamically
     '''
+    course_id = int(request.match_info['course_id'])
+
     return aiohttp.web.json_response({
         "new_student_data": synthetic_student_data.synthetic_data()
     })
@@ -48,7 +53,7 @@ SA_MODULES = [
 ]
 
 
-async def real_student_data():
+async def real_student_data(course_id, roster):
     teacherkvs = kvs.KVS()
     students = []
     student_list_fp = tsvx.reader(open("static_data/class_lists/test_users.tsvx"))
@@ -105,6 +110,7 @@ async def real_student_data():
 
 async def ws_real_student_data_handler(request):
     print("Serving")
+    course_id = int(request.match_info['course_id'])
     # External:writing-time-on-task:tsu-ts-test-user-13
     # External:reconstruct-writing:tsu-ts-test-user-17
     ws = aiohttp.web.WebSocketResponse()
@@ -115,15 +121,22 @@ async def ws_real_student_data_handler(request):
         })
         return ws
 
+    roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
     while True:
+        print("Grabbing roster for "+str(course_id))
+
         await ws.send_json({"new_student_data": synthetic_student_data.paginate(
-            await real_student_data(), 4)})
-        await asyncio.sleep(0.2)
+            roster, 4)})
+
+        #await ws.send_json({"new_student_data": synthetic_student_data.paginate(
+        #    await real_student_data(course_id, roster), 4)})
+        await asyncio.sleep(6000)
 
 
 async def ws_dummy_student_data_handler(request):
     print("Serving")
+    course_id = int(request.match_info['course_id'])
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
     if authenticated(request):
@@ -134,6 +147,7 @@ async def ws_dummy_student_data_handler(request):
         await ws.send_json({
             "logged_in": False
         })
+
 
 ws_student_data_handler = ws_real_student_data_handler
 

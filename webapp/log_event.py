@@ -100,14 +100,14 @@ def secure_hash(text):
     make sense to alternate as makes sense. MD5 is 32 characters, while
     SHA3_512 is 128 characters (104 if we B32 encode).
     '''
-    return "SHA512_"+hashlib.sha3_512(text).hexdigest()
+    return "SHA512_" + hashlib.sha3_512(text).hexdigest()
 
 
 def insecure_hash(text):
     '''
     See `secure_hash` above for documentation
     '''
-    return "MD5_"+hashlib.md5(text).hexdigest()
+    return "MD5_" + hashlib.md5(text).hexdigest()
 
 
 # We're going to save the state of the filesystem on application startup
@@ -177,7 +177,7 @@ def log_ajax(url, resp_json, request):
     '''
     This is primarily used to log the responses of AJAX requests made
     TO Google and similar providers. This helps us understand the
-    context of classroom activity, debug, and recover from failures 
+    context of classroom activity, debug, and recover from failures
     '''
     AJAX_FILENAME_TEMPLATE = "{directory}{time}-{payload_hash}.json"
     payload = {

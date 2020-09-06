@@ -52,13 +52,14 @@ requirejs(
      "/static/3rd_party/mustache.min.js",
      "/static/3rd_party/showdown.js",
      "/static/3rd_party/fontawesome.js",
+     "/static/wobserver.js",
      "3rd_party/text!/static/modules/unauth.md",
      "3rd_party/text!/static/modules/login.html",
      "3rd_party/text!/static/modules/courses.html",
      "3rd_party/text!/static/modules/course.html",     
      "3rd_party/text!/static/modules/navbar_loggedin.html",     
     ],
-    function(d3, mustache, showdown, fontawesome, unauth, login, courses, course, navbar_li) {
+    function(d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li) {
 	function load_login_page() {
 	    d3.select(".main-page").html(login);
 	}
@@ -80,8 +81,8 @@ requirejs(
 		    }
 		} else {
 		    let cdg = d3.select(".awd-course-list");
-		    console.log(cdg);
-		    console.log(data)
+//		    console.log(cdg);
+//		    console.log(data)
 		    cdg.selectAll("div.awd-course-card")
 			.data(data)
 			.enter()
@@ -94,7 +95,9 @@ requirejs(
 	}
 
 	function load_dashboard_page(course) {
-	    d3.select(".main-page").text("dashboard");
+	    console.log(wobserver);
+	    d3.select(".main-page").text("Loading Writing Observer...");
+	    wobserver.initialize(d3, d3.select(".main-page"), course);
 	}
 
 	function user_info() {
@@ -110,13 +113,12 @@ requirejs(
 	    return user_info() !== null;
 	}
 
-	function course_hash() {
+	function decode_hash() {
 	    let hash = location.hash;
 	    if(hash.length === 0) {
 		return false;
-	    }
-	    if(hash.startsWith("#wd_course=")) {
-		return hash.slice(8);
+	    } else {
+		return decode_string_dict(location.hash.slice(1));
 	    }
 	    //console.log("Unrecognized hash");
 	    return false;
@@ -130,16 +132,19 @@ requirejs(
 	}
 
 	function setup_page() {
+	    const hash_dict = decode_hash();
 	    if(!authenticated()) {
 		//console.log("Login page");
 		load_login_page();
-	    } else if(!course_hash()) {
+	    } else if(!hash_dict) {
 		//console.log("Courses page");
-		load_courses_page(course_hash());
+		load_courses_page();
+		loggedin_navbar_menu()
+	    } else if (hash_dict['tool'] === 'WritingObserver') {
+		load_dashboard_page(hash_dict['course_id']);
 		loggedin_navbar_menu()
 	    } else {
-		load_dashboard_page(course_hash());
-		loggedin_navbar_menu()
+		error("Invalid URL");
 	    }
 	}
 

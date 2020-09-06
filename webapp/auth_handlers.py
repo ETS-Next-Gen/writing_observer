@@ -23,20 +23,19 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Eventually, this should be broken out into its own module.
 """
-import aiohttp
-import aiohttp.web
 
+import base64
+import functools
+import json
 import logging
 import os.path
 import settings
-
-import aiohttp_session
-import functools
+import yaml
 import yarl
 
-import json
-import yaml
-import base64
+import aiohttp
+import aiohttp.web
+import aiohttp_session
 
 import rosters
 
@@ -54,7 +53,7 @@ async def verify_teacher_account(user_id, email):
     teachers = yaml.safe_load(open("static_data/teachers.yaml"))
     print("Teachers:", teachers)
     if email not in teachers:
-        print("Email not found in teachers");
+        print("Email not found in teachers")
         return False
     if teachers[email]["google_id"] != user_id:
         print("Non-matching Google ID")
@@ -170,7 +169,10 @@ async def _google(request):
             'scope': ('https://www.googleapis.com/auth/userinfo.profile'
                       ' https://www.googleapis.com/auth/userinfo.email'
                       ' https://www.googleapis.com/auth/classroom.courses.readonly'
-                      ' https://www.googleapis.com/auth/classroom.rosters.readonly'),
+                      ' https://www.googleapis.com/auth/classroom.rosters.readonly'
+                      ' https://www.googleapis.com/auth/classroom.profile.emails'
+                      ' https://www.googleapis.com/auth/classroom.profile.photos'
+            ),
         })
         if 'back_to' in request.query:
             params['state'] = request.query[back_to]
