@@ -9,6 +9,7 @@ import aiohttp
 
 import log_event
 
+import authutils         # Encoded / decode user IDs
 import pubsub            # Pluggable pubsub subsystem
 import stream_analytics  # Individual analytics modules
 
@@ -145,6 +146,10 @@ async def handle_incoming_client_event(metadata):
 
 async def dummy_auth(metadata):
     '''
+    TODO: Replace with real auth
+    TODO: Allow configuring auth methods in settings file
+    TODO: See about client-side oauth on Chromebooks
+
     This is a dummy authentication function. It trusts the metadata in the web
     socket without auth/auth.
 
@@ -164,9 +169,11 @@ async def dummy_auth(metadata):
             'providence': 'lsu'  # local storage, unauthenticated
         }
     elif 'chrome_identity' in metadata:
+        gc_uid = authutils.google_id_to_user_id(metadata['chrome_identity']['id'])
         auth_metadata = {
             'sec': 'unauthenticated',
-            'user_id': "gc-" + metadata['chrome_identity']['email'],
+            'user_id': gc_uid,
+            'safe_user_id': gc_uid,
             'providence': 'gcu'  # Google Chrome, unauthenticated
         }
     elif 'test_framework_fake_identity' in metadata:
@@ -183,15 +190,23 @@ async def dummy_auth(metadata):
             'providence': 'guest'
         }
 
-    # We don't know where user IDs will come from.
+    # This is a bit of encoding logic to generically encode IDs from
+    # unknown sources. We want to avoid the problem of Little Bobby
+    # Tables (https://xkcd.com/327/).
     #
-    # We'd like a version of the user ID which can be encoded in keys,
-    # given to SQL, etc. without opening up security holes.
+    # It's not clear this is needed long-term (we put this in when we
+    # were using Google emails rather than numeric IDs), but we're
+    # keeping it here for now for the test data sources. This just
+    # generically sanitizes everything in case we either missed
+    # something above, or just want to have a sane default before
+    # implementing something fancy.
     #
     # We also want to avoid overlapping UIDs between sources. For
     # example, we don't want an attack where e.g. a user carefully
-    # creates an account on one auth provide to collide with a pre-existing
-    # account on another auth provider. So we append providence.
+    # creates an account on one auth provide to collide with a
+    # pre-existing account on another auth provider. So we append
+    # providence. Note that we don't want to do this twice (so
+    # `authutils` does this already for Google)
     if "safe_user_id" not in auth_metadata:
         auth_metadata['safe_user_id'] = "{src}-{uid}".format(
             src=auth_metadata["providence"],

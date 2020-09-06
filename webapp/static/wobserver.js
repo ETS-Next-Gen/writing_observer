@@ -33,17 +33,20 @@ function populate_tiles(tilesheet) {
 	    d3.select(this).select(".wo-tile-name").text(d.profile.name.fullName);
 	    d3.select(this).select(".wo-tile-photo").attr("src", d.profile.photoUrl);
 	    d3.select(this).select(".wo-tile-email").attr("href", "mailto:"+d.profile.emailAddress);
-	    d3.select(this).select(".wo-tile-phone").attr("href", "");
-	    d3.select(this).select(".wo-tile-doc").attr("href", "");
+	    d3.select(this).select(".wo-tile-phone").attr("href", "");          //
+	    d3.select(this).select(".wo-tile-doc").attr("href", "");            //
 	    // Summary stats: Time on task, time idle, and characters in doc
-	    d3.select(this).select(".wo-tile-summary").select("span").text("Hello");
-	    d3.select(this).select(".wo-tile-summary").select("rect").attr("width", 15);
-	    d3.select(this).select(".wo-tile-total-time").select("span").text("Hello");
-	    d3.select(this).select(".wo-tile-total-time").select("rect").attr("width", 15);
+	    let reconstruct = d["stream_analytics.writing_analysis.reconstruct"];
+	    let text = reconstruct.text;
+	    d3.select(this).select(".wo-tile-character-count").select("span").text(text.length);
+	    //d3.select(this).select(".wo-tile-character-count").select("rect").attr("width", 15);
+	    let tot = d["stream_analytics.writing_analysis.time_on_task"];
+	    d3.select(this).select(".wo-tile-total-time").select("span").text(tot["total-time-on-task"]);
+	    //d3.select(this).select(".wo-tile-total-time").select("rect").attr("width", 15);
 	    d3.select(this).select(".wo-tile-time-on-task").select("span").text("Hello");
-	    d3.select(this).select(".wo-tile-time-on-task").select("rect").attr("width", 15);
+	    //d3.select(this).select(".wo-tile-time-on-task").select("rect").attr("width", 15);
 	    // Text
-	    d3.select(this).select(".wo-tile-typing").text("Hi");
+	    d3.select(this).select(".wo-tile-typing").text(text);
 	});
 }
 

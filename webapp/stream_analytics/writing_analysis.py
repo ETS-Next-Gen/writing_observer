@@ -28,7 +28,7 @@ from stream_analytics.helpers import kvs_pipeline
 TIME_ON_TASK_THRESHOLD = 5
 
 
-@kvs_pipeline("writing-time-on-task")
+@kvs_pipeline()
 async def time_on_task(event, internal_state):
     '''
     This adds up time intervals between successive timestamps. If the interval
@@ -56,7 +56,7 @@ async def time_on_task(event, internal_state):
     return internal_state, internal_state
 
 
-@kvs_pipeline("reconstruct-writing")
+@kvs_pipeline()
 async def reconstruct(event, internal_state):
     '''
     This is a thin layer to route events to `reconstruct_doc` which compiles

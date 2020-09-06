@@ -1,3 +1,11 @@
+'''
+This generates dashboard from student data.
+
+TODO: Rename to something better. Perhaps words like:
+* Dashboard
+* Outgoing
+'''
+
 import asyncio
 import json
 import random
@@ -12,6 +20,7 @@ import stream_analytics.helpers
 import stream_analytics.writing_analysis
 import kvs
 
+import authutils
 import rosters
 
 def authenticated(request):
@@ -56,15 +65,8 @@ SA_MODULES = [
 async def real_student_data(course_id, roster):
     teacherkvs = kvs.KVS()
     students = []
-    student_list_fp = tsvx.reader(open("static_data/class_lists/test_users.tsvx"))
-    for student in student_list_fp:
-        print(student.user_id)
-        # TODO: Evaluate whether this is a bottleneck.
-        #
-        # mget is faster than ~50 gets. But some online benchmarks show both taking
-        # microseconds, to where it might not matter.
-        #
-        # For most services, though, this would be a huge bottleneck.
+    for student in roster:
+        print(student)
         student_data = {
             # We're copying Google's roster format here.
             #
@@ -72,47 +74,41 @@ async def real_student_data(course_id, roster):
             # better than reinventing our own standard.
             'profile': {
                 'name': {
-                    'fullName': student.full_name
+                    'fullName': student['profile']['name']['fullName']
                 },
-                'photoUrl': "avatar-{number}".format(number=random.randint(0, 14)),
-                'emailAddress': student.email,
+                'photoUrl': student['profile']['photoUrl'],
+                'emailAddress': student['profile']['emailAddress'],
             },
-            'id': student.user_id,
-            'name': student.name,
-            'phone': student.phone,
+            "courseId": course_id,
+            "userId": student['userId'],  # TODO: Encode? 
 
             # Defaults if we have no data. If we have data, this will be overwritten.
-            'stream_analytics.writing_analysis.reconstruct': {
+             'stream_analytics.writing_analysis.reconstruct': {
                 'text': '[No data]',
                 'position': 0,
                 'edit_metadata': {'cursor': [2], 'length': [1]}
             },
             'stream_analytics.writing_analysis.time_on_task': {'saved_ts': -1, 'total-time-on-task': 0},
-
-            # Obsolete stuff below. We're gradually modernizing this.
-            'address': "----",
-            'ici': random.uniform(100, 1000),
-            'essay_length': 7,
-            'essay': "Test text",
-            'writing_time': 67,
-            'text_complexity': random.uniform(3, 9),
-            'google_doc': "https://docs.google.com/document/d/1YbtJGn7ida2IYNgwCFk3SjhsZ0ztpG5bMzA3WNbVNhU/edit",
-            'time_idle': 676,
-            'outline': [{"section": "Problem " + str(i + 1),
-                         "length": random.randint(1, 300)} for i in range(5)],
-            'revisions': {}
         }
+        # TODO/HACK: Only do this for Google data. Make this do the right thing for synthetic data.
+        google_id = student['userId']
+        student_id = authutils.google_id_to_user_id(google_id)
+        # TODO: Evaluate whether this is a bottleneck.
+        #
+        # mget is faster than ~50 gets. But some online benchmarks show both taking
+        # microseconds, to where it might not matter.
+        #
+        # For most services, though, this would be a huge bottleneck.
         for sa_module in SA_MODULES:
             key = stream_analytics.helpers.make_key(
                 sa_module,
-                student.user_id,  # TODO: Should this be safe_user_id?
+                student_id,
                 stream_analytics.helpers.KeyStateType.EXTERNAL)
             data = await teacherkvs[key]
             if data is not None:
                 student_data[stream_analytics.helpers.fully_qualified_function_name(sa_module)] = data
         print(student_data)
         students.append(student_data)
-    student_list_fp.close()
     return students
 
 
@@ -139,7 +135,7 @@ async def ws_real_student_data_handler(request):
 
         await ws.send_json({"new_student_data": synthetic_student_data.paginate(
             await real_student_data(course_id, roster), 4)})
-        await asyncio.sleep(6000)
+        await asyncio.sleep(0.5)
 
 
 async def ws_dummy_student_data_handler(request):

@@ -1,5 +1,35 @@
 '''
-Common utility functions
+Common utility functions for working with analytics modules.
+
+The goal is to have the modules be pluggable and independent of the
+system. For now, our overall system diagram is:
+
++---------------+
+|               |                                   +-------------+
+| Event Source  ---|                                | Key-Value   |
+|               |  |                                | Store       |
++---------------+  |                                |             |
++---------------+  |          +-----------+  <------|-- Internal  |
+|               |  |          |           |  -------|-> State     |       +------------+      +------------+
+| Event Source  --------|---->| Reducer   |         |             |       |            |      |            |
+|               |   |   |     |           | --------|-> External -------->| Aggregator |----> | Dashboard  |
++---------------+   |   |     +-----------+         |   State     |       |            |      |            |
++---------------+   |   |                           |             |       +------------+      +------------+
+|               |   |   |                           +-------------+
+| Event Source  ----|   |
+|               |       |
++---------------+       v
+                  +------------+
+                  |            |
+                  |  Archival  |
+                  | Repository |
+                  |            |
+                  +------------+
+
+We create reducers with the `kvs_pipeline` decorator. In the longer
+term, we'll want to be able to plug together different aggregators,
+state types, etc. We'll also want different keys for reducers
+(per-student, per-resource, etc.). For now, though, this works.
 '''
 import enum
 import functools
@@ -11,6 +41,17 @@ KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 
 
 def fully_qualified_function_name(func):
+    '''
+    Takes a function. Return a fully-qualified string with a name for
+    that function. E.g.: 
+
+    >>> from math import sin
+    >>> fully_qualified_function_name(math.sin)
+    'math.sin'
+
+    This is helpful for then giving unique names to analytics modules. Each module can
+    be uniquely referenced based on its reduce function.
+    '''
     return "{module}.{function}".format(
         module=func.__module__,
         function=func.__qualname__
@@ -37,14 +78,20 @@ def make_key(func, safe_user_id, state_type):
     )
 
 
-def kvs_pipeline(streammodule):
+def kvs_pipeline(
+        null_state=None
+):
     '''
     Closures, anyone?
 
     There's a bit to unpack here.
 
     Top-level function. This allows us to configure the decorator (and
-    returns the decorator)
+    returns the decorator).
+
+    * `null_state` tells us the empty state, before any reduce operations have
+      happened. This can be important for the aggregator. We're documenting the
+      code before we've written it, so please make sure this works before using.
     '''
     def decorator(func):
         '''
