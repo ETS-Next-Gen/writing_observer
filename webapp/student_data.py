@@ -125,14 +125,10 @@ async def ws_real_student_data_handler(request):
         })
         return ws
 
+    print("Grabbing roster for "+str(course_id))
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
     while True:
-        print("Grabbing roster for "+str(course_id))
-
-        #await ws.send_json({"new_student_data": synthetic_student_data.paginate(
-        #    roster, 4)})
-
         await ws.send_json({"new_student_data": synthetic_student_data.paginate(
             await real_student_data(course_id, roster), 4)})
         await asyncio.sleep(0.5)

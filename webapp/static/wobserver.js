@@ -1,29 +1,57 @@
-//import { deane_graph } from './deane.js'
-//import { student_text } from './text.js'
-//import { summary_stats } from './summary_stats.js'
-//import { outline } from './outline.js'
-
-//var student_data = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19]];
-
+var student_data;
 var tile_template;
 var d3;
 
+function rendertime(t) {
+    function str(i) {
+        if(i<10) {
+            return "0"+String(i);
+        }
+        return String(i)
+    }
+    var seconds = Math.floor((t - Math.floor(t)) * 60);
+    var minutes = Math.floor(t) % 60;
+    var hours = Math.floor(t/60) % 60;
+    var rendered = str(seconds);
+    if (minutes>0 || hours>0) {
+        rendered = str(minutes)+":"+rendered;
+    } else {
+        rendered = rendered + " sec";
+    }
+    if (hours>0) {
+        rendered = str(rendered)+":"+rendered;
+    }
+    return rendered
+}
+
+var first_time = true;
+
 function populate_tiles(tilesheet) {
     /* Create rows for students */
-    var rows=tilesheet.selectAll("div.wo-row-tile")
-	.data(student_data)
-	.enter()
-	.append("div")
-	.attr("class", "tile is-ancestor wo-row-tile");
+    console.log("Populating data");
+    console.log(student_data);
+    if(first_time) {
+	var rows=tilesheet.selectAll("div.wo-row-tile")
+	    .data(student_data)
+	    .enter()
+	    .append("div")
+	    .attr("class", "tile is-ancestor wo-row-tile");
 
-    /* Create individual tiles */
-    var cols=rows.selectAll("div.wo-col-tile")
-	.data(function(d) { return d; })  // Propagate data down from the row into the elements
-	.enter()
-	.append("div")
-	.attr("class", "tile is-parent wo-col-tile wo-flip-container is-3")
-	.html(tile_template);
-
+	/* Create individual tiles */
+	var cols=rows.selectAll("div.wo-col-tile")
+	    .data(function(d) { return d; })  // Propagate data down from the row into the elements
+	    .enter()
+	    .append("div")
+	    .attr("class", "tile is-parent wo-col-tile wo-flip-container is-3")
+	    .html(tile_template);
+	first_time = false;
+    }
+    else {
+	var rows=tilesheet.selectAll("div.wo-row-tile")
+	    .data(student_data)
+	var cols=rows.selectAll("div.wo-col-tile")
+	    .data(function(d) { return d; })  // Propagate data down from the row into the elements
+    }
     /* Populate them with data */
     var cols_update=rows.selectAll("div.wo-col-tile")
 	.data(function(d) { console.log(d); return d; })
@@ -41,7 +69,7 @@ function populate_tiles(tilesheet) {
 	    d3.select(this).select(".wo-tile-character-count").select("span").text(text.length);
 	    //d3.select(this).select(".wo-tile-character-count").select("rect").attr("width", 15);
 	    let tot = d["stream_analytics.writing_analysis.time_on_task"];
-	    d3.select(this).select(".wo-tile-total-time").select("span").text(tot["total-time-on-task"]);
+	    d3.select(this).select(".wo-tile-total-time").select("span").text(rendertime(tot["total-time-on-task"]));
 	    //d3.select(this).select(".wo-tile-total-time").select("rect").attr("width", 15);
 	    d3.select(this).select(".wo-tile-time-on-task").select("span").text("Hello");
 	    //d3.select(this).select(".wo-tile-time-on-task").select("rect").attr("width", 15);
