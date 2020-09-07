@@ -47,7 +47,17 @@ function populate_tiles(tilesheet) {
 	    .enter()
 	    .append("div")
 	    .attr("class", "tile is-parent wo-col-tile wo-flip-container is-3")
-	    .html(tile_template);
+	    .html(tile_template)
+	    .each(function(d) {
+		d3.select(this).select(".wo-tile-name").text(d.profile.name.fullName);
+		var photoUrl = d.profile.photoUrl;
+		if(photoUrl.startsWith("//")) {
+		    photoUrl = "https:"+d.profile.photoUrl;
+		}
+		d3.select(this).select(".wo-tile-photo").attr("src", d.profile.photoUrl);
+		d3.select(this).select(".wo-tile-email").attr("href", "mailto:"+d.profile.emailAddress);
+		d3.select(this).select(".wo-tile-phone").attr("href", "");          // TODO
+	    });
 	first_time = false;
     }
     else {
@@ -62,15 +72,11 @@ function populate_tiles(tilesheet) {
     	.each(function(d) {
 	    console.log(d.profile);
 	    // Profile: Student name, photo, Google doc, phone number, email
-	    d3.select(this).select(".wo-tile-name").text(d.profile.name.fullName);
-	    d3.select(this).select(".wo-tile-photo").attr("src", d.profile.photoUrl);
-	    d3.select(this).select(".wo-tile-email").attr("href", "mailto:"+d.profile.emailAddress);
-	    d3.select(this).select(".wo-tile-phone").attr("href", "");          //
-	    d3.select(this).select(".wo-tile-doc").attr("href", "");            //
+	    d3.select(this).select(".wo-tile-doc").attr("href", "");            // TODO
 	    // Summary stats: Time on task, time idle, and characters in doc
-	    let reconstruct = d["stream_analytics.writing_analysis.reconstruct"];
-	    let text = reconstruct.text;
-	    d3.select(this).select(".wo-tile-character-count").select("span").text(text.length);
+	    let compiled = d["writing-observer-compiled"];
+	    let text = compiled.text;
+	    d3.select(this).select(".wo-tile-character-count").select("span").text(compiled["character-count"]);
 	    //d3.select(this).select(".wo-tile-character-count").select("rect").attr("width", 15);
 	    let tot = d["stream_analytics.writing_analysis.time_on_task"];
 	    d3.select(this).select(".wo-tile-total-time").select("span").text(rendertime(tot["total-time-on-task"]));
@@ -78,7 +84,7 @@ function populate_tiles(tilesheet) {
 	    d3.select(this).select(".wo-tile-time-on-task").select("span").text("Hello");
 	    //d3.select(this).select(".wo-tile-time-on-task").select("rect").attr("width", 15);
 	    // Text
-	    d3.select(this).select(".wo-tile-typing").text(text);
+	    d3.select(this).select(".wo-tile-typing").text(compiled.text);
 	});
 }
 
