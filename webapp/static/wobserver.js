@@ -9,9 +9,10 @@ function rendertime(t) {
         }
         return String(i)
     }
-    var seconds = Math.floor((t - Math.floor(t)) * 60);
-    var minutes = Math.floor(t) % 60;
-    var hours = Math.floor(t/60) % 60;
+    var seconds = Math.floor(t) % 60;
+    var minutes = Math.floor(t/60) % 60;
+    var hours = Math.floor(t/3600) % 60;
+    var days = Math.floor(t/3600/24);
     var rendered = str(seconds);
     if (minutes>0 || hours>0) {
         rendered = str(minutes)+":"+rendered;
@@ -19,9 +20,12 @@ function rendertime(t) {
         rendered = rendered + " sec";
     }
     if (hours>0) {
-        rendered = str(rendered)+":"+rendered;
+        rendered = str(hours)+":"+rendered;
     }
-    return rendered
+    if (days>0) {
+	rendered = String(days) + " days"
+    }
+    return rendered;
 }
 
 var first_time = true;
