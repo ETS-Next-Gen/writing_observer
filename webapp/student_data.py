@@ -62,54 +62,62 @@ SA_MODULES = [
 ]
 
 
-async def real_student_data(course_id, roster):
-    teacherkvs = kvs.KVS()
-    students = []
-    for student in roster:
-        print(student)
-        student_data = {
-            # We're copying Google's roster format here.
-            #
-            # It's imperfect, and we may want to change it later, but it seems
-            # better than reinventing our own standard.
-            'profile': {
-                'name': {
-                    'fullName': student['profile']['name']['fullName']
-                },
-                'photoUrl': student['profile']['photoUrl'],
-                'emailAddress': student['profile']['emailAddress'],
-            },
-            "courseId": course_id,
-            "userId": student['userId'],  # TODO: Encode? 
+def real_student_data(course_id, roster):
+    '''
+    Closure remembers course roster, and redis KVS.
 
-            # Defaults if we have no data. If we have data, this will be overwritten.
-             'stream_analytics.writing_analysis.reconstruct': {
-                'text': '[No data]',
-                'position': 0,
-                'edit_metadata': {'cursor': [2], 'length': [1]}
-            },
-            'stream_analytics.writing_analysis.time_on_task': {'saved_ts': -1, 'total-time-on-task': 0},
-        }
-        # TODO/HACK: Only do this for Google data. Make this do the right thing for synthetic data.
-        google_id = student['userId']
-        student_id = authutils.google_id_to_user_id(google_id)
-        # TODO: Evaluate whether this is a bottleneck.
-        #
-        # mget is faster than ~50 gets. But some online benchmarks show both taking
-        # microseconds, to where it might not matter.
-        #
-        # For most services, though, this would be a huge bottleneck.
-        for sa_module in SA_MODULES:
-            key = stream_analytics.helpers.make_key(
-                sa_module,
-                student_id,
-                stream_analytics.helpers.KeyStateType.EXTERNAL)
-            data = await teacherkvs[key]
-            if data is not None:
-                student_data[stream_analytics.helpers.fully_qualified_function_name(sa_module)] = data
-        print(student_data)
-        students.append(student_data)
-    return students
+    Reopening connections to redis every few seconds otherwise would
+    run us out of file pointers.
+    '''
+    teacherkvs = kvs.KVS()
+    async def rsd():
+        students = []
+        for student in roster:
+            print(student)
+            student_data = {
+                # We're copying Google's roster format here.
+                #
+                # It's imperfect, and we may want to change it later, but it seems
+                # better than reinventing our own standard.
+                'profile': {
+                    'name': {
+                        'fullName': student['profile']['name']['fullName']
+                    },
+                    'photoUrl': student['profile']['photoUrl'],
+                    'emailAddress': student['profile']['emailAddress'],
+                },
+                "courseId": course_id,
+                "userId": student['userId'],  # TODO: Encode? 
+
+                # Defaults if we have no data. If we have data, this will be overwritten.
+                'stream_analytics.writing_analysis.reconstruct': {
+                    'text': '[No data]',
+                    'position': 0,
+                    'edit_metadata': {'cursor': [2], 'length': [1]}
+                },
+                'stream_analytics.writing_analysis.time_on_task': {'saved_ts': -1, 'total-time-on-task': 0},
+            }
+            # TODO/HACK: Only do this for Google data. Make this do the right thing for synthetic data.
+            google_id = student['userId']
+            student_id = authutils.google_id_to_user_id(google_id)
+            # TODO: Evaluate whether this is a bottleneck.
+            #
+            # mget is faster than ~50 gets. But some online benchmarks show both taking
+            # microseconds, to where it might not matter.
+            #
+            # For most services, though, this would be a huge bottleneck.
+            for sa_module in SA_MODULES:
+                key = stream_analytics.helpers.make_key(
+                    sa_module,
+                    student_id,
+                    stream_analytics.helpers.KeyStateType.EXTERNAL)
+                data = await teacherkvs[key]
+                if data is not None:
+                    student_data[stream_analytics.helpers.fully_qualified_function_name(sa_module)] = data
+            print(student_data)
+            students.append(student_data)
+        return students
+    return rsd
 
 
 async def ws_real_student_data_handler(request):
@@ -128,9 +136,10 @@ async def ws_real_student_data_handler(request):
     print("Grabbing roster for "+str(course_id))
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
+    rsd = real_student_data(course_id, roster)
     while True:
         await ws.send_json({"new_student_data": synthetic_student_data.paginate(
-            await real_student_data(course_id, roster), 4)})
+            await rsd(), 4)})
         await asyncio.sleep(0.5)
 
 
