@@ -16,17 +16,7 @@ import numpy.random
 import loremipsum
 import names
 
-
-def paginate(data_list, nrows):
-    '''
-    Paginate list `data_list` into `nrows`-item rows.
-
-    This should move into the client
-    '''
-    return [
-        data_list[i * nrows:(i + 1) * nrows]
-        for i in range(math.ceil(len(data_list) / nrows))
-    ]
+import util
 
 
 def synthetic_student_data(student_id):
@@ -63,7 +53,7 @@ def synthetic_data(n=20):
         synthetic_student_data(n)
         for i in range(n)
     ]
-    return paginate(data, 4)
+    return util.paginate(data, 4)
 
 
 if __name__ == '__main__':

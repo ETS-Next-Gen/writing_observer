@@ -9,10 +9,13 @@ TODO: Rename to something better. Perhaps words like:
 import asyncio
 import json
 import random
+import time
 
 import aiohttp
 
 import tsvx
+
+import util
 
 import synthetic_student_data
 
@@ -81,7 +84,7 @@ def adhoc_writing_observer_clean(student_data):
     if text is None:
         student_data['writing-observer-compiled'] = {
             "text": "[None]",
-            "character_count": 0
+            "character-count": 0
         }
         return student_data
 
@@ -117,6 +120,28 @@ def adhoc_writing_observer_clean(student_data):
     }
     del student_data['stream_analytics.writing_analysis.reconstruct']['text']
     return student_data
+
+
+def adhoc_writing_observer_aggregate(student_data):
+    '''
+    Compute and aggregate cross-classroom.
+
+    HACK HACK HACK: To abstract out into writing observer subsystem.
+    '''
+    max_idle_time = 0
+    max_time_on_task = 0
+    max_character_count = 0
+    for student in student_data:
+         max_character_count = max(max_character_count, student['writing-observer-compiled']['character-count'])
+         max_time_on_task = max(max_time_on_task, student['stream_analytics.writing_analysis.time_on_task']["total-time-on-task"])
+    return {
+        'max-character-count': max_character_count,
+        'max-time-on-task': max_time_on_task,
+        # TODO: Should we aggregate this in some way? If we run on multiple servers, this is susceptible to drift.
+        # That could be jarring; even a few seconds error could be an issue in some contexts.
+        'current-time': time.time()
+    }
+
 
 def real_student_data(course_id, roster):
     '''
@@ -200,8 +225,11 @@ async def ws_real_student_data_handler(request):
     # Grab student list, and deliver to the client
     rsd = real_student_data(course_id, roster)
     while True:
-        await ws.send_json({"new_student_data": synthetic_student_data.paginate(
-            await rsd(), 4)})
+        sd = await rsd()
+        await ws.send_json({
+            "aggegated-data": adhoc_writing_observer_aggregate(sd),  ## Common to all students
+            "new-student-data": util.paginate(sd, 4)  ## Per-student list
+        })
         await asyncio.sleep(0.5)
 
 

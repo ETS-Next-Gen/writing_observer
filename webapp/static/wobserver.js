@@ -1,8 +1,18 @@
 var student_data;
+var aggregated_data;
 var tile_template;
 var d3;
 
 function rendertime(t) {
+    /*
+      Convert seconds to a time string.
+         10     ==> 10 sec
+	 120    ==> 2:00
+	 3600   ==> 1:00:00
+	 7601   ==> 2:06:41
+	 764450 ==> 8 days
+
+     */
     function str(i) {
         if(i<10) {
             return "0"+String(i);
@@ -13,22 +23,83 @@ function rendertime(t) {
     var minutes = Math.floor(t/60) % 60;
     var hours = Math.floor(t/3600) % 60;
     var days = Math.floor(t/3600/24);
-    var rendered = str(seconds);
-    if (minutes>0 || hours>0) {
-        rendered = str(minutes)+":"+rendered;
-    } else {
-        rendered = rendered + " sec";
-    }
-    if (hours>0) {
-        rendered = str(hours)+":"+rendered;
+
+    if ((minutes === 0) && (hours === 0) && (days === 0)) {
+	return String(seconds) + " sec"           // 0-59 seconds
     }
     if (days>0) {
-	rendered = String(days) + " days"
+	return String(days) + " days"             // >= 1 day
     }
-    return rendered;
+    if(hours === 0) {
+	return String(minutes)+":"+str(seconds);  // 1 minute - 1 hour
+    }
+    return String(hours)+":"+str(minutes)+":"+str(seconds)  // 1 - 24 hours
 }
 
 var first_time = true;
+
+function update_time_idle_data(d3tile, data) {
+    /*
+      We'd like time idle to proceed smoothly, at 1 second per second,
+      regardless of server latency.
+
+      When the server updates idle time, we update data attributes
+      associated with the element, if necessary. We do this here. Then,
+      we use an interval timer to update the display itself based on
+      client-side timing.
+
+      We maintain data fields for:
+
+      * Last access
+      * Server and client time stamps at last access
+
+      When new data comes in, we /only/ update if last access
+      changed. Otherwise, we compute.
+    */
+
+    /* Old data */
+    let serverside_update_time = d3.select(d3tile).attr("data-ssut");
+    let clientside_time = (new Date()).getTime() / 1000;
+    let new_serverside_update_time = Math.round(data['stream_analytics.writing_analysis.time_on_task']['saved_ts']);
+
+    if(new_serverside_update_time == Math.round(serverside_update_time)) {
+	// Time didn't change. Do nothing! Continue using the client clock
+	return;
+    }
+
+    d3.select(d3tile).attr("data-ssut", aggregated_data["current-time"]);
+    d3.select(d3tile).attr("data-sslat", data['stream_analytics.writing_analysis.time_on_task']['saved_ts']);
+    d3.select(d3tile).attr("data-csut", clientside_time);
+}
+
+function update_time_idle() {
+    /*
+      TODO: We should call this once per second to update time idle. Right now, we're calling this from `populate_tiles`
+
+      The logic is described in update_time_idle_data().
+     */
+    var tiles = d3.selectAll("div.wo-col-tile").each(function(d) {
+	let serverside_update_time = d3.select(this).attr("data-ssut");
+	let ss_last_access = d3.select(this).attr("data-sslat");
+	let clientside_update_time = d3.select(this).attr("data-csut");
+	let clientside_time = (new Date()).getTime() / 1000;
+	/* Time idle is computed as: */
+	let idle_time = (serverside_update_time - ss_last_access) + (clientside_time - clientside_update_time) + 1;
+	/*              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   ^
+			How long student was idle when we               How long ago we were told                |
+			last learned their last access time                                            Avoid negative numbers
+	*/
+	// 0, -1, etc. indicate no data
+	console.log(serverside_update_time , ss_last_access, clientside_time , clientside_update_time);
+	console.log((serverside_update_time - ss_last_access), (clientside_time - clientside_update_time), 1)
+	console.log(idle_time);
+	if(ss_last_access < 1000000000) {
+	    d3.select(this).select(".wo-tile-idle-time").select("span").text("N/A");
+	} else {
+	    d3.select(this).select(".wo-tile-idle-time").select("span").text(rendertime(idle_time));
+	}
+    });
+}
 
 function populate_tiles(tilesheet) {
     /* Create rows for students */
@@ -79,13 +150,16 @@ function populate_tiles(tilesheet) {
 	    d3.select(this).select(".wo-tile-character-count").select("span").text(compiled["character-count"]);
 	    //d3.select(this).select(".wo-tile-character-count").select("rect").attr("width", 15);
 	    let tot = d["stream_analytics.writing_analysis.time_on_task"];
-	    d3.select(this).select(".wo-tile-total-time").select("span").text(rendertime(tot["total-time-on-task"]));
-	    //d3.select(this).select(".wo-tile-total-time").select("rect").attr("width", 15);
-	    d3.select(this).select(".wo-tile-time-on-task").select("span").text("Hello");
+	    d3.select(this).select(".wo-tile-time-on-task").select("span").text(rendertime(tot["total-time-on-task"]));
 	    //d3.select(this).select(".wo-tile-time-on-task").select("rect").attr("width", 15);
+	    d3.select(this).select(".wo-tile-idle-time").select("span").text("Hello");
+
+	    //d3.select(this).select(".wo-tile-idle-time").select("rect").attr("width", 15);
+	    update_time_idle_data(this, d);
 	    // Text
 	    d3.select(this).select(".wo-tile-typing").text(compiled.text);
 	});
+    update_time_idle();
 }
 
 var dashboard_template;
@@ -104,30 +178,33 @@ function initialize(D3, div, course) {
 	let data = JSON.parse(event.data);
 	if(data.logged_in === false) {
 	    window.location.href="/";  // TODO: System.go_home() or something
-	} else if (data.new_student_data) {
+	} else if (data["new-student-data"]) {
 	    console.log("New data!");
-	    student_data = data.new_student_data;
+	    student_data = data["new-student-data"];
+	    aggregated_data = data["aggegated-data"];
+	    console.log(aggregated_data);
 	    d3.select(".wo-tile-sheet").call(populate_tiles, student_data);
             d3.selectAll(".wo-loading").classed("is-hidden", true);
 	}
-
     /*
     var tabs = ["typing", "deane", "summary", "outline", "timeline", "contact"];
     for(var i=0; i<tabs.length; i++) {
 	d3.select(".tilenav-"+tabs[i]).on("click", select_tab(tabs[i]));
+    }*/
     }
 
-    ws.onmessage = function (event) {
-	console.log("Got data");
-	let data = JSON.parse(event.data);
-	// dispatch
+    /*
+     * As we're using this API, we return an object (we don't get
+     * called with new), but this lets us work both ways.
+     */
 
-	} else {
-	    console.log(data);
-	    console.log("Unrecognized JSON");
-	}
-    };*/
+    this.terminate = function() {
+	ws.close();
     }
+
+    return {
+	'terminate': this.terminate
+    };
 }
 
 define(["3rd_party/text!/static/modules/dashboard.html",
