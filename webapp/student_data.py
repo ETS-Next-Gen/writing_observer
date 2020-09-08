@@ -26,6 +26,7 @@ import kvs
 import authutils
 import rosters
 
+
 def authenticated(request):
     '''
     Dummy function to tell if a request is logged in
@@ -92,26 +93,25 @@ def adhoc_writing_observer_clean(student_data):
     cursor_position = student_data['stream_analytics.writing_analysis.reconstruct']['position']
 
     # Compute the portion of the text we want to return.
-    LENGTH = 40
-    # Let's try an even split and adjust later
-    BEFORE = int(LENGTH/2)
+    LENGTH = 130
+    BEFORE = int(LENGTH * 2 / 3)
     # We step backwards and forwards from the cursor by the desired number of characters
-    start = max(0, int(cursor_position-BEFORE))
-    end = min(character_count-1, start+LENGTH)
+    start = max(0, int(cursor_position - BEFORE))
+    end = min(character_count - 1, start + LENGTH)
     # And, if we don't have much text after the cursor, we adjust the beginning
     print(start, cursor_position, end)
-    start = max(0, end-LENGTH)
+    start = max(0, end - LENGTH)
     # Split on a word boundary, if there's one close by
     print(start, cursor_position, end)
-    while end<character_count and end-start < LENGTH+10 and not text[end].isspace():
-        end+=1
+    while end < character_count and end - start < LENGTH + 10 and not text[end].isspace():
+        end += 1
 
     print(start, cursor_position, end)
-    while start>0 and end-start < LENGTH+10 and not text[start].isspace():
-        start-=1
+    while start > 0 and end - start < LENGTH + 10 and not text[start].isspace():
+        start -= 1
 
     print(start, cursor_position, end)
-    clipped_text = text[start:cursor_position-1] + "❙" + text[max(cursor_position-1, 0):end]
+    clipped_text = text[start:cursor_position - 1] + "❙" + text[max(cursor_position - 1, 0):end]
     # Yes, this does mutate the input. No, we should. No, it doesn't matter, since the
     # code needs to move out of here. Shoo, shoo.
     student_data['writing-observer-compiled'] = {
@@ -132,8 +132,8 @@ def adhoc_writing_observer_aggregate(student_data):
     max_time_on_task = 0
     max_character_count = 0
     for student in student_data:
-         max_character_count = max(max_character_count, student['writing-observer-compiled']['character-count'])
-         max_time_on_task = max(max_time_on_task, student['stream_analytics.writing_analysis.time_on_task']["total-time-on-task"])
+        max_character_count = max(max_character_count, student['writing-observer-compiled']['character-count'])
+        max_time_on_task = max(max_time_on_task, student['stream_analytics.writing_analysis.time_on_task']["total-time-on-task"])
     return {
         'max-character-count': max_character_count,
         'max-time-on-task': max_time_on_task,
@@ -151,6 +151,7 @@ def real_student_data(course_id, roster):
     run us out of file pointers.
     '''
     teacherkvs = kvs.KVS()
+
     async def rsd():
         '''
         Poll redis for student state. This should be abstracted out into a generic
@@ -172,7 +173,7 @@ def real_student_data(course_id, roster):
                     'emailAddress': student['profile']['emailAddress'],
                 },
                 "courseId": course_id,
-                "userId": student['userId'],  # TODO: Encode? 
+                "userId": student['userId'],  # TODO: Encode?
 
                 # Defaults if we have no data. If we have data, this will be overwritten.
                 'stream_analytics.writing_analysis.reconstruct': {
@@ -220,15 +221,15 @@ async def ws_real_student_data_handler(request):
         })
         return ws
 
-    print("Grabbing roster for "+str(course_id))
+    print("Grabbing roster for " + str(course_id))
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
     rsd = real_student_data(course_id, roster)
     while True:
         sd = await rsd()
         await ws.send_json({
-            "aggegated-data": adhoc_writing_observer_aggregate(sd),  ## Common to all students
-            "new-student-data": util.paginate(sd, 4)  ## Per-student list
+            "aggegated-data": adhoc_writing_observer_aggregate(sd),  # Common to all students
+            "new-student-data": util.paginate(sd, 4)                 # Per-student list
         })
         await asyncio.sleep(0.5)
 
@@ -249,5 +250,4 @@ async def ws_dummy_student_data_handler(request):
 
 
 ws_student_data_handler = ws_real_student_data_handler
-
 student_data_handler = generated_student_data_handler

@@ -84,10 +84,10 @@ function update_time_idle() {
 	let clientside_update_time = d3.select(this).attr("data-csut");
 	let clientside_time = (new Date()).getTime() / 1000;
 	/* Time idle is computed as: */
-	let idle_time = (serverside_update_time - ss_last_access) + (clientside_time - clientside_update_time) + 1;
-	/*              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   ^
-			How long student was idle when we               How long ago we were told                |
-			last learned their last access time                                            Avoid negative numbers
+	let idle_time = (serverside_update_time - ss_last_access) + (clientside_time - clientside_update_time);
+	/*              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			How long student was idle when we               How long ago we were told
+			last learned their last access time
 	*/
 	// 0, -1, etc. indicate no data
 	console.log(serverside_update_time , ss_last_access, clientside_time , clientside_update_time);
