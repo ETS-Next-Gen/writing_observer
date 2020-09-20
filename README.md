@@ -1,4 +1,6 @@
-# Writing analysis
+# Writing Observer
+
+![Writing Observer Logo](logo.jpg)
 
 This repository is part of a project to provide an open source
 learning analytics dashboard to help instructors be able to manage
@@ -12,7 +14,8 @@ repository has a series of prototypes to confirm we can:
 * route it to where we want it to go (there's *a lot* of data, with
   complex dependencies, so this is actually a nontrivial problem)
 
-Which mitigates most of the technical risk.
+Which mitigates most of the technical risk. We also now integrate with
+Google Classroom.
 
 For this to be useful, we'll need to integrate all of this together,
 and provide some basic documentation for developers to be able to
