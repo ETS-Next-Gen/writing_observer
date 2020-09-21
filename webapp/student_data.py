@@ -66,6 +66,10 @@ SA_MODULES = [
 ]
 
 
+def downsample(data):
+    pass
+
+
 def adhoc_writing_observer_clean(student_data):
     '''
     HACK HACK HACK HACK
@@ -93,7 +97,7 @@ def adhoc_writing_observer_clean(student_data):
     cursor_position = student_data['stream_analytics.writing_analysis.reconstruct']['position']
 
     # Compute the portion of the text we want to return.
-    LENGTH = 130
+    LENGTH = 103
     BEFORE = int(LENGTH * 2 / 3)
     # We step backwards and forwards from the cursor by the desired number of characters
     start = max(0, int(cursor_position - BEFORE))
@@ -118,7 +122,10 @@ def adhoc_writing_observer_clean(student_data):
         "text": clipped_text,
         "character-count": character_count
     }
+    # Remove things which are too big to send back. Note: Not benchmarked, so perhaps not too big
     del student_data['stream_analytics.writing_analysis.reconstruct']['text']
+    # We should downsample, rather than removing
+    del student_data['stream_analytics.writing_analysis.reconstruct']['edit_metadata']
     return student_data
 
 
