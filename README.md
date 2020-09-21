@@ -1,6 +1,6 @@
 # Writing Observer
 
-![Writing Observer Logo](logo.jpg)
+![Writing Observer Logo](webapp/media/logo.jpg)
 
 This repository is part of a project to provide an open source
 learning analytics dashboard to help instructors be able to manage
