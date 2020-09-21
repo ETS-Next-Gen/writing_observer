@@ -20,7 +20,7 @@ var maximum = 1500;
 
 export function outline(div, data=test_data) {
     div.html("");
-    div.append("p").text("In progress -- just piping data in")
+    //div.append("p").text("In progress -- just piping data in")
     var svg = div.append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "-"
