@@ -74,26 +74,24 @@ async def social(request):
     print(user)
 
     if 'user_id' in user:
-        # User ID returned in 'data', authorize user.
-        authorized = await _authorize_user(request, user)
-        if authorized:
-            url = user['back_to'] or "/"
-            print("AUTH")
-            return aiohttp.web.HTTPFound(url)
-        else:
-            print("UNAUTH")
-            url = "/static/unauth.html"
-            return aiohttp.web.HTTPFound(url)
+        await _authorize_user(request, user)
 
-    #  Login failed. TODO: Make a proper login failed page.
-    return aiohttp.web.HTTPFound("/")
+    if user['authorized']:
+        url = user['back_to'] or "/"
+    else:
+        url = "/"
+
+    return aiohttp.web.HTTPFound(url)
 
 
 async def _authorize_user(request, user):
     """
-    Logs a user in.
+    Log a user into our session. This will update the (encrypted) user
+    session with the user's identity, and whether they are authorized.
+
     :param request: web request.
     :param user_id: provider's user ID (e.g., Google ID).
+
     """
     session = await aiohttp_session.get_session(request)
     session["user"] = user
@@ -128,7 +126,10 @@ async def auth_middleware(request, handler):
     else:
         userinfo = {
             "name": request['user']['name'],
-            "picture": request['user']['picture']
+            "picture": request['user']['picture'],
+            "authorized": request['user']['authorized'],
+            "google_id": request['user']['user_id'],
+            "email": request['user']['email']
         }
     # This is a dumb way to sanitize data and pass it to the front-end.
     #
@@ -212,6 +213,7 @@ async def _google(request):
         'family_name': profile['family_name'],
         'back_to': request.query.get('state'),
         'picture': profile['picture'],
+        'authorized': await verify_teacher_account(profile['id'], profile['email'])  ## TODO: Should this be immediate?
     }
 
 

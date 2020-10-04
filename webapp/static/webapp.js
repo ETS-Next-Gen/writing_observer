@@ -56,15 +56,19 @@ requirejs(
      "3rd_party/text!/static/modules/unauth.md",
      "3rd_party/text!/static/modules/login.html",
      "3rd_party/text!/static/modules/courses.html",
-     "3rd_party/text!/static/modules/course.html",     
-     "3rd_party/text!/static/modules/navbar_loggedin.html",     
+     "3rd_party/text!/static/modules/course.html",
+     "3rd_party/text!/static/modules/navbar_loggedin.html",
+     "3rd_party/text!/static/modules/informational.html",
     ],
-    function(d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li) {
+    function(d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li, info) {
 	function load_login_page() {
 	    d3.select(".main-page").html(login);
 	}
 
 	function load_courses_page() {
+	    /*
+	      Listing of Google Classroom courses
+	      */
 	    d3.select(".main-page").html(courses);
 	    d3.json("/webapi/courselist/").then(function(data){
 		/*
@@ -81,8 +85,6 @@ requirejs(
 		    }
 		} else {
 		    let cdg = d3.select(".awd-course-list");
-//		    console.log(cdg);
-//		    console.log(data)
 		    cdg.selectAll("div.awd-course-card")
 			.data(data)
 			.enter()
@@ -95,9 +97,25 @@ requirejs(
 	}
 
 	function load_dashboard_page(course) {
+	    /*
+	      Classroom writing dashboard
+	     */
 	    console.log(wobserver);
 	    d3.select(".main-page").text("Loading Writing Observer...");
 	    wobserver.initialize(d3, d3.select(".main-page"), course);
+	}
+
+	function load_unauthorized_page() {
+	    /*
+	      If an unauthenticated teacher logs in, we will show this
+	      page.
+	    */
+	    sd = new showdown.Converter();
+	    bodytext = sd.makeHtml(mustache.render(unauth, user_info()));
+	    d3.select(".main-page").html(
+		mustache.render(info,
+				{text:bodytext}));
+
 	}
 
 	function user_info() {
@@ -111,6 +129,10 @@ requirejs(
 	    // I hate web browsers. There seems to be a more-or-less random addition of quotes
 	    // around cookies. Really.
 	    return user_info() !== null;
+	}
+
+	function authorized() {
+	    return user_info()['authorized'];
 	}
 
 	function decode_hash() {
@@ -136,7 +158,10 @@ requirejs(
 	    if(!authenticated()) {
 		//console.log("Login page");
 		load_login_page();
-	    } else if(!hash_dict) {
+	    } else if(!authorized()) {
+		load_unauthorized_page();
+	    }
+	    else if(!hash_dict) {
 		//console.log("Courses page");
 		load_courses_page();
 		loggedin_navbar_menu()
