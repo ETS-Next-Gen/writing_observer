@@ -103,18 +103,18 @@ def adhoc_writing_observer_clean(student_data):
     start = max(0, int(cursor_position - BEFORE))
     end = min(character_count - 1, start + LENGTH)
     # And, if we don't have much text after the cursor, we adjust the beginning
-    print(start, cursor_position, end)
+    # print(start, cursor_position, end)
     start = max(0, end - LENGTH)
     # Split on a word boundary, if there's one close by
-    print(start, cursor_position, end)
+    # print(start, cursor_position, end)
     while end < character_count and end - start < LENGTH + 10 and not text[end].isspace():
         end += 1
 
-    print(start, cursor_position, end)
+    # print(start, cursor_position, end)
     while start > 0 and end - start < LENGTH + 10 and not text[start].isspace():
         start -= 1
 
-    print(start, cursor_position, end)
+    # print(start, cursor_position, end)
     clipped_text = text[start:cursor_position - 1] + "❙" + text[max(cursor_position - 1, 0):end]
     # Yes, this does mutate the input. No, we should. No, it doesn't matter, since the
     # code needs to move out of here. Shoo, shoo.
@@ -166,7 +166,7 @@ def real_student_data(course_id, roster):
         '''
         students = []
         for student in roster:
-            print(student)
+            # print(student)
             student_data = {
                 # We're copying Google's roster format here.
                 #
@@ -208,7 +208,7 @@ def real_student_data(course_id, roster):
                 data = await teacherkvs[key]
                 if data is not None:
                     student_data[stream_analytics.helpers.fully_qualified_function_name(sa_module)] = data
-            print(student_data)
+            # print(student_data)
             students.append(adhoc_writing_observer_clean(student_data))
 
         return students
@@ -216,7 +216,7 @@ def real_student_data(course_id, roster):
 
 
 async def ws_real_student_data_handler(request):
-    print("Serving")
+    # print("Serving")
     course_id = int(request.match_info['course_id'])
     # External:writing-time-on-task:tsu-ts-test-user-13
     # External:reconstruct-writing:tsu-ts-test-user-17
@@ -228,7 +228,7 @@ async def ws_real_student_data_handler(request):
         })
         return ws
 
-    print("Grabbing roster for " + str(course_id))
+    # print("Grabbing roster for " + str(course_id))
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
     rsd = real_student_data(course_id, roster)
@@ -242,7 +242,7 @@ async def ws_real_student_data_handler(request):
 
 
 async def ws_dummy_student_data_handler(request):
-    print("Serving")
+    # print("Serving")
     course_id = int(request.match_info['course_id'])
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)

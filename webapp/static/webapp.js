@@ -65,17 +65,17 @@ function ajax(config)
 
 requirejs(
     ["3rd_party/text!config.json",
-     "/static/3rd_party/d3.v5.min.js",
-     "/static/3rd_party/mustache.min.js",
-     "/static/3rd_party/showdown.js",
-     "/static/3rd_party/fontawesome.js",
-     "/static/wobserver.js",
-     "3rd_party/text!/static/modules/unauth.md",
-     "3rd_party/text!/static/modules/login.html",
-     "3rd_party/text!/static/modules/courses.html",
-     "3rd_party/text!/static/modules/course.html",
-     "3rd_party/text!/static/modules/navbar_loggedin.html",
-     "3rd_party/text!/static/modules/informational.html",
+     "static/3rd_party/d3.v5.min.js",
+     "static/3rd_party/mustache.min.js",
+     "static/3rd_party/showdown.js",
+     "static/3rd_party/fontawesome.js",
+     "static/wobserver.js",
+     "3rd_party/text!modules/unauth.md",
+     "3rd_party/text!modules/login.html",
+     "3rd_party/text!modules/courses.html",
+     "3rd_party/text!modules/course.html",
+     "3rd_party/text!modules/navbar_loggedin.html",
+     "3rd_party/text!modules/informational.html",
     ],
     function(config, d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li, info) {
 	// Parse client configuration.

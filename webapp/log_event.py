@@ -170,7 +170,8 @@ def debug_log(text):
         st=stack_trace,
         body=text
     )
-    print(message)
+    if False:  # Flip here to print / not print debug messages
+        print(message)
 
 
 def log_ajax(url, resp_json, request):

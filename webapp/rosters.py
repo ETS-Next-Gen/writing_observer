@@ -12,7 +12,7 @@ ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
 
 def clean_data(resp_json, key, sort_key, default=None):
-    print("Response", resp_json)
+    # print("Response", resp_json)
     if 'error' in resp_json:
         return {'error': resp_json['error']}  # Typically, resp_json['error'] == 'UNAUTHENTICATED'
     if key is not None:
@@ -24,7 +24,7 @@ def clean_data(resp_json, key, sort_key, default=None):
             return default
     if sort_key is not None:
         resp_json.sort(key=sort_key)
-    print(resp_json)
+    # print(resp_json)
     return resp_json
 
 

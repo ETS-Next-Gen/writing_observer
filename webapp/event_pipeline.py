@@ -239,11 +239,11 @@ async def incoming_websocket_handler(request):
         headers = {}
         async for msg in ws:
             json_msg = json.loads(msg.data)
-            print(json_msg)
-            print(json_msg["event"])
+            # print(json_msg)
+            # print(json_msg["event"])
             if 'source' in json_msg:
                 event_metadata['source'] = json_msg['source']
-            print(json_msg["event"] == "metadata_finished")
+            # print(json_msg["event"] == "metadata_finished")
             if json_msg["event"] == "metadata_finished":
                 break
             elif json_msg["event"] == "chrome_identity":
@@ -255,7 +255,7 @@ async def incoming_websocket_handler(request):
         event_metadata['headers'].update(headers)
 
         event_metadata['auth'] = await auth(headers)
-        print(event_metadata)
+        # print(event_metadata)
 
     event_handler = await handle_incoming_client_event(metadata=event_metadata)
 

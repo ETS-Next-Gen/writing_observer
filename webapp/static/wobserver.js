@@ -207,9 +207,9 @@ function initialize(D3, div, course) {
     };
 }
 
-define(["3rd_party/text!/static/modules/dashboard.html",
-	"3rd_party/text!/static/modules/tile.html",
-        "/static/3rd_party/mustache.min.js",
+define(["3rd_party/text!modules/dashboard.html",
+	"3rd_party/text!modules/tile.html",
+        "static/3rd_party/mustache.min.js",
        ],
        function(dashboard, tile, mustache) {
 	   Mustache = mustache;
