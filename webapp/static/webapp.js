@@ -47,8 +47,25 @@ function error(error_message) {
     go_home();
 }
 
+function ajax(config)
+{
+    return function(url) {
+	// Do AJAX calls with error handling
+	return new Promise(function(resolve, reject) {
+	    config.d3.json(url)
+		.then(function(data){
+		    resolve(data);
+		})
+		.catch(function(data){
+		    reject(data);
+		});
+	});
+    }
+}
+
 requirejs(
-    ["/static/3rd_party/d3.v5.min.js",
+    ["3rd_party/text!config.json",
+     "/static/3rd_party/d3.v5.min.js",
      "/static/3rd_party/mustache.min.js",
      "/static/3rd_party/showdown.js",
      "/static/3rd_party/fontawesome.js",
@@ -60,7 +77,13 @@ requirejs(
      "3rd_party/text!/static/modules/navbar_loggedin.html",
      "3rd_party/text!/static/modules/informational.html",
     ],
-    function(d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li, info) {
+    function(config, d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li, info) {
+	// Parse client configuration.
+	config = JSON.parse(config);
+	// Add libraries
+	config.d3 = d3;
+	config.ajax = ajax(config);
+
 	function load_login_page() {
 	    d3.select(".main-page").html(login);
 	}
@@ -70,7 +93,7 @@ requirejs(
 	      Listing of Google Classroom courses
 	      */
 	    d3.select(".main-page").html(courses);
-	    d3.json("/webapi/courselist/").then(function(data){
+	    config.ajax("/webapi/courselist/").then(function(data){
 		/*
 		  TODO: We want a function which does this abstracted
 		  our. In essense, we want to call

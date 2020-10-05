@@ -119,6 +119,7 @@ app.add_routes([
 app.add_routes([
     aiohttp.web.get('/favicon.ico', static_file_handler("static/favicon.ico")),
     aiohttp.web.get('/', static_file_handler("static/webapp.html")),
+    aiohttp.web.get('/config.json', static_file_handler("static/config-server.json")),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
