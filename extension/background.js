@@ -107,8 +107,14 @@ function websocket_logger(server) {
 	    are_we_done();
 	});
 	chrome.storage.sync.get(["teacher-tag", "user-tag", "process-server", "unique-id"], function(result) {
-	    event = {'local_storage': result};
+	    if(result !== undefined) {
+		event = {'local_storage': result};
+	    } else {
+		event = {'local_storage': {}};
+	    }
+	    console.log(event);
 	    event = add_event_metadata("local_storage", event);
+	    console.log(event);
 	    socket.send(JSON.stringify(event));
 	    state.add("local_storage");
 	    are_we_done();
