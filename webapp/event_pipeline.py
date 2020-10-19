@@ -249,7 +249,11 @@ async def incoming_websocket_handler(request):
             elif json_msg["event"] == "chrome_identity":
                 headers["chrome_identity"] = json_msg["chrome_identity"]
             elif json_msg["event"] == "local_storage":
-                headers["local_storage"] = json_msg["local_storage"]
+                try:
+                    headers["local_storage"] = json_msg["local_storage"]
+                except:
+                    print(json_msg)
+                    raise
             elif json_msg["event"] == "test_framework_fake_identity":
                 headers["test_framework_fake_identity"] = json_msg["user_id"]
         event_metadata['headers'].update(headers)
