@@ -15,4 +15,8 @@ def google_id_to_user_id(google_id):
     to:
     `gc-72635729500910017892163494291`
     '''
-    return "gc-" + str(int(google_id))
+    try:
+        return "gc-" + str(int(google_id))
+    except:
+        print("Error handling:", google_id)
+        raise
