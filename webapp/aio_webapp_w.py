@@ -17,7 +17,7 @@ import aiohttp_session.cookie_storage
 import pathvalidate
 
 import init  # Odd import which makes sure we're set up
-import event_pipeline
+import incoming_student_event
 import student_data
 import auth_handlers
 import rosters
@@ -102,14 +102,14 @@ app.add_routes([
 
 # Handle web sockets event requests, incoming and outgoing
 app.add_routes([
-    aiohttp.web.get('/wsapi/in/', event_pipeline.incoming_websocket_handler),
-    aiohttp.web.get('/wsapi/out/', event_pipeline.outgoing_websocket_handler)
+    aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler),
+    aiohttp.web.get('/wsapi/out/', incoming_student_event.outgoing_websocket_handler)
 ])
 
 # Handle AJAX event requests, incoming
 app.add_routes([
-    aiohttp.web.get('/webapi/event/', event_pipeline.ajax_event_request),
-    aiohttp.web.post('/webapi/event/', event_pipeline.ajax_event_request),
+    aiohttp.web.get('/webapi/event/', incoming_student_event.ajax_event_request),
+    aiohttp.web.post('/webapi/event/', incoming_student_event.ajax_event_request),
     aiohttp.web.get('/webapi/courselist/', rosters.courselist_api),
     aiohttp.web.get('/webapi/courseroster/{course_id}', rosters.courseroster_api),
 ])
