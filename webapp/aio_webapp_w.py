@@ -8,6 +8,7 @@ assessment).
 
 import hashlib
 import os
+import sys
 
 import aiohttp
 import aiohttp_cors
@@ -146,6 +147,7 @@ if isinstance(session_secret, dict):
     print("")
     print("Please pick a good session secret. You only need to set it once, and")
     print("the security of the platform relies on a strong, unique password there")
+    sys.exit(-1)
 
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
     fernet_key(settings.settings['aio']['session_secret']),
