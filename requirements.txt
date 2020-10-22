@@ -6,6 +6,7 @@ pyyaml
 aiohttp
 aiohttp_cors
 aiohttp_session
+cryptography
 cython
 numpy
 scipy
