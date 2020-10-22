@@ -30,6 +30,7 @@ import json
 import logging
 import os.path
 import settings
+import sys
 import yaml
 import yarl
 
@@ -38,6 +39,18 @@ import aiohttp.web
 import aiohttp_session
 
 import rosters
+
+
+if isinstance(settings.settings['google-oauth']['web']['client_secret'], dict) or \
+   isinstance(settings.settings['google-oauth']['web']['project_id'], dict) or \
+   isinstance(settings.settings['google-oauth']['web']['client_id'], dict):
+    print("Please configure Google oauth")
+    print("")
+    print("Go to:")
+    print("  https://console.developers.google.com/")
+    print("And set up an OAuth client for a web application. Make sure that configuration")
+    print("mirrors the one here.")
+    sys.exit(-1)
 
 
 async def verify_teacher_account(user_id, email):
