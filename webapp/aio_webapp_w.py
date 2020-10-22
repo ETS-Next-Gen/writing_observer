@@ -140,6 +140,13 @@ def fernet_key(s):
     return t.hexdigest().encode('utf-8')
 
 
+session_secret = settings.settings['aio']['session_secret']
+if isinstance(session_secret, dict):
+    print("Please set an AIO session secret in creds.yaml")
+    print("")
+    print("Please pick a good session secret. You only need to set it once, and")
+    print("the security of the platform relies on a strong, unique password there")
+
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
     fernet_key(settings.settings['aio']['session_secret']),
     max_age=settings.settings['aio']['session_max_age']))
