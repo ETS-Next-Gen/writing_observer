@@ -5,6 +5,7 @@ asyncpg
 pyyaml
 aiohttp
 aiohttp_cors
+aiohttp_session
 cython
 numpy
 scipy
