@@ -153,7 +153,11 @@ def command_list(doc, commands):
     new `save` requests.
     '''
     for item in commands:
-        doc = dispatch[item['ty']](doc, **item)
+        if item['ty'] in dispatch:
+            doc = dispatch[item['ty']](doc, **item)
+        else:
+            print("Unrecogized Google Docs command: " + repr(item['ty']))
+            ## TODO: Log issue and fix it!
     return doc
 
 
