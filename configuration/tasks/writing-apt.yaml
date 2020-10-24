@@ -50,3 +50,4 @@
   - nginx
   - certbot
   - apache2-utils
+  - fcgiwrap
