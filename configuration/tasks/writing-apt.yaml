@@ -49,3 +49,4 @@
   - postgresql
   - nginx
   - certbot
+  - apache2-utils
