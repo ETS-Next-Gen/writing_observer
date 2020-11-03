@@ -19,7 +19,7 @@ import pathvalidate
 
 import init  # Odd import which makes sure we're set up
 import incoming_student_event
-import student_data
+import dashboard
 import auth_handlers
 import rosters
 
@@ -84,11 +84,11 @@ def static_directory_handler(basepath):
     return handler
 
 
-# Student data API
+# Dashboard API
 # This serves up data (currently usually dummy data) for the dashboard
 app.add_routes([
-    aiohttp.web.get('/webapi/writing-observer/{course_id}/', student_data.student_data_handler),
-    aiohttp.web.get('/wsapi/writing-observer/{course_id}/', student_data.ws_student_data_handler)
+    aiohttp.web.get('/webapi/dashboard/writing-observer/{course_id}/', dashboard.student_data_handler),
+    aiohttp.web.get('/wsapi/dashboard/writing-observer/{course_id}/', dashboard.ws_student_data_handler)
 ])
 
 # Serve static files
