@@ -172,7 +172,7 @@ function initialize(D3, div, course) {
     d3=D3;
 
     div.html(dashboard_template);
-    var ws = new WebSocket(`wss://${window.location.hostname}/wsapi/writing-observer/${course}/`)
+    var ws = new WebSocket(`wss://${window.location.hostname}/wsapi/dashboard/writing-observer/${course}/`)
     ws.onmessage = function (event) {
 	console.log("Got data");
 	let data = JSON.parse(event.data);
