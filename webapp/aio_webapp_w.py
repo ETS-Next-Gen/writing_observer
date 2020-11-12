@@ -87,8 +87,8 @@ def static_directory_handler(basepath):
 # Dashboard API
 # This serves up data (currently usually dummy data) for the dashboard
 app.add_routes([
-    aiohttp.web.get('/webapi/dashboard/writing-observer/{course_id}/', dashboard.student_data_handler),
-    aiohttp.web.get('/wsapi/dashboard/writing-observer/{course_id}/', dashboard.ws_student_data_handler)
+    aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', dashboard.student_data_handler),
+    aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/', dashboard.ws_student_data_handler)
 ])
 
 # Serve static files

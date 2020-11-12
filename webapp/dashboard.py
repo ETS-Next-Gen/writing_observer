@@ -38,6 +38,7 @@ async def static_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data
     '''
+    module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
 
     return aiohttp.web.json_response({
@@ -49,6 +50,7 @@ async def generated_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data dynamically
     '''
+    module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
 
     return aiohttp.web.json_response({
@@ -217,6 +219,7 @@ def real_student_data(course_id, roster):
 
 async def ws_real_student_data_handler(request):
     # print("Serving")
+    module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
     # External:writing-time-on-task:tsu-ts-test-user-13
     # External:reconstruct-writing:tsu-ts-test-user-17
@@ -243,6 +246,7 @@ async def ws_real_student_data_handler(request):
 
 async def ws_dummy_student_data_handler(request):
     # print("Serving")
+    module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
