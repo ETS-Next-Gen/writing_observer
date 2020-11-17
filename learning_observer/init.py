@@ -6,15 +6,18 @@ We create a logs directory, grab 3rd party libraries, etc.
 
 import hashlib
 import os
+import os.path
 import shutil
 import sys
+
+import paths
 
 # These are directories we'd like created on startup. At the moment,
 # they're for different types of log files.
 directories = {
-    'logs': {'path': 'logs'},
-    'startup logs': {'path': 'logs/startup'},
-    'AJAX logs': {'path': 'logs/ajax'}
+    'logs': {'path': paths.logs()},
+    'startup logs': {'path': os.path.join(paths.logs(), 'startup')},
+    'AJAX logs': {'path': os.path.join(paths.logs(), 'ajax')}
 }
 
 for d in directories:

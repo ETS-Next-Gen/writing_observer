@@ -155,4 +155,5 @@ aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage
 
 app.middlewares.append(auth_handlers.auth_middleware)
 
+print("Running!")
 aiohttp.web.run_app(app, port=8888)
