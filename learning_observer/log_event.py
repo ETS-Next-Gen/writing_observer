@@ -53,7 +53,10 @@ import hashlib
 
 import filesystem_state
 
-mainlog = open("logs/main_log.json", "ab", 0)
+import paths
+
+
+mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
 
 
@@ -116,8 +119,8 @@ def insecure_hash(text):
 # hexdigest?
 startup_state = json.dumps(filesystem_state.filesystem_state(), indent=3, sort_keys=True)
 STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
-STARTUP_FILENAME = "{directory}{time}-{hash}.json".format(
-    directory="logs/startup/",
+STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
+    directory=paths.logs("startup"),
     time=datetime.datetime.utcnow().isoformat(),
     hash=STARTUP_STATE_HASH
 )
@@ -134,7 +137,7 @@ def log_event(event, filename=None, preencoded=False, timestamp=False):
     elif filename in files:
         return files[filename]
     else:
-        fp = open("logs/" + filename + ".log", "ab", 0)
+        fp = open(paths.logs("" + filename + ".log"), "ab", 0)
         files[filename] = fp
 
     if not preencoded:
@@ -180,7 +183,7 @@ def log_ajax(url, resp_json, request):
     TO Google and similar providers. This helps us understand the
     context of classroom activity, debug, and recover from failures
     '''
-    AJAX_FILENAME_TEMPLATE = "{directory}{time}-{payload_hash}.json"
+    AJAX_FILENAME_TEMPLATE = "{directory}/{time}-{payload_hash}.json"
     payload = {
         'user': request['user'],
         'url': url,
@@ -190,7 +193,7 @@ def log_ajax(url, resp_json, request):
     encoded_payload = encode_json_block(payload)
     payload_hash = secure_hash(encoded_payload.encode('utf-8'))
     filename = AJAX_FILENAME_TEMPLATE.format(
-        directory="logs/ajax/",
+        directory=paths.logs("ajax"),
         time=datetime.datetime.utcnow().isoformat(),
         payload_hash=payload_hash
     )

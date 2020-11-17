@@ -94,7 +94,7 @@ app.add_routes([
 
 # Serve static files
 app.add_routes([
-    aiohttp.web.get('/static/{filename}', static_directory_handler("static")),
+    aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
     aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
     aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/media/{filename}', static_directory_handler("media")),
