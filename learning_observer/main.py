@@ -23,6 +23,7 @@ import dashboard
 import auth_handlers
 import rosters
 
+import paths
 import settings
 
 routes = aiohttp.web.RouteTableDef()
@@ -53,9 +54,9 @@ async def index(request):
     print(type(request['user']))
     if request['user'] is None:
         print("Index")
-        return aiohttp.web.FileResponse("static/index.html")
+        return aiohttp.web.FileResponse(paths.static("index.html"))
     print("Course list")
-    return aiohttp.web.FileResponse("static/courselist.html")
+    return aiohttp.web.FileResponse(paths.static("courselist.html"))
 
 
 def static_directory_handler(basepath):
@@ -94,8 +95,8 @@ app.add_routes([
 # Serve static files
 app.add_routes([
     aiohttp.web.get('/static/{filename}', static_directory_handler("static")),
-    aiohttp.web.get('/static/modules/{filename}', static_directory_handler("static/modules")),
-    aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler("static/3rd_party")),
+    aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
+    aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/media/{filename}', static_directory_handler("media")),
     aiohttp.web.get('/static/media/avatar/{filename}',
                     static_directory_handler("media/hubspot_persona_images/")),
@@ -118,9 +119,9 @@ app.add_routes([
 # Generic web-appy things
 # Old version had: aiohttp.web.get('/', index),
 app.add_routes([
-    aiohttp.web.get('/favicon.ico', static_file_handler("static/favicon.ico")),
-    aiohttp.web.get('/', static_file_handler("static/webapp.html")),
-    aiohttp.web.get('/config.json', static_file_handler("static/config-server.json")),
+    aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
+    aiohttp.web.get('/', static_file_handler(paths.static("webapp.html"))),
+    aiohttp.web.get('/config.json', static_file_handler(paths.static("config-server.json"))),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)

@@ -23,6 +23,8 @@ import stream_analytics.helpers
 import stream_analytics.writing_analysis
 import kvs
 
+import paths
+
 import authutils
 import rosters
 
@@ -42,7 +44,7 @@ async def static_student_data_handler(request):
     course_id = int(request.match_info['course_id'])
 
     return aiohttp.web.json_response({
-        "new_student_data": json.load(open("static/student_data.js"))
+        "new_student_data": json.load(open(paths.static("student_data.js")))
     })
 
 

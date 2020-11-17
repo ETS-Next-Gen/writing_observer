@@ -6,7 +6,19 @@ Helper utility to help manage paths. We'd like to abstract this out so that the 
 3) Development mode
 ... etc.
 
+This abstracts out finding files and directories. Eventually, we'd
+like to be able to search for packages looking at:
+
+- Relative directories (e.g. when developing)
+- Static directories (e.g. /etc/, /var/log/, etc.)
+- Config file
+- pkg_resources
+- Command-line parameters
+
+It makes sense to put this logic one place.
+
 Should this be merges with settings.py? Let's see how complex this gets.
+
 '''
 
 import os.path

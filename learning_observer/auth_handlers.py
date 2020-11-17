@@ -38,6 +38,7 @@ import aiohttp
 import aiohttp.web
 import aiohttp_session
 
+import paths  # TODO: Importing these here breaks abstractions
 import rosters
 
 
