@@ -1,3 +1,6 @@
 import yaml
 
-settings = yaml.safe_load(open("../creds.yaml"))
+import paths
+
+
+settings = yaml.safe_load(open(paths.config_file()))

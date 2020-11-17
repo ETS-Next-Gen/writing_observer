@@ -16,8 +16,8 @@ import paths
 # they're for different types of log files.
 directories = {
     'logs': {'path': paths.logs()},
-    'startup logs': {'path': os.path.join(paths.logs(), 'startup')},
-    'AJAX logs': {'path': os.path.join(paths.logs(), 'ajax')}
+    'startup logs': {'path': paths.logs('startup')},
+    'AJAX logs': {'path': paths.logs('ajax')}
 }
 
 for d in directories:
@@ -29,15 +29,15 @@ for d in directories:
             dirpath=dirpath
         ))
 
-if not os.path.exists("static_data/teachers.yaml"):
+if not os.path.exists(paths.data("teachers.yaml")):
     shutil.copyfile(
-        "static_data/teachers.yaml.template",
-        "static_data/teachers.yaml"
+        paths.data("teachers.yaml.template"),
+        paths.data("teachers.yaml")
     )
     print("Created a blank teachers file: static_data/teachers.yaml\n"
           "Populate it with teacher accounts.")
 
-if not os.path.exists("../creds.yaml"):
+if not os.path.exists(paths.config_file()):
     print("""
     Copy creds.yaml.sample into the top-level directory:
 
@@ -47,8 +47,8 @@ if not os.path.exists("../creds.yaml"):
     """)
     sys.exit(-1)
 
-if not os.path.exists("static/3rd_party"):
-    os.mkdir("static/3rd_party")
+if not os.path.exists(paths.third_party()):
+    os.mkdir(paths.third_party())
 
 
 # Download any missing third-party files, and confirm their integrity.
@@ -93,7 +93,7 @@ for name, url, sha in [
      "https://cdn.jsdelivr.net/npm/@creativebulma/bulma-tooltip@1.2.0/dist/bulma-tooltip.min.css",
      "fc37b25fa75664a6aa91627a7b1298a09025c136085f99ba31b1861f073a0696c"
      "4756cb156531ccf5c630154d66f3059b6b589617bd6bd711ef665079f879405")]:
-    filename = "static/3rd_party/{name}".format(name=name)
+    filename = paths.third_party(name)
     if not os.path.exists(filename):
         os.system("wget {url} -O {filename} 2> /dev/null".format(
             url=url,

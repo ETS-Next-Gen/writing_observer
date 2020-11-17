@@ -63,7 +63,7 @@ async def verify_teacher_account(user_id, email):
 
     For now, we have the file-backed version
     '''
-    teachers = yaml.safe_load(open("static_data/teachers.yaml"))
+    teachers = yaml.safe_load(open(paths.data("teachers.yaml")))
     print("Teachers:", teachers)
     if email not in teachers:
         print("Email not found in teachers")

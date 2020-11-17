@@ -6,6 +6,7 @@ import aiohttp.web
 import settings
 
 import log_event
+import paths
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
@@ -37,8 +38,8 @@ async def synthetic_ajax(request, url, parameters={}, key=None, sort_key=None, d
     develop without relying on them.
     '''
     synthetic_data = {
-        COURSE_URL: "static_data/courses.json",
-        ROSTER_URL: "static_data/students.json"
+        COURSE_URL: paths.data("courses.json"),
+        ROSTER_URL: paths.data("students.json")
     }
     return clean_data(json.load(open(synthetic_data[url])), key, sort_key, default=default)
 
