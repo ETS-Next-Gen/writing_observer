@@ -70,6 +70,7 @@ def static_directory_handler(basepath):
     filenames. Before adding fancy, I'll want test cases of
     aggressive user input.
     '''
+    print(basepath)
     def handler(request):
         # Extract the filename from the request
         filename = request.match_info['filename']
@@ -97,9 +98,9 @@ app.add_routes([
     aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
     aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
     aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
-    aiohttp.web.get('/static/media/{filename}', static_directory_handler("media")),
+    aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
     aiohttp.web.get('/static/media/avatar/{filename}',
-                    static_directory_handler("media/hubspot_persona_images/")),
+                    static_directory_handler(paths.static("media/hubspot_persona_images/"))),
 ])
 
 # Handle web sockets event requests, incoming and outgoing
