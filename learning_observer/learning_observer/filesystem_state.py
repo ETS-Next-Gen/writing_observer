@@ -2,6 +2,9 @@ import hashlib
 import os
 import subprocess
 
+import paths
+
+
 extensions = [
     ".py",
     ".js",
@@ -34,7 +37,7 @@ def filesystem_state():
     in production) or if changes were made since git commited.
     '''
     file_info = {}
-    for root, dirs, files in os.walk("."):
+    for root, dirs, files in os.walk(paths.base_path()):
         for name in files:
             for extension in extensions:
                 # Check if the file has an appropriate extension, and
@@ -53,7 +56,11 @@ def filesystem_state():
                         "st_mtime": stat.st_mtime,
                         "st_ctime": stat.st_ctime
                     }
-    file_info['::git-head::'] = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
+    try:
+        file_info['::git-head::'] = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
+    except subprocess.CalledProcessError:
+        print("Not a git repo")
+        file_info['::git-head::'] = "Not a git repo"
     return file_info
 
 

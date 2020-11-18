@@ -26,6 +26,13 @@ import os.path
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 print(BASE_PATH)
 
+def base_path():
+    '''
+    Should NOT be used, except by filesystem_state. Use one of the helpers below.
+    '''
+    return BASE_PATH
+
+
 def config_file():
     '''
     Main configuration file
