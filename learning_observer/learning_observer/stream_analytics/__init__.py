@@ -12,6 +12,7 @@ This should move into a config file.
 '''
 
 import functools
+import learning_observer.module_loader
 
 
 def async_lambda(f):
@@ -26,32 +27,48 @@ def async_lambda(f):
     return async_lambda_helper
 
 
+# TODO: We should support more than one module per event type...
 analytics_modules = {
     "org.mitros.mirror": {'event_processor': async_lambda(
         lambda metadata: async_lambda(lambda event: event)
     )},
 }
 
-try:
-    import stream_analytics.dynamic_assessment
-    analytics_modules.update({
-        "org.mitros.dynamic-assessment": {
-            'event_processor': async_lambda(
-                lambda metadata: stream_analytics.dynamic_assessment.process_event
-            )
-        },
-    })
-except ModuleNotFoundError:
-    print("Module dynamic_assessment not found. "
-          "Starting without dynamic assessment")
+def init():
+    global analytics_modules
+    try:
+        import stream_analytics.dynamic_assessment
+        analytics_modules.update({
+            "org.mitros.dynamic-assessment": {
+                'event_processor': async_lambda(
+                    lambda metadata: stream_analytics.dynamic_assessment.process_event
+                )
+            },
+        })
+    except ModuleNotFoundError:
+        print("Module dynamic_assessment not found. "
+              "Starting without dynamic assessment")
 
-try:
-    import stream_analytics.writing_analysis
-    analytics_modules.update({
-        "org.mitros.writing-analytics": {
-            'event_processor': stream_analytics.writing_analysis.pipeline
-        }
-    })
-except ModuleNotFoundError:
-    print("Module writing-analytics not found. "
-          "Starting without writing analytics.")
+    try:
+        import stream_analytics.writing_analysis
+        analytics_modules.update({
+            "org.mitros.writing-analytics": {
+                'event_processor': stream_analytics.writing_analysis.pipeline
+            }
+        })
+    except ModuleNotFoundError:
+        print("Module writing-analytics not found. "
+              "Starting without writing analytics.")
+
+    reducers = learning_observer.module_loader.reducers()
+    for reducer in reducers:
+        ## TODO:
+        ## Clean up terminology. Is it a reducer or an event processor
+        ## Is it a context or a url or id or what?
+        context = reducer['context']
+        function = reducer['function']
+        analytics_modules.update({
+            context: {
+                'event_processor': function
+            },
+        })

@@ -1,6 +1,6 @@
 import yaml
 
-import paths
+import learning_observer.paths
 
 
-settings = yaml.safe_load(open(paths.config_file()))
+settings = yaml.safe_load(open(learning_observer.paths.config_file()))

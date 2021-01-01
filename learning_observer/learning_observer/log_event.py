@@ -173,8 +173,20 @@ def debug_log(text):
         st=stack_trace,
         body=text
     )
-    if False:  # Flip here to print / not print debug messages
+
+    # Flip here to print / not print debug messages
+    if True:
         print(message)
+
+    # Flip here to save / not save debug messages
+    # Ideally, we'd like to log these somewhere which won't cause cascading failures.
+    # If we e.g. have errors every 100ms, we don't want to create millions of debug files.
+    # There are services which handle this pretty well, I believe
+    if True:
+        fp = open(paths.logs("debug.log"), "a")
+        fp.write(message)
+        fp.write("\n")
+        fp.close()
 
 
 def log_ajax(url, resp_json, request):

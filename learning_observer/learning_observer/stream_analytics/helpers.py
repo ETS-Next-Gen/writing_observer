@@ -34,7 +34,7 @@ state types, etc. We'll also want different keys for reducers
 import enum
 import functools
 
-import kvs
+import learning_observer.kvs
 
 
 KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
@@ -117,7 +117,7 @@ def kvs_pipeline(
 
             internal_key = make_key(func, safe_user_id, KeyStateType.INTERNAL)
             external_key = make_key(func, safe_user_id, KeyStateType.EXTERNAL)
-            taskkvs = kvs.KVS()
+            taskkvs = learning_observer.kvs.KVS()
 
             async def process_event(events):
                 '''

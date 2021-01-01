@@ -8,6 +8,7 @@ import uuid
 import aiohttp
 
 import log_event
+import paths
 
 import authutils         # Encoded / decode user IDs
 import pubsub            # Pluggable pubsub subsystem
@@ -15,6 +16,8 @@ import stream_analytics  # Individual analytics modules
 
 from log_event import debug_log
 
+
+stream_analytics.init()
 
 def compile_server_data(request):
     '''
@@ -37,7 +40,8 @@ async def student_event_pipeline(metadata):
     '''
     client_source = metadata["source"]
     if client_source not in stream_analytics.analytics_modules:
-        debug_log("Unknown event source" + str(parsed_message))
+        debug_log("Unknown event source: " + str(client_source))
+        debug_log("Known sources: " + repr(stream_analytics.analytics_modules.keys()))
         raise Exception("Unknown event source")
     analytics_module = stream_analytics.analytics_modules[client_source]
     # Create an event processor for this user
@@ -52,13 +56,14 @@ async def student_event_pipeline(metadata):
             event=parsed_message["client"]["event"], source=client_source
         ))
         try:
+            print(event_processor)
             processed_analytics = await event_processor(parsed_message)
         except Exception as e:
             traceback.print_exc()
-            filename = "logs/critical-error-{ts}-{rnd}.tb".format(
+            filename = paths.logs("critical-error-{ts}-{rnd}.tb".format(
                 ts=datetime.datetime.now().isoformat(),
                 rnd=uuid.uuid4().hex
-            )
+            ))
             fp = open(filename, "w")
             fp.write(json.dumps(parsed_message, sort_keys=True, indent=2))
             fp.write("\nTraceback:\n")
@@ -149,6 +154,8 @@ async def dummy_auth(metadata):
     TODO: Replace with real auth
     TODO: Allow configuring auth methods in settings file
     TODO: See about client-side oauth on Chromebooks
+    TODO: Allow configuring authentication methods based on event
+    type (e.g. require auth for writing, but not for dynamic assessment)
 
     This is a dummy authentication function. It trusts the metadata in the web
     socket without auth/auth.
@@ -175,6 +182,12 @@ async def dummy_auth(metadata):
             'user_id': gc_uid,
             'safe_user_id': gc_uid,
             'providence': 'gcu'  # Google Chrome, unauthenticated
+        }
+    elif "hash_identity" in metadata:
+        auth_metadata = {
+            'sec': 'unauthenticated',
+            'user_id': "ts-" + metadata['hash_identity'],
+            'providence': 'mch'  # Math contest hash -- toying with plug-in archicture
         }
     elif 'test_framework_fake_identity' in metadata:
         auth_metadata = {
@@ -238,6 +251,7 @@ async def incoming_websocket_handler(request):
     if INIT_PIPELINE:
         headers = {}
         async for msg in ws:
+            print("Auth", msg)
             json_msg = json.loads(msg.data)
             # print(json_msg)
             # print(json_msg["event"])
@@ -248,6 +262,8 @@ async def incoming_websocket_handler(request):
                 break
             elif json_msg["event"] == "chrome_identity":
                 headers["chrome_identity"] = json_msg["chrome_identity"]
+            elif json_msg["event"] == "hash_auth":
+                headers["hash_identity"] = json_msg["hash"]
             elif json_msg["event"] == "local_storage":
                 try:
                     headers["local_storage"] = json_msg["local_storage"]

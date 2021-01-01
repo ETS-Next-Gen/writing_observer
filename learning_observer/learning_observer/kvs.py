@@ -17,7 +17,7 @@ import json
 
 import asyncio_redis
 
-import settings
+import learning_observer.settings
 
 OBJECT_STORE = dict()
 
@@ -108,7 +108,7 @@ class EphemeralRedisKVS(_RedisKVS):
         '''
         We're just a `_RedisKVS` with expiration set
         '''
-        super().__init__(expire=settings.settings['kvs']['expiry'])
+        super().__init__(expire=learning_observer.settings.settings['kvs']['expiry'])
 
 
 class PersistentRedisKVS(_RedisKVS):
@@ -129,15 +129,15 @@ try:
         'redis-ephemeral': EphemeralRedisKVS,
         'redis': PersistentRedisKVS
     }
-    KVS = KVS_MAP[settings.settings['kvs']['type']]
+    KVS = KVS_MAP[learning_observer.settings.settings['kvs']['type']]
 except KeyError:
-    if 'kvs' not in settings.settings:
+    if 'kvs' not in learning_observer.settings.settings:
         print("KVS not configured in settings file")
         print("Look at example settings file to set up KVS config")
     else:
         print("Invalid setting kvs/type.")
         print("KVS config is currently ", end='')
-        print(settings.settings["kvs"])
+        print(learning_observer.settings.settings["kvs"])
         print("Should have a 'type' field set to one of: ", end='')
         print(",".join(KVS_MAP.keys()))
     print()

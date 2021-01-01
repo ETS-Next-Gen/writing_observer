@@ -52,7 +52,7 @@ def data(filename=None):
 
 def logs(filename=None):
     '''
-    Log fle. No parameters: log directory.
+    Log file. No parameters: log directory.
     '''
     p = os.path.join(BASE_PATH, 'logs')
     if filename is not None:

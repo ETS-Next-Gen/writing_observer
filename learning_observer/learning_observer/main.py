@@ -17,11 +17,12 @@ import aiohttp_session.cookie_storage
 
 import pathvalidate
 
-import init  # Odd import which makes sure we're set up
-import incoming_student_event
-import dashboard
-import auth_handlers
-import rosters
+import learning_observer.init as init  # Odd import which makes sure we're set up
+import learning_observer.incoming_student_event as incoming_student_event
+import learning_observer.dashboard as dashboard
+import learning_observer.auth_handlers as auth_handlers
+import learning_observer.rosters as rosters
+import learning_observer.module_loader
 
 import paths
 import settings
@@ -29,6 +30,8 @@ import settings
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
 
+
+#learning_observer.module_loader.load_modules()
 
 async def request_logger_middleware(request, handler):
     '''
@@ -127,6 +130,17 @@ app.add_routes([
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
 ])
+
+## New-style modular dashboards
+dashboards = learning_observer.module_loader.dashboards()
+for dashboard in dashboards:
+    print(dashboards[dashboard])
+    app.add_routes([
+        aiohttp.web.get(
+            "/dashboards/"+dashboards[dashboard]['url'],
+            handler=dashboards[dashboard]['function'])
+    ])
+
 
 cors = aiohttp_cors.setup(app, defaults={
     "*": aiohttp_cors.ResourceOptions(
