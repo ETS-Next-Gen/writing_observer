@@ -15,18 +15,18 @@ import aiohttp
 
 import tsvx
 
-import util
+import learning_observer.util as util
 
-import synthetic_student_data
+import learning_observer.synthetic_student_data as synthetic_student_data
 
-import stream_analytics.helpers
-import stream_analytics.writing_analysis
-import kvs
+import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.stream_analytics.writing_analysis as sa_writing_analysis
+import learning_observer.kvs as kvs
 
-import paths
+import learning_observer.paths as paths
 
-import authutils
-import rosters
+import learning_observer.authutils as authutils
+import learning_observer.rosters as rosters
 
 
 def authenticated(request):
@@ -65,8 +65,8 @@ async def generated_student_data_handler(request):
 # We'll need to be a bit smarter about routing dashboards to analytics
 # to do this. Right now, this is specific to writing analysis.
 SA_MODULES = [
-    stream_analytics.writing_analysis.reconstruct,
-    stream_analytics.writing_analysis.time_on_task
+    sa_writing_analysis.reconstruct,
+    sa_writing_analysis.time_on_task
 ]
 
 
@@ -205,13 +205,13 @@ def real_student_data(course_id, roster):
             # For most services (e.g. a SQL database), this would be a huge bottleneck. redis might
             # be fast enough that it doesn't matter? Dunno.
             for sa_module in SA_MODULES:
-                key = stream_analytics.helpers.make_key(
+                key = sa_helpers.make_key(
                     sa_module,
                     student_id,
-                    stream_analytics.helpers.KeyStateType.EXTERNAL)
+                    sa_helpers.KeyStateType.EXTERNAL)
                 data = await teacherkvs[key]
                 if data is not None:
-                    student_data[stream_analytics.helpers.fully_qualified_function_name(sa_module)] = data
+                    student_data[sa_helpers.fully_qualified_function_name(sa_module)] = data
             # print(student_data)
             students.append(adhoc_writing_observer_clean(student_data))
 

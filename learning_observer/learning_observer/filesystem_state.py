@@ -2,7 +2,7 @@ import hashlib
 import os
 import subprocess
 
-import paths
+import learning_observer.paths as paths
 
 
 extensions = [

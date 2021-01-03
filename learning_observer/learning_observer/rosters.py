@@ -3,10 +3,10 @@ import json
 import aiohttp
 import aiohttp.web
 
-import settings
+import learning_observer.settings as settings
 
-import log_event
-import paths
+import learning_observer.log_event as log_event
+import learning_observer.paths as paths
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'

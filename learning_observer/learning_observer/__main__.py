@@ -1,1 +1,1 @@
-import main
+import learning_observer.main as main

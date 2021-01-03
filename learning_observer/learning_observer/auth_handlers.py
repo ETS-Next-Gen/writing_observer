@@ -38,8 +38,12 @@ import aiohttp
 import aiohttp.web
 import aiohttp_session
 
-import paths  # TODO: Importing these here breaks abstractions
-import rosters
+# TODO: Importing these here breaks abstractions.
+#
+# We want the auth code to be generic and reusable (eventually its own
+# module)
+import learning_observer.paths as paths
+import learning_observer.rosters as rosters
 
 
 if isinstance(settings.settings['google-oauth']['web']['client_secret'], dict) or \

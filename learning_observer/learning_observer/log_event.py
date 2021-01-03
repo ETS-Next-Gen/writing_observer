@@ -53,7 +53,7 @@ import hashlib
 
 import filesystem_state
 
-import paths
+import learning_observer.paths as paths
 
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)

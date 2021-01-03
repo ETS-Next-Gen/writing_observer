@@ -24,8 +24,8 @@ import learning_observer.auth_handlers as auth_handlers
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
 
-import paths
-import settings
+import learning_observer.paths as paths
+import learning_observer.settings as settings
 
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
@@ -124,11 +124,30 @@ app.add_routes([
 # Old version had: aiohttp.web.get('/', index),
 app.add_routes([
     aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
-    aiohttp.web.get('/', static_file_handler(paths.static("webapp.html"))),
-    aiohttp.web.get('/config.json', static_file_handler(paths.static("config-server.json"))),
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
+])
+
+# This might look scary, but it's innocous. There are server-side
+# configuration options which the client needs to know about. This
+# gives those. At the very least, we want to be able to toggle the
+# client-side up between running with a real server and a dummy static
+# server, but in the future, we might want to include things like URIs
+# for different services the client can talk to and similar.
+#
+# This URI should **not** be the same as the filename. We have two
+# files, config.json is loaded if no server is running (dummy mode), and
+# this is overridden by the live server.
+app.add_routes([
+    aiohttp.web.get('/config.json', static_file_handler(paths.static("config-server.json"))),
+])
+
+# We'd like to be able to have the root page themeable, for non-ETS deployments
+# This is a quick-and-dirty way to override the main page.
+root_file = settings.settings.get("root_file", "webapp.html")
+app.add_routes([
+    aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
 ])
 
 ## New-style modular dashboards

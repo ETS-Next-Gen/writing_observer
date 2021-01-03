@@ -16,7 +16,7 @@ import numpy.random
 import loremipsum
 import names
 
-import util
+import learning_observer.util as learning_observer
 
 
 def synthetic_student_data(student_id):
