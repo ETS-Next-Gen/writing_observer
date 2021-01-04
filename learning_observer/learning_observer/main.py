@@ -145,7 +145,7 @@ app.add_routes([
 
 # We'd like to be able to have the root page themeable, for non-ETS deployments
 # This is a quick-and-dirty way to override the main page.
-root_file = settings.settings.get("root_file", "webapp.html")
+root_file = settings.settings.get("theme", {}).get("root_file", "webapp.html")
 app.add_routes([
     aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
 ])
