@@ -40,3 +40,5 @@ roster-data:
 aio:
     session_secret: {unique-aio-session-key}  # This should be a unique secret key for YOUR deployment
     session_max_age: 3600  # In seconds. This may be short for dev (e.g. <5 mins) and long for deploy (or set to null, for lifetime of the browser)
+config:
+    run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?

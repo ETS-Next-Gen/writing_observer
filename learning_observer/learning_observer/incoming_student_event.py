@@ -14,6 +14,8 @@ import authutils         # Encoded / decode user IDs
 import pubsub            # Pluggable pubsub subsystem
 import stream_analytics  # Individual analytics modules
 
+import settings
+
 from log_event import debug_log
 
 
@@ -39,13 +41,14 @@ async def student_event_pipeline(metadata):
     Create an event pipeline, based on header metadata
     '''
     client_source = metadata["source"]
-    if client_source not in stream_analytics.analytics_modules:
+    if client_source not in stream_analytics.student_reducer_modules:
         debug_log("Unknown event source: " + str(client_source))
-        debug_log("Known sources: " + repr(stream_analytics.analytics_modules.keys()))
+        debug_log("Known sources: " + repr(stream_analytics.student_reducer_modules.keys()))
         raise Exception("Unknown event source")
-    analytics_module = stream_analytics.analytics_modules[client_source]
+    analytics_modules = stream_analytics.student_reducer_modules[client_source]
     # Create an event processor for this user
-    event_processor = await analytics_module['event_processor'](metadata)
+    # TODO: This should happen in parallel: https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
+    event_processors = [await am['student_event_reducer'](metadata) for am in analytics_modules]
 
     async def pipeline(parsed_message):
         '''
@@ -55,9 +58,14 @@ async def student_event_pipeline(metadata):
         debug_log("Processing PubSub message {event} from {source}".format(
             event=parsed_message["client"]["event"], source=client_source
         ))
+
+        # Try to run a message through all event processors.
+        #
+        # To do: Finer-grained exception handling. Right now, if we break, we don't run
+        # through remaining processors.
         try:
-            print(event_processor)
-            processed_analytics = await event_processor(parsed_message)
+            print(event_processors)
+            processed_analytics = [await ep(parsed_message) for ep in event_processors]
         except Exception as e:
             traceback.print_exc()
             filename = paths.logs("critical-error-{ts}-{rnd}.tb".format(
@@ -69,7 +77,8 @@ async def student_event_pipeline(metadata):
             fp.write("\nTraceback:\n")
             fp.write(traceback.format_exc())
             fp.close()
-            raise
+            if settings.run_mode == settings.RUN_MODE.DEV:
+                raise
         if processed_analytics is None:
             debug_log("No updates")
             return []

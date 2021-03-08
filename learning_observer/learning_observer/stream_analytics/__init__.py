@@ -11,13 +11,13 @@ around several streaming systems:
 This should move into a config file.
 '''
 
+import collections
 import functools
 import learning_observer.module_loader
 
 
 def async_lambda(f):
-    '''
-    Work-around for how stupid Python 3 is about handling async
+    '''Work-around for Python 3 issues with handling async
     functions. This turns a function into an asynchronous one. It
     allows us to make async lambda expressions.
     '''
@@ -26,24 +26,20 @@ def async_lambda(f):
         return f(*args, **kwargs)
     return async_lambda_helper
 
+student_reducer_modules = None
 
-# TODO: We should support more than one module per event type...
-analytics_modules = {
-    "org.mitros.mirror": {'event_processor': async_lambda(
-        lambda metadata: async_lambda(lambda event: event)
-    )},
-}
 
 def init():
-    global analytics_modules
+    srm = collections.defaultdict(lambda:list())
+    srm['org.mitros.mirror'].append({'student_event_reducer': async_lambda(
+        lambda metadata: async_lambda(lambda event: event)
+    )})
     try:
         import stream_analytics.dynamic_assessment
-        analytics_modules.update({
-            "org.mitros.dynamic-assessment": {
-                'event_processor': async_lambda(
-                    lambda metadata: stream_analytics.dynamic_assessment.process_event
-                )
-            },
+        srm["org.mitros.dynamic-assessment"].append({
+            'student_event_reducer': async_lambda(
+                lambda metadata: stream_analytics.dynamic_assessment.process_event
+            )
         })
     except ModuleNotFoundError:
         print("Module dynamic_assessment not found. "
@@ -51,10 +47,8 @@ def init():
 
     try:
         import stream_analytics.writing_analysis
-        analytics_modules.update({
-            "org.mitros.writing-analytics": {
-                'event_processor': stream_analytics.writing_analysis.pipeline
-            }
+        srm["org.mitros.writing-analytics"].append({
+            'student_event_reducer': stream_analytics.writing_analysis.pipeline
         })
     except ModuleNotFoundError:
         print("Module writing-analytics not found. "
@@ -62,13 +56,11 @@ def init():
 
     reducers = learning_observer.module_loader.reducers()
     for reducer in reducers:
-        ## TODO:
-        ## Clean up terminology. Is it a reducer or an event processor
-        ## Is it a context or a url or id or what?
         context = reducer['context']
         function = reducer['function']
-        analytics_modules.update({
-            context: {
-                'event_processor': function
-            },
+        srm[context].append({
+            'student_event_reducer': function
         })
+
+    global student_reducer_modules
+    student_reducer_modules = dict(srm)
