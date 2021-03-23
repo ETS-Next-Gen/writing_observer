@@ -15,13 +15,14 @@ too. Some kind of callback?
 '''
 
 import mimetypes
+import os.path
 
 import aiohttp.web
 
-import gitaccess
+import gitserve.gitaccess
 
 
-def git_handler_wrapper(repo, cookie_prefix=""):
+def git_handler_wrapper(repo, cookie_prefix="", prefix=""):
     '''
     Returns a handler which can serve files from a git repo, from
     different branches. This should obviously only be used with
@@ -29,11 +30,11 @@ def git_handler_wrapper(repo, cookie_prefix=""):
     so it's nice for science replicability. If we're serving data
     for a coglab, we can record which version we served from.
     '''
-    repo = gitaccess.GitRepo(repo)
+    repo = gitserve.gitaccess.GitRepo(repo)
 
     def git_handler(request):
         branch = request.match_info['branch']
-        filename = request.match_info['filename']
+        filename = os.path.join(prefix, request.match_info['filename'])
         print(branch)
         print(filename)
         body = repo.show(branch, filename)
