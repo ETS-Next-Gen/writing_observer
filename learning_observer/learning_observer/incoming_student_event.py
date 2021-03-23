@@ -148,13 +148,20 @@ async def handle_incoming_client_event(metadata):
             "incoming_websocket", preencoded=True, timestamp=True)
         print(pubsub_client)
         outgoing = await pipeline(event)
-        for item in outgoing:
-            await pubsub_client.send_event(
-                mbody=json.dumps(item, sort_keys=True)
-            )
-            debug_log(
-                "Sent item to PubSub triggered by: " + client_event["event"]
-            )
+
+        # We're currently polling on the other side.
+        #
+        # Leaving this code in without a receiver gives us a massive
+        # memory leak, so we've commented it out until we do plan to
+        # subscribe again.
+        if False:
+            for item in outgoing:
+                await pubsub_client.send_event(
+                    mbody=json.dumps(item, sort_keys=True)
+                )
+                debug_log(
+                    "Sent item to PubSub triggered by: " + client_event["event"]
+                )
     return handler
 
 

@@ -88,6 +88,21 @@ def static_directory_handler(basepath):
         return aiohttp.web.FileResponse(full_pathname)
     return handler
 
+# Allow debugging of memory leaks.  Helpful, but this is a massive
+# resource hog. Don't accidentally turn this on in prod :)
+if 'tracemalloc' in settings.settings['config'].get("debug", []):
+    import tracemalloc
+    tracemalloc.start(25)
+    def tm(request):
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics('lineno')
+        top_hundred = "\n".join((str(t) for t in top_stats[:100]))
+        top_stats = snapshot.statistics('traceback')
+        top_one = "\n".join((str(t) for t in top_stats[0].traceback.format()))
+        return aiohttp.web.Response(text=top_one+"\n\n\n"+top_hundred)
+    app.add_routes([
+        aiohttp.web.get('/debug/tracemalloc/', tm),
+    ])
 
 # Dashboard API
 # This serves up data (currently usually dummy data) for the dashboard

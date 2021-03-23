@@ -42,3 +42,4 @@ aio:
     session_max_age: 3600  # In seconds. This may be short for dev (e.g. <5 mins) and long for deploy (or set to null, for lifetime of the browser)
 config:
     run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?
+    debug: []  # add "tracemalloc" to the list to enable memory leak debugging
