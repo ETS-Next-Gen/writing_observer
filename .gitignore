@@ -5,3 +5,7 @@
 webapp/logs
 webapp/static_data/teachers.yaml
 creds.yaml
+uncommitted
+extension.*
+
+*egg-info*
