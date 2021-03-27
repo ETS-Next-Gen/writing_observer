@@ -9,6 +9,7 @@ assessment).
 import hashlib
 import os
 import sys
+import uuid
 
 import aiohttp
 import aiohttp_cors
@@ -18,6 +19,7 @@ import aiohttp_session.cookie_storage
 import pathvalidate
 
 import learning_observer.init as init  # Odd import which makes sure we're set up
+import learning_observer.client_config as client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard as dashboard
 import learning_observer.auth_handlers as auth_handlers
@@ -155,7 +157,8 @@ app.add_routes([
 # files, config.json is loaded if no server is running (dummy mode), and
 # this is overridden by the live server.
 app.add_routes([
-    aiohttp.web.get('/config.json', static_file_handler(paths.static("config-server.json"))),
+    aiohttp.web.get('/config.json', learning_observer.client_config.client_config_handler),
+#                    static_file_handler(paths.static("config-server.json"))),
 ])
 
 # We'd like to be able to have the root page themeable, for non-ETS deployments
@@ -190,14 +193,34 @@ def fernet_key(s):
     t.update(s.encode('utf-8'))
     return t.hexdigest().encode('utf-8')
 
-
-session_secret = settings.settings['aio']['session_secret']
-if isinstance(session_secret, dict):
+if 'aio' not in settings.settings or \
+   'session_secret' not in settings.settings['aio'] or \
+   isinstance(settings.settings['aio']['session_secret'], dict) or \
+   'session_max_age' not in settings.settings['aio']:
+    print("Settings file needs an `aio` section with a `session_secret`")
+    print("subsection containing a secret string. This is used for")
+    print("security, and should be set once for each deploy of the platform")
+    print("(e.g. if you're running 10 servers, they should all have the")
+    print("same secret")
+    print()
     print("Please set an AIO session secret in creds.yaml")
     print("")
     print("Please pick a good session secret. You only need to set it once, and")
     print("the security of the platform relies on a strong, unique password there")
+    print("")
+    print("This sessions also needs a session_max_age, which sets the number of seconds")
+    print("of idle time after which a user needs to log back in. 4320 should set")
+    print("this to 12 hours.")
+    print("")
+    print("This should be a long string of random characters. If you can't think")
+    print("of one, here's one:")
+    print()
+    print("aio:")
+    print("    session_secret: "+str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4()))))
+    print("    session_max_age: 4320")
     sys.exit(-1)
+
+
 
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
     fernet_key(settings.settings['aio']['session_secret']),

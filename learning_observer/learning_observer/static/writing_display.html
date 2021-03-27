@@ -15,7 +15,7 @@
   <script type="module">
     import { deane_graph, setup_deane_graph, populate_deane_graph_data } from './deane.js'
 
-    let socket_out = new WebSocket("wss://writing.hopto.org/wsapi/out/");
+    let socket_out = new WebSocket("wss://"+window.location.hostname+"/wsapi/out/");
 
     d3.select(".deane").call(setup_deane_graph).call(function(div) {
         populate_deane_graph_data(div, {'length':[], 'cursor': []}, 500, 500);

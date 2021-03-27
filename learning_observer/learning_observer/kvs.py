@@ -14,6 +14,7 @@ To read objects:
 
 import asyncio
 import json
+import sys
 
 import asyncio_redis
 
@@ -134,14 +135,17 @@ except KeyError:
     if 'kvs' not in learning_observer.settings.settings:
         print("KVS not configured in settings file")
         print("Look at example settings file to set up KVS config")
-    else:
+    elif learning_observer.settings.settings['kvs']['type'] not in KVS_MAP:
         print("Invalid setting kvs/type.")
         print("KVS config is currently ", end='')
         print(learning_observer.settings.settings["kvs"])
         print("Should have a 'type' field set to one of: ", end='')
         print(",".join(KVS_MAP.keys()))
+    else:
+        print("KVS incorrectly configured. Please fix the error, and")
+        print("then replace this with a more meaningful error message")
     print()
-    raise
+    sys.exit(-1)
 
 
 async def test():

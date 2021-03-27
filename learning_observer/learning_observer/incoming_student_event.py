@@ -18,6 +18,8 @@ import settings
 
 from log_event import debug_log
 
+import learning_observer.exceptions
+
 
 stream_analytics.init()
 
@@ -44,7 +46,7 @@ async def student_event_pipeline(metadata):
     if client_source not in stream_analytics.student_reducer_modules:
         debug_log("Unknown event source: " + str(client_source))
         debug_log("Known sources: " + repr(stream_analytics.student_reducer_modules.keys()))
-        raise Exception("Unknown event source")
+        raise learning_observer.exceptions.SuspiciousOperation("Unknown event source")
     analytics_modules = stream_analytics.student_reducer_modules[client_source]
     # Create an event processor for this user
     # TODO: This should happen in parallel: https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python

@@ -18,7 +18,12 @@ https://github.com/encode/broadcaster
 
 import settings
 
-PUBSUB = settings.settings['pubsub']['type']
+
+try:
+    PUBSUB = settings.settings['pubsub']['type']
+except KeyError:
+    print("Pub-sub configuration missing from configuration file.")
+    sys.exit(-1)
 
 if PUBSUB == 'xmpp':
     import pubsub.receivexmpp
@@ -65,4 +70,7 @@ elif PUBSUB == 'redis':
         await receiver.connect()
         return receiver
 else:
-    raise Exception("Unknown pubsub: "+PUBSUB)
+    print("Pubsub incorrectly configured")
+    print("We support stub, redis, and xmpp")
+    print("It's set to:")
+    print(PUBSUB)
