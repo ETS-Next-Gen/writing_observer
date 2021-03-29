@@ -1,11 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
-    name="learning_observer",
-    entry_points={
-        'console_scripts': [
-            'lobserve=learning_observer.run:run'
-        ],
-    }
 )
-
