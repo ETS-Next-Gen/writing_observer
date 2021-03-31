@@ -143,13 +143,20 @@ def adhoc_writing_observer_aggregate(student_data):
     max_time_on_task = 0
     max_character_count = 0
     for student in student_data:
-        max_character_count = max(max_character_count, student['writing-observer-compiled']['character-count'])
-        max_time_on_task = max(max_time_on_task, student['stream_analytics.writing_analysis.time_on_task']["total-time-on-task"])
+        max_character_count = max(
+            max_character_count,
+            student['writing-observer-compiled']['character-count']
+        )
+        max_time_on_task = max(
+            max_time_on_task,
+            student['stream_analytics.writing_analysis.time_on_task']["total-time-on-task"]
+        )
     return {
         'max-character-count': max_character_count,
         'max-time-on-task': max_time_on_task,
-        # TODO: Should we aggregate this in some way? If we run on multiple servers, this is susceptible to drift.
-        # That could be jarring; even a few seconds error could be an issue in some contexts.
+        # TODO: Should we aggregate this in some way? If we run on multiple servers,
+        # this is susceptible to drift. That could be jarring; even a few seconds
+        # error could be an issue in some contexts.
         'current-time': time.time()
     }
 
@@ -192,9 +199,13 @@ def real_student_data(course_id, roster):
                     'position': 0,
                     'edit_metadata': {'cursor': [2], 'length': [1]}
                 },
-                'stream_analytics.writing_analysis.time_on_task': {'saved_ts': -1, 'total-time-on-task': 0},
+                'stream_analytics.writing_analysis.time_on_task': {
+                    'saved_ts': -1,
+                    'total-time-on-task': 0
+                },
             }
-            # TODO/HACK: Only do this for Google data. Make this do the right thing for synthetic data.
+            # TODO/HACK: Only do this for Google data. Make this do the right thing
+            # for synthetic data.
             google_id = student['userId']
             student_id = authutils.google_id_to_user_id(google_id)
             # TODO: Evaluate whether this is a bottleneck.

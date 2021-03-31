@@ -24,4 +24,9 @@ client_config = {
 
 
 async def client_config_handler(request):
+    '''
+    Return a configuration JSON response to the client. This:
+    - Tells the client this is running from a live server
+    - Includes any system-specific configuration
+    '''
     return aiohttp.web.json_response(client_config)

@@ -17,6 +17,6 @@ def google_id_to_user_id(google_id):
     '''
     try:
         return "gc-" + str(int(google_id))
-    except:
+    except ValueError:
         print("Error handling:", google_id)
         raise

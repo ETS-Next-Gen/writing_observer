@@ -7,7 +7,11 @@ script.
 import sys
 import os.path
 
+
 def run():
+    '''
+    Helper to run from entry point
+    '''
     print("Running")
     print(os.path.dirname(__file__))
     sys.path.append(os.path.dirname(__file__))

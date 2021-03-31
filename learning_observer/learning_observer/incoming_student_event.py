@@ -23,6 +23,7 @@ import learning_observer.exceptions
 
 stream_analytics.init()
 
+
 def compile_server_data(request):
     '''
     We extract some basic data. In contrast to client data, this data
@@ -285,7 +286,7 @@ async def incoming_websocket_handler(request):
             elif json_msg["event"] == "local_storage":
                 try:
                     headers["local_storage"] = json_msg["local_storage"]
-                except:
+                except Exception:
                     print(json_msg)
                     raise
             elif json_msg["event"] == "test_framework_fake_identity":

@@ -118,8 +118,8 @@ async def _authorize_user(request, user):
 
 async def logout(request):
     """
-    Handles sign out. This is generic - does not depend on which social ID is logged in
-    (Google/Facebook/...).
+    Handles sign out. This is generic - does not depend on which
+    social ID is logged in (Google/Facebook/...).
     """
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
@@ -159,7 +159,10 @@ async def auth_middleware(request, handler):
     #
     # This should really be abstracted away into a library which passes state
     # back-and-forth, but for now, this works.
-    resp.set_cookie("userinfo", base64.b64encode(json.dumps(userinfo).encode('utf-8')).decode('utf-8'))
+    resp.set_cookie(
+        "userinfo",
+        base64.b64encode(json.dumps(userinfo).encode('utf-8')).decode('utf-8')
+    )
     return resp
 
 
@@ -231,7 +234,8 @@ async def _google(request):
         'family_name': profile['family_name'],
         'back_to': request.query.get('state'),
         'picture': profile['picture'],
-        'authorized': await verify_teacher_account(profile['id'], profile['email'])  ## TODO: Should this be immediate?
+        # TODO: Should this be immediate?
+        'authorized': await verify_teacher_account(profile['id'], profile['email'])
     }
 
 
@@ -242,7 +246,6 @@ def html_login_required(handler):
 
     :param handler: function to decorate.
     :return: decorated function
-
     """
     @functools.wraps(handler)
     async def decorator(*args):

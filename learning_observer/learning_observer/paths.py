@@ -26,6 +26,7 @@ import os.path
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 print(BASE_PATH)
 
+
 def base_path():
     '''
     Should NOT be used, except by filesystem_state. Use one of the helpers below.
@@ -41,6 +42,7 @@ def config_file():
     print(p)
     return p
 
+
 def data(filename=None):
     '''
     File from the static data directory. No parameters: data directory.
@@ -49,6 +51,32 @@ def data(filename=None):
     if filename is not None:
         p = os.path.join(p, filename)
     return p
+
+GIT_REPO_ARCHIVE = {}
+
+
+def repo(reponame=None):
+    '''
+    We keep downloaded `git` repos from modules in the static data
+    directory. This returns the base path of a `git` repo.
+
+    `git` repos may also be stored other places.
+    '''
+    if reponame in GIT_REPO_ARCHIVE:
+        return GIT_REPO_ARCHIVE[reponame]['PATH']
+
+    p = data("repos")
+    if reponame is not None:
+        p = os.path.join(data, reponame)
+    return p
+
+
+def register_repo(reponame, path):
+    '''
+    Let the system know the location of a repo on the local drive
+    '''
+    pass
+
 
 def logs(filename=None):
     '''
@@ -59,6 +87,7 @@ def logs(filename=None):
         p = os.path.join(p, filename)
     print(p)
     return p
+
 
 def static(filename=None):
     p = os.path.join(BASE_PATH, 'static')

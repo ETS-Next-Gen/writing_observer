@@ -18,7 +18,10 @@ import aiohttp_session.cookie_storage
 
 import pathvalidate
 
-import learning_observer.init as init  # Odd import which makes sure we're set up
+# Odd import which makes sure we're set up
+import learning_observer.init as init
+
+import learning_observer.admin as admin
 import learning_observer.client_config as client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard as dashboard
@@ -32,8 +35,6 @@ import learning_observer.settings as settings
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
 
-
-#learning_observer.module_loader.load_modules()
 
 async def request_logger_middleware(request, handler):
     '''
@@ -55,12 +56,8 @@ def static_file_handler(filename):
 
 
 async def index(request):
-    print(request['user'])
-    print(type(request['user']))
     if request['user'] is None:
-        print("Index")
         return aiohttp.web.FileResponse(paths.static("index.html"))
-    print("Course list")
     return aiohttp.web.FileResponse(paths.static("courselist.html"))
 
 
@@ -75,7 +72,7 @@ def static_directory_handler(basepath):
     filenames. Before adding fancy, I'll want test cases of
     aggressive user input.
     '''
-    print(basepath)
+
     def handler(request):
         # Extract the filename from the request
         filename = request.match_info['filename']
@@ -83,7 +80,6 @@ def static_directory_handler(basepath):
         pathvalidate.validate_filename(filename)
         # Check that the file exists
         full_pathname = os.path.join(basepath, filename)
-        print(full_pathname)
         if not os.path.exists(full_pathname):
             raise aiohttp.web.HTTPNotFound()
         # And serve pack the file
@@ -144,6 +140,10 @@ app.add_routes([
     aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
+])
+
+app.add_routes([
+    aiohttp.web.get('/admin/status', handler=admin.system_status)
 ])
 
 # This might look scary, but it's innocous. There are server-side
@@ -221,7 +221,6 @@ if 'aio' not in settings.settings or \
     sys.exit(-1)
 
 
-
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
     fernet_key(settings.settings['aio']['session_secret']),
     max_age=settings.settings['aio']['session_max_age']))
@@ -230,3 +229,6 @@ app.middlewares.append(auth_handlers.auth_middleware)
 
 print("Running!")
 aiohttp.web.run_app(app, port=8888)
+
+
+# ['__abstractmethods__', '__class__', '__class_getitem__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__module__', '__ne__', '__new__', '__orig_bases__', '__parameters__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__slots__', '__str__', '__subclasshook__', '__weakref__', '_abc_impl', '_is_protocol', '_match', '_name', '_path', '_routes', 'add_prefix', 'add_route', 'canonical', 'freeze', 'get_info', 'name', 'raw_match', 'register_route', 'resolve', 'url_for']

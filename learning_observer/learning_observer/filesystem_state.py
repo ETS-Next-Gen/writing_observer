@@ -1,3 +1,8 @@
+'''
+This allows us to capture what state we start the server in, for
+replicability. We'd like to work from SHA hashes eventually.
+'''
+
 import hashlib
 import os
 import subprocess

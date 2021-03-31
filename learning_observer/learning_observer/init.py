@@ -58,7 +58,6 @@ if not os.path.exists(paths.third_party()):
 # We download only if the file doesn't exist, but confirm integrity in
 libs = module_loader.third_party()
 for name in libs:
-    name
     url = libs[name]['urls'][0]
     sha = libs[name]['hash']
 

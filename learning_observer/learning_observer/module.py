@@ -68,3 +68,16 @@ THIRD_PARTY = {
       "696c4756cb156531ccf5c630154d66f3059b6b589617bd6bd711ef665079f879405"
   }
 }
+
+# We're still figuring this out...
+STATIC_FILE_GIT_REPOS = {
+    'writing_observer': {
+        # Where we can grab a copy of the repo, if not already on the system
+        'url': 'https://github.com/ETS-Next-Gen/writing_observer.git',
+        # Where the static files in the repo lie
+        'prefix': 'learning_observer/learning_observer/static',
+        # Branches we serve. This can either be a whitelist (e.g. which ones
+        # are available) or a blacklist (e.g. which ones are blocked)
+        'whitelist': ['master']
+    }
+}

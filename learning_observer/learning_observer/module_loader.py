@@ -16,6 +16,11 @@ This is set to true after we've loaded
 loaded = False
 
 DASHBOARDS = collections.OrderedDict()
+REDUCERS = []
+THIRD_PARTY = {}
+STATIC_REPOS = {}
+
+
 def dashboards():
     '''
     Return a dictionary of all modules the system can render.
@@ -23,7 +28,7 @@ def dashboards():
     load_modules()
     return DASHBOARDS
 
-REDUCERS = []
+
 def reducers():
     '''
     Return a list of all event processors / reducers. Note that
@@ -32,7 +37,7 @@ def reducers():
     load_modules()
     return REDUCERS
 
-THIRD_PARTY = {}
+
 def third_party():
     '''
     Return a list of modules to download from 3rd party repos.
@@ -54,6 +59,43 @@ def third_party():
     '''
     load_modules()
     return THIRD_PARTY
+
+
+def static_repos():
+    '''
+    We can serve static files for each module. These are served
+    straight from `git`. In the future, we'd like to cache this.
+
+    There's a little bit of complexity and nuance in how we'd
+    like to manage branches.
+
+    In deployment / operational settings:
+
+    - We'll want to be careful about WHICH branch and commit we
+    serve. We don't want students, teachers, or search engines
+    navigating all versions willy nilly.
+    - This is primarily a research platform. In research settings,
+    we usually DO want to allow users to go to different versions.
+    This is helpful for research replicability ("what version did
+    Subject 42 see?"), for the social practice of research (e.g.
+    show a collaborator a prototype, while using IRB-approved
+    versions for coglabs), for experiments (e.g. show different
+    versions to different students), etc.
+
+    For now, this is set up around the *research* use-case: Being able
+    to run coglabs, small pilots, and similar, used in controlled
+    settings, without confidential items in repos.
+
+    Note that since this is all open-source, hosting static files from
+    a repo is *typically* *not* a security issue. It can be a usability
+    issue, though (e.g. if users find an outdated link via a search
+    engine).
+
+    (Of course, YMMV. If you're hosting test items in a repo, then you
+    want to be very careful about security)\
+    '''
+    load_modules()
+    return STATIC_REPOS
 
 def load_modules():
     '''
@@ -83,8 +125,8 @@ def load_modules():
         if hasattr(module, "DASHBOARDS"):
             for dashboard in module.DASHBOARDS:
                 dashboard_id = "{module}.{submodule}".format(
-                    module = entrypoint.name,
-                    submodule = module.DASHBOARDS[dashboard]['submodule'],
+                    module=entrypoint.name,
+                    submodule=module.DASHBOARDS[dashboard]['submodule'],
                 )
                 DASHBOARDS[dashboard_id] = {
                     # Human-readable name
@@ -94,9 +136,9 @@ def load_modules():
                     ),
                     # Root URL
                     "url": "{module}/{submodule}/{url}".format(
-                        module = entrypoint.name,
-                        submodule = module.DASHBOARDS[dashboard]['submodule'],
-                        url = module.DASHBOARDS[dashboard]['url']
+                        module=entrypoint.name,
+                        submodule=module.DASHBOARDS[dashboard]['submodule'],
+                        url=module.DASHBOARDS[dashboard]['url']
                     ),
                     "function": module.DASHBOARDS[dashboard]['function']
                 }
@@ -147,5 +189,12 @@ def load_modules():
                 THIRD_PARTY[library_filename]['urls'].append(
                     module.THIRD_PARTY[library_filename]['url']
                 )
+
+        # How we do this is TBD
+        # This might be a placeholder
+        # Perhaps /[module]/[static]/[repo]/[branch]?
+        if hasattr(module, "STATIC_FILE_GIT_REPOS"):
+            STATIC_REPOS[entrypoint.name] = module.STATIC_FILE_GIT_REPOS
+
     print(THIRD_PARTY)
     loaded = True
