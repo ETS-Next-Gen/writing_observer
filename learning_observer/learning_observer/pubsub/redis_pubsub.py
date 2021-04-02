@@ -110,9 +110,9 @@ class RedisReceive():
 
 if __name__ == '__main__':
     async def main():
-        sender = RedisSend(debug_log=lambda x: print(x))
+        sender = RedisSend(debug_log=print)
         await sender.connect()
-        receiver = RedisReceive(debug_log=lambda x: print(x))
+        receiver = RedisReceive(debug_log=print)
         await receiver.connect()
         await sender.send_event("hi")
         await sender.send_event("bye")

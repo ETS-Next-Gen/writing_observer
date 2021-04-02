@@ -32,4 +32,4 @@ codestyle:
 	# can tolerate.
 
 	pycodestyle --ignore=E501 $(PYTHONFILES)
-	pylint -d W0613,W0511,C0301,R0913 $(PYTHONFILES)
+	pylint -d W0613,W0511,C0301,R0913,too-few-public-methods $(PYTHONFILES)

@@ -66,6 +66,7 @@ def make_key(func, safe_user_id, state_type):
     whether this is the internal state of the module or the
     external state.
     '''
+    # pylint: disable=isinstance-second-argument-not-valid-type
     assert isinstance(state_type, KeyStateType)
     assert callable(func)
 

@@ -27,14 +27,17 @@ def student_reducer_modules():
     return student_reducer_modules
 
 
-def async_lambda(f):
+def async_lambda(function):
     '''Work-around for Python 3 issues with handling async
     functions. This turns a function into an asynchronous one. It
     allows us to make async lambda expressions.
     '''
-    @functools.wraps(f)
+    @functools.wraps(function)
     async def async_lambda_helper(*args, **kwargs):
-        return f(*args, **kwargs)
+        '''
+        The async version of our lambda
+        '''
+        return function(*args, **kwargs)
     return async_lambda_helper
 
 

@@ -22,7 +22,7 @@ import pathvalidate
 import learning_observer.init as init
 
 import learning_observer.admin as admin
-import learning_observer.client_config as client_config
+import learning_observer.client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard as dashboard
 import learning_observer.auth_handlers as auth_handlers

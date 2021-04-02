@@ -16,9 +16,9 @@ import gitserve.aio_gitserve
 
 gitrepo = sys.argv[1]
 if len(sys.argv) > 2:
-    prefix = sys.argv[2]
+    PREFIX = sys.argv[2]
 else:
-    prefix = ""
+    PREFIX = ""
 
 loop = asyncio.get_event_loop()
 app = aiohttp.web.Application(loop=loop)
@@ -30,7 +30,7 @@ app.router.add_get(
     r'/browse/{branch:[^{}/]+}/{filename:[^{}]+}',
     gitserve.aio_gitserve.git_handler_wrapper(
         gitrepo,
-        prefix=prefix,
+        prefix=PREFIX,
         cookie_prefix="content_"
     )
 )

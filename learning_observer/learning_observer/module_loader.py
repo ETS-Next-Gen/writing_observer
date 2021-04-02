@@ -1,6 +1,5 @@
 '''
 Import analytics modules
-
 '''
 
 
@@ -11,9 +10,9 @@ import sys
 
 import pkg_resources
 
-'''
-This is set to true after we've loaded
-'''
+
+# This is set to true after we've scanned and loaded modules
+
 LOADED = False
 
 DASHBOARDS = collections.OrderedDict()

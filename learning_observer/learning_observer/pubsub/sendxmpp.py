@@ -7,14 +7,16 @@ xmpp has a proper pubsub protocol, which me might also consider using
 '''
 
 from slixmpp import ClientXMPP
-from slixmpp.exceptions import IqError, IqTimeout
 
 
 class SendXMPP(ClientXMPP):
     '''
-    Gelper cla
+    Helper class to help connect slixmpp to our API
     '''
     def __init__(self, jid, password, debug_log, mto):
+        '''
+        Connect to XMPP server, and set up callbacks
+        '''
         self.debug_log = debug_log
         self.mto = mto
         ClientXMPP.__init__(self, jid, password)
@@ -22,6 +24,10 @@ class SendXMPP(ClientXMPP):
         self.add_event_handler("message", self.message)
 
     def session_start(self, event):
+        '''
+        We need to do some groundwork for XMPP servers to talk to
+        us. Until we've requested a roster, some don't work.
+        '''
         self.send_presence()
         self.get_roster()
         self.debug_log("XMPP sender session initialized")
@@ -34,9 +40,11 @@ class SendXMPP(ClientXMPP):
         for _unexpected_ messages.
         '''
         # print("Unexpected! I shouldn't get messages")
-        pass
 
     async def send_event(self, mbody):
+        '''
+        The raison d'être of this class: We can send an event.
+        '''
         self.send_message(
             mto=self.mto,
             mbody=mbody,

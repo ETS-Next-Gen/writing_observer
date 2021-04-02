@@ -98,21 +98,21 @@ def adhoc_writing_observer_clean(student_data):
     cursor_position = student_data['stream_analytics.writing_analysis.reconstruct']['position']
 
     # Compute the portion of the text we want to return.
-    LENGTH = 103
-    BEFORE = int(LENGTH * 2 / 3)
+    length = 103
+    before = int(length * 2 / 3)
     # We step backwards and forwards from the cursor by the desired number of characters
-    start = max(0, int(cursor_position - BEFORE))
-    end = min(character_count - 1, start + LENGTH)
+    start = max(0, int(cursor_position - before))
+    end = min(character_count - 1, start + length)
     # And, if we don't have much text after the cursor, we adjust the beginning
     # print(start, cursor_position, end)
-    start = max(0, end - LENGTH)
+    start = max(0, end - length)
     # Split on a word boundary, if there's one close by
     # print(start, cursor_position, end)
-    while end < character_count and end - start < LENGTH + 10 and not text[end].isspace():
+    while end < character_count and end - start < length + 10 and not text[end].isspace():
         end += 1
 
     # print(start, cursor_position, end)
-    while start > 0 and end - start < LENGTH + 10 and not text[start].isspace():
+    while start > 0 and end - start < length + 10 and not text[start].isspace():
         start -= 1
 
     # print(start, cursor_position, end)

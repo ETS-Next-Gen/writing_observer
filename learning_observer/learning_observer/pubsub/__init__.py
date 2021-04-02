@@ -16,8 +16,10 @@ One project which came up which might be relevant:
 https://github.com/encode/broadcaster
 '''
 
-import settings
+import sys
 
+import learning_observer.settings as settings
+from learning_observer.log_event import debug_log
 
 try:
     PUBSUB = settings.settings['pubsub']['type']
@@ -30,9 +32,13 @@ if PUBSUB == 'xmpp':
     import pubsub.sendxmpp
 
     async def pubsub_send(channel=None):
-        sender = sendxmpp.SendXMPP(
-            settings.SETTINGS['xmpp']['source']['jid'],
-            settings.SETTINGS['xmpp']['source']['password'],
+        '''
+        Connect to an XMPP server, and return an object able to send
+        events.
+        '''
+        sender = pubsub.sendxmpp.SendXMPP(
+            settings.settings['xmpp']['source']['jid'],
+            settings.settings['xmpp']['source']['password'],
             debug_log,
             mto='sink@localhost'
         )
@@ -40,9 +46,13 @@ if PUBSUB == 'xmpp':
         return sender
 
     async def pubsub_receive(channel=None):
-        receiver = receivexmpp.ReceiveXMPP(
-            settings.SETTINGS['xmpp']['sink']['jid'],
-            settings.SETTINGS['xmpp']['sink']['password'],
+        '''
+        Connect to an XMPP server, and return an object able to receive
+        events.
+        '''
+        receiver = pubsub.receivexmpp.ReceiveXMPP(
+            settings.settings['xmpp']['sink']['jid'],
+            settings.settings['xmpp']['sink']['password'],
             debug_log
         )
         receiver.connect()
@@ -51,22 +61,38 @@ elif PUBSUB == 'stub':
     import pubsub.pubstub
 
     async def pubsub_send(channel=None):
-        sender = pubstub.SendStub()
+        '''
+        Return an object capable of placing objects in a simple in-memory
+        queue.
+        '''
+        sender = pubsub.pubstub.SendStub()
         return sender
 
     async def pubsub_receive(channel=None):
-        receiver = pubstub.ReceiveStub()
+        '''
+        Return an object capable of awaiting to remove objects from a
+        simple in-memory queue.
+        '''
+        receiver = pubsub.pubstub.ReceiveStub()
         return receiver
 elif PUBSUB == 'redis':
     import pubsub.redis_pubsub
 
     async def pubsub_send(channel=None):
-        sender = redis_pubsub.RedisSend()
+        '''
+        Connect to redis, and return an object capable of sending messages
+        out over a redis queue / pubsub
+        '''
+        sender = pubsub.redis_pubsub.RedisSend()
         await sender.connect()
         return sender
 
     async def pubsub_receive(channel=None):
-        receiver = redis_pubsub.RedisReceive()
+        '''
+        Connect to redis, and return an object capable of receiving messages
+        out over a redis queue / pubsub
+        '''
+        receiver = pubsub.redis_pubsub.RedisReceive()
         await receiver.connect()
         return receiver
 else:

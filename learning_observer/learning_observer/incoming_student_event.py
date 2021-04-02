@@ -1,3 +1,15 @@
+'''
+This has event handlers for incoming student events.
+
+These should come in over a websocket. We support AJAX too, since it's
+nice for debugging. This should never be used in production.
+
+We:
+* Authenticate (minimally, for now, see docs)
+* Run these through a set of reducers
+* Optionally, notify via a pubsub of new data
+'''
+
 import datetime
 import json
 import time
