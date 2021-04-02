@@ -27,9 +27,6 @@ Eventually, this should be broken out into its own module.
 import base64
 import functools
 import json
-import logging
-import os.path
-import settings
 import sys
 import yaml
 import yarl
@@ -38,13 +35,17 @@ import aiohttp
 import aiohttp.web
 import aiohttp_session
 
+# TODO: We might want to not import this, but pass this info, to make
+# this file generic, and not specific to learning_observer.
+import settings
+
+
 # TODO: Importing these here breaks abstractions.
 #
 # We want the auth code to be generic and reusable (eventually its own
 # module)
 import learning_observer.paths as paths
-import learning_observer.rosters as rosters
-
+import learning_observer.exceptions
 
 if isinstance(settings.settings['google-oauth']['web']['client_secret'], dict) or \
    isinstance(settings.settings['google-oauth']['web']['project_id'], dict) or \
@@ -86,7 +87,9 @@ async def social(request):
     Provider is in `request.match_info['provider']` (currently, only Google)
     """
     if request.match_info['provider'] != 'google':
-        raise aiohttp.web.HTTPMethodNotAllowed("We only handle Google logins")
+        raise learning_observer.exceptions.SuspiciousOperation(
+            "We only handle Google logins. Non-google Provider"
+        )
 
     user = await _google(request)
     print(user)
@@ -167,6 +170,20 @@ async def auth_middleware(request, handler):
 
 
 async def user_info(request):
+    '''
+    This is a handler which currently shows:
+    * Google user ID
+    * E-mail
+    * First and family name
+    * Google avatar
+    * And whether the user is authorized
+
+    This is helpful for things like the little avatar when rendering the
+    page.
+
+    TODO: Think through what info we want to give as we add authentication
+    methods. We don't want to leak data accidentally.
+    '''
     return aiohttp.web.json_response(request['user'])
 
 
@@ -198,7 +215,7 @@ async def _google(request):
             ),
         })
         if 'back_to' in request.query:
-            params['state'] = request.query[back_to]
+            params['state'] = request.query['back_to']
         url = yarl.URL(url).with_query(params)
         raise aiohttp.web.HTTPFound(url)
 

@@ -63,7 +63,9 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None):
     return resp_json
 
 
-async def synthetic_ajax(request, url, parameters={}, key=None, sort_key=None, default=None):
+async def synthetic_ajax(
+        request, url,
+        parameters=None, key=None, sort_key=None, default=None):
     '''
     Stub similar to google_ajax, but grabbing data from local files.
 
@@ -87,7 +89,9 @@ async def synthetic_ajax(request, url, parameters={}, key=None, sort_key=None, d
     return clean_google_ajax_data(json.load(open(synthetic_data[url])), key, sort_key, default=default)
 
 
-async def google_ajax(request, url, parameters={}, key=None, sort_key=None, default=None):
+async def google_ajax(
+        request, url,
+        parameters=None, key=None, sort_key=None, default=None):
     '''
     Request information through Google's API
 
@@ -102,6 +106,8 @@ async def google_ajax(request, url, parameters={}, key=None, sort_key=None, defa
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
+    if parameters is None:  # Should NOT be a default param. See W0102.
+        parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
             resp_json = await resp.json()
@@ -125,7 +131,7 @@ else:
 
 async def courselist(request):
     '''
-    List all of the courses a teacher manages
+    List all of the courses a teacher manages: Helper
     '''
     course_list = await ajax(
         request,
@@ -139,7 +145,7 @@ async def courselist(request):
 
 async def courseroster(request, course_id):
     '''
-    List all of the students in a class
+    List all of the students in a class: Helper
     '''
     roster = await ajax(
         request,
@@ -153,9 +159,15 @@ async def courseroster(request, course_id):
 
 
 async def courselist_api(request):
+    '''
+    List all of the courses a teacher manages: Handler
+    '''
     return aiohttp.web.json_response(await courselist(request))
 
 
 async def courseroster_api(request):
+    '''
+    List all of the students in a class: Handler
+    '''
     course_id = int(request.match_info['course_id'])
     return aiohttp.web.json_response(await courseroster(request, course_id))

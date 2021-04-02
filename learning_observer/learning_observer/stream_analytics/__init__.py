@@ -15,6 +15,17 @@ import collections
 import functools
 import learning_observer.module_loader
 
+STUDENT_REDUCER_MODULES = None
+
+
+def student_reducer_modules():
+    '''
+    Helper.
+
+    TODO: Somewhat obsolete, since a lot of this code will migrate into module_loader.
+    '''
+    return student_reducer_modules
+
 
 def async_lambda(f):
     '''Work-around for Python 3 issues with handling async
@@ -26,11 +37,9 @@ def async_lambda(f):
         return f(*args, **kwargs)
     return async_lambda_helper
 
-student_reducer_modules = None
-
 
 def init():
-    srm = collections.defaultdict(lambda:list())
+    srm = collections.defaultdict(lambda: list())
     srm['org.mitros.mirror'].append({'student_event_reducer': async_lambda(
         lambda metadata: async_lambda(lambda event: event)
     )})
@@ -62,5 +71,5 @@ def init():
             'student_event_reducer': function
         })
 
-    global student_reducer_modules
-    student_reducer_modules = dict(srm)
+    global STUDENT_REDUCER_MODULES
+    STUDENT_REDUCER_MODULES = dict(srm)

@@ -43,7 +43,7 @@ KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 def fully_qualified_function_name(func):
     '''
     Takes a function. Return a fully-qualified string with a name for
-    that function. E.g.: 
+    that function. E.g.:
 
     >>> from math import sin
     >>> fully_qualified_function_name(math.sin)
@@ -133,6 +133,30 @@ def kvs_pipeline(
                 large or private. The internal state needs everything
                 needed to continue reducing the events.
                 '''
+                # TODO: Think through concurrency.
+                #
+                # We could put this inside of a transaction, but we
+                # would lose a few orders of magnitude in performance.
+                #
+                # We could keep this outside of a transaction, and handle
+                # occasional issues.
+                #
+                # It's worth noting that:
+                # 1. We have an archival record, and we can replay if there
+                #    are issues
+                # 2. We keep this open on a per-session basis. The only way
+                #    we might run into concurrency issues is if a student
+                #    is e.g. actively editing on two computers at the same
+                #    time
+                #
+                # But we can think of more ways we might get concurrency
+                # issues in the future, once we do per-class / per-resource /
+                # etc. reducers.
+                #
+                # * We could funnel these into a common reducer. That'd be easy
+                #   enough and probably the right long-term solution
+                # * We could have modules thread whether they need thread
+                #   safety. That'd be easy enough.
                 internal_state = await taskkvs[internal_key]
                 internal_state, external_state = await func(
                     events, internal_state

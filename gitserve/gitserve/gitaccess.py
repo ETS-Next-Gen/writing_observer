@@ -27,7 +27,7 @@ def sanitize(filename):
     into shell code in this version, we're super-careful
 
     '''
-    valid_characters = "-_/."+string.ascii_letters+string.digits
+    valid_characters = "-_/." + string.ascii_letters + string.digits
     newname = "".join(c for c in filename if c in valid_characters)
     newname = pathvalidate.sanitize_filepath(
         newname,

@@ -44,11 +44,11 @@ async def student_event_pipeline(metadata):
     Create an event pipeline, based on header metadata
     '''
     client_source = metadata["source"]
-    if client_source not in stream_analytics.student_reducer_modules:
+    if client_source not in stream_analytics.student_reducer_modules():
         debug_log("Unknown event source: " + str(client_source))
-        debug_log("Known sources: " + repr(stream_analytics.student_reducer_modules.keys()))
+        debug_log("Known sources: " + repr(stream_analytics.student_reducer_modules().keys()))
         raise learning_observer.exceptions.SuspiciousOperation("Unknown event source")
-    analytics_modules = stream_analytics.student_reducer_modules[client_source]
+    analytics_modules = stream_analytics.student_reducer_modules()[client_source]
     # Create an event processor for this user
     # TODO: This should happen in parallel: https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
     event_processors = [await am['student_event_reducer'](metadata) for am in analytics_modules]
@@ -80,7 +80,7 @@ async def student_event_pipeline(metadata):
             fp.write("\nTraceback:\n")
             fp.write(traceback.format_exc())
             fp.close()
-            if settings.run_mode == settings.RUN_MODE.DEV:
+            if settings.RUN_MODE == settings.RUN_MODES.DEV:
                 raise
         if processed_analytics is None:
             debug_log("No updates")

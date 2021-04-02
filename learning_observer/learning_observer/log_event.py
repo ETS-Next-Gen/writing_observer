@@ -56,10 +56,16 @@ import hashlib
 import filesystem_state
 
 import learning_observer.paths as paths
+import learning_observer.settings as settings
 
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
+
+# Do we make files for exceptions? Do we print extra stuff on the console?
+#
+# On deployed systems, this can make a mess. On dev systems, this is super-helpful
+DEBUG = settings.RUN_MODE == settings.RUN_MODES.DEV or 'logging' in settings.settings['config']['debug']
 
 
 def encode_json_line(line):
@@ -138,21 +144,21 @@ def log_event(event, filename=None, preencoded=False, timestamp=False):
     This isn't done, but it's how we log events for now.
     '''
     if filename is None:
-        fp = mainlog
+        log_file_fp = mainlog
     elif filename in files:
-        return files[filename]
+        log_file_fp = files[filename]
     else:
-        fp = open(paths.logs("" + filename + ".log"), "ab", 0)
-        files[filename] = fp
+        log_file_fp = open(paths.logs("" + filename + ".log"), "ab", 0)
+        files[filename] = log_file_fp
 
     if not preencoded:
         event = json.dumps(event, sort_keys=True)
-    fp.write(event.encode('utf-8'))
+    log_file_fp.write(event.encode('utf-8'))
     if timestamp:
-        fp.write("\t".encode('utf-8'))
-        fp.write(datetime.datetime.utcnow().isoformat().encode('utf-8'))
-    fp.write("\n".encode('utf-8'))
-    fp.flush()
+        log_file_fp.write("\t".encode('utf-8'))
+        log_file_fp.write(datetime.datetime.utcnow().isoformat().encode('utf-8'))
+    log_file_fp.write("\n".encode('utf-8'))
+    log_file_fp.flush()
 
 
 def debug_log(text):
@@ -180,18 +186,21 @@ def debug_log(text):
     )
 
     # Flip here to print / not print debug messages
-    if True:
+    if DEBUG:
         print(message)
 
     # Flip here to save / not save debug messages
     # Ideally, we'd like to log these somewhere which won't cause cascading failures.
     # If we e.g. have errors every 100ms, we don't want to create millions of debug files.
     # There are services which handle this pretty well, I believe
-    if True:
-        fp = open(paths.logs("debug.log"), "a")
-        fp.write(message)
-        fp.write("\n")
-        fp.close()
+    if DEBUG:
+        debug_fp = open(paths.logs("debug.log"), "a")
+        debug_fp.write(message)
+        debug_fp.write("\n")
+        debug_fp.close()
+
+
+AJAX_FILENAME_TEMPLATE = "{directory}/{time}-{payload_hash}.json"
 
 
 def log_ajax(url, resp_json, request):
@@ -200,7 +209,6 @@ def log_ajax(url, resp_json, request):
     TO Google and similar providers. This helps us understand the
     context of classroom activity, debug, and recover from failures
     '''
-    AJAX_FILENAME_TEMPLATE = "{directory}/{time}-{payload_hash}.json"
     payload = {
         'user': request['user'],
         'url': url,
@@ -214,5 +222,5 @@ def log_ajax(url, resp_json, request):
         time=datetime.datetime.utcnow().isoformat(),
         payload_hash=payload_hash
     )
-    with open(filename, "w") as fp:
-        fp.write(encoded_payload)
+    with open(filename, "w") as ajax_log_fp:
+        ajax_log_fp.write(encoded_payload)

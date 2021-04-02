@@ -8,7 +8,7 @@ import asyncio
 
 # We should eventually have a list of queues: One for each
 # subscriber. For now, we only support one subscriber.
-queue = collections.defaultdict(lambda: asyncio.Queue())
+queue = collections.defaultdict(asyncio.Queue)
 
 
 class SendStub():
@@ -40,8 +40,8 @@ if __name__ == '__main__':
     async def main():
         s = SendStub()
         r = ReceiveStub()
-        s.send_event("hi")
-        s.send_event("bye")
+        await s.send_event("hi")
+        await s.send_event("bye")
         r1 = await r.receive()
         print(r1)
         r1 = await r.receive()

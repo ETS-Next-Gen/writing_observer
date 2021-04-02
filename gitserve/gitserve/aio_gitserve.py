@@ -47,7 +47,7 @@ def git_handler_wrapper(repo, cookie_prefix="", prefix=""):
             content_type=mimetype
         )
         response.set_cookie(
-            cookie_prefix+"githash",
+            cookie_prefix + "githash",
             repo.rev_hash(branch)
         )
         return response

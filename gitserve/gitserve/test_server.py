@@ -30,8 +30,8 @@ app.router.add_get(
     r'/browse/{branch:[^{}/]+}/{filename:[^{}]+}',
     gitserve.aio_gitserve.git_handler_wrapper(
         gitrepo,
-        prefix = prefix,
-        cookie_prefix = "content_"
+        prefix=prefix,
+        cookie_prefix="content_"
     )
 )
 aiohttp.web.run_app(app, host='127.0.0.1', port=8080)

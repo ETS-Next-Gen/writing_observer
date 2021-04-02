@@ -5,15 +5,16 @@ Import analytics modules
 
 
 import collections
-import importlib
-import pkgutil
-import pkg_resources
+# import importlib
+# import pkgutil
 import sys
+
+import pkg_resources
 
 '''
 This is set to true after we've loaded
 '''
-loaded = False
+LOADED = False
 
 DASHBOARDS = collections.OrderedDict()
 REDUCERS = []
@@ -97,6 +98,7 @@ def static_repos():
     load_modules()
     return STATIC_REPOS
 
+
 def load_modules():
     '''
     Iterate through entry points to:
@@ -108,8 +110,9 @@ def load_modules():
     only changes state on startup (for now -- we might revist later
     if we want to be more dynamic).
     '''
-    global loaded
-    if loaded:
+    # pylint: disable=W0603
+    global LOADED
+    if LOADED:
         return
 
     # Iterate through Learning Observer modules
@@ -131,8 +134,8 @@ def load_modules():
                 DASHBOARDS[dashboard_id] = {
                     # Human-readable name
                     "name": "{module}: {dashboard}".format(
-                        module = module.NAME,
-                        dashboard = dashboard
+                        module=module.NAME,
+                        dashboard=dashboard
                     ),
                     # Root URL
                     "url": "{module}/{submodule}/{url}".format(
@@ -197,4 +200,4 @@ def load_modules():
             STATIC_REPOS[entrypoint.name] = module.STATIC_FILE_GIT_REPOS
 
     print(THIRD_PARTY)
-    loaded = True
+    LOADED = True

@@ -1,6 +1,17 @@
 '''
 This allows us to capture what state we start the server in, for
 replicability. We'd like to work from SHA hashes eventually.
+
+We'll probably want something like:
+
+FILESTRING = """{filename}:
+\thash:{hash}
+\tst_mode:{st_mode}
+\tst_size:{st_size}
+\tst_atime:{st_atime}
+\tst_mtime:{st_mtime}
+\tst_ctime:{st_ctime}
+"""
 '''
 
 import hashlib
@@ -16,15 +27,6 @@ extensions = [
     ".html",
     ".md"
 ]
-
-filestring = """{filename}:
-\thash:{hash}
-\tst_mode:{st_mode}
-\tst_size:{st_size}
-\tst_atime:{st_atime}
-\tst_mtime:{st_mtime}
-\tst_ctime:{st_ctime}
-"""
 
 
 def filesystem_state():
@@ -42,6 +44,8 @@ def filesystem_state():
     in production) or if changes were made since git commited.
     '''
     file_info = {}
+    # We need have dirs, even if we don't use it.
+    # pylint: disable=W0612
     for root, dirs, files in os.walk(paths.base_path()):
         for name in files:
             for extension in extensions:

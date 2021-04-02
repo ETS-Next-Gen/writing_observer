@@ -157,7 +157,7 @@ def command_list(doc, commands):
             doc = dispatch[item['ty']](doc, **item)
         else:
             print("Unrecogized Google Docs command: " + repr(item['ty']))
-            ## TODO: Log issue and fix it!
+            # TODO: Log issue and fix it!
     return doc
 
 
@@ -180,12 +180,12 @@ def insert(doc, ty, ibi, s):
     * `s` is the string to insert
     '''
     doc.update("{start}{insert}{end}".format(
-        start=doc._text[0:ibi-1],
+        start=doc._text[0:ibi - 1],
         insert=s,
-        end=doc._text[ibi-1:]
+        end=doc._text[ibi - 1:]
     ))
 
-    doc.position = ibi+len(s)
+    doc.position = ibi + len(s)
 
     return doc
 
@@ -198,7 +198,7 @@ def delete(doc, ty, si, ei):
     * `ei` is the end
     '''
     doc.update("{start}{end}".format(
-        start=doc._text[0:si-1],
+        start=doc._text[0:si - 1],
         end=doc._text[ei:]
     ))
 

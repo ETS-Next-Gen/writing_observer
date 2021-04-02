@@ -59,7 +59,7 @@ class RedisSend():
             await self.connect()
             self.debug_log("Redis send reconnected")
         n = await self.s_connection.publish(self.channel, mbody)
-        self.debug_log("Sent event to "+str(n))
+        self.debug_log("Sent event to " + str(n))
 
 
 class RedisReceive():

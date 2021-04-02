@@ -68,6 +68,8 @@ for name in libs:
             filename=filename
         ))
         print("Downloaded {name}".format(name=name))
+    # Pylint wants upper-case. I want this in a function and lower-case.
+    # pylint: disable=C0103
     shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
     if shahash == sha:
         pass

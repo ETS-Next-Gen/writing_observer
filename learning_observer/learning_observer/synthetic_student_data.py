@@ -6,9 +6,7 @@ patch is at:
 `https://github.com/monkeython/loremipsum/issues/10`
 '''
 
-import json
 import random
-import math
 
 import numpy
 import numpy.random
@@ -16,12 +14,12 @@ import numpy.random
 import loremipsum
 import names
 
-import learning_observer.util as learning_observer
+import learning_observer.util as util
 
 
 def synthetic_student_data(student_id):
     '''
-    Create fake student data for mock-up UX
+    Create fake student data for mock-up UX for one student
     '''
     name = names.get_first_name()
     essay = "\n".join(loremipsum.get_paragraphs(5))
@@ -48,10 +46,13 @@ def synthetic_student_data(student_id):
     }
 
 
-def synthetic_data(n=20):
+def synthetic_data(student_count=20):
+    '''
+    Generate paginated mock student data for `student_count` students.
+    '''
     data = [
-        synthetic_student_data(n)
-        for i in range(n)
+        synthetic_student_data(i)
+        for i in range(student_count)
     ]
     return util.paginate(data, 4)
 

@@ -8,12 +8,9 @@ TODO: Rename to something better. Perhaps words like:
 
 import asyncio
 import json
-import random
 import time
 
 import aiohttp
-
-import tsvx
 
 import learning_observer.util as util
 
@@ -40,8 +37,8 @@ async def static_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data
     '''
-    module_id = request.match_info['module_id']
-    course_id = int(request.match_info['course_id'])
+    # module_id = request.match_info['module_id']
+    # course_id = int(request.match_info['course_id'])
 
     return aiohttp.web.json_response({
         "new_student_data": json.load(open(paths.static("student_data.js")))
@@ -52,8 +49,8 @@ async def generated_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data dynamically
     '''
-    module_id = request.match_info['module_id']
-    course_id = int(request.match_info['course_id'])
+    # module_id = request.match_info['module_id']
+    # course_id = int(request.match_info['course_id'])
 
     return aiohttp.web.json_response({
         "new_student_data": synthetic_student_data.synthetic_data()

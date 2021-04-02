@@ -49,8 +49,8 @@ async def time_on_task(event, internal_state):
         last_ts = internal_state['saved_ts']
     if last_ts is not None:
         delta_t = min(
-            TIME_ON_TASK_THRESHOLD,             # Maximum time step
-            internal_state['saved_ts']-last_ts  # Time step
+            TIME_ON_TASK_THRESHOLD,               # Maximum time step
+            internal_state['saved_ts'] - last_ts  # Time step
         )
         internal_state['total-time-on-task'] += delta_t
     return internal_state, internal_state

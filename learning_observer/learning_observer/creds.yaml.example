@@ -43,3 +43,4 @@ aio:
 config:
     run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?
     debug: []  # add "tracemalloc" to the list to enable memory leak debugging
+    	       # add "logging" to have extra stuff on the console AND log exceptions

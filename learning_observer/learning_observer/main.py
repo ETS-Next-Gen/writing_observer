@@ -56,6 +56,12 @@ def static_file_handler(filename):
 
 
 async def index(request):
+    '''
+    Main page:
+
+    * People who aren't logged in get the login page.
+    * People who are get a list of their Google Classroom courses
+    '''
     if request['user'] is None:
         return aiohttp.web.FileResponse(paths.static("index.html"))
     return aiohttp.web.FileResponse(paths.static("courselist.html"))
@@ -74,6 +80,10 @@ def static_directory_handler(basepath):
     '''
 
     def handler(request):
+        '''
+        We're in a closure, since we want to configure the directory
+        when we set up the path.
+        '''
         # Extract the filename from the request
         filename = request.match_info['filename']
         # Raise an exception if we get anything nasty
@@ -86,20 +96,25 @@ def static_directory_handler(basepath):
         return aiohttp.web.FileResponse(full_pathname)
     return handler
 
+
 # Allow debugging of memory leaks.  Helpful, but this is a massive
 # resource hog. Don't accidentally turn this on in prod :)
 if 'tracemalloc' in settings.settings['config'].get("debug", []):
     import tracemalloc
     tracemalloc.start(25)
-    def tm(request):
+
+    def tracemalloc_handler(request):
+        '''
+        Handler to show tracemalloc stats.
+        '''
         snapshot = tracemalloc.take_snapshot()
         top_stats = snapshot.statistics('lineno')
         top_hundred = "\n".join((str(t) for t in top_stats[:100]))
         top_stats = snapshot.statistics('traceback')
         top_one = "\n".join((str(t) for t in top_stats[0].traceback.format()))
-        return aiohttp.web.Response(text=top_one+"\n\n\n"+top_hundred)
+        return aiohttp.web.Response(text=top_one + "\n\n\n" + top_hundred)
     app.add_routes([
-        aiohttp.web.get('/debug/tracemalloc/', tm),
+        aiohttp.web.get('/debug/tracemalloc/', tracemalloc_handler),
     ])
 
 # Dashboard API
@@ -157,8 +172,10 @@ app.add_routes([
 # files, config.json is loaded if no server is running (dummy mode), and
 # this is overridden by the live server.
 app.add_routes([
-    aiohttp.web.get('/config.json', learning_observer.client_config.client_config_handler),
-#                    static_file_handler(paths.static("config-server.json"))),
+    aiohttp.web.get(
+        '/config.json',
+        learning_observer.client_config.client_config_handler
+    ),
 ])
 
 # We'd like to be able to have the root page themeable, for non-ETS deployments
@@ -168,13 +185,13 @@ app.add_routes([
     aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
 ])
 
-## New-style modular dashboards
+# New-style modular dashboards
 dashboards = learning_observer.module_loader.dashboards()
 for dashboard in dashboards:
     print(dashboards[dashboard])
     app.add_routes([
         aiohttp.web.get(
-            "/dashboards/"+dashboards[dashboard]['url'],
+            "/dashboards/" + dashboards[dashboard]['url'],
             handler=dashboards[dashboard]['function'])
     ])
 
@@ -188,10 +205,15 @@ cors = aiohttp_cors.setup(app, defaults={
 })
 
 
-def fernet_key(s):
-    t = hashlib.md5()
-    t.update(s.encode('utf-8'))
-    return t.hexdigest().encode('utf-8')
+def fernet_key(secret_string):
+    '''
+    Generate key for our cookie storage based on the `session_secret`
+    in our config file.
+    '''
+    md5_hash = hashlib.md5()
+    md5_hash.update(secret_string.encode('utf-8'))
+    return md5_hash.hexdigest().encode('utf-8')
+
 
 if 'aio' not in settings.settings or \
    'session_secret' not in settings.settings['aio'] or \
@@ -216,7 +238,7 @@ if 'aio' not in settings.settings or \
     print("of one, here's one:")
     print()
     print("aio:")
-    print("    session_secret: "+str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4()))))
+    print("    session_secret: " + str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4()))))
     print("    session_max_age: 4320")
     sys.exit(-1)
 
