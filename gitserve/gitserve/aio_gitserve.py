@@ -22,7 +22,7 @@ import aiohttp.web
 import gitserve.gitaccess
 
 
-def git_handler_wrapper(repo, cookie_prefix="", prefix=""):
+def git_handler_wrapper(repo, cookie_prefix="", prefix="", bare=True):
     '''
     Returns a handler which can serve files from a git repo, from
     different branches. This should obviously only be used with
@@ -30,13 +30,11 @@ def git_handler_wrapper(repo, cookie_prefix="", prefix=""):
     so it's nice for science replicability. If we're serving data
     for a coglab, we can record which version we served from.
     '''
-    repo = gitserve.gitaccess.GitRepo(repo)
+    repo = gitserve.gitaccess.GitRepo(repo, bare=bare)
 
     def git_handler(request):
         branch = request.match_info['branch']
         filename = os.path.join(prefix, request.match_info['filename'])
-        print(branch)
-        print(filename)
         body = repo.show(branch, filename)
         mimetype = mimetypes.guess_type(filename)[0]
         if mimetype is None:

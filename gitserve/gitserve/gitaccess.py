@@ -10,11 +10,18 @@ Next steps:
 * Perhaps add more git commands?
 '''
 
+import os.path
 import string
 import subprocess
 import sys
 
 import pathvalidate
+
+
+class FileExists(Exception):
+    '''
+    For now, raised when cloning a repo to a location which exists.
+    '''
 
 
 def sanitize(filename):
@@ -51,19 +58,47 @@ class GitRepo:
     those cases, we may want to e.g. maintain open ssh connections and
     whatnot. It can also help with caching.
     '''
-    def __init__(self, gitdir):
+    def __init__(self, gitdir, bare=False):
         '''
+        We store where the repo is, and return an object we can
+        use to browse it.
         '''
-        self.gitdir = gitdir
+        self.bare = bare
+        # We should probably store the working dir too, for
+        # non-bare directories. We'll add that once we need
+        # it.
+        if not self.bare and not self.gitdir.endswith("/.git"):
+            self.gitdir = os.path.join(gitdir, ".git")
+        else:
+            self.gitdir = gitdir
+
+    def clone(self, url, mirror=False):
+        '''
+        Clone the repo. Hopefully raise an exception if it already exists.
+        '''
+        if os.path.exists(self.gitdir):
+            raise FileExists()
+        options = ""
+        if mirror:
+            options += "--mirror"
+        command = "git clone {options} {url} {path}".format(
+            options=options,
+            url=url,
+            path=self.gitdir
+        )
+        # TODO: Test error handling.
+        # *Should* raise a subprocess.CalledProcessError on failure.
+        return subprocess.check_output(command, shell=True).decode('utf-8')
 
     def branches(self):
         '''
         Return a list of all local branches in the repo
         '''
+        command = "git --git-dir={gitdir} branch".format(
+            gitdir=self.gitdir
+        )
         branch_list = subprocess.check_output(
-            "git --git-dir={gitdir}/.git branch".format(
-                gitdir=self.gitdir
-            ), shell=True
+            command, shell=True
         ).decode('utf-8').split('\n')
         branch_list = [b.replace('*', '').strip() for b in branch_list]
         branch_list = [b for b in branch_list if b != '']
@@ -78,7 +113,7 @@ class GitRepo:
         if branch not in self.branches():
             raise ValueError("No such branch")
         data = subprocess.check_output(
-            "git --git-dir={gitdir}/.git show {branch}:{filename}".format(
+            "git --git-dir={gitdir} show {branch}:{filename}".format(
                 gitdir=self.gitdir,
                 branch=sanitized_branch,
                 filename=sanitized_filename
@@ -92,7 +127,7 @@ class GitRepo:
         '''
         sanitized_branch = sanitize(branch)
         data = subprocess.check_output(
-            "git --git-dir={gitdir}/.git rev-parse {branch}".format(
+            "git --git-dir={gitdir} rev-parse {branch}".format(
                 gitdir=self.gitdir,
                 branch=sanitized_branch
             ),

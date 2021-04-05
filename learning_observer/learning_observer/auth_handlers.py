@@ -37,7 +37,7 @@ import aiohttp_session
 
 # TODO: We might want to not import this, but pass this info, to make
 # this file generic, and not specific to learning_observer.
-import settings
+import learning_observer.settings as settings
 
 
 # TODO: Importing these here breaks abstractions.

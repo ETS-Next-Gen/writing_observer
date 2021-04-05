@@ -22,9 +22,19 @@ Should this be merges with settings.py? Let's see how complex this gets.
 '''
 
 import os.path
+import sys
+
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
-print(BASE_PATH)
+print("Starting from: ", BASE_PATH)
+
+
+# If we e.g. `import settings` and `import learning_observer.settings`, we
+# will load startup code twice, and end up with double the global variables.
+# This is a test to avoid that bug.
+if not __name__.startswith("learning_observer."):
+    raise ImportErrror("Please use fully-qualified imports")
+    sys.exit(-1)
 
 
 def base_path():
@@ -67,15 +77,15 @@ def repo(reponame=None):
 
     pathname = data("repos")
     if reponame is not None:
-        pathname = os.path.join(data, reponame)
+        pathname = os.path.join(pathname, reponame)
     return pathname
 
 
 def register_repo(reponame, path):
     '''
     Let the system know the location of a repo on the local drive
-    TODO
     '''
+    GIT_REPO_ARCHIVE[reponame] = {"PATH": path}
 
 
 def logs(filename=None):

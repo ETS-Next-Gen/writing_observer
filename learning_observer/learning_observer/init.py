@@ -10,9 +10,9 @@ import os.path
 import shutil
 import sys
 
-import paths
+import learning_observer.paths as paths
 
-import module_loader
+import learning_observer.module_loader as module_loader
 
 
 # These are directories we'd like created on startup. At the moment,

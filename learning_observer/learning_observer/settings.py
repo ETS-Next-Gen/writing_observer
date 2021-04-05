@@ -19,6 +19,16 @@ import yaml
 import learning_observer.paths
 
 
+print("Startup: Loading settings file")
+
+# If we e.g. `import settings` and `import learning_observer.settings`, we
+# will load startup code twice, and end up with double the global variables.
+# This is a test to avoid that bug.
+if not __name__.startswith("learning_observer."):
+    raise ImportError("Please use fully-qualified imports")
+    sys.exit(-1)
+
+
 settings = yaml.safe_load(open(learning_observer.paths.config_file()))
 
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY')
@@ -36,3 +46,13 @@ elif settings['config']['run_mode'] == 'deploy':
 else:
     print("Configuration setting for run_mode must be either 'dev' or 'deploy'")
     sys.exit(-1)
+
+if 'repos' in settings:
+    for repo in settings['repos']:
+        # In the future, we might allow dicts if we e.g. want more metadata
+        if isinstance(settings['repos'][repo], str):
+            learning_observer.paths.register_repo(repo, settings['repos'][repo])
+        else:
+            print("settings.repos.{repo} should be a string. Fix the settings file.")
+            print("We might allow dicts with metadata someday. That day is not today.")
+            sys.exit(-1)

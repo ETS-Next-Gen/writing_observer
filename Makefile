@@ -33,3 +33,12 @@ codestyle:
 
 	pycodestyle --ignore=E501 $(PYTHONFILES)
 	pylint -d W0613,W0511,C0301,R0913,too-few-public-methods $(PYTHONFILES)
+
+install:
+	# Run:
+	#    mkvirtualenv learning_observer
+	#    pip install -r requirements.txt
+	#    cd learning_observer
+	#    python setup.py develop
+	#    python learning_observer
+	# And then clean up this Makefile to do it for you automatically :)

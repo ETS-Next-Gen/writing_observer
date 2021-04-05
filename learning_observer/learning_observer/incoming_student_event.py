@@ -19,14 +19,14 @@ import uuid
 
 import aiohttp
 
-import log_event
-import paths
+import learning_observer.log_event as log_event
+import learning_observer.paths as paths
 
-import authutils         # Encoded / decode user IDs
-import pubsub            # Pluggable pubsub subsystem
-import stream_analytics  # Individual analytics modules
+import learning_observer.authutils as authutils                # Encoded / decode user IDs
+import learning_observer.pubsub as pubsub                      # Pluggable pubsub subsystem
+import learning_observer.stream_analytics as stream_analytics  # Individual analytics modules
 
-import settings
+import learning_observer.settings as settings
 
 from log_event import debug_log
 

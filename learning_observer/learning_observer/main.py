@@ -18,6 +18,8 @@ import aiohttp_session.cookie_storage
 
 import pathvalidate
 
+import gitserve.aio_gitserve
+
 # Odd import which makes sure we're set up
 import learning_observer.init as init
 
@@ -31,6 +33,14 @@ import learning_observer.module_loader
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
+
+# If we e.g. `import settings` and `import learning_observer.settings`, we
+# will load startup code twice, and end up with double the global variables.
+# This is a test to avoid that bug.
+if not __name__.startswith("learning_observer."):
+    raise ImportErrror("Please use fully-qualified imports")
+    sys.exit(-1)
+
 
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
@@ -242,6 +252,32 @@ if 'aio' not in settings.settings or \
     print("    session_max_age: 4320")
     sys.exit(-1)
 
+repos = learning_observer.module_loader.static_repos()
+for gitrepo in repos:
+    giturl = "/static/repos/{module}/{gitrepo}/{{branch}}/{{filename}}".format(
+        module=repos[gitrepo]['module'],
+        gitrepo=gitrepo
+    )
+    app.add_routes([
+        aiohttp.web.get(
+            giturl,
+            handler=gitserve.aio_gitserve.git_handler_wrapper(
+                paths.repo(gitrepo),
+                cookie_prefix="SHA_" + gitrepo,
+                prefix=repos[gitrepo].get("prefix", None),
+                bare=repos[gitrepo].get("bare", False),)
+        )
+    ])
+    # TODO: Change to reg-exp so we can handle subdirs. For reference:
+    # app.router.add_get(
+    # r'/browse/{branch:[^{}/]+}/{filename:[^{}]+}',
+    # gitserve.aio_gitserve.git_handler_wrapper(
+    #    gitrepo,
+    #    prefix=PREFIX,
+    #    cookie_prefix="content_"
+    # )
+    # )
+
 
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
     fernet_key(settings.settings['aio']['session_secret']),
@@ -251,6 +287,3 @@ app.middlewares.append(auth_handlers.auth_middleware)
 
 print("Running!")
 aiohttp.web.run_app(app, port=8888)
-
-
-# ['__abstractmethods__', '__class__', '__class_getitem__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__module__', '__ne__', '__new__', '__orig_bases__', '__parameters__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__slots__', '__str__', '__subclasshook__', '__weakref__', '_abc_impl', '_is_protocol', '_match', '_name', '_path', '_routes', 'add_prefix', 'add_route', 'canonical', 'freeze', 'get_info', 'name', 'raw_match', 'register_route', 'resolve', 'url_for']

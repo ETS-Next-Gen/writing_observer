@@ -13,6 +13,10 @@ import aiohttp.web
 
 import gitserve.aio_gitserve
 
+if len(sys.argv) == 1:
+    print("Usage:")
+    print("  python test_server.py /home/ubuntu/repo")
+    sys.exit(-1)
 
 gitrepo = sys.argv[1]
 if len(sys.argv) > 2:

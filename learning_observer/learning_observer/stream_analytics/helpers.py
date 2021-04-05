@@ -143,12 +143,21 @@ def kvs_pipeline(
                 # occasional issues.
                 #
                 # It's worth noting that:
+                #
                 # 1. We have an archival record, and we can replay if there
                 #    are issues
                 # 2. We keep this open on a per-session basis. The only way
                 #    we might run into concurrency issues is if a student
                 #    is e.g. actively editing on two computers at the same
                 #    time
+                # 3. If we assume e.g. occasional disconnected operation, as
+                #    on a mobile device, we'll have concurrency problems no
+                #    matter what. In many cases, we should handle this
+                #    explicitly rather than implicitly, for example, with
+                #    conflict-free replicated data type (CRDTs) or explicit
+                #    merge operation
+                #
+                # Fun!
                 #
                 # But we can think of more ways we might get concurrency
                 # issues in the future, once we do per-class / per-resource /
@@ -156,8 +165,9 @@ def kvs_pipeline(
                 #
                 # * We could funnel these into a common reducer. That'd be easy
                 #   enough and probably the right long-term solution
-                # * We could have modules thread whether they need thread
-                #   safety. That'd be easy enough.
+                # * We could have modules explicitly indicate where they need
+                #   thread safety and transactions. That'd be easy enough.
+                #
                 internal_state = await taskkvs[internal_key]
                 internal_state, external_state = await func(
                     events, internal_state

@@ -89,3 +89,15 @@ async def system_status(request):
         },
         "routes": routes(request.app)
     })
+
+
+@admin
+async def die(request):
+    '''
+    Shut down the server.
+
+    TODO: Replace this with a clean shutdown which closes all sockets,
+    etc. But this still beats killing the process.
+    '''
+    sys.exit(-1)
+    return aiohttp.web.json_response({'status': 'dead'})
