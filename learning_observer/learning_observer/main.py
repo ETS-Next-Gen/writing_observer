@@ -138,6 +138,8 @@ app.add_routes([
 app.add_routes([
     aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
     aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
+    # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
+    aiohttp.web.get('/static/repos/{module}/{repo}/{branch}/3rdparty/{filename}', static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
     aiohttp.web.get('/static/media/avatar/{filename}',

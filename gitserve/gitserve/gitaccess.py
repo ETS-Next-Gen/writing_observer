@@ -67,7 +67,7 @@ class GitRepo:
         # We should probably store the working dir too, for
         # non-bare directories. We'll add that once we need
         # it.
-        if not self.bare and not self.gitdir.endswith("/.git"):
+        if not self.bare and not gitdir.endswith("/.git"):
             self.gitdir = os.path.join(gitdir, ".git")
         else:
             self.gitdir = gitdir

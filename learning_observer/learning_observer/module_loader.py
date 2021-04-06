@@ -219,27 +219,27 @@ def load_modules():
                 # TODO: This is a bit awkward.... The URL and key structure won't work well
                 # if we use the same repo twice.
                 STATIC_REPOS[repo]['module'] = entrypoint.name
-            if not os.path.exists(learning_observer.paths.repo(repo)):
-                print("Repo {repo} does not exist.".format(repo=repo))
-                print("It is requested by {module}".format(module=entrypoint.name))
-                print("Should I clone it from {url} to {location}?".format(
-                    location=learning_observer.paths.repo(repo),
-                    url=module.STATIC_FILE_GIT_REPOS[repo]['url']
-                ))
-                yn = input("Yes/No> ")
-                if yn.lower().strip() not in ["y", "tak", "yes", "yup", "好", "نعم"]:
-                    print("Fine. Get it yourself, and configuration the location")
-                    print("in the setting file under repos. Run me again once it's")
-                    print("there. I was only trying to help :(")
-                    sys.exit(-1)
-                gitrepo = gitserve.gitaccess.GitRepo(learning_observer.paths.repo(repo))
-                print(gitrepo.clone(
-                    module.STATIC_FILE_GIT_REPOS[repo]['url'],
-                    mirror=module.STATIC_FILE_GIT_REPOS[repo].get("mirror", True)
-                ))
-            # Paths are top-level for bare repos e.g. `/home/ubuntu/repo` and subdir for
-            # working repos e.g. `/home/ubuntu/repo.git` which we need to later manage.
-            if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
-                STATIC_REPOS[repo]['bare'] = True
+                if not os.path.exists(learning_observer.paths.repo(repo)):
+                    print("Repo {repo} does not exist.".format(repo=repo))
+                    print("It is requested by {module}".format(module=entrypoint.name))
+                    print("Should I clone it from {url} to {location}?".format(
+                        location=learning_observer.paths.repo(repo),
+                        url=module.STATIC_FILE_GIT_REPOS[repo]['url']
+                    ))
+                    yn = input("Yes/No> ")
+                    if yn.lower().strip() not in ["y", "tak", "yes", "yup", "好", "نعم"]:
+                        print("Fine. Get it yourself, and configure the location")
+                        print("in the setting file under repos. Run me again once it's")
+                        print("there.")
+                        sys.exit(-1)
+                    gitrepo = gitserve.gitaccess.GitRepo(learning_observer.paths.repo(repo))
+                    print(gitrepo.clone(
+                        module.STATIC_FILE_GIT_REPOS[repo]['url'],
+                        mirror=module.STATIC_FILE_GIT_REPOS[repo].get("mirror", True)
+                    ))
+                # Paths are top-level for bare repos e.g. `/home/ubuntu/repo` and subdir for
+                # working repos e.g. `/home/ubuntu/repo.git` which we need to later manage.
+                if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
+                    STATIC_REPOS[repo]['bare'] = True
 
     LOADED = True
