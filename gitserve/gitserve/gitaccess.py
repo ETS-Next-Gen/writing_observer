@@ -107,6 +107,8 @@ class GitRepo:
     def show(self, branch, filename):
         '''
         Return the contents of a file in the repo
+
+        Note that this is not UTF8, and needs to be decoded.
         '''
         sanitized_branch = sanitize(branch)
         sanitized_filename = sanitize(filename)
@@ -118,7 +120,8 @@ class GitRepo:
                 branch=sanitized_branch,
                 filename=sanitized_filename
             ), shell=True
-        ).decode('utf-8')
+        )
+        print(filename)
         return data
 
     def rev_hash(self, branch):

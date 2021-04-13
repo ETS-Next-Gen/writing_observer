@@ -40,10 +40,16 @@ def git_handler_wrapper(repo, cookie_prefix="", prefix="", bare=True):
         if mimetype is None:
             mimetype = "text/plain"
 
-        response = aiohttp.web.Response(
-            text=body,
-            content_type=mimetype
-        )
+        if mimetype.startswith("text/"):
+            response = aiohttp.web.Response(
+                text=body.decode('utf-8'),
+                content_type=mimetype
+            )
+        else:
+            response = aiohttp.web.Response(
+                body=body,
+                content_type=mimetype
+            )
         response.set_cookie(
             cookie_prefix + "githash",
             repo.rev_hash(branch)

@@ -139,12 +139,16 @@ app.add_routes([
     aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
     aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
     # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
-    aiohttp.web.get('/static/repos/{module}/{repo}/{branch}/3rdparty/{filename}', static_directory_handler(paths.static("3rd_party"))),
+    aiohttp.web.get(
+        r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
+#        '/static/repos/{module}/{repo}/{branch}/3rdparty/{filename}',
+        static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
     aiohttp.web.get('/static/media/avatar/{filename}',
                     static_directory_handler(paths.static("media/hubspot_persona_images/"))),
 ])
+
 
 # Handle web sockets event requests, incoming and outgoing
 app.add_routes([
@@ -256,10 +260,7 @@ if 'aio' not in settings.settings or \
 
 repos = learning_observer.module_loader.static_repos()
 for gitrepo in repos:
-    giturl = "/static/repos/{module}/{gitrepo}/{{branch}}/{{filename}}".format(
-        module=repos[gitrepo]['module'],
-        gitrepo=gitrepo
-    )
+    giturl = r'/static/repos/'+repos[gitrepo]['module']+'/'+gitrepo+'/{branch:[^{}/]+}/{filename:[^{}]+}'
     app.add_routes([
         aiohttp.web.get(
             giturl,
@@ -270,15 +271,6 @@ for gitrepo in repos:
                 bare=repos[gitrepo].get("bare", False),)
         )
     ])
-    # TODO: Change to reg-exp so we can handle subdirs. For reference:
-    # app.router.add_get(
-    # r'/browse/{branch:[^{}/]+}/{filename:[^{}]+}',
-    # gitserve.aio_gitserve.git_handler_wrapper(
-    #    gitrepo,
-    #    prefix=PREFIX,
-    #    cookie_prefix="content_"
-    # )
-    # )
 
 
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
