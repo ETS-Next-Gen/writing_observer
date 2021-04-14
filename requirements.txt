@@ -1,4 +1,3 @@
--e gitserve
 aiodns
 aiofiles
 aiohttp
@@ -28,3 +27,5 @@ redis
 scipy
 slixmpp
 sphinx
+-e gitserve
+-e learning_observer
