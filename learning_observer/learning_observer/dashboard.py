@@ -86,7 +86,7 @@ def adhoc_writing_observer_clean(student_data):
     TODO: Make aggregator, including these transformations on the
     teacher-facing dashboard end.
     '''
-    text = student_data['stream_analytics.writing_analysis.reconstruct']['text']
+    text = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
     if text is None:
         student_data['writing-observer-compiled'] = {
             "text": "[None]",
@@ -95,7 +95,7 @@ def adhoc_writing_observer_clean(student_data):
         return student_data
 
     character_count = len(text)
-    cursor_position = student_data['stream_analytics.writing_analysis.reconstruct']['position']
+    cursor_position = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['position']
 
     # Compute the portion of the text we want to return.
     length = 103
@@ -124,9 +124,9 @@ def adhoc_writing_observer_clean(student_data):
         "character-count": character_count
     }
     # Remove things which are too big to send back. Note: Not benchmarked, so perhaps not too big
-    del student_data['stream_analytics.writing_analysis.reconstruct']['text']
+    del student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
     # We should downsample, rather than removing
-    del student_data['stream_analytics.writing_analysis.reconstruct']['edit_metadata']
+    del student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['edit_metadata']
     return student_data
 
 
@@ -146,7 +146,7 @@ def adhoc_writing_observer_aggregate(student_data):
         )
         max_time_on_task = max(
             max_time_on_task,
-            student['stream_analytics.writing_analysis.time_on_task']["total-time-on-task"]
+            student['learning_observer.stream_analytics.writing_analysis.time_on_task']["total-time-on-task"]
         )
     return {
         'max-character-count': max_character_count,
@@ -191,12 +191,12 @@ def real_student_data(course_id, roster):
                 "userId": student['userId'],  # TODO: Encode?
 
                 # Defaults if we have no data. If we have data, this will be overwritten.
-                'stream_analytics.writing_analysis.reconstruct': {
+                'learning_observer.stream_analytics.writing_analysis.reconstruct': {
                     'text': None,
                     'position': 0,
                     'edit_metadata': {'cursor': [2], 'length': [1]}
                 },
-                'stream_analytics.writing_analysis.time_on_task': {
+                'learning_observer.stream_analytics.writing_analysis.time_on_task': {
                     'saved_ts': -1,
                     'total-time-on-task': 0
                 },
@@ -217,7 +217,9 @@ def real_student_data(course_id, roster):
                     sa_module,
                     student_id,
                     sa_helpers.KeyStateType.EXTERNAL)
+                print(key)
                 data = await teacherkvs[key]
+                print(data)
                 if data is not None:
                     student_data[sa_helpers.fully_qualified_function_name(sa_module)] = data
             # print(student_data)

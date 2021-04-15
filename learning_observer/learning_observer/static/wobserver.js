@@ -60,7 +60,7 @@ function update_time_idle_data(d3tile, data) {
     /* Old data */
     let serverside_update_time = d3.select(d3tile).attr("data-ssut");
     let clientside_time = (new Date()).getTime() / 1000;
-    let new_serverside_update_time = Math.round(data['stream_analytics.writing_analysis.time_on_task']['saved_ts']);
+    let new_serverside_update_time = Math.round(data['learning_observer.stream_analytics.writing_analysis.time_on_task']['saved_ts']);
 
     if(new_serverside_update_time == Math.round(serverside_update_time)) {
 	// Time didn't change. Do nothing! Continue using the client clock
@@ -68,7 +68,7 @@ function update_time_idle_data(d3tile, data) {
     }
 
     d3.select(d3tile).attr("data-ssut", aggregated_data["current-time"]);
-    d3.select(d3tile).attr("data-sslat", data['stream_analytics.writing_analysis.time_on_task']['saved_ts']);
+    d3.select(d3tile).attr("data-sslat", data['learning_observer.stream_analytics.writing_analysis.time_on_task']['saved_ts']);
     d3.select(d3tile).attr("data-csut", clientside_time);
 }
 
@@ -149,7 +149,7 @@ function populate_tiles(tilesheet) {
 	    let text = compiled.text;
 	    d3.select(this).select(".wo-tile-character-count").select("span").text(compiled["character-count"]);
 	    //d3.select(this).select(".wo-tile-character-count").select("rect").attr("width", 15);
-	    let tot = d["stream_analytics.writing_analysis.time_on_task"];
+	    let tot = d["learning_observer.stream_analytics.writing_analysis.time_on_task"];
 	    d3.select(this).select(".wo-tile-time-on-task").select("span").text(rendertime(tot["total-time-on-task"]));
 	    //d3.select(this).select(".wo-tile-time-on-task").select("rect").attr("width", 15);
 	    d3.select(this).select(".wo-tile-idle-time").select("span").text("Hello");

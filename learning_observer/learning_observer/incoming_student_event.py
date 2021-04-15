@@ -56,6 +56,8 @@ async def student_event_pipeline(metadata):
     Create an event pipeline, based on header metadata
     '''
     client_source = metadata["source"]
+    print("client_source")
+    print(stream_analytics.student_reducer_modules())
     if client_source not in stream_analytics.student_reducer_modules():
         debug_log("Unknown event source: " + str(client_source))
         debug_log("Known sources: " + repr(stream_analytics.student_reducer_modules().keys()))

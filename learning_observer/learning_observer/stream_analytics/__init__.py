@@ -24,7 +24,8 @@ def student_reducer_modules():
 
     TODO: Somewhat obsolete, since a lot of this code will migrate into module_loader.
     '''
-    return student_reducer_modules
+    global STUDENT_REDUCER_MODULES
+    return STUDENT_REDUCER_MODULES
 
 
 def async_lambda(function):
@@ -47,10 +48,10 @@ def init():
         lambda metadata: async_lambda(lambda event: event)
     )})
     try:
-        import stream_analytics.dynamic_assessment
+        import learning_observer.stream_analytics.dynamic_assessment
         srm["org.mitros.dynamic-assessment"].append({
             'student_event_reducer': async_lambda(
-                lambda metadata: stream_analytics.dynamic_assessment.process_event
+                lambda metadata: learning_observer.stream_analytics.dynamic_assessment.process_event
             )
         })
     except ModuleNotFoundError:
@@ -58,9 +59,9 @@ def init():
               "Starting without dynamic assessment")
 
     try:
-        import stream_analytics.writing_analysis
+        import learning_observer.stream_analytics.writing_analysis
         srm["org.mitros.writing-analytics"].append({
-            'student_event_reducer': stream_analytics.writing_analysis.pipeline
+            'student_event_reducer': learning_observer.stream_analytics.writing_analysis.pipeline
         })
     except ModuleNotFoundError:
         print("Module writing-analytics not found. "
