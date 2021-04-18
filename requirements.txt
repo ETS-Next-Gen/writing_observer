@@ -20,6 +20,7 @@ pathvalidate
 pep8
 psutil
 pyasn1
+py-bcrypt
 pycodestyle
 pylint
 pyyaml

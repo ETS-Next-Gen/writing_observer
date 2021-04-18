@@ -47,9 +47,9 @@ import learning_observer.settings as settings
 import learning_observer.paths as paths
 import learning_observer.exceptions
 
-if isinstance(settings.settings['google-oauth']['web']['client_secret'], dict) or \
-   isinstance(settings.settings['google-oauth']['web']['project_id'], dict) or \
-   isinstance(settings.settings['google-oauth']['web']['client_id'], dict):
+if isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
+   isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
+   isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
     print("Please configure Google oauth")
     print("")
     print("Go to:")
@@ -79,30 +79,6 @@ async def verify_teacher_account(user_id, email):
         return False
     print("Teacher account verified")
     return True
-
-
-async def social(request):
-    """Handles Google sign in.
-
-    Provider is in `request.match_info['provider']` (currently, only Google)
-    """
-    if request.match_info['provider'] != 'google':
-        raise learning_observer.exceptions.SuspiciousOperation(
-            "We only handle Google logins. Non-google Provider"
-        )
-
-    user = await _google(request)
-    print(user)
-
-    if 'user_id' in user:
-        await _authorize_user(request, user)
-
-    if user['authorized']:
-        url = user['back_to'] or "/"
-    else:
-        url = "/"
-
-    return aiohttp.web.HTTPFound(url)
 
 
 async def _authorize_user(request, user):
@@ -187,6 +163,51 @@ async def user_info(request):
     return aiohttp.web.json_response(request['user'])
 
 
+def html_login_required(handler):
+    """
+    A handler function decorator that enforces that the user is logged
+    in. If not, redirects to the login page.
+
+    :param handler: function to decorate.
+    :return: decorated function
+    """
+    @functools.wraps(handler)
+    async def decorator(*args):
+        user = args[0]["user"]
+        if user is None:
+            return aiohttp.web.HTTPFound("/")
+        return handler(*args)
+    return decorator
+
+
+#
+# Below is Google-specific code. This should go in its own file?
+#
+
+async def social(request):
+    """Handles Google sign in.
+
+    Provider is in `request.match_info['provider']` (currently, only Google)
+    """
+    if request.match_info['provider'] != 'google':
+        raise learning_observer.exceptions.SuspiciousOperation(
+            "We only handle Google logins. Non-google Provider"
+        )
+
+    user = await _google(request)
+    print(user)
+
+    if 'user_id' in user:
+        await _authorize_user(request, user)
+
+    if user['authorized']:
+        url = user['back_to'] or "/"
+    else:
+        url = "/"
+
+    return aiohttp.web.HTTPFound(url)
+
+
 async def _google(request):
     '''
     Handle Google login
@@ -195,7 +216,7 @@ async def _google(request):
         return {}
 
     common_params = {
-        'client_id': settings.settings['google-oauth']['web']['client_id'],
+        'client_id': settings.settings['auth']['google-oauth']['web']['client_id'],
         'redirect_uri': "https://writing.hopto.org/auth/login/google",
     }
 
@@ -223,7 +244,7 @@ async def _google(request):
     url = 'https://accounts.google.com/o/oauth2/token'
     params = common_params.copy()
     params.update({
-        'client_secret': settings.settings['google-oauth']['web']['client_secret'],
+        'client_secret': settings.settings['auth']['google-oauth']['web']['client_secret'],
         'code': request.query['code'],
         'grant_type': 'authorization_code',
     })
@@ -254,20 +275,3 @@ async def _google(request):
         # TODO: Should this be immediate?
         'authorized': await verify_teacher_account(profile['id'], profile['email'])
     }
-
-
-def html_login_required(handler):
-    """
-    A handler function decorator that enforces that the user is logged
-    in. If not, redirects to the login page.
-
-    :param handler: function to decorate.
-    :return: decorated function
-    """
-    @functools.wraps(handler)
-    async def decorator(*args):
-        user = args[0]["user"]
-        if user is None:
-            return aiohttp.web.HTTPFound("/")
-        return handler(*args)
-    return decorator

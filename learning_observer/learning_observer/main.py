@@ -34,6 +34,8 @@ import learning_observer.module_loader
 import learning_observer.paths as paths
 import learning_observer.settings as settings
 
+import learning_observer.auth.password
+
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
 # This is a test to avoid that bug.
@@ -63,18 +65,6 @@ def static_file_handler(filename):
     async def handler(request):
         return aiohttp.web.FileResponse(filename)
     return handler
-
-
-async def index(request):
-    '''
-    Main page:
-
-    * People who aren't logged in get the login page.
-    * People who are get a list of their Google Classroom courses
-    '''
-    if request['user'] is None:
-        return aiohttp.web.FileResponse(paths.static("index.html"))
-    return aiohttp.web.FileResponse(paths.static("courselist.html"))
 
 
 def static_directory_handler(basepath):
@@ -141,7 +131,6 @@ app.add_routes([
     # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
     aiohttp.web.get(
         r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
-#        '/static/repos/{module}/{repo}/{branch}/3rdparty/{filename}',
         static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
     aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
@@ -165,13 +154,36 @@ app.add_routes([
 ])
 
 # Generic web-appy things
-# Old version had: aiohttp.web.get('/', index),
 app.add_routes([
     aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
-    aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
     aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
     aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
 ])
+
+if 'google-oauth' in settings.settings['auth']:
+    print("Running with Google authentication")
+    app.add_routes([
+        aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
+    ])
+
+
+if 'password-file' in settings.settings['auth']:
+    print("Running with password authentication")
+    if not os.path.exists(settings.settings['auth']['password-file']):
+        print("Configured to run with password file, but no password file exists")
+        print()
+        print("Please either:")
+        print("* Remove auth/password-file from the settings file")
+        print("* Create a file {fn} with lo_passwd.py".format(
+            fn=settings.settings['auth']['password-file']
+        ))
+        sys.exit(-1)
+    app.add_routes([
+        aiohttp.web.post(
+            '/auth/login/password',
+            learning_observer.auth.password.password_auth(
+                settings.settings['auth']['password-file'])
+        )])
 
 app.add_routes([
     aiohttp.web.get('/admin/status', handler=admin.system_status)
@@ -260,7 +272,7 @@ if 'aio' not in settings.settings or \
 
 repos = learning_observer.module_loader.static_repos()
 for gitrepo in repos:
-    giturl = r'/static/repos/'+repos[gitrepo]['module']+'/'+gitrepo+'/{branch:[^{}/]+}/{filename:[^{}]+}'
+    giturl = r'/static/repos/' + repos[gitrepo]['module'] + '/' + gitrepo + '/{branch:[^{}/]+}/{filename:[^{}]+}'
     app.add_routes([
         aiohttp.web.get(
             giturl,

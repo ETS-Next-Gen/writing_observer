@@ -1,3 +1,8 @@
+<!-- Login page
+
+We should have flags to enable different login methods
+-->
+
 <div class="columns">
   <div class="column">
     <div class="content">
@@ -6,6 +11,35 @@
       please <a href="mailto:pmitros@ets.org">contact
       us</a>. If you're already part of the experiment: 
       </p>
+      <form action="/auth/login/password" method="post">
+	<div>
+	  <div class="field">
+	    <label class="label">Username</label>
+	    <div class="control has-icons-left">
+	      <input name="username" class="input" type="text" placeholder="<username>">
+	      <span class="icon is-small is-left">
+		<i class="fas fa-user"></i>
+	      </span>
+	    </div>
+	  </div>
+
+	  <div class="field">
+	    <label class="label">Password</label>
+	    <div class="control has-icons-left">
+	      <input class="input" type="password" name="password" placeholder="*****">
+	      <span class="icon is-small is-left">
+		<i class="fas fa-unlock"></i>
+	      </span>
+	    </div>
+	  </div>
+
+	  <div class="field is-grouped">
+	    <div class="control">
+	      <button class="button is-link">Log in</button>
+	    </div>
+	  </div>
+	</div>
+      </form>
       <p><a href="/auth/login/google">
 	<button class="button is-primary">Log in with Google!</button>
       </a> </p>

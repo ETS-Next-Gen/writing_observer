@@ -1,5 +1,6 @@
 PYTHONFILES = $(wildcard \
 	learning_observer/learning_observer/*py \
+	learning_observer/util/*py \
 	gitserve/gitserve/*py \
 	gitserve/*py \
 	learning_observer/learning_observer/pubsub/*py \

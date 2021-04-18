@@ -13,15 +13,18 @@ xmpp:
   stream: # For debugging
     jid: stream@localhost
     password: {xmpp-stream-password}
-google-oauth:
-  web:
-    client_id: {google-oauth-client-id}
-    project_id: {google-oauth-project-id}
-    auth_uri: https://accounts.google.com/o/oauth2/auth
-    token_uri: https://oauth2.googleapis.com/token
-    auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
-    client_secret: {google-client-secret}
-    javascript_origins: ["{url}"]
+auth:
+  google-oauth:  # Remove if you're not using Google auth
+    web:
+      client_id: {google-oauth-client-id}
+      project_id: {google-oauth-project-id}
+      auth_uri: https://accounts.google.com/o/oauth2/auth
+      token_uri: https://oauth2.googleapis.com/token
+      auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
+      client_secret: {google-client-secret}
+      javascript_origins: ["{url}"]
+  password-file: passwd.lo  # Remove if you're not using a password file
+                            # Otherwise, create one with lo_passwd.py
 pubsub:
     type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
 kvs:
@@ -43,4 +46,4 @@ aio:
 config:
     run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?
     debug: []  # add "tracemalloc" to the list to enable memory leak debugging
-    	       # add "logging" to have extra stuff on the console AND log exceptions
+               # add "logging" to have extra stuff on the console AND log exceptions
