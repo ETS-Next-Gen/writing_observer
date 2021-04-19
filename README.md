@@ -48,6 +48,25 @@ currently implemented to be so. It would take work to flush out all of
 the performance issues. We'd like to do that work once we better
 understand what we're doing.
 
+Getting Started
+===============
+
+As an early prototype, getting started isn't seamless. Run:
+
+~~~~~
+make install
+~~~~~
+
+And follow the instructions. Then fix up the makefile and make a PR :)
+
+Once that's done, run:
+
+~~~~
+make
+~~~~
+
+Again, fix up the makefile, and make a PR.
+
 Contact/maintainer: Piotr Mitros (pmitros@ets.org)
 
 Licensing: Open source / free software. License TBD. 

@@ -7,6 +7,11 @@ PYTHONFILES = $(wildcard \
 	learning_observer/learning_observer/stream_analytics/*py \
 )
 
+run:
+	# If you haven't done so yet, run: make install
+	# Also, run: workon learning_observer
+	cd learning_observer && python learning_observer
+
 # Build browser extension
 extension-package:
 	google-chrome --pack-extension=extension --pack-extension-key=extension.pem --disable-setuid-sandbox --no-gpu --no-sandbox --headless
