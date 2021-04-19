@@ -48,3 +48,6 @@ install:
 	#    python setup.py develop
 	#    python learning_observer
 	# And then clean up this Makefile to do it for you automatically :)
+
+sphinx:
+	cd learning_observer/docs; make html
