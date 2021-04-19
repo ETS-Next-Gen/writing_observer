@@ -1,4 +1,7 @@
 '''
+Administrative Views
+====================
+
 Views for monitoring overall system operation, and eventually, for
 administering the system.
 '''

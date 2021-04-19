@@ -28,7 +28,7 @@ import learning_observer.stream_analytics as stream_analytics  # Individual anal
 
 import learning_observer.settings as settings
 
-from log_event import debug_log
+from learning_observer.log_event import debug_log
 
 import learning_observer.exceptions
 
@@ -129,7 +129,6 @@ async def ajax_event_request(request):
     each user has their own sender account).
 
     In either case, this is handler is helpful for small-scale debugging.
-
     '''
     debug_log("AJAX Request received")
     client_event = await request.json()

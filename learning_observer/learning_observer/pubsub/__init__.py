@@ -28,15 +28,15 @@ except KeyError:
     sys.exit(-1)
 
 if PUBSUB == 'xmpp':
-    import pubsub.receivexmpp
-    import pubsub.sendxmpp
+    import learning_observer.pubsub.receivexmpp
+    import learning_observer.pubsub.sendxmpp
 
     async def pubsub_send(channel=None):
         '''
         Connect to an XMPP server, and return an object able to send
         events.
         '''
-        sender = pubsub.sendxmpp.SendXMPP(
+        sender = learning_observer.pubsub.sendxmpp.SendXMPP(
             settings.settings['xmpp']['source']['jid'],
             settings.settings['xmpp']['source']['password'],
             debug_log,
@@ -50,7 +50,7 @@ if PUBSUB == 'xmpp':
         Connect to an XMPP server, and return an object able to receive
         events.
         '''
-        receiver = pubsub.receivexmpp.ReceiveXMPP(
+        receiver = learning_observer.pubsub.receivexmpp.ReceiveXMPP(
             settings.settings['xmpp']['sink']['jid'],
             settings.settings['xmpp']['sink']['password'],
             debug_log
@@ -58,14 +58,14 @@ if PUBSUB == 'xmpp':
         receiver.connect()
         return receiver
 elif PUBSUB == 'stub':
-    import pubsub.pubstub
+    import learning_observer.pubsub.pubstub
 
     async def pubsub_send(channel=None):
         '''
         Return an object capable of placing objects in a simple in-memory
         queue.
         '''
-        sender = pubsub.pubstub.SendStub()
+        sender = learning_observer.pubsub.pubstub.SendStub()
         return sender
 
     async def pubsub_receive(channel=None):
@@ -73,17 +73,17 @@ elif PUBSUB == 'stub':
         Return an object capable of awaiting to remove objects from a
         simple in-memory queue.
         '''
-        receiver = pubsub.pubstub.ReceiveStub()
+        receiver = learning_observer.pubsub.pubstub.ReceiveStub()
         return receiver
 elif PUBSUB == 'redis':
-    import pubsub.redis_pubsub
+    import learning_observer.pubsub.redis_pubsub
 
     async def pubsub_send(channel=None):
         '''
         Connect to redis, and return an object capable of sending messages
         out over a redis queue / pubsub
         '''
-        sender = pubsub.redis_pubsub.RedisSend()
+        sender = learning_observer.pubsub.redis_pubsub.RedisSend()
         await sender.connect()
         return sender
 
@@ -92,7 +92,7 @@ elif PUBSUB == 'redis':
         Connect to redis, and return an object capable of receiving messages
         out over a redis queue / pubsub
         '''
-        receiver = pubsub.redis_pubsub.RedisReceive()
+        receiver = learning_observer.pubsub.redis_pubsub.RedisReceive()
         await receiver.connect()
         return receiver
 else:

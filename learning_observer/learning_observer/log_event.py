@@ -53,7 +53,7 @@ import inspect
 import json
 import hashlib
 
-import filesystem_state
+import learning_observer.filesystem_state
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
@@ -125,7 +125,7 @@ def insecure_hash(text):
 # This way, event logs can refer uniquely to running version
 # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
 # hexdigest?
-startup_state = json.dumps(filesystem_state.filesystem_state(), indent=3, sort_keys=True)
+startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
 STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
 STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
     directory=paths.logs("startup"),

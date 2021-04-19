@@ -5,9 +5,9 @@ It just routes to smaller pipelines. Currently that's:
 1) Time-on-task
 2) Reconstruct text (+Deane graphs, etc.)
 '''
-import stream_analytics.reconstruct_doc
+import learning_observer.stream_analytics.reconstruct_doc
 
-from stream_analytics.helpers import kvs_pipeline
+from learning_observer.stream_analytics.helpers import kvs_pipeline
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -63,20 +63,20 @@ async def reconstruct(event, internal_state):
     Google's deltas into a document. It also adds a bit of metadata e.g. for
     Deane plots.
     '''
-    internal_state = stream_analytics.reconstruct_doc.google_text.from_json(
+    internal_state = learning_observer.stream_analytics.reconstruct_doc.google_text.from_json(
         json_rep=internal_state)
     if event['client']['event'] == "google_docs_save":
         bundles = event['client']['bundles']
         for bundle in bundles:
-            internal_state = stream_analytics.reconstruct_doc.command_list(
+            internal_state = learning_observer.stream_analytics.reconstruct_doc.command_list(
                 internal_state, bundle['commands']
             )
     elif event['client']['event'] == "document_history":
         change_list = [
             i[0] for i in event['client']['history']['changelog']
         ]
-        internal_state = stream_analytics.reconstruct_doc.command_list(
-            stream_analytics.reconstruct_doc.google_text(), change_list
+        internal_state = learning_observer.stream_analytics.reconstruct_doc.command_list(
+            learning_observer.stream_analytics.reconstruct_doc.google_text(), change_list
         )
     state = internal_state.json
     return state, state
