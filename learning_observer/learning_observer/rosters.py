@@ -11,7 +11,7 @@ We can either retrieve class rosters from:
 
 - Google Classroom                      (config setting: 'google')
 - Text files on the disk for testing.   (config setting: 'test')
-  We have two files: 
+  We have two files:
   - courses.json
   - students.json
 - In progress: A file hierarchy, for small-scale deploys.
@@ -52,6 +52,7 @@ import learning_observer.paths as paths
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
+
 def clean_google_ajax_data(resp_json, key, sort_key, default=None):
     '''
     This cleans up / standardizes Google AJAX data. In particular:
@@ -62,10 +63,14 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None):
     - We often want the response sensibly sorted (`sort_key`)
     '''
     # Convert errors into appropriate codes for clients
+    # Typically, resp_json['error'] == 'UNAUTHENTICATED'
     if 'error' in resp_json:
-        return {'error': resp_json['error']}  # Typically, resp_json['error'] == 'UNAUTHENTICATED'
+        return {'error': resp_json['error']}
 
-    # If we just want one field, retrieve it, and handle issues cleanly if the field is missing
+    # Google sometimes returns results nested one extra level.
+    #
+    # If we just want one field, retrieve it, and handle issues cleanly
+    # if the field is missing
     if key is not None:
         if key in resp_json:
             resp_json = resp_json[key]

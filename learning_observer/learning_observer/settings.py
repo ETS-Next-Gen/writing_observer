@@ -1,16 +1,16 @@
 '''
-This is just a thin wrapper to load out configuration YAML file
-from disk.
+System Configuration
+====================
+
+This is just a wrapper to load out configuration YAML file from disk.
 
 At some point, it might make sense to make this a thicker wrapper, so
 we can have multiple configuration files with includes. As is, we have
 credentials in the same place as module configuration, which is not
 ideal.
-
-We might also want multiple configuration files on the same system, so
-we can run in different modes.
 '''
 
+import argparse
 import enum
 import sys
 
@@ -28,8 +28,18 @@ if not __name__.startswith("learning_observer."):
     raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
 
+parser = argparse.ArgumentParser(
+    description='The Learning Observer',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+parser.add_argument(
+    '--config-file',
+    help='Specify an alternative configuration file',
+    default=learning_observer.paths.config_file())
 
-settings = yaml.safe_load(open(learning_observer.paths.config_file()))
+args = parser.parse_args()
+
+settings = yaml.safe_load(open(args.config_file))
 
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY')
 
