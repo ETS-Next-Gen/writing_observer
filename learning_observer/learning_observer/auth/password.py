@@ -36,7 +36,7 @@ def password_auth(filename):
             print("Authorized")
             await learning_observer.auth_handlers._authorize_user(
                 request, {
-                    'user_id': "pwf-"+data['username'],
+                    'user_id': "pwd-"+data['username'],
                     'email': "",
                     'name': "",
                     'family_name': "",
@@ -44,6 +44,7 @@ def password_auth(filename):
                     'picture': "",
         # TODO: Should this be immediate?
                     'authorized': True
+
                 }
             )
             return aiohttp.web.json_response({"status": "authorized"})

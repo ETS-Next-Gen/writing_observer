@@ -92,6 +92,8 @@ async def _authorize_user(request, user):
     """
     session = await aiohttp_session.get_session(request)
     session["user"] = user
+    if user.get("authorized", False):
+        return True
     return await verify_teacher_account(user['user_id'], user['email'])
 
 

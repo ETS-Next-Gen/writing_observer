@@ -1,4 +1,7 @@
 '''
+Class Roster Subsystem
+======================
+
 This gives class roster information:
 
 - What classes a teach administrates
@@ -6,9 +9,14 @@ This gives class roster information:
 
 We can either retrieve class rosters from:
 
-- Google Classroom
-- A text file on the disk (currently for testing, but later for
-  small-scale deploys)
+- Google Classroom                      (config setting: 'google')
+- Text files on the disk for testing.   (config setting: 'test')
+  We have two files: 
+  - courses.json
+  - students.json
+- In progress: A file hierarchy, for small-scale deploys.
+- In progress: All students, for e.g. coglabs, experiments, and
+  similar
 
 In the future, we might want:
 
@@ -17,6 +25,15 @@ In the future, we might want:
 - an option to autocreate "guest" users (for unauthenticated deploys)
 
 As well as the option for several sources in the same system, perhaps.
+
+This file could be cleaned up a lot. Right now, we do a lot of this by
+mock calls to Google AJAX.
+
+Note that these APIs and file locations aren't finished. In the future,
+we may:
+
+* Switch from .json to .yaml
+* Have a less Googley format
 '''
 
 import json
@@ -25,6 +42,8 @@ import sys
 import aiohttp
 import aiohttp.web
 
+import pathvalidate
+
 import learning_observer.settings as settings
 
 import learning_observer.log_event as log_event
@@ -32,7 +51,6 @@ import learning_observer.paths as paths
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
-
 
 def clean_google_ajax_data(resp_json, key, sort_key, default=None):
     '''
@@ -76,17 +94,36 @@ async def synthetic_ajax(
     At some point, we'll want to upgrade this to support small-scale
     deployments, with a directory tree such as e.g.:
 
-    `course-rosters/[course_id].json`
+    `course_rosters/[course_id].json`
 
     and
 
-    `class-lists/[teacher_id].json`
+    `course_lists/[teacher_id].json`
     '''
-    synthetic_data = {
-        COURSE_URL: paths.data("courses.json"),
-        ROSTER_URL: paths.data("students.json")
-    }
-    return clean_google_ajax_data(json.load(open(synthetic_data[url])), key, sort_key, default=default)
+    if settings.settings['roster-data']['source'] == 'test':
+        synthetic_data = {
+            COURSE_URL: paths.data("courses.json"),
+            ROSTER_URL: paths.data("students.json")
+        }
+    elif settings.settings['roster-data']['source'] == 'filesystem':
+        print(request['user'])
+        courselist_file = "courselist-" + pathvalidate.sanitize_filename(request['user']['user_id'])
+        if parameters is not None and 'courseid' in parameters:
+            roster_file = "courseroster-" + pathvalidate.sanitize_filename(str(parameters['courseid']))
+        else:
+            roster_file = "default"
+        synthetic_data = {
+            ROSTER_URL: paths.data("course_rosters/{roster_file}.json".format(roster_file=roster_file)),
+            COURSE_URL: paths.data("course_lists/{courselist_file}.json".format(courselist_file=courselist_file))
+        }
+    else:
+        print("PANIC!!! ROSTER!")
+        print(settings.settings['roster-data']['source'])
+        sys.exit(-1)
+    # Old version was: clean_google_ajax_data(json.load(open(synthetic_data[url])), key, sort_key, default=default)
+    # We might should remove this comment once we've confirmed no servers are using the old version
+    data = json.load(open(synthetic_data[url]))
+    return data
 
 
 async def google_ajax(
@@ -117,15 +154,20 @@ async def google_ajax(
 if 'roster-data' not in settings.settings or 'source' not in settings.settings['roster-data']:
     print("Settings file needs a `roster-data` element with a `source` element")
     sys.exit(-1)
-elif settings.settings['roster-data']['source'] == "synthetic":
+elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
     ajax = synthetic_ajax
-elif settings.settings['roster-data']['source'] == "google-api":
+elif settings.settings['roster-data']['source'] in ["google-api"]:
     ajax = google_ajax
+elif settings.settings['roster-data']['source'] in ["all"]:
+    print("Setting 'all' not implemented yet.")
+    print("Please implement it, and make a PR :)")
+    sys.exit(-1)
 else:
     print("Settings file `roster-data` element should have `source` field set to either:")
-    print("  synthetic     (retrieve roster data from static data files)")
+    print("  test          (retrieve roster data from static data files courses.json and students.json)")
     print("  google-api    (retrieve roster data from Google)")
-    print("In the future, we may offer finer-grained options")
+    print("  filesystem    (retrieve roster data from file system hierarchy")
+    print("Coming soon: all")
     sys.exit(-1)
 
 
@@ -145,7 +187,7 @@ async def courselist(request):
 
 async def courseroster(request, course_id):
     '''
-    List all of the students in a class: Helper
+    List all of the students in a course: Helper
     '''
     roster = await ajax(
         request,
@@ -167,7 +209,7 @@ async def courselist_api(request):
 
 async def courseroster_api(request):
     '''
-    List all of the students in a class: Handler
+    List all of the students in a course: Handler
     '''
     course_id = int(request.match_info['course_id'])
     return aiohttp.web.json_response(await courseroster(request, course_id))
