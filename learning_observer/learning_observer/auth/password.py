@@ -42,9 +42,7 @@ def password_auth(filename):
                     'family_name': "",
                     'back_to': request.query.get('state'),
                     'picture': "",
-        # TODO: Should this be immediate?
                     'authorized': True
-
                 }
             )
             return aiohttp.web.json_response({"status": "authorized"})

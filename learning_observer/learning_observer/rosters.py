@@ -112,21 +112,23 @@ async def synthetic_ajax(
         }
     elif settings.settings['roster-data']['source'] == 'filesystem':
         print(request['user'])
-        courselist_file = "courselist-" + pathvalidate.sanitize_filename(request['user']['user_id'])
+        safe_userid = pathvalidate.sanitize_filename(request['user']['user_id'])
+        courselist_file = "courselist-" + safe_userid
         if parameters is not None and 'courseid' in parameters:
-            roster_file = "courseroster-" + pathvalidate.sanitize_filename(str(parameters['courseid']))
+            safe_courseid = pathvalidate.sanitize_filename(str(parameters['courseid']))
+            roster_file = "courseroster-" + safe_courseid
         else:
             roster_file = "default"
         synthetic_data = {
-            ROSTER_URL: paths.data("course_rosters/{roster_file}.json".format(roster_file=roster_file)),
-            COURSE_URL: paths.data("course_lists/{courselist_file}.json".format(courselist_file=courselist_file))
+            ROSTER_URL: paths.data("course_rosters/{roster_file}.json".format(
+                roster_file=roster_file)),
+            COURSE_URL: paths.data("course_lists/{courselist_file}.json".format(
+                courselist_file=courselist_file))
         }
     else:
         print("PANIC!!! ROSTER!")
         print(settings.settings['roster-data']['source'])
         sys.exit(-1)
-    # Old version was: clean_google_ajax_data(json.load(open(synthetic_data[url])), key, sort_key, default=default)
-    # We might should remove this comment once we've confirmed no servers are using the old version
     data = json.load(open(synthetic_data[url]))
     return data
 
@@ -154,9 +156,12 @@ async def google_ajax(
         async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
             resp_json = await resp.json()
             log_event.log_ajax(url, resp_json, request)
-            return clean_google_ajax_data(resp_json, key, sort_key, default=default)
+            return clean_google_ajax_data(
+                resp_json, key, sort_key, default=default
+            )
 
-if 'roster-data' not in settings.settings or 'source' not in settings.settings['roster-data']:
+if 'roster-data' not in settings.settings or \
+   'source' not in settings.settings['roster-data']:
     print("Settings file needs a `roster-data` element with a `source` element")
     sys.exit(-1)
 elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
@@ -168,10 +173,11 @@ elif settings.settings['roster-data']['source'] in ["all"]:
     print("Please implement it, and make a PR :)")
     sys.exit(-1)
 else:
-    print("Settings file `roster-data` element should have `source` field set to either:")
-    print("  test          (retrieve roster data from static data files courses.json and students.json)")
-    print("  google-api    (retrieve roster data from Google)")
-    print("  filesystem    (retrieve roster data from file system hierarchy")
+    print("Settings file `roster-data` element should have `source` field")
+    print("set to either:")
+    print("  test        (retrieve from files courses.json and students.json)")
+    print("  google-api  (retrieve roster data from Google)")
+    print("  filesystem  (retrieve roster data from file system hierarchy")
     print("Coming soon: all")
     sys.exit(-1)
 

@@ -1,13 +1,17 @@
 '''
-This sends client-side configuration. This might include things such
-as:
+Client Configuration
+====================
+
+This module creates a client-side configuration. This might include
+things such as:
 
 - Relative URL paths
 - Per-server UX tweaks
 - Etc.
 
 For now, this is managed in static files. We might move into a
-database eventually.
+database eventually. It will always be visible at a standard URL,
+probably `/config.json`
 '''
 
 import aiohttp
