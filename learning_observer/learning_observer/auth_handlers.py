@@ -47,22 +47,27 @@ import learning_observer.settings as settings
 import learning_observer.paths as paths
 import learning_observer.exceptions
 
-if 'auth' not in settings.settings or \
-   'google-oauth' not in settings.settings['auth'] or \
-   'web' not in settings.settings['auth']['google-oauth'] or \
-   'client_secret' not in settings.settings['auth']['google-oauth']['web'] or \
-   'project_id' not in settings.settings['auth']['google-oauth']['web'] or \
-   'client_id' not in settings.settings['auth']['google-oauth']['web'] or \
-   isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
-   isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
-   isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
-    print("Please configure Google oauth")
-    print("")
-    print("Go to:")
-    print("  https://console.developers.google.com/")
-    print("And set up an OAuth client for a web application. Make sure that configuration")
-    print("mirrors the one here.")
-    sys.exit(-1)
+# We need some auth
+if 'auth' not in settings.settings:
+    print("Please configure auth")
+
+# If we have Google oauth, we need it properly configured.
+# TODO: Confirm everything works with Google Oauth missing
+if 'google-oauth' in settings.settings['auth']:
+   if 'web' not in settings.settings['auth']['google-oauth'] or \
+      'client_secret' not in settings.settings['auth']['google-oauth']['web'] or \
+      'project_id' not in settings.settings['auth']['google-oauth']['web'] or \
+      'client_id' not in settings.settings['auth']['google-oauth']['web'] or \
+      isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
+      isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
+      isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
+       print("Please configure Google oauth")
+       print("")
+       print("Go to:")
+       print("  https://console.developers.google.com/")
+       print("And set up an OAuth client for a web application. Make sure that configuration")
+       print("mirrors the one here.")
+       sys.exit(-1)
 
 
 async def verify_teacher_account(user_id, email):

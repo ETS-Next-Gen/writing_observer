@@ -63,8 +63,9 @@ function ajax(config)
     }
 }
 
+
 requirejs(
-    ["3rd_party/text!config.json",
+    ["3rd_party/text!/config.json",
      "static/3rd_party/d3.v5.min.js",
      "static/3rd_party/mustache.min.js",
      "static/3rd_party/showdown.js",
@@ -84,8 +85,37 @@ requirejs(
 	config.d3 = d3;
 	config.ajax = ajax(config);
 
+	function password_authorize() {
+	    d3.json("/auth/login/password", {
+		method: 'POST',
+		headers: {
+		    "Content-type": "application/json; charset=UTF-8"
+		},
+		body: JSON.stringify({
+		    username: d3.select(".lo-login-username").property("value"),
+		    password: d3.select(".lo-login-password").property("value")
+		})
+	    }).then(function(data) {
+		if (data['status'] === 'authorized') {
+		    load_courses_page();
+		} else if (data['status'] === 'unauthorized') {
+		    // TODO: Flash a nice subtle message
+		    alert("Invalid username or password!");
+		}
+		else {
+		    console.log(data);
+		}
+	    });
+	}
+
 	function load_login_page() {
-	    d3.select(".main-page").html(login);
+	    d3.select(".main-page").html(mustache.render(login, config['theme']));
+	    d3.select(".lo-google-auth").classed("is-hidden", !config['google-oauth']);
+	    d3.select(".lo-password-auth").classed("is-hidden", !config['password-auth']);
+	    d3.select(".lo-login-button")
+		.on("click", function() {
+		    password_authorize();
+		});
 	}
 
 	function load_courses_page() {

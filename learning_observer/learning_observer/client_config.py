@@ -8,13 +8,11 @@ things such as:
 - Relative URL paths
 - Per-server UX tweaks
 - Etc.
-
-For now, this is managed in static files. We might move into a
-database eventually. It will always be visible at a standard URL,
-probably `/config.json`
 '''
 
 import aiohttp
+
+import learning_observer.settings
 
 
 client_config = {
@@ -23,7 +21,10 @@ client_config = {
     # For debugging / devel, it's helpful to be able to mock the API
     # with static files. Those won't do things like web sockets.
     "mode": "server",
-    "modules": {}     # Per-module config
+    "modules": {},     # Per-module config
+    "google-oauth": "google-oauth" in learning_observer.settings.settings['auth'],
+    "password-auth": "password-file" in learning_observer.settings.settings['auth'],
+    "theme": learning_observer.settings.settings['theme']
 }
 
 

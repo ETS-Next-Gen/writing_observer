@@ -2,6 +2,7 @@
 Password log-in handler
 '''
 import bcrypt
+import json
 import yaml
 
 import aiohttp.web
@@ -26,7 +27,10 @@ def password_auth(filename):
     `curl -X POST -F "username=test_user" -F "password=test_password" http://localhost:8888/23auth/login/password`
     '''
     async def password_auth_handler(request):
-        data = await request.post()
+        data = await request.post()  # Web form
+        body = await request.text()  # AJAX
+        if 'username' not in data:
+            data = json.loads(body)
         password_data = yaml.safe_load(open(filename))
         if data['username'] in password_data['users'] and \
            bcrypt.checkpw(

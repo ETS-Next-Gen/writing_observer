@@ -9,7 +9,9 @@ small applications we are testing this system with as well (e.g. dynamic
 assessment).
 '''
 
+import getpass
 import os
+import secrets
 import sys
 import uuid
 
@@ -178,6 +180,12 @@ def add_routes():
             print("Please either:")
             print("* Remove auth/password-file from the settings file")
             print("* Create a file {fn} with lo_passwd.py".format(
+                fn=settings.settings['auth']['password-file']
+            ))
+            print("Typically:")
+            print("python util/lo_passwd.py --username {username} --password {password} --filename {fn}".format(
+                username=getpass.getuser(),
+                password=secrets.token_urlsafe(16),
                 fn=settings.settings['auth']['password-file']
             ))
             sys.exit(-1)

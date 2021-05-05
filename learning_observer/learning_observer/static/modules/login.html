@@ -6,43 +6,45 @@ We should have flags to enable different login methods
 <div class="columns">
   <div class="column">
     <div class="content">
-      <p> Writing Observer is an experimental dashboard. If you'd like
-      to be part of the experiment,
-      please <a href="mailto:pmitros@ets.org">contact
-      us</a>. If you're already part of the experiment: 
+      <h1 class='lo-server-name'> {{ server-name }} </h1>
+      <p class='lo-front-page-pitch'> {{ front-page-pitch }}
       </p>
-      <form action="/auth/login/password" method="post">
-	<div>
-	  <div class="field">
-	    <label class="label">Username</label>
-	    <div class="control has-icons-left">
-	      <input name="username" class="input" type="text" placeholder="<username>">
-	      <span class="icon is-small is-left">
-		<i class="fas fa-user"></i>
-	      </span>
+      <div class="lo-password-auth">
+	<form action="javascript:void(0);" method="post">
+	  <div>
+	    <div class="field">
+	      <label class="label">Username</label>
+	      <div class="control has-icons-left">
+		<input name="username" class="input lo-login-username" type="text" placeholder="<username>">
+		<span class="icon is-small is-left">
+		  <i class="fas fa-user"></i>
+		</span>
+	      </div>
 	    </div>
-	  </div>
 
-	  <div class="field">
-	    <label class="label">Password</label>
-	    <div class="control has-icons-left">
-	      <input class="input" type="password" name="password" placeholder="*****">
-	      <span class="icon is-small is-left">
-		<i class="fas fa-unlock"></i>
-	      </span>
+	    <div class="field">
+	      <label class="label">Password</label>
+	      <div class="control has-icons-left">
+		<input name="password" class="input lo-login-password" type="password" placeholder="*****">
+		<span class="icon is-small is-left">
+		  <i class="fas fa-unlock"></i>
+		</span>
+	      </div>
 	    </div>
-	  </div>
 
-	  <div class="field is-grouped">
-	    <div class="control">
-	      <button class="button is-link">Log in</button>
+	    <div class="field is-grouped">
+	      <div class="control">
+		<button class="button is-link lo-login-button">Log in</button>
+	      </div>
 	    </div>
 	  </div>
-	</div>
-      </form>
-      <p><a href="/auth/login/google">
-	<button class="button is-primary">Log in with Google!</button>
-      </a> </p>
+	</form>
+      </div>
+      <div class="lo-google-auth">
+	<p><a href="/auth/login/google">
+	    <button class="button is-primary">Log in with Google!</button>
+	</a> </p>
+      </div>
       <p> <span class="icon">
 	  <i class="fab fa-github" aria-hidden="true"></i>
 	</span>
@@ -52,7 +54,7 @@ We should have flags to enable different login methods
   </div>
   <div class="column">
     <figure class="image is-2by9">
-      <img src="/static/media/logo-clean.jpg" width="30" height="22" alt="Writing Observer Logo">
+      <img src="{{logo-big}}" alt="Learning Observer Logo">
     </figure>
   </div>
 </div>
