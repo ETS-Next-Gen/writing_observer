@@ -30,7 +30,7 @@ def admin(func):
            request['user']['authorized']:
             return func(request)
         else:
-            raise
+            raise aiohttp.web.HTTPUnauthorized(text="Please log in")
     return f
 
 

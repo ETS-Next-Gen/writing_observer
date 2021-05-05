@@ -47,7 +47,13 @@ import learning_observer.settings as settings
 import learning_observer.paths as paths
 import learning_observer.exceptions
 
-if isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
+if 'auth' not in settings.settings or \
+   'google-oauth' not in settings.settings['auth'] or \
+   'web' not in settings.settings['auth']['google-oauth'] or \
+   'client_secret' not in settings.settings['auth']['google-oauth']['web'] or \
+   'project_id' not in settings.settings['auth']['google-oauth']['web'] or \
+   'client_id' not in settings.settings['auth']['google-oauth']['web'] or \
+   isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
    isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
    isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
     print("Please configure Google oauth")
