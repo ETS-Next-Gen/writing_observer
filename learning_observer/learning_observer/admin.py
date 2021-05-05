@@ -14,13 +14,24 @@ import aiohttp
 import learning_observer.module_loader
 
 
-def admin(function):
+def admin(func):
     '''
-    Dummy decorator to mark a view as an admin view.
+    Decorator to mark a view as an admin view.
 
-    This should be wired back to an auth/auth framework.
+    This should be moved to the auth/auth framework, and have more
+    granular levels (e.g. teachers and sys-admins). We probably don't
+    want a full ACL scheme (which overcomplicates things), but we will
+    want to think through auth/auth.
     '''
-    return function
+    def f(request):
+        if 'user' in request and \
+           request['user'] is not None and \
+           'authorized' in request['user'] and \
+           request['user']['authorized']:
+            return func(request)
+        else:
+            raise
+    return f
 
 
 def machine_resources():

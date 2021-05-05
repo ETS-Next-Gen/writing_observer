@@ -1,4 +1,6 @@
-'''Helper for console_scripts entry-point
+'''
+Run.py: Helper for console_scripts entry point
+=====
 
 In order to have this work as a command line utility installed with
 pip, we need a way to run this which is a function, rather than a

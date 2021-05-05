@@ -1,4 +1,7 @@
 '''
+main.py
+=========
+
 This is the main file for processing event data for student writing. This
 system is designed for our writing analysis project, but is designed to
 generalize to learning process data from multiple systems. We have a few
@@ -6,7 +9,6 @@ small applications we are testing this system with as well (e.g. dynamic
 assessment).
 '''
 
-import hashlib
 import os
 import sys
 import uuid
@@ -26,7 +28,7 @@ import learning_observer.init as init
 import learning_observer.admin as admin
 import learning_observer.client_config
 import learning_observer.incoming_student_event as incoming_student_event
-import learning_observer.dashboard as dashboard
+import learning_observer.dashboard
 import learning_observer.auth_handlers as auth_handlers
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
@@ -35,6 +37,8 @@ import learning_observer.paths as paths
 import learning_observer.settings as settings
 
 import learning_observer.auth.password
+import learning_observer.authutils as authutils
+
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
@@ -44,18 +48,12 @@ if not __name__.startswith("learning_observer."):
     sys.exit(-1)
 
 
-routes = aiohttp.web.RouteTableDef()
-app = aiohttp.web.Application()
-
-
 async def request_logger_middleware(request, handler):
     '''
     Print all hits. Helpful for debugging. Should eventually go into a
     log file.
     '''
     print(request)
-
-app.on_response_prepare.append(request_logger_middleware)
 
 
 def static_file_handler(filename):
@@ -117,112 +115,137 @@ if 'tracemalloc' in settings.settings['config'].get("debug", []):
         aiohttp.web.get('/debug/tracemalloc/', tracemalloc_handler),
     ])
 
-# Dashboard API
-# This serves up data (currently usually dummy data) for the dashboard
-app.add_routes([
-    aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', dashboard.student_data_handler),
-    aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/', dashboard.ws_student_data_handler)
-])
 
-# Serve static files
-app.add_routes([
-    aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
-    aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
-    # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
-    aiohttp.web.get(
-        r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
-        static_directory_handler(paths.static("3rd_party"))),
-    aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
-    aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
-    aiohttp.web.get('/static/media/avatar/{filename}',
-                    static_directory_handler(paths.static("media/hubspot_persona_images/"))),
-])
-
-
-# Handle web sockets event requests, incoming and outgoing
-app.add_routes([
-    aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler),
-    aiohttp.web.get('/wsapi/out/', incoming_student_event.outgoing_websocket_handler)
-])
-
-# Handle AJAX event requests, incoming
-app.add_routes([
-    aiohttp.web.get('/webapi/event/', incoming_student_event.ajax_event_request),
-    aiohttp.web.post('/webapi/event/', incoming_student_event.ajax_event_request),
-    aiohttp.web.get('/webapi/courselist/', rosters.courselist_api),
-    aiohttp.web.get('/webapi/courseroster/{course_id}', rosters.courseroster_api),
-])
-
-# Generic web-appy things
-app.add_routes([
-    aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
-    aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
-    aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
-])
-
-if 'google-oauth' in settings.settings['auth']:
-    print("Running with Google authentication")
+def add_routes():
+    '''
+    Massive routine to set up all static routes.
+    '''
+    # Dashboard API
+    # This serves up data (currently usually dummy data) for the dashboard
     app.add_routes([
-        aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
+        aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.student_data_handler),
+        aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.ws_student_data_handler)
+    ])
+
+    # Serve static files
+    app.add_routes([
+        aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
+        aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
+        # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
+        aiohttp.web.get(
+            r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
+            static_directory_handler(paths.static("3rd_party"))),
+        aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
+        aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
+        aiohttp.web.get('/static/media/avatar/{filename}',
+                        static_directory_handler(paths.static("media/hubspot_persona_images/"))),
     ])
 
 
-if 'password-file' in settings.settings['auth']:
-    print("Running with password authentication")
-    if not os.path.exists(settings.settings['auth']['password-file']):
-        print("Configured to run with password file, but no password file exists")
-        print()
-        print("Please either:")
-        print("* Remove auth/password-file from the settings file")
-        print("* Create a file {fn} with lo_passwd.py".format(
-            fn=settings.settings['auth']['password-file']
-        ))
-        sys.exit(-1)
+    # Handle web sockets event requests, incoming and outgoing
     app.add_routes([
-        aiohttp.web.post(
-            '/auth/login/password',
-            learning_observer.auth.password.password_auth(
-                settings.settings['auth']['password-file'])
-        )])
+        aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler),
+        aiohttp.web.get('/wsapi/out/', incoming_student_event.outgoing_websocket_handler)
+    ])
 
-app.add_routes([
-    aiohttp.web.get('/admin/status', handler=admin.system_status)
-])
+    # Handle AJAX event requests, incoming
+    app.add_routes([
+        aiohttp.web.get('/webapi/event/', incoming_student_event.ajax_event_request),
+        aiohttp.web.post('/webapi/event/', incoming_student_event.ajax_event_request),
+        aiohttp.web.get('/webapi/courselist/', rosters.courselist_api),
+        aiohttp.web.get('/webapi/courseroster/{course_id}', rosters.courseroster_api),
+    ])
 
-# This might look scary, but it's innocous. There are server-side
-# configuration options which the client needs to know about. This
-# gives those. At the very least, we want to be able to toggle the
-# client-side up between running with a real server and a dummy static
-# server, but in the future, we might want to include things like URIs
-# for different services the client can talk to and similar.
-#
-# This URI should **not** be the same as the filename. We have two
-# files, config.json is loaded if no server is running (dummy mode), and
-# this is overridden by the live server.
-app.add_routes([
-    aiohttp.web.get(
-        '/config.json',
-        learning_observer.client_config.client_config_handler
-    ),
-])
+    # Generic web-appy things
+    app.add_routes([
+        aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
+        aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
+        aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
+    ])
 
-# We'd like to be able to have the root page themeable, for non-ETS deployments
-# This is a quick-and-dirty way to override the main page.
-root_file = settings.settings.get("theme", {}).get("root_file", "webapp.html")
-app.add_routes([
-    aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
-])
+    if 'google-oauth' in settings.settings['auth']:
+        print("Running with Google authentication")
+        app.add_routes([
+            aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
+        ])
 
-# New-style modular dashboards
-dashboards = learning_observer.module_loader.dashboards()
-for dashboard in dashboards:
-    print(dashboards[dashboard])
+
+    if 'password-file' in settings.settings['auth']:
+        print("Running with password authentication")
+        if not os.path.exists(settings.settings['auth']['password-file']):
+            print("Configured to run with password file, but no password file exists")
+            print()
+            print("Please either:")
+            print("* Remove auth/password-file from the settings file")
+            print("* Create a file {fn} with lo_passwd.py".format(
+                fn=settings.settings['auth']['password-file']
+            ))
+            sys.exit(-1)
+        app.add_routes([
+            aiohttp.web.post(
+                '/auth/login/password',
+                learning_observer.auth.password.password_auth(
+                    settings.settings['auth']['password-file'])
+            )])
+
+    app.add_routes([
+        aiohttp.web.get('/admin/status', handler=admin.system_status)
+    ])
+
+    # This might look scary, but it's innocous. There are server-side
+    # configuration options which the client needs to know about. This
+    # gives those. At the very least, we want to be able to toggle the
+    # client-side up between running with a real server and a dummy static
+    # server, but in the future, we might want to include things like URIs
+    # for different services the client can talk to and similar.
+    #
+    # This URI should **not** be the same as the filename. We have two
+    # files, config.json is loaded if no server is running (dummy mode), and
+    # this is overridden by the live server.
     app.add_routes([
         aiohttp.web.get(
-            "/dashboards/" + dashboards[dashboard]['url'],
-            handler=dashboards[dashboard]['function'])
+            '/config.json',
+            learning_observer.client_config.client_config_handler
+        ),
     ])
 
+    # We'd like to be able to have the root page themeable, for non-ETS deployments
+    # This is a quick-and-dirty way to override the main page.
+    root_file = settings.settings.get("theme", {}).get("root_file", "webapp.html")
+    app.add_routes([
+        aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
+    ])
+
+    # New-style modular dashboards
+    dashboards = learning_observer.module_loader.dashboards()
+    for dashboard in dashboards:
+        print(dashboards[dashboard])
+        app.add_routes([
+            aiohttp.web.get(
+                "/dashboards/" + dashboards[dashboard]['url'],
+                handler=dashboards[dashboard]['function'])
+        ])
+
+    # Repos
+    repos = learning_observer.module_loader.static_repos()
+    for gitrepo in repos:
+        giturl = r'/static/repos/' + repos[gitrepo]['module'] + '/' + gitrepo + '/{branch:[^{}/]+}/{filename:[^{}]+}'
+        app.add_routes([
+            aiohttp.web.get(
+                giturl,
+                handler=gitserve.aio_gitserve.git_handler_wrapper(
+                    paths.repo(gitrepo),
+                    cookie_prefix="SHA_" + gitrepo,
+                    prefix=repos[gitrepo].get("prefix", None),
+                    bare=repos[gitrepo].get("bare", False),)
+            )
+        ])
+
+
+routes = aiohttp.web.RouteTableDef()
+app = aiohttp.web.Application()
+app.on_response_prepare.append(request_logger_middleware)
+add_routes()
 
 cors = aiohttp_cors.setup(app, defaults={
     "*": aiohttp_cors.ResourceOptions(
@@ -231,16 +254,6 @@ cors = aiohttp_cors.setup(app, defaults={
         allow_headers="*",
     )
 })
-
-
-def fernet_key(secret_string):
-    '''
-    Generate key for our cookie storage based on the `session_secret`
-    in our config file.
-    '''
-    md5_hash = hashlib.md5()
-    md5_hash.update(secret_string.encode('utf-8'))
-    return md5_hash.hexdigest().encode('utf-8')
 
 
 if 'aio' not in settings.settings or \
@@ -270,23 +283,8 @@ if 'aio' not in settings.settings or \
     print("    session_max_age: 4320")
     sys.exit(-1)
 
-repos = learning_observer.module_loader.static_repos()
-for gitrepo in repos:
-    giturl = r'/static/repos/' + repos[gitrepo]['module'] + '/' + gitrepo + '/{branch:[^{}/]+}/{filename:[^{}]+}'
-    app.add_routes([
-        aiohttp.web.get(
-            giturl,
-            handler=gitserve.aio_gitserve.git_handler_wrapper(
-                paths.repo(gitrepo),
-                cookie_prefix="SHA_" + gitrepo,
-                prefix=repos[gitrepo].get("prefix", None),
-                bare=repos[gitrepo].get("bare", False),)
-        )
-    ])
-
-
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
-    fernet_key(settings.settings['aio']['session_secret']),
+    authutils.fernet_key(settings.settings['aio']['session_secret']),
     max_age=settings.settings['aio']['session_max_age']))
 
 app.middlewares.append(auth_handlers.auth_middleware)

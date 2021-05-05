@@ -70,7 +70,6 @@ async def verify_teacher_account(user_id, email):
     For now, we have the file-backed version
     '''
     teachers = yaml.safe_load(open(paths.data("teachers.yaml")))
-    print("Teachers:", teachers)
     if email not in teachers:
         print("Email not found in teachers")
         return False
@@ -105,7 +104,6 @@ async def logout(request):
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
     session.pop("auth_headers", None)
-    print(session)
     return aiohttp.web.HTTPFound("/")  # TODO: Make a proper logout page
 
 
@@ -197,7 +195,6 @@ async def social(request):
         )
 
     user = await _google(request)
-    print(user)
 
     if 'user_id' in user:
         await _authorize_user(request, user)
@@ -265,7 +262,6 @@ async def _google(request):
         url = 'https://www.googleapis.com/oauth2/v1/userinfo'
         async with client.get(url, headers=headers) as resp:
             profile = await resp.json()
-        print(profile)
 
     return {
         'user_id': profile['id'],

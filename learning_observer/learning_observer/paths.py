@@ -1,9 +1,14 @@
 '''
-Helper utility to help manage paths. We'd like to abstract this out so that the tool can work in:
+Path hierarchy
+==============
 
-1) Deployed settings
-2) pip installs
-3) Development mode
+Helper utility to help manage paths. We'd like to abstract out path
+configurations so that the tool can work in:
+
+1. Deployed settings
+2. pip installs
+3. Development mode
+
 ... etc.
 
 This abstracts out finding files and directories. Eventually, we'd
