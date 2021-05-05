@@ -12,6 +12,7 @@ ideal.
 
 import argparse
 import enum
+import os.path
 import sys
 
 import yaml
@@ -38,6 +39,13 @@ parser.add_argument(
     default=learning_observer.paths.config_file())
 
 args = parser.parse_args()
+
+if not os.path.exists(args.config_file):
+    print("Missing settings file")
+    print("Copy the example file into:")
+    print(args.config_file)
+    print("And then continue setup")
+    sys.exit(-1)
 
 settings = yaml.safe_load(open(args.config_file))
 
