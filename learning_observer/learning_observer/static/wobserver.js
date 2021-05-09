@@ -1,3 +1,7 @@
+/*
+  Main visualization for The Writing Observer
+*/
+
 var student_data;
 var aggregated_data;
 var tile_template;
@@ -208,11 +212,14 @@ function initialize(D3, div, course) {
     };
 }
 
-define(["3rd_party/text!modules/dashboard.html",
-	"3rd_party/text!modules/tile.html",
-        "static/3rd_party/mustache.min.js",
-       ],
-       function(dashboard, tile, mustache) {
+define([
+    // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
+    "/config.json",
+    "/static/3rd_party/text.js!/static/modules/wo_dashboard.html",
+    "/static/3rd_party/text.js!/static/modules/tile.html",
+    "/static/3rd_party/mustache.min.js",
+],
+       function(config, dashboard, tile, mustache) {
 	   Mustache = mustache;
 	   dashboard_template = dashboard;
 	   tile_template = tile;
