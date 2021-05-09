@@ -14,9 +14,9 @@ We can either retrieve class rosters from:
   We have two files:
   - courses.json
   - students.json
-- In progress: A file hierarchy, for small-scale deploys.
+- In progress: A file hierarchy, for small-scale deploys.  ('filesystem')
 - In progress: All students, for e.g. coglabs, experiments, and
-  similar
+  similar  ('all')
 
 In the future, we might want:
 
@@ -37,6 +37,7 @@ we may:
 '''
 
 import json
+import os.path
 import sys
 
 import aiohttp
@@ -129,7 +130,17 @@ async def synthetic_ajax(
         print("PANIC!!! ROSTER!")
         print(settings.settings['roster-data']['source'])
         sys.exit(-1)
-    data = json.load(open(synthetic_data[url]))
+    try:
+        data = json.load(open(synthetic_data[url]))
+    except FileNotFoundError as e:
+        print(e)
+        raise aiohttp.web.HTTPInternalServerError(
+            text="Server configuration error. "
+            "No course roster file for your account. "
+            "Please ask the sysadmin to make one. "
+            "(And yes, they'll want to know about this issue;"
+            "you won't be bugging them)"
+        )
     return data
 
 
@@ -181,6 +192,29 @@ else:
     print("Coming soon: all")
     sys.exit(-1)
 
+REQUIRED_PATHS = {
+    'test': [
+        paths.data("students.json"),
+        paths.data("courses.json")
+    ],
+    'filesystem': [
+        paths.data("course_lists/"),
+        paths.data("course_rosters/")
+    ]
+}
+
+if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
+    r_paths = REQUIRED_PATHS[settings.settings['roster-data']['source']]
+    for p in r_paths:
+        if not os.path.exists(p):
+            print("Missing course roster files!")
+            print("The following are required:")
+            print("\t", "\n\t".join(paths))
+            print(
+                "(And ideally, they'll be populated with "
+                "a list of courses, and of students for "
+                "those courses)")
+            sys.exit(-1)
 
 async def courselist(request):
     '''

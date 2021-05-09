@@ -37,3 +37,37 @@ def fernet_key(secret_string):
     md5_hash = hashlib.md5()
     md5_hash.update(secret_string.encode('utf-8'))
     return md5_hash.hexdigest().encode('utf-8')
+
+
+# Account decorators below.
+#
+# We don't want a complex authentication scheme. In the short term,
+# we plan to have teacher, student, and admin accounts.
+#
+# In the long term, we will probably 
+
+
+def admin(func):
+    '''
+    Decorator to mark a view as an admin view.
+
+    This should be moved to the auth/auth framework, and have more
+    granular levels (e.g. teachers and sys-admins). We probably don't
+    want a full ACL scheme (which overcomplicates things), but we will
+    want to think through auth/auth.
+    '''
+    def f(request):
+        if 'user' in request and \
+           request['user'] is not None and \
+           'authorized' in request['user'] and \
+           request['user']['authorized']:
+            return func(request)
+        else:
+            raise aiohttp.web.HTTPUnauthorized(text="Please log in")
+    return f
+
+
+# Decorator
+#
+# For now, we don't have seperate teacher and admin accounts.
+teacher = admin
