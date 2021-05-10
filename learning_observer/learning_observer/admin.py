@@ -10,6 +10,7 @@ import copy
 import psutil
 
 import aiohttp
+import aiohttp.web
 
 import learning_observer.module_loader
 
