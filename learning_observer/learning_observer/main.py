@@ -297,5 +297,19 @@ aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage
 
 app.middlewares.append(auth_handlers.auth_middleware)
 
+
+async def add_nocache(request, response):
+    '''
+    This prevents the browser from caching pages.
+
+    Browsers do wonky things when logging in / out, keeping old pages
+    around. Caching generally seems like a train wreck for this system.
+    '''
+    if '/static/' not in str(request.url):
+        response.headers['cache-control'] = 'no-cache'
+
+
+app.on_response_prepare.append(add_nocache)
+
 print("Running!")
 aiohttp.web.run_app(app, port=8888)
