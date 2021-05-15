@@ -31,7 +31,7 @@ import learning_observer.admin as admin
 import learning_observer.client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
-import learning_observer.auth_handlers as auth_handlers
+import learning_observer.auth.handlers as auth_handlers
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
 
@@ -39,7 +39,7 @@ import learning_observer.paths as paths
 import learning_observer.settings as settings
 
 import learning_observer.auth.password
-import learning_observer.authutils as authutils
+import learning_observer.auth.utils as authutils
 
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -63,6 +63,7 @@ def static_file_handler(filename):
     Serve a single static file
     '''
     async def handler(request):
+        print(request.headers)
         return aiohttp.web.FileResponse(filename)
     return handler
 
@@ -224,14 +225,17 @@ def add_routes():
         aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
     ])
 
-    # New-style modular dashboards
-    dashboards = learning_observer.module_loader.dashboards()
-    for dashboard in dashboards:
-        print(dashboards[dashboard])
+    # New-style modular class_aggregators
+    class_aggregators = learning_observer.module_loader.class_aggregators()
+    for dashboard in class_aggregators:
+        print(class_aggregators[dashboard])
         app.add_routes([
+            # TODO: Change URL
+            # TODO: Add classroom ID within URL
+            # TODO: Add student API
             aiohttp.web.get(
-                "/dashboards/" + dashboards[dashboard]['url'],
-                handler=dashboards[dashboard]['function'])
+                "/dashboards/" + class_aggregators[dashboard]['url'],
+                handler=class_aggregators[dashboard]['function'])
         ])
 
     # Repos

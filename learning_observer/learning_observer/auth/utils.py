@@ -14,6 +14,8 @@ The whole auth system ought to be reorganized at some point.
 
 import hashlib
 
+import aiohttp.web
+
 
 def google_id_to_user_id(google_id):
     '''

@@ -14,7 +14,7 @@ import aiohttp.web
 
 import learning_observer.module_loader
 
-from learning_observer.authutils import admin
+from learning_observer.auth.utils import admin
 
 
 def machine_resources():
@@ -69,9 +69,9 @@ async def system_status(request):
     might change the API a bit to make it more computer-friendly and
     less Firefox-friendly.
     '''
-    dashboards = copy.deepcopy(learning_observer.module_loader.dashboards())
-    for k in dashboards:
-        dashboards[k]['function'] = str(dashboards[k]['function'])
+    class_aggregators = copy.deepcopy(learning_observer.module_loader.class_aggregators())
+    for k in class_aggregators:
+        class_aggregators[k]['function'] = str(class_aggregators[k]['function'])
     reducers = copy.deepcopy(learning_observer.module_loader.reducers())
     for k in reducers:
         k['function'] = str(k['function'])
@@ -80,7 +80,7 @@ async def system_status(request):
         "status": "Alive!",
         "resources": machine_resources(),
         "modules": {
-            "dashboards": dashboards,
+            "class_aggregators": class_aggregators,
             "reducers": reducers,
             "static_repos": learning_observer.module_loader.static_repos()
         },

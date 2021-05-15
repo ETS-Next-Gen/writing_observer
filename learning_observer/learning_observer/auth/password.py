@@ -7,7 +7,7 @@ import yaml
 
 import aiohttp.web
 
-import learning_observer.auth_handlers
+import learning_observer.auth.handlers
 
 def password_auth(filename):
     '''
@@ -38,7 +38,7 @@ def password_auth(filename):
                password_data['users'][data['username']]['password']
            ):
             print("Authorized")
-            await learning_observer.auth_handlers._authorize_user(
+            await learning_observer.auth.handlers._authorize_user(
                 request, {
                     'user_id': "pwd-"+data['username'],
                     'email': "",
@@ -52,6 +52,6 @@ def password_auth(filename):
             return aiohttp.web.json_response({"status": "authorized"})
         else:
             print("Unauthorized")
-            await learning_observer.auth_handlers.logout(request)
+            await learning_observer.auth.handlers.logout(request)
             return aiohttp.web.json_response({"status": "unauthorized"})
     return password_auth_handler

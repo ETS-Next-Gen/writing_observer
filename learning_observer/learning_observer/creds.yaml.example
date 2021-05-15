@@ -25,6 +25,13 @@ auth:
       javascript_origins: ["{url}"]
   password-file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
+  http-basic-auth:        # HTTP auth. You probably want to remove this.
+  	                  # Your server WILL be insecure if you configure
+                          # this incorrectly. Either nginx can verify passwords,
+                          # or we can. The latter isn't fully implemented/tested.
+                          # The former requires nginx to be correctly set up.
+    mode: remove-this         # Can be 'nginx,' or 'password-file'
+    password-file: passwd.lo  # Remove this line for http auth
 pubsub:
     type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
 kvs:

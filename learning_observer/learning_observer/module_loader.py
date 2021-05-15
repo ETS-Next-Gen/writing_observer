@@ -22,18 +22,19 @@ import learning_observer.settings
 # This is set to true after we've scanned and loaded modules
 LOADED = False
 
-DASHBOARDS = collections.OrderedDict()
+CLASS_AGGREGATORS = collections.OrderedDict()
 REDUCERS = []
 THIRD_PARTY = {}
 STATIC_REPOS = {}
 
 
-def dashboards():
+def class_aggregators():
     '''
     Return a dictionary of all modules the system can render.
+    TODO: Rename to teacher aggregators or similar.
     '''
     load_modules()
-    return DASHBOARDS
+    return CLASS_AGGREGATORS
 
 
 def reducers():
@@ -109,7 +110,7 @@ def load_modules():
     '''
     Iterate through entry points to:
     - Find all Learning Observer modules installed
-    - Load dashboards from each module
+    - Load class_aggregators from each module
     - Load reducers from each module
 
     This is called before we ask for something from modules, but it
@@ -136,14 +137,16 @@ def load_modules():
             module=entrypoint.name
         ))
 
-        # Load any teacher dashboards
+        # Load any teacher class_aggregators
+        # TODO: These should be relabeled within modules.
+        # are now pages which call these.
         if hasattr(module, "DASHBOARDS"):
             for dashboard in module.DASHBOARDS:
                 dashboard_id = "{module}.{submodule}".format(
                     module=entrypoint.name,
                     submodule=module.DASHBOARDS[dashboard]['submodule'],
                 )
-                DASHBOARDS[dashboard_id] = {
+                CLASS_AGGREGATORS[dashboard_id] = {
                     # Human-readable name
                     "name": "{module}: {dashboard}".format(
                         module=module.NAME,
@@ -159,7 +162,7 @@ def load_modules():
                 }
                 print(dashboard)
         else:
-            print("Module has no dashboards")
+            print("Module has no class aggregators")
 
         # Load any state reducers / event processors
         if hasattr(module, "REDUCERS"):

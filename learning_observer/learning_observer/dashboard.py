@@ -22,7 +22,7 @@ import learning_observer.kvs as kvs
 
 import learning_observer.paths as paths
 
-import learning_observer.authutils as authutils
+import learning_observer.auth.utils as authutils
 import learning_observer.rosters as rosters
 
 
