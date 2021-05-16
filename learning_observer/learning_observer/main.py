@@ -28,19 +28,15 @@ import gitserve.aio_gitserve
 import learning_observer.init as init
 
 import learning_observer.admin as admin
+import learning_observer.auth
 import learning_observer.client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
-import learning_observer.auth.handlers as auth_handlers
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
-
-import learning_observer.auth.password
-import learning_observer.auth.utils as authutils
-import learning_observer.auth.social as authsocial
 
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -163,14 +159,14 @@ def add_routes():
     # Generic web-appy things
     app.add_routes([
         aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
-        aiohttp.web.get('/auth/logout', handler=auth_handlers.logout),
-        aiohttp.web.get('/auth/userinfo', handler=auth_handlers.user_info)
+        aiohttp.web.get('/auth/logout', handler=learning_observer.auth.logout_handler),
+        aiohttp.web.get('/auth/userinfo', handler=learning_observer.auth.user_info_handler)
     ])
 
     if 'google-oauth' in settings.settings['auth']:
         print("Running with Google authentication")
         app.add_routes([
-            aiohttp.web.get('/auth/login/{provider:google}', handler=authsocial.social),
+            aiohttp.web.get('/auth/login/{provider:google}', handler=learning_observer.auth.social_handler),
         ])
 
 
@@ -194,7 +190,7 @@ def add_routes():
         app.add_routes([
             aiohttp.web.post(
                 '/auth/login/password',
-                learning_observer.auth.password.password_auth(
+                learning_observer.auth.password_auth(
                     settings.settings['auth']['password-file'])
             )])
 
@@ -297,10 +293,10 @@ if 'aio' not in settings.settings or \
     sys.exit(-1)
 
 aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
-    authutils.fernet_key(settings.settings['aio']['session_secret']),
+    learning_observer.auth.fernet_key(settings.settings['aio']['session_secret']),
     max_age=settings.settings['aio']['session_max_age']))
 
-app.middlewares.append(auth_handlers.auth_middleware)
+app.middlewares.append(learning_observer.auth.auth_middleware)
 
 
 async def add_nocache(request, response):

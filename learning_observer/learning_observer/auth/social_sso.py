@@ -35,10 +35,11 @@ import aiohttp_session
 # this file generic, and not specific to learning_observer.
 import learning_observer.settings as settings
 import learning_observer.auth.handlers as handlers
+import learning_observer.auth.utils
 
 import learning_observer.exceptions
 
-async def social(request):
+async def social_handler(request):
     """Handles Google sign in.
 
     Provider is in `request.match_info['provider']` (currently, only Google)
@@ -51,7 +52,7 @@ async def social(request):
     user = await _google(request)
 
     if 'user_id' in user:
-        await handlers._authorize_user(request, user)
+        await learning_observer.auth.utils.update_session_user_info(request, user)
 
     if user['authorized']:
         url = user['back_to'] or "/"

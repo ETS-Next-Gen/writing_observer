@@ -15,7 +15,13 @@ The whole auth system ought to be reorganized at some point.
 import hashlib
 import functools
 
+import bcrypt
+import yaml
+
 import aiohttp.web
+import aiohttp_session
+
+import learning_observer.paths
 
 
 def google_id_to_user_id(google_id):
@@ -41,6 +47,86 @@ def fernet_key(secret_string):
     md5_hash.update(secret_string.encode('utf-8'))
     return md5_hash.hexdigest().encode('utf-8')
 
+
+
+async def verify_teacher_account(user_id, email):
+    '''
+    Confirm the teacher is registered with the system. Eventually, we will want
+    3 versions of this:
+    * Always true (open system)
+    * Text file backed (pilots, small deploys)
+    * Database-backed (large-scale deploys)
+
+    For now, we have the file-backed version
+    '''
+    teachers = yaml.safe_load(open(learning_observer.paths.data("teachers.yaml")))
+    if email not in teachers:
+        print("Email not found in teachers")
+        return False
+    if teachers[email]["google_id"] != user_id:
+        print("Non-matching Google ID")
+        return False
+    print("Teacher account verified")
+    return True
+
+
+async def update_session_user_info(request, user):
+    """
+    This will update the (encrypted) user session with the user's
+    identity, and whether they are authorized. This is typically used
+    to log a user into our session.
+
+    :param request: web request.
+    :param user_id: provider's user ID (e.g., Google ID).
+
+    """
+    session = await aiohttp_session.get_session(request)
+    session["user"] = user
+
+
+async def logout(request):
+    '''
+    Log the user out
+    '''
+    session = await aiohttp_session.get_session(request)
+    session.pop("user", None)
+    session.pop("auth_headers", None)
+
+
+class InvalidUsername(aiohttp.web.HTTPUnauthorized):
+    '''
+    Raised when we try to verify an invalid username
+
+    We have custom exceptions since:
+    * We'd like the user to see the same error whether for
+      invalid username or password
+    * We'd like to programmatically be able to distinguish the
+      two
+    '''
+
+
+class InvalidPassword(aiohttp.web.HTTPUnauthorized):
+    '''
+    Raised when we try to verify an invalid password
+    '''
+
+
+async def verify_password(filename, username, password):
+    '''
+    Check if user is in password file. If so, return associated user
+    information as a JSON dictionary. If not, raise an exception.
+    '''
+    password_data = yaml.safe_load(open(filename))
+    if not username in password_data['users']:
+        raise InvalidUsername(text="Invalid username or password")
+    user_data = password_data['users'][username]
+    if not bcrypt.checkpw(
+            password,
+            user_data['password']
+        ):
+        raise InvalidUsername(text="Invalid username or password")
+    del user_data['password']
+    return user_data
 
 # Account decorators below.
 #

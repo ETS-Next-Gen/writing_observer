@@ -8,6 +8,7 @@ import yaml
 import aiohttp.web
 
 import learning_observer.auth.handlers
+import learning_observer.auth.utils
 
 def password_auth(filename):
     '''
@@ -24,7 +25,10 @@ def password_auth(filename):
 
     For convenience, this can be called directly as:
 
-    `curl -X POST -F "username=test_user" -F "password=test_password" http://localhost:8888/23auth/login/password`
+    `curl -X POST \
+          -F "username=test_user" \
+          -F "password=test_password" \
+          http://localhost:8888/23auth/login/password`
     '''
     async def password_auth_handler(request):
         data = await request.post()  # Web form
@@ -38,20 +42,19 @@ def password_auth(filename):
                password_data['users'][data['username']]['password']
            ):
             print("Authorized")
-            await learning_observer.auth.handlers._authorize_user(
+            await learning_observer.auth.utils.update_session_user_info(
                 request, {
                     'user_id': "pwd-"+data['username'],
                     'email': "",
                     'name': "",
                     'family_name': "",
-                    'back_to': request.query.get('state'),
                     'picture': "",
                     'authorized': True
                 }
             )
             return aiohttp.web.json_response({"status": "authorized"})
-        else:
-            print("Unauthorized")
-            await learning_observer.auth.handlers.logout(request)
-            return aiohttp.web.json_response({"status": "unauthorized"})
+
+        print("Unauthorized")
+        await learning_observer.auth.utils.logout(request)
+        return aiohttp.web.json_response({"status": "unauthorized"})
     return password_auth_handler

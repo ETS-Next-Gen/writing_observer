@@ -204,7 +204,7 @@ def real_student_data(course_id, roster):
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
             google_id = student['userId']
-            student_id = authutils.google_id_to_user_id(google_id)
+            student_id = learning_observer.auth.google_id_to_user_id(google_id)
             # TODO: Evaluate whether this is a bottleneck.
             #
             # mget is faster than ~50 gets. But some online benchmarks show both taking

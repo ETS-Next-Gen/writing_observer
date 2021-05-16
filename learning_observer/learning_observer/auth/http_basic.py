@@ -26,7 +26,7 @@ import learning_observer.auth.handlers
 
 def http_basic_auth(filename=None):
     '''
-    Takes a password file. For now, this is unimplemented.
+    Takes a password file. For now, this is not fully implemented / tested
     '''
     if filename is not None:
         raise aiohttp.web.HTTPNotImplemented(body="HTTP auth should be handled by the web server.")
@@ -57,16 +57,15 @@ def http_basic_auth(filename=None):
 
         # TODO: We should sanitize the username.
         # That's a bit of paranoia, but just in case something goes wrong in nginx or similar
-        await learning_observer.auth.handlers._authorize_user(
+        await learning_observer.auth.utils.update_session_user_info(
             request, {
                 'user_id': "httpauth-"+username,
                 'email': "",
                 'name': "",
-                    'family_name': "",
-                    'back_to': request.query.get('state'),
-                    'picture': "",
-                    'authorized': True
-                }
-            )
+                'family_name': "",
+                'picture': "",
+                'authorized': True
+            }
+        )
         return aiohttp.web.json_response({"status": "authorized"})
     return password_auth_handler
