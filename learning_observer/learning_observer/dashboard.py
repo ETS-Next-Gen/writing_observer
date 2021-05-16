@@ -22,7 +22,7 @@ import learning_observer.kvs as kvs
 
 import learning_observer.paths as paths
 
-import learning_observer.auth.utils as authutils
+import learning_observer.auth
 import learning_observer.rosters as rosters
 
 
@@ -33,6 +33,7 @@ def authenticated(request):
     return True
 
 
+@learning_observer.auth.teacher
 async def static_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data
@@ -45,6 +46,7 @@ async def static_student_data_handler(request):
     })
 
 
+@learning_observer.auth.teacher
 async def generated_student_data_handler(request):
     '''
     Populate static / mock-up dashboard with static fake data dynamically
@@ -229,6 +231,7 @@ def real_student_data(course_id, roster):
     return rsd
 
 
+@learning_observer.auth.teacher
 async def ws_real_student_data_handler(request):
     # print("Serving")
     module_id = request.match_info['module_id']
@@ -256,6 +259,7 @@ async def ws_real_student_data_handler(request):
         await asyncio.sleep(0.5)
 
 
+@learning_observer.auth.teacher
 async def ws_dummy_student_data_handler(request):
     # print("Serving")
     module_id = request.match_info['module_id']
