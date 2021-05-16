@@ -13,6 +13,7 @@ The whole auth system ought to be reorganized at some point.
 '''
 
 import hashlib
+import functools
 
 import aiohttp.web
 
@@ -46,7 +47,7 @@ def fernet_key(secret_string):
 # We don't want a complex authentication scheme. In the short term,
 # we plan to have teacher, student, and admin accounts.
 #
-# In the long term, we will probably 
+# In the long term, we will probably want a little more, but not full ACLs.
 
 
 def admin(func):
@@ -58,15 +59,16 @@ def admin(func):
     want a full ACL scheme (which overcomplicates things), but we will
     want to think through auth/auth.
     '''
-    def f(request):
+    @functools.wraps(func)
+    def wrapper(request):
         if 'user' in request and \
            request['user'] is not None and \
            'authorized' in request['user'] and \
            request['user']['authorized']:
             return func(request)
-        else:
-            raise aiohttp.web.HTTPUnauthorized(text="Please log in")
-    return f
+        # Else, if unauthorized
+        raise aiohttp.web.HTTPUnauthorized(text="Please log in")
+    return wrapper
 
 
 # Decorator

@@ -15,9 +15,10 @@ Well, technically, for now we support neither since this file is IN
 DEVELOPMENT, and NOT YET WORKING.
 '''
 import base64
-import bcrypt
 import json
 import yaml
+
+import bcrypt
 
 import aiohttp.web
 
@@ -33,20 +34,19 @@ def http_basic_auth(filename=None):
     async def password_auth_handler(request):
         auth_header = request.headers['Authorization']
         if not auth_header.startswith("Basic "):
-            raise aiohttp.web.HTTPBadRequest("Suspicious operation authenticating. Malformed header.")
+            raise aiohttp.web.HTTPBadRequest("Malformed header authenticating.")
         split_header = auth_header.split(" ")
-        is len(split_header) != 2:
-            raise aiohttp.web.HTTPBadRequest("Suspicious operation authenticating. Malformed header.")
+        if len(split_header) != 2:
+            raise aiohttp.web.HTTPBadRequest("Malformed header authenticating.")
         decoded_header = base64.b64decode(split_header[1]).decode('utf-8')
         (username, password) = decoded_header.split(":")
 
-        
         # TODO:
         # * Confirm filesystem authentication code below works
         # * Write code to add header asking client to authorize
         if filename is not None:
             # We should check this codepath before we run it....
-            raise aiohttp.web.HTTPNotImplemented(body="HTTP auth should be handled by the web server.")
+            raise aiohttp.web.HTTPNotImplemented(body="Password file http basic unimplemented.")
             password_data = yaml.safe_load(open(filename))
             if not data['username'] in password_data['users'] or \
                not bcrypt.checkpw(
@@ -57,7 +57,7 @@ def http_basic_auth(filename=None):
 
         # TODO: We should sanitize the username.
         # That's a bit of paranoia, but just in case something goes wrong in nginx or similar
-        await learning_observer.auth_handlers._authorize_user(
+        await learning_observer.auth.handlers._authorize_user(
             request, {
                 'user_id': "httpauth-"+username,
                 'email': "",
@@ -68,9 +68,5 @@ def http_basic_auth(filename=None):
                     'authorized': True
                 }
             )
-            return aiohttp.web.json_response({"status": "authorized"})
-        else:
-            print("Unauthorized")
-            await learning_observer.auth_handlers.logout(request)
-            return aiohttp.web.json_response({"status": "unauthorized"})
+        return aiohttp.web.json_response({"status": "authorized"})
     return password_auth_handler

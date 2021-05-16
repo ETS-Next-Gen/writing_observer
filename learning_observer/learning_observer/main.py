@@ -40,6 +40,7 @@ import learning_observer.settings as settings
 
 import learning_observer.auth.password
 import learning_observer.auth.utils as authutils
+import learning_observer.auth.social as authsocial
 
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -169,7 +170,7 @@ def add_routes():
     if 'google-oauth' in settings.settings['auth']:
         print("Running with Google authentication")
         app.add_routes([
-            aiohttp.web.get('/auth/login/{provider:google}', handler=auth_handlers.social),
+            aiohttp.web.get('/auth/login/{provider:google}', handler=authsocial.social),
         ])
 
 

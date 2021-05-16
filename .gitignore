@@ -11,3 +11,9 @@ extension.*
 public_key
 */dist
 learning_observer/learning_observer/static_data/teachers.yaml
+learning_observer/learning_observer/logs/
+learning_observer/learning_observer/static/3rd_party/
+learning_observer/learning_observer/static_data/course_lists/
+learning_observer/learning_observer/static_data/course_rosters/
+learning_observer/learning_observer/static_data/repos/
+learning_observer/passwd.lo
