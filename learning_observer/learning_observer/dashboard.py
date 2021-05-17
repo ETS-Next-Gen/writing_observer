@@ -29,13 +29,6 @@ from learning_observer.writing_observer.aggregator import adhoc_writing_observer
 from learning_observer.writing_observer.aggregator import adhoc_writing_observer_aggregate
 
 
-def authenticated(request):
-    '''
-    Dummy function to tell if a request is logged in
-    '''
-    return True
-
-
 @learning_observer.auth.teacher
 async def static_student_data_handler(request):
     '''
@@ -72,7 +65,7 @@ SA_MODULES = [
 ]
 
 
-def real_student_data(course_id, roster):
+def real_student_data(course_id, roster, default_data={}):
     '''
     Closure remembers course roster, and redis KVS.
 
@@ -103,18 +96,9 @@ def real_student_data(course_id, roster):
                 },
                 "courseId": course_id,
                 "userId": student['userId'],  # TODO: Encode?
-
-                # Defaults if we have no data. If we have data, this will be overwritten.
-                'learning_observer.stream_analytics.writing_analysis.reconstruct': {
-                    'text': None,
-                    'position': 0,
-                    'edit_metadata': {'cursor': [2], 'length': [1]}
-                },
-                'learning_observer.stream_analytics.writing_analysis.time_on_task': {
-                    'saved_ts': -1,
-                    'total-time-on-task': 0
-                },
             }
+            student_data.update(default_data)
+
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
             google_id = student['userId']
@@ -148,21 +132,39 @@ async def ws_real_student_data_handler(request):
     # print("Serving")
     module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
-    # External:writing-time-on-task:tsu-ts-test-user-13
-    # External:reconstruct-writing:tsu-ts-test-user-17
-    ws = aiohttp.web.WebSocketResponse()
+    # We need to receive to detect web socket closures.
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
     await ws.prepare(request)
 
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
-    rsd = real_student_data(course_id, roster)
+    rsd = real_student_data(
+        course_id, roster,
+        learning_observer.writing_observer.aggregator.DEFAULT_DATA
+    )
     while True:
         sd = await rsd()
         await ws.send_json({
             "aggegated-data": adhoc_writing_observer_aggregate(sd),  # Common to all students
             "new-student-data": util.paginate(sd, 4)                 # Per-student list
         })
+        # This is kind of an awkward block, but aiohttp doesn't detect
+        # when sockets close unless they receive data. We try to receive,
+        # and wait for an exception or a CLOSE message.
+        try:
+            if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
+                print("Socket closed!")
+                # By this point, the client is long gone, but we want to
+                # return something to avoid confusing middlewares.
+                return aiohttp.web.Response(text="This never makes it back....")
+        except asyncio.exceptions.TimeoutError:
+            # This is the normal code path
+            pass
         await asyncio.sleep(0.5)
+        # This never gets called, since we return above
+        if ws.closed:
+            print("Socket closed")
+            return aiohttp.web.Response(text="This never makes it back....")
 
 
 @learning_observer.auth.teacher

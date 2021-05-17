@@ -1,5 +1,20 @@
 import time
 
+
+# What we return if there is no data...
+DEFAULT_DATA = {
+    'learning_observer.stream_analytics.writing_analysis.reconstruct': {
+        'text': None,
+        'position': 0,
+        'edit_metadata': {'cursor': [2], 'length': [1]}
+    },
+    'learning_observer.stream_analytics.writing_analysis.time_on_task': {
+        'saved_ts': -1,
+        'total-time-on-task': 0
+    }
+}
+
+
 def adhoc_writing_observer_clean(student_data):
     '''
     HACK HACK HACK HACK
