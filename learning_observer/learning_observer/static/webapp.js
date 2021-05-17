@@ -67,21 +67,23 @@ function ajax(config)
 requirejs(
     // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
     ["/static/3rd_party/text.js!/config.json",
+     "/static/3rd_party/text.js!/webapi/course_dashboards",  // Perhaps this belongs in config.json?
      "/static/3rd_party/d3.v5.min.js",
      "/static/3rd_party/mustache.min.js",
      "/static/3rd_party/showdown.js",
      "/static/3rd_party/fontawesome.js",
-     "/static/wobserver.js",
      "/static/3rd_party/text.js!/static/modules/unauth.md",
      "/static/3rd_party/text.js!/static/modules/login.html",
      "/static/3rd_party/text.js!/static/modules/courses.html",
      "/static/3rd_party/text.js!/static/modules/course.html",
+     "/static/3rd_party/text.js!/static/modules/tool.html",
      "/static/3rd_party/text.js!/static/modules/navbar_loggedin.html",
      "/static/3rd_party/text.js!/static/modules/informational.html",
     ],
-    function(config, d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li, info) {
+    function(config, tool_list, d3, mustache, showdown, fontawesome, unauth, login, courses, course, tool, navbar_li, info) {
 	// Parse client configuration.
 	config = JSON.parse(config);
+	tool_list = JSON.parse(tool_list);
 	// Add libraries
 	config.d3 = d3;
 	config.ajax = ajax(config);
@@ -144,6 +146,14 @@ requirejs(
 			.enter()
 			.append("div")
 			.html(function(d) {
+			    let tools = "";
+			    for(var i=0; i<tool_list.length; i++) {
+				tool_list[i].icon = tool_list[i].icon.type +
+				    " " +
+				    tool_list[i].icon.icon;
+				tools += mustache.render(tool, tool_list[i]);
+			    }
+			    d['tools'] = tools;
 			    return mustache.render(course, d);
 			});
 		}

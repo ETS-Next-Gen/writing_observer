@@ -26,6 +26,24 @@ CLASS_AGGREGATORS = collections.OrderedDict()
 REDUCERS = []
 THIRD_PARTY = {}
 STATIC_REPOS = {}
+STUDENT_DASHBOARDS = []
+COURSE_DASHBOARDS = []
+
+
+def student_dashboards():
+    '''
+    URLs of per-student views
+    '''
+    load_modules()
+    return STUDENT_DASHBOARDS
+
+
+def course_dashboards():
+    '''
+    URLs of per-course views
+    '''
+    load_modules()
+    return COURSE_DASHBOARDS
 
 
 def class_aggregators():
@@ -140,11 +158,11 @@ def load_modules():
         # Load any teacher class_aggregators
         # TODO: These should be relabeled within modules.
         # are now pages which call these.
-        if hasattr(module, "DASHBOARDS"):
-            for dashboard in module.DASHBOARDS:
+        if hasattr(module, "CLASS_AGGREGATORS"):
+            for dashboard in module.CLASS_AGGREGATORS:
                 dashboard_id = "{module}.{submodule}".format(
                     module=entrypoint.name,
-                    submodule=module.DASHBOARDS[dashboard]['submodule'],
+                    submodule=module.CLASS_AGGREGATORS[dashboard]['submodule'],
                 )
                 CLASS_AGGREGATORS[dashboard_id] = {
                     # Human-readable name
@@ -155,10 +173,10 @@ def load_modules():
                     # Root URL
                     "url": "{module}/{submodule}/{url}".format(
                         module=entrypoint.name,
-                        submodule=module.DASHBOARDS[dashboard]['submodule'],
-                        url=module.DASHBOARDS[dashboard]['url']
+                        submodule=module.CLASS_AGGREGATORS[dashboard]['submodule'],
+                        url=module.CLASS_AGGREGATORS[dashboard]['url']
                     ),
-                    "function": module.DASHBOARDS[dashboard]['function']
+                    "function": module.CLASS_AGGREGATORS[dashboard]['function']
                 }
                 print(dashboard)
         else:
@@ -207,6 +225,14 @@ def load_modules():
                 THIRD_PARTY[library_filename]['urls'].append(
                     module.THIRD_PARTY[library_filename]['url']
                 )
+
+        # These should have more metadata at some point (e.g. what
+        # module they came from), but this is fine for now.
+        if hasattr(module, "COURSE_DASHBOARDS"):
+            COURSE_DASHBOARDS.append(module.COURSE_DASHBOARDS)
+
+        if hasattr(module, "STUDENT_DASHBOARDS"):
+            STUDENT_DASHBOARDS.append(module.COURSE_DASHBOARDS)
 
         # Clone module repos for serving static files, if we need to
         if hasattr(module, "STATIC_FILE_GIT_REPOS"):

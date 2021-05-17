@@ -95,6 +95,14 @@ def static_directory_handler(basepath):
     return handler
 
 
+def ajax_handler_wrapper(f):
+    '''
+    Wrap a function which returns a JSON object to handle requests
+    '''
+    def handler(request):
+        return aiohttp.web.json_response(f())
+    return handler
+
 # Allow debugging of memory leaks.  Helpful, but this is a massive
 # resource hog. Don't accidentally turn this on in prod :)
 if 'tracemalloc' in settings.settings['config'].get("debug", []):
@@ -124,7 +132,9 @@ def add_routes():
     # This serves up data (currently usually dummy data) for the dashboard
     app.add_routes([
         aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.student_data_handler),
-        aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.ws_student_data_handler)
+        aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.ws_student_data_handler),
+        aiohttp.web.get('/webapi/course_dashboards', ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
+        aiohttp.web.get('/webapi/student_dashboards', ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
     ])
 
     # Serve static files
@@ -144,8 +154,7 @@ def add_routes():
 
     # Handle web sockets event requests, incoming and outgoing
     app.add_routes([
-        aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler),
-        aiohttp.web.get('/wsapi/out/', incoming_student_event.outgoing_websocket_handler)
+        aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler)
     ])
 
     # Handle AJAX event requests, incoming

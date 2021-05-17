@@ -11,7 +11,7 @@ NAME = "Learning Observer Base"
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
 
-COURSE_AGGREGATORS = {
+CLASS_AGGREGATORS = {
 }
 
 STUDENT_AGGREGATORS = {
@@ -104,14 +104,14 @@ STATIC_FILE_GIT_REPOS = {
 #
 # The stuff above will become APIs to dashboards. The stuff below
 # will register the actual dashboards.
-COURSE_DASHBOARDS = {
+COURSE_DASHBOARDS = [{
     'name': "Writing Observer",
     'url': "/static/repos/lo_core/writing_observer/static-dev/wobserver.html",
     "icon": {
-        "type": "fa",
+        "type": "fas",
         "icon": "fa-pen-nib"
     }
-}
+}]
 
 STUDENT_DASHBOARDS = {
 }

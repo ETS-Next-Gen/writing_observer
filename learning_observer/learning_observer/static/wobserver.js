@@ -214,7 +214,7 @@ function initialize(D3, div, course) {
 
 define([
     // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
-    "/config.json",
+    "/static/3rd_party/text.js!/config.json",
     "/static/3rd_party/text.js!/static/modules/wo_dashboard.html",
     "/static/3rd_party/text.js!/static/modules/tile.html",
     "/static/3rd_party/mustache.min.js",
