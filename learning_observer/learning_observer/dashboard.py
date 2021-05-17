@@ -25,6 +25,9 @@ import learning_observer.paths as paths
 import learning_observer.auth
 import learning_observer.rosters as rosters
 
+from learning_observer.writing_observer.aggregator import adhoc_writing_observer_clean
+from learning_observer.writing_observer.aggregator import adhoc_writing_observer_aggregate
+
 
 def authenticated(request):
     '''
@@ -67,97 +70,6 @@ SA_MODULES = [
     sa_writing_analysis.reconstruct,
     sa_writing_analysis.time_on_task
 ]
-
-
-def downsample(data):
-    pass
-
-
-def adhoc_writing_observer_clean(student_data):
-    '''
-    HACK HACK HACK HACK
-
-    We:
-    * Compute text length
-    * Cut down the text to just what the client needs to receive (we
-      don't want to send 30 full essays)
-
-    This really needs to be made into part of a generic
-    aggregator... But we're not there yet.
-
-    TODO: Make aggregator, including these transformations on the
-    teacher-facing dashboard end.
-    '''
-    text = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
-    if text is None:
-        student_data['writing-observer-compiled'] = {
-            "text": "[None]",
-            "character-count": 0
-        }
-        return student_data
-
-    character_count = len(text)
-    cursor_position = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['position']
-
-    # Compute the portion of the text we want to return.
-    length = 103
-    before = int(length * 2 / 3)
-    # We step backwards and forwards from the cursor by the desired number of characters
-    start = max(0, int(cursor_position - before))
-    end = min(character_count - 1, start + length)
-    # And, if we don't have much text after the cursor, we adjust the beginning
-    # print(start, cursor_position, end)
-    start = max(0, end - length)
-    # Split on a word boundary, if there's one close by
-    # print(start, cursor_position, end)
-    while end < character_count and end - start < length + 10 and not text[end].isspace():
-        end += 1
-
-    # print(start, cursor_position, end)
-    while start > 0 and end - start < length + 10 and not text[start].isspace():
-        start -= 1
-
-    # print(start, cursor_position, end)
-    clipped_text = text[start:cursor_position - 1] + "❙" + text[max(cursor_position - 1, 0):end]
-    # Yes, this does mutate the input. No, we should. No, it doesn't matter, since the
-    # code needs to move out of here. Shoo, shoo.
-    student_data['writing-observer-compiled'] = {
-        "text": clipped_text,
-        "character-count": character_count
-    }
-    # Remove things which are too big to send back. Note: Not benchmarked, so perhaps not too big
-    del student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
-    # We should downsample, rather than removing
-    del student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['edit_metadata']
-    return student_data
-
-
-def adhoc_writing_observer_aggregate(student_data):
-    '''
-    Compute and aggregate cross-classroom.
-
-    HACK HACK HACK: To abstract out into writing observer subsystem.
-    '''
-    max_idle_time = 0
-    max_time_on_task = 0
-    max_character_count = 0
-    for student in student_data:
-        max_character_count = max(
-            max_character_count,
-            student['writing-observer-compiled']['character-count']
-        )
-        max_time_on_task = max(
-            max_time_on_task,
-            student['learning_observer.stream_analytics.writing_analysis.time_on_task']["total-time-on-task"]
-        )
-    return {
-        'max-character-count': max_character_count,
-        'max-time-on-task': max_time_on_task,
-        # TODO: Should we aggregate this in some way? If we run on multiple servers,
-        # this is susceptible to drift. That could be jarring; even a few seconds
-        # error could be an issue in some contexts.
-        'current-time': time.time()
-    }
 
 
 def real_student_data(course_id, roster):
@@ -240,13 +152,7 @@ async def ws_real_student_data_handler(request):
     # External:reconstruct-writing:tsu-ts-test-user-17
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    if not authenticated(request):
-        await ws.send_json({
-            "logged_in": False
-        })
-        return ws
 
-    # print("Grabbing roster for " + str(course_id))
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
     rsd = real_student_data(course_id, roster)
@@ -266,15 +172,40 @@ async def ws_dummy_student_data_handler(request):
     course_id = int(request.match_info['course_id'])
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    if authenticated(request):
-        await ws.send_json({
-            "new_student_data": synthetic_student_data.synthetic_data()
-        })
-    else:
-        await ws.send_json({
-            "logged_in": False
-        })
+    await ws.send_json({
+        "new_student_data": synthetic_student_data.synthetic_data()
+    })
 
 
 ws_student_data_handler = ws_real_student_data_handler
 student_data_handler = generated_student_data_handler
+
+
+# Obsolete code, but may be repurposed for student dashboards.
+#
+# aiohttp.web.get('/wsapi/out/', incoming_student_event.outgoing_websocket_handler)
+
+# async def outgoing_websocket_handler(request):
+#     '''
+#     This pipes analytics back to the browser. It:
+#     1. Handles incoming PubSub connections
+#     2. Sends it back to the browser
+
+#     TODO: Cleanly handle disconnects
+#     '''
+#     debug_log('Outgoing analytics web socket connection')
+#     ws = aiohttp.web.WebSocketResponse()
+#     await ws.prepare(request)
+#     pubsub_client = await pubsub.pubsub_receive()
+#     debug_log("Awaiting PubSub messages")
+#     while True:
+#         message = await pubsub_client.receive()
+#         debug_log("PubSub event received")
+#         log_event.log_event(
+#             message, "incoming_pubsub", preencoded=True, timestamp=True
+#         )
+#         log_event.log_event(
+#             message,
+#             "outgoing_analytics", preencoded=True, timestamp=True)
+#         await ws.send_str(message)
+#     await ws.send_str("Done")

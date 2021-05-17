@@ -229,10 +229,10 @@ def load_modules():
         # These should have more metadata at some point (e.g. what
         # module they came from), but this is fine for now.
         if hasattr(module, "COURSE_DASHBOARDS"):
-            COURSE_DASHBOARDS.append(module.COURSE_DASHBOARDS)
+            COURSE_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
 
         if hasattr(module, "STUDENT_DASHBOARDS"):
-            STUDENT_DASHBOARDS.append(module.COURSE_DASHBOARDS)
+            STUDENT_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
 
         # Clone module repos for serving static files, if we need to
         if hasattr(module, "STATIC_FILE_GIT_REPOS"):

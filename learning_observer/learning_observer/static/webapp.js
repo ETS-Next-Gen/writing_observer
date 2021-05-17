@@ -83,7 +83,9 @@ requirejs(
     function(config, tool_list, d3, mustache, showdown, fontawesome, unauth, login, courses, course, tool, navbar_li, info) {
 	// Parse client configuration.
 	config = JSON.parse(config);
+	console.log(tool_list);
 	tool_list = JSON.parse(tool_list);
+	console.log(tool_list);
 	// Add libraries
 	config.d3 = d3;
 	config.ajax = ajax(config);
@@ -148,9 +150,14 @@ requirejs(
 			.html(function(d) {
 			    let tools = "";
 			    for(var i=0; i<tool_list.length; i++) {
-				tool_list[i].icon = tool_list[i].icon.type +
+				console.log(i);
+				console.log(tool_list[i]);
+				// Computer icon CSS class
+				tool_list[i]["icon_class"] = tool_list[i].icon.type +
 				    " " +
 				    tool_list[i].icon.icon;
+				// Add course properties
+				Object.assign(tool_list[i], d);
 				tools += mustache.render(tool, tool_list[i]);
 			    }
 			    d['tools'] = tools;
@@ -228,9 +235,6 @@ requirejs(
 	    else if(!hash_dict) {
 		//console.log("Courses page");
 		load_courses_page();
-		loggedin_navbar_menu()
-	    } else if (hash_dict['tool'] === 'WritingObserver') {
-		load_dashboard_page(hash_dict['course_id']);
 		loggedin_navbar_menu()
 	    } else {
 		error("Invalid URL");
