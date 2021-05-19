@@ -14,7 +14,7 @@ NAME = "Learning Observer Base"
 import learning_observer.writing_observer.aggregator
 import learning_observer.stream_analytics.writing_analysis
 
-CLASS_AGGREGATORS = {
+COURSE_AGGREGATORS = {
     "writing-observer": {
         "sources": [  # These are the reducers whose outputs we aggregate
             learning_observer.stream_analytics.writing_analysis.time_on_task,

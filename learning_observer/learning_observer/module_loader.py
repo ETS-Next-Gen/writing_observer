@@ -22,7 +22,7 @@ import learning_observer.settings
 # This is set to true after we've scanned and loaded modules
 LOADED = False
 
-CLASS_AGGREGATORS = collections.OrderedDict()
+COURSE_AGGREGATORS = collections.OrderedDict()
 REDUCERS = []
 THIRD_PARTY = {}
 STATIC_REPOS = {}
@@ -56,13 +56,13 @@ def course_dashboards():
     return COURSE_DASHBOARDS
 
 
-def class_aggregators():
+def course_aggregators():
     '''
     Return a dictionary of all modules the system can render.
     TODO: Rename to teacher aggregators or similar.
     '''
     load_modules()
-    return CLASS_AGGREGATORS
+    return COURSE_AGGREGATORS
 
 
 def reducers():
@@ -138,7 +138,7 @@ def load_modules():
     '''
     Iterate through entry points to:
     - Find all Learning Observer modules installed
-    - Load class_aggregators from each module
+    - Load course_aggregators from each module
     - Load reducers from each module
 
     This is called before we ask for something from modules, but it
@@ -165,26 +165,26 @@ def load_modules():
             module=entrypoint.name
         ))
 
-        # Load any teacher class_aggregators
+        # Load any teacher course_aggregators
         # TODO: These should be relabeled within modules.
         # are now pages which call these.
-        if hasattr(module, "CLASS_AGGREGATORS"):
-            for aggregator in module.CLASS_AGGREGATORS:
+        if hasattr(module, "COURSE_AGGREGATORS"):
+            for aggregator in module.COURSE_AGGREGATORS:
                 aggregator_id = "{module}.{submodule}".format(
                     module=entrypoint.name,
                     submodule=aggregator
                 )
-                CLASS_AGGREGATORS[aggregator_id] = {}
-                CLASS_AGGREGATORS[aggregator_id].update(module.CLASS_AGGREGATORS[aggregator])
-                CLASS_AGGREGATORS[aggregator_id]['long_id'] = aggregator_id
-                CLASS_AGGREGATORS[aggregator_id]['short_id'] = aggregator
+                COURSE_AGGREGATORS[aggregator_id] = {}
+                COURSE_AGGREGATORS[aggregator_id].update(module.COURSE_AGGREGATORS[aggregator])
+                COURSE_AGGREGATORS[aggregator_id]['long_id'] = aggregator_id
+                COURSE_AGGREGATORS[aggregator_id]['short_id'] = aggregator
 
-            # for aggregator in module.CLASS_AGGREGATORS:
+            # for aggregator in module.COURSE_AGGREGATORS:
             #     aggregator_id = "{module}.{submodule}".format(
             #         module=entrypoint.name,
-            #         submodule=module.CLASS_AGGREGATORS[aggregator]['submodule'],
+            #         submodule=module.COURSE_AGGREGATORS[aggregator]['submodule'],
             #     )
-            #     CLASS_AGGREGATORS[aggregator_id] = {
+            #     COURSE_AGGREGATORS[aggregator_id] = {
             #         # Human-readable name
             #         "name": "{module}: {aggregator}".format(
             #             module=module.NAME,
@@ -193,14 +193,14 @@ def load_modules():
             #         # Root URL
             #         "url": "{module}/{submodule}/{url}".format(
             #             module=entrypoint.name,
-            #             submodule=module.CLASS_AGGREGATORS[aggregator]['submodule'],
-            #             url=module.CLASS_AGGREGATORS[aggregator]['url']
+            #             submodule=module.COURSE_AGGREGATORS[aggregator]['submodule'],
+            #             url=module.COURSE_AGGREGATORS[aggregator]['url']
             #         ),
-            #         "function": module.CLASS_AGGREGATORS[aggregator]['function']
+            #         "function": module.COURSE_AGGREGATORS[aggregator]['function']
             #     }
             #     print(aggregator)
         else:
-            print("Module has no class aggregators")
+            print("Module has no course aggregators")
 
         # Load any state reducers / event processors
         if hasattr(module, "REDUCERS"):

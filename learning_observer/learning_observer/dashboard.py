@@ -26,7 +26,7 @@ import learning_observer.auth
 import learning_observer.rosters as rosters
 
 
-def aggregate_student_data(course_id, module_id, agg_module, roster, default_data={}):
+def aggregate_course_data(course_id, module_id, agg_module, roster, default_data={}):
     '''
     Closure remembers course roster, and redis KVS.
 
@@ -103,7 +103,7 @@ async def ws_course_aggregate_view(request):
     # Find the right module
     agg_module = None
 
-    lomlca = learning_observer.module_loader.class_aggregators()
+    lomlca = learning_observer.module_loader.course_aggregators()
     for m in lomlca:
         if lomlca[m]['short_id'] == module_id:
             if agg_module is not None:
@@ -118,7 +118,7 @@ async def ws_course_aggregate_view(request):
 
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
-    rsd = aggregate_student_data(
+    rsd = aggregate_course_data(
         course_id,
         module_id,
         agg_module,
@@ -163,7 +163,7 @@ async def ws_course_aggregate_view(request):
 #     })
 
 
-# ws_aggregate_student_data = ws_aggregate_student_data_handler
+# ws_aggregate_course_data = ws_aggregate_course_data_handler
 
 # student_data_handler = generated_student_data_handler
 

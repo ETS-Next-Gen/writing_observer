@@ -69,11 +69,11 @@ async def system_status(request):
     might change the API a bit to make it more computer-friendly and
     less Firefox-friendly.
     '''
-    class_aggregators = copy.deepcopy(learning_observer.module_loader.class_aggregators())
-    for k in class_aggregators:
+    course_aggregators = copy.deepcopy(learning_observer.module_loader.course_aggregators())
+    for k in course_aggregators:
         for f in ['aggregator', 'cleaner', 'function']:
-            if f in class_aggregators[k]:
-                class_aggregators[k][f] = str(class_aggregators[k][f])
+            if f in course_aggregators[k]:
+                course_aggregators[k][f] = str(course_aggregators[k][f])
     reducers = copy.deepcopy(learning_observer.module_loader.reducers())
     for k in reducers:
         k['function'] = str(k['function'])
@@ -82,7 +82,7 @@ async def system_status(request):
         "status": "Alive!",
         "resources": machine_resources(),
         "modules": {
-            "class_aggregators": class_aggregators,
+            "course_aggregators": course_aggregators,
             "reducers": reducers,
             "static_repos": learning_observer.module_loader.static_repos()
         },
