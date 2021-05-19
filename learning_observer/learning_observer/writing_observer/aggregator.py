@@ -77,8 +77,6 @@ def adhoc_writing_observer_clean(student_data):
 def adhoc_writing_observer_aggregate(student_data):
     '''
     Compute and aggregate cross-classroom.
-
-    HACK HACK HACK: To abstract out into writing observer subsystem.
     '''
     max_idle_time = 0
     max_time_on_task = 0

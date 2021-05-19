@@ -71,7 +71,9 @@ async def system_status(request):
     '''
     class_aggregators = copy.deepcopy(learning_observer.module_loader.class_aggregators())
     for k in class_aggregators:
-        class_aggregators[k]['function'] = str(class_aggregators[k]['function'])
+        for f in ['aggregator', 'cleaner', 'function']:
+            if f in class_aggregators[k]:
+                class_aggregators[k][f] = str(class_aggregators[k][f])
     reducers = copy.deepcopy(learning_observer.module_loader.reducers())
     for k in reducers:
         k['function'] = str(k['function'])

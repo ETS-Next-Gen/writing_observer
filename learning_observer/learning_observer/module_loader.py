@@ -30,6 +30,16 @@ STUDENT_DASHBOARDS = []
 COURSE_DASHBOARDS = []
 
 
+def extra_views():
+    '''We used to just have dashboards rendered as views as a hack. This
+    will use the same API, provide backwards-compatibility, but also
+    act as a place for things which don't 
+
+    To Be Implemented
+    '''
+    return []
+
+
 def student_dashboards():
     '''
     URLs of per-student views
@@ -159,26 +169,36 @@ def load_modules():
         # TODO: These should be relabeled within modules.
         # are now pages which call these.
         if hasattr(module, "CLASS_AGGREGATORS"):
-            for dashboard in module.CLASS_AGGREGATORS:
-                dashboard_id = "{module}.{submodule}".format(
+            for aggregator in module.CLASS_AGGREGATORS:
+                aggregator_id = "{module}.{submodule}".format(
                     module=entrypoint.name,
-                    submodule=module.CLASS_AGGREGATORS[dashboard]['submodule'],
+                    submodule=aggregator
                 )
-                CLASS_AGGREGATORS[dashboard_id] = {
-                    # Human-readable name
-                    "name": "{module}: {dashboard}".format(
-                        module=module.NAME,
-                        dashboard=dashboard
-                    ),
-                    # Root URL
-                    "url": "{module}/{submodule}/{url}".format(
-                        module=entrypoint.name,
-                        submodule=module.CLASS_AGGREGATORS[dashboard]['submodule'],
-                        url=module.CLASS_AGGREGATORS[dashboard]['url']
-                    ),
-                    "function": module.CLASS_AGGREGATORS[dashboard]['function']
-                }
-                print(dashboard)
+                CLASS_AGGREGATORS[aggregator_id] = {}
+                CLASS_AGGREGATORS[aggregator_id].update(module.CLASS_AGGREGATORS[aggregator])
+                CLASS_AGGREGATORS[aggregator_id]['long_id'] = aggregator_id
+                CLASS_AGGREGATORS[aggregator_id]['short_id'] = aggregator
+
+            # for aggregator in module.CLASS_AGGREGATORS:
+            #     aggregator_id = "{module}.{submodule}".format(
+            #         module=entrypoint.name,
+            #         submodule=module.CLASS_AGGREGATORS[aggregator]['submodule'],
+            #     )
+            #     CLASS_AGGREGATORS[aggregator_id] = {
+            #         # Human-readable name
+            #         "name": "{module}: {aggregator}".format(
+            #             module=module.NAME,
+            #             aggregator=aggregator
+            #         ),
+            #         # Root URL
+            #         "url": "{module}/{submodule}/{url}".format(
+            #             module=entrypoint.name,
+            #             submodule=module.CLASS_AGGREGATORS[aggregator]['submodule'],
+            #             url=module.CLASS_AGGREGATORS[aggregator]['url']
+            #         ),
+            #         "function": module.CLASS_AGGREGATORS[aggregator]['function']
+            #     }
+            #     print(aggregator)
         else:
             print("Module has no class aggregators")
 

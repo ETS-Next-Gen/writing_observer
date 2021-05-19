@@ -25,47 +25,8 @@ import learning_observer.paths as paths
 import learning_observer.auth
 import learning_observer.rosters as rosters
 
-from learning_observer.writing_observer.aggregator import adhoc_writing_observer_clean
-from learning_observer.writing_observer.aggregator import adhoc_writing_observer_aggregate
 
-
-@learning_observer.auth.teacher
-async def static_student_data_handler(request):
-    '''
-    Populate static / mock-up dashboard with static fake data
-    '''
-    # module_id = request.match_info['module_id']
-    # course_id = int(request.match_info['course_id'])
-
-    return aiohttp.web.json_response({
-        "new_student_data": json.load(open(paths.static("student_data.js")))
-    })
-
-
-@learning_observer.auth.teacher
-async def generated_student_data_handler(request):
-    '''
-    Populate static / mock-up dashboard with static fake data dynamically
-    '''
-    # module_id = request.match_info['module_id']
-    # course_id = int(request.match_info['course_id'])
-
-    return aiohttp.web.json_response({
-        "new_student_data": synthetic_student_data.synthetic_data()
-    })
-
-
-# TODO: The decorator should collect this list.
-#
-# We'll need to be a bit smarter about routing dashboards to analytics
-# to do this. Right now, this is specific to writing analysis.
-SA_MODULES = [
-    sa_writing_analysis.reconstruct,
-    sa_writing_analysis.time_on_task
-]
-
-
-def real_student_data(course_id, roster, default_data={}):
+def aggregate_student_data(course_id, module_id, agg_module, roster, default_data={}):
     '''
     Closure remembers course roster, and redis KVS.
 
@@ -87,6 +48,9 @@ def real_student_data(course_id, roster, default_data={}):
                 #
                 # It's imperfect, and we may want to change it later, but it seems
                 # better than reinventing our own standard.
+                #
+                # We don't copy verbatim, since we do want to filter down any
+                # extra stuff.
                 'profile': {
                     'name': {
                         'fullName': student['profile']['name']['fullName']
@@ -110,7 +74,7 @@ def real_student_data(course_id, roster, default_data={}):
             #
             # For most services (e.g. a SQL database), this would be a huge bottleneck. redis might
             # be fast enough that it doesn't matter? Dunno.
-            for sa_module in SA_MODULES:
+            for sa_module in agg_module['sources']:
                 key = sa_helpers.make_key(
                     sa_module,
                     student_id,
@@ -120,32 +84,52 @@ def real_student_data(course_id, roster, default_data={}):
                 print(data)
                 if data is not None:
                     student_data[sa_helpers.fully_qualified_function_name(sa_module)] = data
-            # print(student_data)
-            students.append(adhoc_writing_observer_clean(student_data))
+            cleaner = agg_module.get("cleaner", lambda x:x)
+            students.append(cleaner(student_data))
 
         return students
     return rsd
 
 
 @learning_observer.auth.teacher
-async def ws_real_student_data_handler(request):
+async def ws_course_aggregate_view(request):
+    '''
+    Handler to aggregate student data, and serve it back to the client
+    every half-second to second or so.
+    '''
     # print("Serving")
     module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
+    # Find the right module
+    agg_module = None
+
+    lomlca = learning_observer.module_loader.class_aggregators()
+    for m in lomlca:
+        if lomlca[m]['short_id'] == module_id:
+            if agg_module is not None:
+                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: "+m)
+            agg_module = lomlca[m]
+    if agg_module is None:
+        raise aiohttp.web.HTTPBadRequest(text="Invalid module: "+m)
+
     # We need to receive to detect web socket closures.
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
     await ws.prepare(request)
 
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
-    rsd = real_student_data(
-        course_id, roster,
-        learning_observer.writing_observer.aggregator.DEFAULT_DATA
+    rsd = aggregate_student_data(
+        course_id,
+        module_id,
+        agg_module,
+        roster,
+        learning_observer.writing_observer.aggregator.DEFAULT_DATA  # TODO
     )
+    aggregator = agg_module.get('aggregator', lambda x: None)
     while True:
         sd = await rsd()
         await ws.send_json({
-            "aggegated-data": adhoc_writing_observer_aggregate(sd),  # Common to all students
+            "aggegated-data": aggregator(sd),                        # Common to all students
             "new-student-data": util.paginate(sd, 4)                 # Per-student list
         })
         # This is kind of an awkward block, but aiohttp doesn't detect
@@ -167,21 +151,21 @@ async def ws_real_student_data_handler(request):
             return aiohttp.web.Response(text="This never makes it back....")
 
 
-@learning_observer.auth.teacher
-async def ws_dummy_student_data_handler(request):
-    # print("Serving")
-    module_id = request.match_info['module_id']
-    course_id = int(request.match_info['course_id'])
-    ws = aiohttp.web.WebSocketResponse()
-    await ws.prepare(request)
-    await ws.send_json({
-        "new_student_data": synthetic_student_data.synthetic_data()
-    })
+# @learning_observer.auth.teacher
+# async def ws_dummy_student_data_handler(request):
+#     # print("Serving")
+#     module_id = request.match_info['module_id']
+#     course_id = int(request.match_info['course_id'])
+#     ws = aiohttp.web.WebSocketResponse()
+#     await ws.prepare(request)
+#     await ws.send_json({
+#         "new_student_data": synthetic_student_data.synthetic_data()
+#     })
 
 
-ws_student_data_handler = ws_real_student_data_handler
-student_data_handler = generated_student_data_handler
+# ws_aggregate_student_data = ws_aggregate_student_data_handler
 
+# student_data_handler = generated_student_data_handler
 
 # Obsolete code, but may be repurposed for student dashboards.
 #
@@ -211,3 +195,33 @@ student_data_handler = generated_student_data_handler
 #             "outgoing_analytics", preencoded=True, timestamp=True)
 #         await ws.send_str(message)
 #     await ws.send_str("Done")
+
+
+# Obsolete code -- we should put this back in after our refactor. Allows us to use
+# dummy data
+# @learning_observer.auth.teacher
+# async def static_student_data_handler(request):
+#     '''
+#     Populate static / mock-up dashboard with static fake data
+#     '''
+#     # module_id = request.match_info['module_id']
+#     # course_id = int(request.match_info['course_id'])
+
+#     return aiohttp.web.json_response({
+#         "new_student_data": json.load(open(paths.static("student_data.js")))
+#     })
+
+
+# @learning_observer.auth.teacher
+# async def generated_student_data_handler(request):
+#     '''
+#     Populate static / mock-up dashboard with static fake data dynamically
+#     '''
+#     # module_id = request.match_info['module_id']
+#     # course_id = int(request.match_info['course_id'])
+
+#     return aiohttp.web.json_response({
+#         "new_student_data": synthetic_student_data.synthetic_data()
+#     })
+
+

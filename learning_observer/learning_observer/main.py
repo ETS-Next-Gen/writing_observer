@@ -131,10 +131,13 @@ def add_routes():
     # Dashboard API
     # This serves up data (currently usually dummy data) for the dashboard
     app.add_routes([
-        aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.student_data_handler),
-        aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.ws_student_data_handler),
-        aiohttp.web.get('/webapi/course_dashboards', ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
-        aiohttp.web.get('/webapi/student_dashboards', ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
+#        aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.student_data_handler),
+        aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/',
+                        learning_observer.dashboard.ws_course_aggregate_view),
+        aiohttp.web.get('/webapi/course_dashboards',
+                        ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
+        aiohttp.web.get('/webapi/student_dashboards',
+                        ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
     ])
 
     # Serve static files
@@ -231,17 +234,17 @@ def add_routes():
         aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
     ])
 
-    # New-style modular class_aggregators
-    class_aggregators = learning_observer.module_loader.class_aggregators()
-    for dashboard in class_aggregators:
-        print(class_aggregators[dashboard])
+    # New-style modular views
+    extra_views = learning_observer.module_loader.extra_views()
+    for view in extra_views:
+        print(extra_views[view])
         app.add_routes([
             # TODO: Change URL
             # TODO: Add classroom ID within URL
             # TODO: Add student API
             aiohttp.web.get(
-                "/dashboards/" + class_aggregators[dashboard]['url'],
-                handler=class_aggregators[dashboard]['function'])
+                "/views/" + extra_views[view]['url'],
+                handler=extra_views[view]['function'])
         ])
 
     # Repos

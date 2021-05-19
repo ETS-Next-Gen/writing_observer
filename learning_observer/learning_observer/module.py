@@ -11,12 +11,26 @@ NAME = "Learning Observer Base"
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
 
+import learning_observer.writing_observer.aggregator
+import learning_observer.stream_analytics.writing_analysis
+
 CLASS_AGGREGATORS = {
+    "writing-observer": {
+        "sources": [  # These are the reducers whose outputs we aggregate
+            learning_observer.stream_analytics.writing_analysis.time_on_task,
+            learning_observer.stream_analytics.writing_analysis.reconstruct
+            # TODO: "roster"
+        ],
+        #  Then, we pass the per-student data through the cleaner, if provided.
+        "cleaner": learning_observer.writing_observer.aggregator.adhoc_writing_observer_clean,
+        #  And we pass an array of the output of that through the aggregator
+        "aggregator": learning_observer.writing_observer.aggregator.adhoc_writing_observer_aggregate,
+        "name": "This is the main Writing Observer dashboard."
+    }
 }
 
 STUDENT_AGGREGATORS = {
 }
-
 
 # Incoming event APIs
 REDUCERS = [
