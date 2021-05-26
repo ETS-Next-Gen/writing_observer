@@ -3,7 +3,7 @@
 */
 
 var student_data;
-var aggregated_data;
+var summary_stats;
 var tile_template;
 var d3;
 
@@ -71,7 +71,7 @@ function update_time_idle_data(d3tile, data) {
 	return;
     }
 
-    d3.select(d3tile).attr("data-ssut", aggregated_data["current-time"]);
+    d3.select(d3tile).attr("data-ssut", summary_stats["current-time"]);
     d3.select(d3tile).attr("data-sslat", data['learning_observer.stream_analytics.writing_analysis.time_on_task']['saved_ts']);
     d3.select(d3tile).attr("data-csut", clientside_time);
 }
@@ -185,9 +185,9 @@ function initialize(D3, div, course) {
 	    window.location.href="/";  // TODO: System.go_home() or something
 	} else if (data["new-student-data"]) {
 	    console.log("New data!");
-	    student_data = data["new-student-data"];
-	    aggregated_data = data["aggegated-data"];
-	    console.log(aggregated_data);
+	    student_data = data["student-data"];
+	    summary_stats = data["summary-stats"];
+	    console.log(summary_stats);
 	    d3.select(".wo-tile-sheet").call(populate_tiles, student_data);
             d3.selectAll(".wo-loading").classed("is-hidden", true);
 	}

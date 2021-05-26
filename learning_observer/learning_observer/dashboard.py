@@ -125,13 +125,14 @@ async def ws_course_aggregate_view(request):
         roster,
         learning_observer.writing_observer.aggregator.DEFAULT_DATA  # TODO
     )
-    aggregator = agg_module.get('aggregator', lambda x: None)
+    aggregator = agg_module.get('aggregator', lambda x: {})
     while True:
         sd = await rsd()
-        await ws.send_json({
-            "aggegated-data": aggregator(sd),                        # Common to all students
-            "new-student-data": util.paginate(sd, 4)                 # Per-student list
-        })
+        data = {
+            "student-data": sd                                       # Per-student list
+        }
+        data.update(aggregator(sd));
+        await ws.send_json(data)
         # This is kind of an awkward block, but aiohttp doesn't detect
         # when sockets close unless they receive data. We try to receive,
         # and wait for an exception or a CLOSE message.

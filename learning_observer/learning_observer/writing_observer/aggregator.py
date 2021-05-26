@@ -1,4 +1,5 @@
 import time
+import learning_observer.util
 
 
 # What we return if there is no data...
@@ -15,20 +16,14 @@ DEFAULT_DATA = {
 }
 
 
-def adhoc_writing_observer_clean(student_data):
+def sanitize_and_shrink_per_student_data(student_data):
     '''
-    HACK HACK HACK HACK
+    This function is run over the data for **each student**, one-by-one.
 
     We:
     * Compute text length
     * Cut down the text to just what the client needs to receive (we
       don't want to send 30 full essays)
-
-    This really needs to be made into part of a generic
-    aggregator... But we're not there yet.
-
-    TODO: Make aggregator, including these transformations on the
-    teacher-facing dashboard end.
     '''
     text = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
     if text is None:
@@ -74,9 +69,20 @@ def adhoc_writing_observer_clean(student_data):
     return student_data
 
 
-def adhoc_writing_observer_aggregate(student_data):
+def aggregate_course_summary_stats(student_data):
     '''
-    Compute and aggregate cross-classroom.
+    Here, we compute summary stats across the entire course. This is
+    helpful so that the front end can know, for example, how to render
+    axes.
+
+    Right now, this API is **evolving**. Ideally, we'd like to support:
+
+    - Transforming summarized per-student data based on data from
+      other students
+    - Extract aggregates
+
+    This API lets us do that, but it's a little too generic. We'd like
+    to be a little bit more semantic.
     '''
     max_idle_time = 0
     max_time_on_task = 0
@@ -91,12 +97,13 @@ def adhoc_writing_observer_aggregate(student_data):
             student['learning_observer.stream_analytics.writing_analysis.time_on_task']["total-time-on-task"]
         )
     return {
-        'max-character-count': max_character_count,
-        'max-time-on-task': max_time_on_task,
-        # TODO: Should we aggregate this in some way? If we run on multiple servers,
-        # this is susceptible to drift. That could be jarring; even a few seconds
-        # error could be an issue in some contexts.
-        'current-time': time.time()
+        "summary-stats": {
+            'max-character-count': max_character_count,
+            'max-time-on-task': max_time_on_task,
+            # TODO: Should we aggregate this in some way? If we run on multiple servers,
+            # this is susceptible to drift. That could be jarring; even a few seconds
+            # error could be an issue in some contexts.
+            'current-time': time.time()
+        },
+        "student-data": learning_observer.util.paginate(student_data, 4)
     }
-
-

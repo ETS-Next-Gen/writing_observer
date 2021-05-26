@@ -22,9 +22,9 @@ COURSE_AGGREGATORS = {
             # TODO: "roster"
         ],
         #  Then, we pass the per-student data through the cleaner, if provided.
-        "cleaner": learning_observer.writing_observer.aggregator.adhoc_writing_observer_clean,
+        "cleaner": learning_observer.writing_observer.aggregator.sanitize_and_shrink_per_student_data,
         #  And we pass an array of the output of that through the aggregator
-        "aggregator": learning_observer.writing_observer.aggregator.adhoc_writing_observer_aggregate,
+        "aggregator": learning_observer.writing_observer.aggregator.aggregate_course_summary_stats,
         "name": "This is the main Writing Observer dashboard."
     }
 }
@@ -120,7 +120,7 @@ STATIC_FILE_GIT_REPOS = {
 # will register the actual dashboards.
 COURSE_DASHBOARDS = [{
     'name': "Writing Observer",
-    'url': "/static/repos/lo_core/writing_observer/static-dev/wobserver.html",
+    'url': "/static/repos/lo_core/writing_observer/master/wobserver.html",
     "icon": {
         "type": "fas",
         "icon": "fa-pen-nib"
