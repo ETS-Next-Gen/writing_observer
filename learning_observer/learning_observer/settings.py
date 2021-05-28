@@ -70,7 +70,11 @@ if 'repos' in settings:
         # In the future, we might allow dicts if we e.g. want more metadata
         if isinstance(settings['repos'][repo], str):
             learning_observer.paths.register_repo(repo, settings['repos'][repo])
+        elif isinstance(settings['repos'][repo], dict):
+            ## HACK. We should figure out where to stick this. This does not belong in paths
+            debug_working = settings['repos'][repo].get("debug-working", False)
+
+            learning_observer.paths.register_repo(repo, settings['repos'][repo]['path'], debug_working = debug_working)
         else:
-            print("settings.repos.{repo} should be a string. Fix the settings file.")
-            print("We might allow dicts with metadata someday. That day is not today.")
+            print("settings.repos.{repo} should be a string or a dict. Please fix the settings file.")
             sys.exit(-1)

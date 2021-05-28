@@ -79,18 +79,33 @@ def repo(reponame=None):
     '''
     if reponame in GIT_REPO_ARCHIVE:
         return GIT_REPO_ARCHIVE[reponame]['PATH']
-
     pathname = data("repos")
     if reponame is not None:
         pathname = os.path.join(pathname, reponame)
     return pathname
 
 
-def register_repo(reponame, path):
+def repo_debug_working_hack(reponame):
+    '''
+    For debugging, we want to allow serving from the git working dir.
+
+    Just not like this.... We should do the merge in settings.py or
+    module_loader, or somewhere else.
+    '''
+    return GIT_REPO_ARCHIVE[reponame]['DEBUG_WORKING']
+
+
+def register_repo(reponame, path, debug_working):
     '''
     Let the system know the location of a repo on the local drive
+
+    `debug_working` is a HACK. The setting is fine, but this does
+    not belong in paths.py
     '''
-    GIT_REPO_ARCHIVE[reponame] = {"PATH": path}
+    GIT_REPO_ARCHIVE[reponame] = {
+        "PATH": path,
+        "DEBUG_WORKING": debug_working
+    }
 
 
 def logs(filename=None):

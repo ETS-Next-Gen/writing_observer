@@ -10,6 +10,7 @@ Next steps:
 * Perhaps add more git commands?
 '''
 
+import enum
 import os.path
 import string
 import subprocess
@@ -17,6 +18,14 @@ import sys
 
 import pathvalidate
 
+
+# Special tag used to browse files in the working directory.  This is
+# helpful during **DEVELOPMENT**. This may be dangerous in production,
+# since working directories sometimes have random files sitting
+# around. We use an enum so that users explicitly need to ask to use
+# this feature.
+
+WORKING_DIR = enum.Enum("Special Branches", "Working").Working
 
 class FileExists(Exception):
     '''
@@ -64,6 +73,7 @@ class GitRepo:
         use to browse it.
         '''
         self.bare = bare
+        self.workingdir = None
         # We should probably store the working dir too, for
         # non-bare directories. We'll add that once we need
         # it.
@@ -71,6 +81,7 @@ class GitRepo:
             self.gitdir = os.path.join(gitdir, ".git")
         else:
             self.gitdir = gitdir
+        self.workingdir = self.gitdir[:-4]
 
     def clone(self, url, mirror=False):
         '''
@@ -110,17 +121,24 @@ class GitRepo:
 
         Note that this is not UTF8, and needs to be decoded.
         '''
-        sanitized_branch = sanitize(branch)
+        if branch != WORKING_DIR:
+            sanitized_branch = sanitize(branch)
         sanitized_filename = sanitize(filename)
-        if branch not in self.branches():
+        if branch in self.branches():
+            data = subprocess.check_output(
+                "git --git-dir={gitdir} show {branch}:{filename}".format(
+                    gitdir=self.gitdir,
+                    branch=sanitized_branch,
+                    filename=sanitized_filename
+                ), shell=True
+            )
+        elif branch == WORKING_DIR:
+            data = open(
+                os.path.join(self.workingdir, sanitized_filename),
+                "rb"
+            ).read()
+        else:
             raise ValueError("No such branch")
-        data = subprocess.check_output(
-            "git --git-dir={gitdir} show {branch}:{filename}".format(
-                gitdir=self.gitdir,
-                branch=sanitized_branch,
-                filename=sanitized_filename
-            ), shell=True
-        )
         print(filename)
         return data
 
@@ -128,16 +146,19 @@ class GitRepo:
         '''
         Return the git hash of a branch.
         '''
-        sanitized_branch = sanitize(branch)
-        data = subprocess.check_output(
-            "git --git-dir={gitdir} rev-parse {branch}".format(
-                gitdir=self.gitdir,
-                branch=sanitized_branch
-            ),
-            shell=True
-        ).decode('utf-8').strip()
-        if not all(c in string.hexdigits for c in data):
-            raise ValueError("Not a valid branch / hash")
+        if branch==WORKING_DIR:
+            data = "[NO_HASH_WORKING_TREE]"
+        else:
+            sanitized_branch = sanitize(branch)
+            data = subprocess.check_output(
+                "git --git-dir={gitdir} rev-parse {branch}".format(
+                    gitdir=self.gitdir,
+                    branch=sanitized_branch
+                ),
+                shell=True
+            ).decode('utf-8').strip()
+            if not all(c in string.hexdigits for c in data):
+                raise ValueError("Not a valid branch / hash")
 
         return data.strip()
 
@@ -148,4 +169,5 @@ if __name__ == "__main__":
     branches = repo.branches()
     print(branches)
     print(repo.show(branches[-1], 'README.md'))
+    print(repo.show(WORKING_DIR, 'README.md'))
     print(repo.rev_hash(branches[-1]))

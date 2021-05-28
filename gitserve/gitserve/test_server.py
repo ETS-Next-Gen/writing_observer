@@ -24,6 +24,11 @@ if len(sys.argv) > 2:
 else:
     PREFIX = ""
 
+if "--working" in sys.argv:
+    working=True
+else:
+    working=False
+
 loop = asyncio.get_event_loop()
 app = aiohttp.web.Application(loop=loop)
 app.router.add_get(
@@ -35,7 +40,8 @@ app.router.add_get(
     gitserve.aio_gitserve.git_handler_wrapper(
         gitrepo,
         prefix=PREFIX,
-        cookie_prefix="content_"
+        cookie_prefix="content_",
+        working_tree_dev=working
     )
 )
 aiohttp.web.run_app(app, host='127.0.0.1', port=8080)

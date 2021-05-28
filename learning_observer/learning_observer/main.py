@@ -251,6 +251,12 @@ def add_routes():
     repos = learning_observer.module_loader.static_repos()
     for gitrepo in repos:
         giturl = r'/static/repos/' + repos[gitrepo]['module'] + '/' + gitrepo + '/{branch:[^{}/]+}/{filename:[^{}]+}'
+
+        working_tree = paths.repo_debug_working_hack(gitrepo)  # Ignore the branch; serve from working tree
+        bare=repos[gitrepo].get("bare", False)
+        if working_tree:
+            bare = False
+
         app.add_routes([
             aiohttp.web.get(
                 giturl,
@@ -258,7 +264,8 @@ def add_routes():
                     paths.repo(gitrepo),
                     cookie_prefix="SHA_" + gitrepo,
                     prefix=repos[gitrepo].get("prefix", None),
-                    bare=repos[gitrepo].get("bare", False),)
+                    bare=False,
+                    working_tree_dev=working_tree)
             )
         ])
 

@@ -92,7 +92,7 @@ requirejs(
 	     */
 	    console.log(wobserver);
 	    d3.select(".main-page").text("Loading Writing Observer...");
-	    wobserver.initialize(d3, d3.select(".main-page"), course);
+	    wobserver.initialize(d3, d3.select(".main-page"), course, config);
 	}
 
 	function user_info() {

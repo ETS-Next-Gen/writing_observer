@@ -290,5 +290,5 @@ def load_modules():
                 # working repos e.g. `/home/ubuntu/repo.git` which we need to later manage.
                 if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
                     STATIC_REPOS[repo]['bare'] = True
-
+        print(STATIC_REPOS)
     LOADED = True

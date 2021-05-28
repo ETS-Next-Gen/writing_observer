@@ -22,18 +22,38 @@ import aiohttp.web
 import gitserve.gitaccess
 
 
-def git_handler_wrapper(repo, cookie_prefix="", prefix="", bare=True):
+WARNED = False
+
+
+def git_handler_wrapper(
+        repo,
+        cookie_prefix="",
+        prefix="",
+        bare=True,
+        working_tree_dev=False
+):
     '''
     Returns a handler which can serve files from a git repo, from
     different branches. This should obviously only be used with
     non-private repos. It also sets a cookie with the hash from git,
     so it's nice for science replicability. If we're serving data
     for a coglab, we can record which version we served from.
+
+    Parameters:
+         repo: git URL of the repo
+         cookie_prefix:
     '''
     repo = gitserve.gitaccess.GitRepo(repo, bare=bare)
 
     def git_handler(request):
+        global WARNED
         branch = request.match_info['branch']
+        if working_tree_dev:
+            branch = gitserve.gitaccess.WORKING_DIR
+            if not WARNED:
+                print("Serving from working tree. "
+                      "This should not be used in prod.")
+                WARNED = True
         filename = os.path.join(prefix, request.match_info['filename'])
         body = repo.show(branch, filename)
         mimetype = mimetypes.guess_type(filename)[0]

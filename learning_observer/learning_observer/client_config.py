@@ -21,7 +21,11 @@ client_config = {
     # For debugging / devel, it's helpful to be able to mock the API
     # with static files. Those won't do things like web sockets.
     "mode": "server",
-    "modules": {},     # Per-module config
+    "modules": {  # Per-module config
+        'wobserver': {
+            'hide-labels': False  # TODO: Should be loaded from config file.
+        }
+    },
     "google-oauth": "google-oauth" in learning_observer.settings.settings['auth'],
     "password-auth": "password-file" in learning_observer.settings.settings['auth'],
     "theme": learning_observer.settings.settings['theme']
