@@ -6,6 +6,7 @@ Views for monitoring overall system operation, and eventually, for
 administering the system.
 '''
 import copy
+import numbers
 
 import psutil
 
@@ -34,28 +35,6 @@ def machine_resources():
     }
 
 
-def routes(app):
-    '''
-    A list of routes. We compactify this quite a bit for pretty
-    rendering in Firefox. If a client ever handles this, we might
-    want to standardize this a bit more, though (it can return
-    strings and dictionaries right now).
-    '''
-    resources = []
-    for resource in app.router.resources():
-        info = resource.get_info()
-        if 'path' in info:
-            resources.append(info['path'])
-        elif 'formatter' in info:
-            resources.append(info['formatter'])
-        else:
-            sinfo = {}
-            for key in info:
-                sinfo[key] = str(info[key])
-            resources.append(sinfo)
-    return resources
-
-
 @admin
 async def system_status(request):
     '''
@@ -69,25 +48,63 @@ async def system_status(request):
     might change the API a bit to make it more computer-friendly and
     less Firefox-friendly.
     '''
-    course_aggregators = copy.deepcopy(learning_observer.module_loader.course_aggregators())
-    for k in course_aggregators:
-        for f in ['aggregator', 'cleaner', 'function']:
-            if f in course_aggregators[k]:
-                course_aggregators[k][f] = str(course_aggregators[k][f])
-    reducers = copy.deepcopy(learning_observer.module_loader.reducers())
-    for k in reducers:
-        k['function'] = str(k['function'])
+    def routes(app):
+        '''
+        A list of routes. We compactify this quite a bit for pretty
+        rendering in Firefox. If a client ever handles this, we might
+        want to standardize this a bit more, though (it can return
+        strings and dictionaries right now).
+        '''
+        resources = []
+        for resource in app.router.resources():
+            info = resource.get_info()
+            if 'path' in info:
+                resources.append(info['path'])
+            elif 'formatter' in info:
+                resources.append(info['formatter'])
+            else:
+                sinfo = {}
+                for key in info:
+                    sinfo[key] = str(info[key])
+                resources.append(sinfo)
+        return resources
 
-    return aiohttp.web.json_response({
+    def clean_json(js):
+        '''
+        * Deep copy a JSON object
+        * Convert list-like objects to lists
+        * Convert dictionary-like objects to dicts
+        * Convert functions to string representations
+        '''
+        if isinstance(js, str):
+            return str(js)
+        elif isinstance(js, numbers.Number):
+            return js
+        elif isinstance(js, dict):
+            return {key: clean_json(value) for key, value in js.items()}
+        elif isinstance(js, list):
+            return [clean_json(i) for i in js]
+        elif callable(js):
+            return str(js)
+        else:
+            print(js)
+            print(type(js))
+            raise ValueError("We don't yet handle this type")
+
+    status = {
         "status": "Alive!",
         "resources": machine_resources(),
         "modules": {
-            "course_aggregators": course_aggregators,
-            "reducers": reducers,
+            "course_aggregators": clean_json(learning_observer.module_loader.course_aggregators()),
+            "reducers": clean_json(learning_observer.module_loader.reducers()),
             "static_repos": learning_observer.module_loader.static_repos()
         },
         "routes": routes(request.app)
-    })
+    }
+
+    print(status)
+
+    return aiohttp.web.json_response(status)
 
 
 @admin
@@ -99,4 +116,6 @@ async def die(request):
     etc. But this still beats killing the process.
     '''
     sys.exit(-1)
-    return aiohttp.web.json_response({'status': 'dead'})
+    return aiohttp.web.json_response({
+        'status': 'dead'  # Just like this code :)
+    })
