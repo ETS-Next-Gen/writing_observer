@@ -18,6 +18,9 @@ One piece of nuance:
 We're still figuring out the best ways to do this.
 '''
 
+import urllib
+
+
 async def dummy_auth(metadata):
     '''
     TODO: Replace with real auth

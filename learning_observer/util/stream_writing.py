@@ -10,7 +10,7 @@ Usage:
                       [--text-length=5]
 
 Options:
-    --url=url                URL to connect [default: http://localhost:8888/]
+    --url=url                URL to connect [default: http://localhost:8888/wsapi/in/]
     --streams=N              How many students typing in parallel? [default: 1]
     --users=user_id,uid,uid  Supply the user ID
     --ici=secs,secs          Mean intercharacter interval [default: 0.1]
