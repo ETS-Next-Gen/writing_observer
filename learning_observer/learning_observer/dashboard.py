@@ -25,7 +25,11 @@ import learning_observer.auth
 import learning_observer.rosters as rosters
 
 
-def aggregate_course_data(course_id, module_id, agg_module, roster, default_data={}):
+def aggregate_course_data(
+        course_id, module_id,
+        agg_module, roster,
+        default_data={}
+):
     '''
     Closure remembers course roster, and redis KVS.
 
@@ -105,9 +109,11 @@ async def ws_course_aggregate_view(request):
     lomlca = learning_observer.module_loader.course_aggregators()
     for m in lomlca:
         if lomlca[m]['short_id'] == module_id:
+            # TODO: We should support multiple modules here.
             if agg_module is not None:
                 raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: "+m)
             agg_module = lomlca[m]
+            default_data = agg_module.get('default-data', {})
     if agg_module is None:
         raise aiohttp.web.HTTPBadRequest(text="Invalid module: "+m)
 
@@ -117,13 +123,12 @@ async def ws_course_aggregate_view(request):
 
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
-    import writing_observer.aggregator
     rsd = aggregate_course_data(
         course_id,
         module_id,
         agg_module,
         roster,
-        writing_observer.aggregator.DEFAULT_DATA  # TODO
+        default_data
     )
     aggregator = agg_module.get('aggregator', lambda x: {})
     while True:

@@ -66,13 +66,13 @@ function ajax(config)
 
 requirejs(
     // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
-    ["/static/3rd_party/text.js!/config.json",
-     "/static/3rd_party/d3.v5.min.js",
-     "/static/3rd_party/mustache.min.js",
-     "/static/3rd_party/showdown.js",
-     "/static/3rd_party/fontawesome.js",
-     "/static/wobserver.js",
-     "/static/3rd_party/text.js!/static/modules/navbar_loggedin.html",
+    [requireconfig(),
+     requireexternallib("d3.v5.min.js"),
+     requireexternallib("mustache.min.js"),
+     requireexternallib("showdown.js"),
+     requireexternallib("fontawesome.js"),
+     requiremodulelib("wobserver.js"),
+     requiresystemtext("modules/navbar_loggedin.html"),
     ],
     function(config, d3, mustache, showdown, fontawesome, wobserver, navbar_li) {
 	// Parse client configuration.

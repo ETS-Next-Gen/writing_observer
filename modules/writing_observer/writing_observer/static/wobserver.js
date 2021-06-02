@@ -257,13 +257,12 @@ function initialize(D3, div, course, config) {
 }
 
 define([
-    // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
-    "/static/3rd_party/text.js!/config.json",
-    "/static/3rd_party/text.js!/static/modules/wo_dashboard.html",
-    "/static/3rd_party/text.js!/static/modules/tile.html",
-    "/static/3rd_party/mustache.min.js",
+    requireconfig(),
+    requireexternallib("mustache.min.js"),
+    requiremoduletext("wo_dashboard.html"),
+    requiremoduletext("tile.html"),
 ],
-       function(config, dashboard, tile, mustache) {
+       function(config, mustache, dashboard, tile) {
 	   Mustache = mustache;
 	   dashboard_template = dashboard;
 	   tile_template = tile;

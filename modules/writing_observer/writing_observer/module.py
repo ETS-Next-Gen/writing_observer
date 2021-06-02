@@ -26,7 +26,20 @@ COURSE_AGGREGATORS = {
         "cleaner": writing_observer.aggregator.sanitize_and_shrink_per_student_data,
         #  And we pass an array of the output of that through the aggregator
         "aggregator": writing_observer.aggregator.aggregate_course_summary_stats,
-        "name": "This is the main Writing Observer dashboard."
+        "name": "This is the main Writing Observer dashboard.",
+        # This is what we return for a student for whom we have no data
+        # (or if we have data, don't have these fields)
+        "default-data": {
+            'writing_observer.writing_analysis.reconstruct': {
+                'text': None,
+                'position': 0,
+                'edit_metadata': {'cursor': [2], 'length': [1]}
+            },
+            'writing_observer.writing_analysis.time_on_task': {
+                'saved_ts': -1,
+                'total-time-on-task': 0
+            }
+        }
     }
 }
 

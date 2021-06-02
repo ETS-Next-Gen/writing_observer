@@ -2,20 +2,6 @@ import time
 import learning_observer.util
 
 
-# What we return if there is no data...
-DEFAULT_DATA = {
-    'writing_observer.writing_analysis.reconstruct': {
-        'text': None,
-        'position': 0,
-        'edit_metadata': {'cursor': [2], 'length': [1]}
-    },
-    'writing_observer.writing_analysis.time_on_task': {
-        'saved_ts': -1,
-        'total-time-on-task': 0
-    }
-}
-
-
 def sanitize_and_shrink_per_student_data(student_data):
     '''
     This function is run over the data for **each student**, one-by-one.
