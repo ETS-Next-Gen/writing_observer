@@ -43,6 +43,7 @@ def async_lambda(function):
 
 
 def init():
+    import learning_observer.module_loader
     srm = collections.defaultdict(lambda: list())
     srm['org.mitros.mirror'].append({'student_event_reducer': async_lambda(
         lambda metadata: async_lambda(lambda event: event)

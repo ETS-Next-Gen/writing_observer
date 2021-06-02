@@ -72,20 +72,14 @@ requirejs(
      "/static/3rd_party/showdown.js",
      "/static/3rd_party/fontawesome.js",
      "/static/wobserver.js",
-     "/static/3rd_party/text.js!/static/modules/unauth.md",
-     "/static/3rd_party/text.js!/static/modules/login.html",
-     "/static/3rd_party/text.js!/static/modules/courses.html",
-     "/static/3rd_party/text.js!/static/modules/course.html",
      "/static/3rd_party/text.js!/static/modules/navbar_loggedin.html",
-     "/static/3rd_party/text.js!/static/modules/informational.html",
     ],
-    function(config, d3, mustache, showdown, fontawesome, wobserver, unauth, login, courses, course, navbar_li, info) {
+    function(config, d3, mustache, showdown, fontawesome, wobserver, navbar_li) {
 	// Parse client configuration.
 	config = JSON.parse(config);
 	// Add libraries
 	config.d3 = d3;
 	config.ajax = ajax(config);
-
 	function load_dashboard_page(course) {
 	    /*
 	      Classroom writing dashboard

@@ -17,7 +17,6 @@ import learning_observer.util as util
 import learning_observer.synthetic_student_data as synthetic_student_data
 
 import learning_observer.stream_analytics.helpers as sa_helpers
-import learning_observer.stream_analytics.writing_analysis as sa_writing_analysis
 import learning_observer.kvs as kvs
 
 import learning_observer.paths as paths
@@ -118,12 +117,13 @@ async def ws_course_aggregate_view(request):
 
     roster = await rosters.courseroster(request, course_id)
     # Grab student list, and deliver to the client
+    import writing_observer.aggregator
     rsd = aggregate_course_data(
         course_id,
         module_id,
         agg_module,
         roster,
-        learning_observer.writing_observer.aggregator.DEFAULT_DATA  # TODO
+        writing_observer.aggregator.DEFAULT_DATA  # TODO
     )
     aggregator = agg_module.get('aggregator', lambda x: {})
     while True:

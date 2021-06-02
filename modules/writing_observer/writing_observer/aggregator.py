@@ -4,12 +4,12 @@ import learning_observer.util
 
 # What we return if there is no data...
 DEFAULT_DATA = {
-    'learning_observer.stream_analytics.writing_analysis.reconstruct': {
+    'writing_observer.writing_analysis.reconstruct': {
         'text': None,
         'position': 0,
         'edit_metadata': {'cursor': [2], 'length': [1]}
     },
-    'learning_observer.stream_analytics.writing_analysis.time_on_task': {
+    'writing_observer.writing_analysis.time_on_task': {
         'saved_ts': -1,
         'total-time-on-task': 0
     }
@@ -25,7 +25,7 @@ def sanitize_and_shrink_per_student_data(student_data):
     * Cut down the text to just what the client needs to receive (we
       don't want to send 30 full essays)
     '''
-    text = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
+    text = student_data['writing_observer.writing_analysis.reconstruct']['text']
     if text is None:
         student_data['writing-observer-compiled'] = {
             "text": "[None]",
@@ -34,7 +34,7 @@ def sanitize_and_shrink_per_student_data(student_data):
         return student_data
 
     character_count = len(text)
-    cursor_position = student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['position']
+    cursor_position = student_data['writing_observer.writing_analysis.reconstruct']['position']
 
     # Compute the portion of the text we want to return.
     length = 103
@@ -63,9 +63,9 @@ def sanitize_and_shrink_per_student_data(student_data):
         "character-count": character_count
     }
     # Remove things which are too big to send back. Note: Not benchmarked, so perhaps not too big
-    del student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['text']
+    del student_data['writing_observer.writing_analysis.reconstruct']['text']
     # We should downsample, rather than removing
-    del student_data['learning_observer.stream_analytics.writing_analysis.reconstruct']['edit_metadata']
+    del student_data['writing_observer.writing_analysis.reconstruct']['edit_metadata']
     return student_data
 
 
@@ -94,7 +94,7 @@ def aggregate_course_summary_stats(student_data):
         )
         max_time_on_task = max(
             max_time_on_task,
-            student['learning_observer.stream_analytics.writing_analysis.time_on_task']["total-time-on-task"]
+            student['writing_observer.writing_analysis.time_on_task']["total-time-on-task"]
         )
     return {
         "summary-stats": {

@@ -11,9 +11,6 @@ NAME = "Learning Observer Base"
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
 
-import learning_observer.writing_observer.aggregator
-import learning_observer.stream_analytics.writing_analysis
-
 COURSE_AGGREGATORS = {
     # "writing-observer": {
     #     "sources": [  # These are the reducers whose outputs we aggregate
