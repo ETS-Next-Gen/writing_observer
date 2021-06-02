@@ -69,7 +69,10 @@ def aggregate_course_data(
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
             google_id = student['userId']
-            student_id = learning_observer.auth.google_id_to_user_id(google_id)
+            if google_id.isnumeric():
+                student_id = learning_observer.auth.google_id_to_user_id(google_id)
+            else:
+                student_id = google_id
             # TODO: Evaluate whether this is a bottleneck.
             #
             # mget is faster than ~50 gets. But some online benchmarks show both taking

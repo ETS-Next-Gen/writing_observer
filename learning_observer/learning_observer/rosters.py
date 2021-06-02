@@ -14,7 +14,7 @@ We can either retrieve class rosters from:
   We have two files:
   - courses.json
   - students.json
-- In progress: A file hierarchy, for small-scale deploys.  ('filesystem')
+- A file hierarchy, for small-scale deploys.  ('filesystem')
 - In progress: All students, for e.g. coglabs, experiments, and
   similar  ('all')
 
@@ -36,9 +36,12 @@ we may:
 * Have a less Googley format
 '''
 
+import asyncio
 import json
 import os.path
 import sys
+
+import asyncio_redis
 
 import aiohttp
 import aiohttp.web
@@ -87,6 +90,58 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None):
     return resp_json
 
 
+async def all_students():
+    '''
+    This crawls the keys of redis, and creates a list of all
+    student IDs in redis. This should not be used in any form
+    of large-scale production.
+    '''
+    connection = await asyncio_redis.Connection.create()
+    keys = [await k for k in await connection.keys("*")]
+    internal_keys = [k for k in keys if k.startswith("Internal:")]
+    split_keys = [k.split(":") for k in internal_keys]
+    valid_keys = [k for k in split_keys if len(k) > 2]
+    user_ids = sorted(set([k[2] for k in valid_keys]))
+    return user_ids
+
+
+async def all_ajax(
+        request, url,
+        parameters=None, key=None, sort_key=None, default=None):
+    if url == COURSE_URL:
+        return [{
+            "id": "12345678901",
+            "name": "All Students",
+            "descriptionHeading": "For easy small-scale deploys",
+            "alternateLink": "https://www.ets.org/",
+            "teacherGroupEmail": "",
+            "courseGroupEmail": "",
+            "teacherFolder": {
+                "id": "",
+                "title": "All Students",
+                "alternateLink": ""
+            },
+            "calendarId": "NA"
+        }]
+    elif url == ROSTER_URL:
+        students = await all_students()
+        def profile(student, index):
+            return {
+                "userId": student,
+                "profile": {
+                    "name": {
+                        "givenName": "Student",
+                        "familyName": str(index+100),
+                        "fullName": "Student "+str(index+100)
+                    },
+                    "emailAddress": "student"+str(index+100)+"@localhost",
+                    "photoUrl": "//"
+                }
+            }
+
+        return [profile(s, i) for (s, i) in zip(students, range(len(students)))]
+
+
 async def synthetic_ajax(
         request, url,
         parameters=None, key=None, sort_key=None, default=None):
@@ -96,15 +151,6 @@ async def synthetic_ajax(
     This is helpful for testing, but it's even more helpful since
     Google is an amazingly unreliable B2B company, and this lets us
     develop without relying on them.
-
-    At some point, we'll want to upgrade this to support small-scale
-    deployments, with a directory tree such as e.g.:
-
-    `course_rosters/[course_id].json`
-
-    and
-
-    `course_lists/[teacher_id].json`
     '''
     if settings.settings['roster-data']['source'] == 'test':
         synthetic_data = {
@@ -180,9 +226,7 @@ elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
 elif settings.settings['roster-data']['source'] in ["google-api"]:
     ajax = google_ajax
 elif settings.settings['roster-data']['source'] in ["all"]:
-    print("Setting 'all' not implemented yet.")
-    print("Please implement it, and make a PR :)")
-    sys.exit(-1)
+    ajax = all_ajax
 else:
     print("Settings file `roster-data` element should have `source` field")
     print("set to either:")
