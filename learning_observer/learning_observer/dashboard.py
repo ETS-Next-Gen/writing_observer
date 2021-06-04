@@ -1,9 +1,5 @@
 '''
-This generates dashboard from student data.
-
-TODO: Rename to something better. Perhaps words like:
-* Dashboard
-* Outgoing
+This generates dashboards from student data.
 '''
 
 import asyncio
@@ -159,22 +155,6 @@ async def ws_course_aggregate_view(request):
             print("Socket closed")
             return aiohttp.web.Response(text="This never makes it back....")
 
-
-# @learning_observer.auth.teacher
-# async def ws_dummy_student_data_handler(request):
-#     # print("Serving")
-#     module_id = request.match_info['module_id']
-#     course_id = int(request.match_info['course_id'])
-#     ws = aiohttp.web.WebSocketResponse()
-#     await ws.prepare(request)
-#     await ws.send_json({
-#         "new_student_data": synthetic_student_data.synthetic_data()
-#     })
-
-
-# ws_aggregate_course_data = ws_aggregate_course_data_handler
-
-# student_data_handler = generated_student_data_handler
 
 # Obsolete code, but may be repurposed for student dashboards.
 #

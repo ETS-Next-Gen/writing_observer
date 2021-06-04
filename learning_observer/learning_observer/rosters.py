@@ -41,8 +41,6 @@ import json
 import os.path
 import sys
 
-import asyncio_redis
-
 import aiohttp
 import aiohttp.web
 
@@ -50,6 +48,7 @@ import pathvalidate
 
 import learning_observer.settings as settings
 
+import learning_observer.kvs
 import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 
@@ -92,12 +91,11 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None):
 
 async def all_students():
     '''
-    This crawls the keys of redis, and creates a list of all
-    student IDs in redis. This should not be used in any form
-    of large-scale production.
+    This crawls all of the keys in the KVS, and creates a list of all
+    student IDs in redis. This should not be used in any form of
+    large-scale production.
     '''
-    connection = await asyncio_redis.Connection.create()
-    keys = [await k for k in await connection.keys("*")]
+    keys = await learning_observer.kvs.KVS().keys()
     internal_keys = [k for k in keys if k.startswith("Internal:")]
     split_keys = [k.split(":") for k in internal_keys]
     valid_keys = [k for k in split_keys if len(k) > 2]

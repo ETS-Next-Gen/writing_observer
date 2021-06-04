@@ -52,6 +52,13 @@ class InMemoryKVS():
         assert isinstance(key, str), "KVS keys must be strings"
         OBJECT_STORE[key] = value
 
+    async def keys(self):
+        '''
+        Returns all keys.
+
+        Eventually, this might support wildcards.
+        '''
+        return list(OBJECT_STORE.keys())
 
 class _RedisKVS():
     '''
@@ -99,6 +106,15 @@ class _RedisKVS():
         assert isinstance(key, str), "KVS keys must be strings"
         await self.connection.set(key, json.dumps(value), expire=self.expire)
         return
+
+    async def keys(self):
+        '''
+        Return all the keys in the KVS.
+
+        This is obviously not very performant for large-scale dpeloys.
+        '''
+        await self.connect()
+        return [await k for k in await self.connection.keys("*")]
 
 
 class EphemeralRedisKVS(_RedisKVS):
@@ -169,6 +185,8 @@ async def test():
     print(type(await ek1["hi"]))
     print((await ek1["hi"]) == 9)
     assert(await ek1["hi"]) == 9
+    print(await mk1.keys())
+    print(await ek1.keys())
     print("Test successful")
     print("Please wait before running test again")
     print("redis needs to flush expiring objects")
