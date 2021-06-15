@@ -32,7 +32,7 @@ from learning_observer.log_event import debug_log
 
 import learning_observer.exceptions
 
-from learning_observer.auth.events import dummy_auth
+import learning_observer.auth.events
 
 stream_analytics.init()
 
@@ -143,16 +143,23 @@ async def handle_incoming_client_event(metadata):
     Common handler for both Websockets and AJAX events.
 
     We do a reduce through the event pipeline, and forward on to
-    the pubsub for aggregation on the dashboard side.
+    for aggregation on the dashboard side.
     '''
-    debug_log("Connecting to pubsub source")
-    pubsub_client = await pubsub.pubsub_send()
-    debug_log("Connected")
+    # We used to do a pubsub model, where we'd update teacher
+    # dashboards with new data. With typing, period aggregated
+    # updates are more efficient, since we have many keystrokes
+    # per second
+    PUBSUB = False
+
+    if PUBSUB:
+        debug_log("Connecting to pubsub source")
+        pubsub_client = await pubsub.pubsub_send()
+        debug_log("Connected")
 
     pipeline = await student_event_pipeline(metadata=metadata)
 
     async def handler(request, client_event):
-        debug_log("Compiling event for PubSub: " + client_event["event"])
+        debug_log("Compiling event for reducer: " + client_event["event"])
         event = {
             "client": client_event,
             "server": compile_server_data(request),
@@ -163,7 +170,8 @@ async def handle_incoming_client_event(metadata):
         log_event.log_event(
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
-        print(pubsub_client)
+        if PUBSUB:
+            print(pubsub_client)
         outgoing = await pipeline(event)
 
         # We're currently polling on the other side.
@@ -171,7 +179,7 @@ async def handle_incoming_client_event(metadata):
         # Leaving this code in without a receiver gives us a massive
         # memory leak, so we've commented it out until we do plan to
         # subscribe again.
-        if False:
+        if PUBSUB:
             for item in outgoing:
                 await pubsub_client.send_event(
                     mbody=json.dumps(item, sort_keys=True)
@@ -180,10 +188,6 @@ async def handle_incoming_client_event(metadata):
                     "Sent item to PubSub triggered by: " + client_event["event"]
                 )
     return handler
-
-
-
-auth = learning_observer.auth.events.dummy_auth
 
 
 async def incoming_websocket_handler(request):
@@ -200,49 +204,60 @@ async def incoming_websocket_handler(request):
     # * Chrome's identity information
     # * browser.storage identity information
     event_metadata = {'headers': {}}
+
+    print("Init pipeline")
+    header_events = []
     INIT_PIPELINE = True
     if INIT_PIPELINE:
-        headers = {}
         async for msg in ws:
             print("Auth", msg)
             json_msg = json.loads(msg.data)
-            # print(json_msg)
-            # print(json_msg["event"])
-            if 'source' in json_msg:
-                event_metadata['source'] = json_msg['source']
-            # print(json_msg["event"] == "metadata_finished")
+            header_events.append(json_msg)
             if json_msg["event"] == "metadata_finished":
                 break
-            elif json_msg["event"] == "chrome_identity":
-                headers["chrome_identity"] = json_msg["chrome_identity"]
-            elif json_msg["event"] == "hash_auth":
-                headers["hash_identity"] = json_msg["hash"]
-            elif json_msg["event"] == "local_storage":
-                try:
-                    headers["local_storage"] = json_msg["local_storage"]
-                except Exception:
-                    print(json_msg)
-                    raise
-            elif json_msg["event"] == "test_framework_fake_identity":
-                headers["test_framework_fake_identity"] = json_msg["user_id"]
-        event_metadata['headers'].update(headers)
-
-        event_metadata['auth'] = await auth(headers)
         # print(event_metadata)
 
-    event_handler = await handle_incoming_client_event(metadata=event_metadata)
+    event_handler = None
+    AUTHENTICATED = False
 
     async for msg in ws:
-        debug_log("Web socket message received")
-        if msg.type == aiohttp.WSMsgType.TEXT:
-            client_event = json.loads(msg.data)
-            debug_log(
-                "Dispatch incoming ws event: " + client_event['event']
-            )
-            await event_handler(request, client_event)
-        elif msg.type == aiohttp.WSMsgType.ERROR:
+        # If web socket closed, we're done.
+        if msg.type == aiohttp.WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
                   ws.exception())
+            return
+
+        # If we receive an unknown event type, we keep going, but we
+        # print an error to the console. If we got some kind of e.g.
+        # wonky ping or keep-alive or something we're unaware of, we'd
+        # like to handle that gracefully.
+        if msg.type != aiohttp.WSMsgType.TEXT:
+            print("!!!!!! Unknown event type !!!!!!!")
+            print(msg.type)
+            debug_log("Unknown event type: " + msg.type)
+
+        debug_log("Web socket message received")
+        client_event = json.loads(msg.data)
+
+        # We set up metadata based on the first event, plus any headers
+        if not AUTHENTICATED:
+            # E.g. is this from Writing Observer? Some math assessment? Etc. We dispatch on this
+            if 'source' in json_msg:
+                event_metadata['source'] = json_msg['source']
+            event_metadata['auth'] = await learning_observer.auth.events.authenticate(
+                request=request,
+                headers=header_events,
+                first_event=client_event,
+                source=json_msg['source']
+            )
+            AUTHENTICATED = True
+
+        event_handler = await handle_incoming_client_event(metadata=event_metadata)
+
+        debug_log(
+            "Dispatch incoming ws event: " + client_event['event']
+        )
+        await event_handler(request, client_event)
 
     debug_log('Websocket connection closed')
     return ws

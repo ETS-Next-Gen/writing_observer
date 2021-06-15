@@ -57,13 +57,32 @@ def config_file():
     return pathname
 
 
+DATA_PATH_OVERRIDE = None
+
+
+def override_data_path(new_path):
+    '''
+    We'd like to be able to serve data files from alternative
+    locations, especially for testing
+    '''
+    global DATA_PATH_OVERRIDE
+    if not new_path.startswith("/"):
+        DATA_PATH_OVERRIDE = os.path.join(base_path(), new_path)
+    else:
+        DATA_PATH_OVERRIDE = new_path
+
+
 def data(filename=None):
     '''
     File from the static data directory. No parameters: data directory.
     '''
     pathname = os.path.join(BASE_PATH, 'static_data')
+    if DATA_PATH_OVERRIDE is not None:
+        pathname = DATA_PATH_OVERRIDE
     if filename is not None:
         pathname = os.path.join(pathname, filename)
+        if not os.path.exists(pathname):
+            print("Missing path: ", os.path.realpath(pathname))
     return pathname
 
 
@@ -92,7 +111,9 @@ def repo_debug_working_hack(reponame):
     Just not like this.... We should do the merge in settings.py or
     module_loader, or somewhere else.
     '''
-    return GIT_REPO_ARCHIVE[reponame]['DEBUG_WORKING']
+    if reponame in GIT_REPO_ARCHIVE and 'DEBUG_WORKING' in GIT_REPO_ARCHIVE[reponame]:
+        return GIT_REPO_ARCHIVE[reponame]['DEBUG_WORKING']
+    return False
 
 
 def register_repo(reponame, path, debug_working):

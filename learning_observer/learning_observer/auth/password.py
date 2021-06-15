@@ -10,6 +10,7 @@ import aiohttp.web
 import learning_observer.auth.handlers
 import learning_observer.auth.utils
 
+
 def password_auth(filename):
     '''
     Authentication handler for logging in with username and password
@@ -36,15 +37,15 @@ def password_auth(filename):
         if 'username' not in data:
             data = json.loads(body)
         password_data = yaml.safe_load(open(filename))
-        if data['username'] in password_data['users'] and \
-           bcrypt.checkpw(
-               data['password'],
-               password_data['users'][data['username']]['password']
-           ):
+        if (data['username'] in password_data['users']
+            and bcrypt.checkpw(
+                data['password'],
+                password_data['users'][data['username']]['password']
+        )):
             print("Authorized")
             await learning_observer.auth.utils.update_session_user_info(
                 request, {
-                    'user_id': "pwd-"+data['username'],
+                    'user_id': "pwd-" + data['username'],
                     'email': "",
                     'name': "",
                     'family_name': "",

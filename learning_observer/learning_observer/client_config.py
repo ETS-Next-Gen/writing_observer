@@ -13,7 +13,7 @@ things such as:
 import aiohttp
 
 import learning_observer.settings
-
+import learning_observer.auth.http_basic
 
 client_config = {
     # Tell the client there's a live server
@@ -28,6 +28,7 @@ client_config = {
     },
     "google-oauth": "google-oauth" in learning_observer.settings.settings['auth'],
     "password-auth": "password-file" in learning_observer.settings.settings['auth'],
+    "http-basic-auth": learning_observer.auth.http_basic.http_auth_page_enabled(),
     "theme": learning_observer.settings.settings['theme']
 }
 

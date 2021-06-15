@@ -48,7 +48,6 @@ def fernet_key(secret_string):
     return md5_hash.hexdigest().encode('utf-8')
 
 
-
 async def verify_teacher_account(user_id, email):
     '''
     Confirm the teacher is registered with the system. Eventually, we will want
@@ -117,13 +116,13 @@ async def verify_password(filename, username, password):
     information as a JSON dictionary. If not, raise an exception.
     '''
     password_data = yaml.safe_load(open(filename))
-    if not username in password_data['users']:
+    if username not in password_data['users']:
         raise InvalidUsername(text="Invalid username or password")
     user_data = password_data['users'][username]
     if not bcrypt.checkpw(
             password,
             user_data['password']
-        ):
+    ):
         raise InvalidUsername(text="Invalid username or password")
     del user_data['password']
     return user_data

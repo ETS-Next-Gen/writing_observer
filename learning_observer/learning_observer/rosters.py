@@ -123,16 +123,18 @@ async def all_ajax(
         }]
     elif url == ROSTER_URL:
         students = await all_students()
+
         def profile(student, index):
+            idnum = str(index + 100)
             return {
                 "userId": student,
                 "profile": {
                     "name": {
                         "givenName": "Student",
-                        "familyName": str(index+100),
-                        "fullName": "Student "+str(index+100)
+                        "familyName": idnum,
+                        "fullName": "Student " + idnum
                     },
-                    "emailAddress": "student"+str(index+100)+"@localhost",
+                    "emailAddress": "student" + idnum + "@localhost",
                     "photoUrl": "//"
                 }
             }
@@ -257,6 +259,7 @@ if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
                 "a list of courses, and of students for "
                 "those courses)")
             sys.exit(-1)
+
 
 async def courselist(request):
     '''

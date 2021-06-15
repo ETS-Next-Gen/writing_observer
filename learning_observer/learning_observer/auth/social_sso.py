@@ -39,6 +39,7 @@ import learning_observer.auth.utils
 
 import learning_observer.exceptions
 
+
 async def social_handler(request):
     """Handles Google sign in.
 

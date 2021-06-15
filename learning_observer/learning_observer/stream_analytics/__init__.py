@@ -48,25 +48,16 @@ def init():
     srm['org.mitros.mirror'].append({'student_event_reducer': async_lambda(
         lambda metadata: async_lambda(lambda event: event)
     )})
-    try:
-        import learning_observer.stream_analytics.dynamic_assessment
-        srm["org.mitros.dynamic-assessment"].append({
-            'student_event_reducer': async_lambda(
-                lambda metadata: learning_observer.stream_analytics.dynamic_assessment.process_event
-            )
-        })
-    except ModuleNotFoundError:
-        print("Module dynamic_assessment not found. "
-              "Starting without dynamic assessment")
-
-    try:
-        import learning_observer.stream_analytics.writing_analysis
-        srm["org.mitros.writing-analytics"].append({
-            'student_event_reducer': learning_observer.stream_analytics.writing_analysis.pipeline
-        })
-    except ModuleNotFoundError:
-        print("Module writing-analytics not found. "
-              "Starting without writing analytics.")
+    # try:
+    #     import learning_observer.stream_analytics.dynamic_assessment
+    #     srm["org.mitros.dynamic-assessment"].append({
+    #         'student_event_reducer': async_lambda(
+    #             lambda metadata: learning_observer.stream_analytics.dynamic_assessment.process_event
+    #         )
+    #     })
+    # except ModuleNotFoundError:
+    #     print("Module dynamic_assessment not found. "
+    #           "Starting without dynamic assessment")
 
     reducers = learning_observer.module_loader.reducers()
     for reducer in reducers:

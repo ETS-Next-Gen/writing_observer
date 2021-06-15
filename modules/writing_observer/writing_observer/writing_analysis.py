@@ -63,6 +63,7 @@ async def reconstruct(event, internal_state):
     Google's deltas into a document. It also adds a bit of metadata e.g. for
     Deane plots.
     '''
+    print(internal_state)
     internal_state = writing_observer.reconstruct_doc.google_text.from_json(
         json_rep=internal_state)
     if event['client']['event'] == "google_docs_save":

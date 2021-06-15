@@ -18,19 +18,266 @@ One piece of nuance:
 We're still figuring out the best ways to do this.
 '''
 
-import urllib
+import asyncio
+import urllib.parse
+import secrets
+import sys
+
+import aiohttp_session
+import aiohttp.web
+
+import learning_observer.paths
+import learning_observer.settings
 
 
-async def dummy_auth(metadata):
+if 'event_auth' not in learning_observer.settings.settings:
+    print("Please configure event authentication")
+    sys.exit(-1)
+
+
+AUTH_METHODS = {}
+
+
+def register_event_auth(name):
     '''
-    TODO: Replace with real auth
-    TODO: Allow configuring auth methods in settings file
+    Decorator to register a method to authenticate events
+    '''
+    def wrapper(f):
+        '''
+        The decorator does not change the function
+        '''
+        AUTH_METHODS[name] = f
+        return f
+    return wrapper
+
+
+def find_event(event_type, event_list):
+    '''
+    Find the first event of type `event` in the `event_list`
+
+    Return `None` if no event found.
+
+    >>> find_event('this-one', [{'event': 'not-this-one'}, {'event': 'not-this-one'}, {'event': 'this-one'}])
+    {'event': 'this-one'}
+    >>> find_event('missing-event', [{'event': 'not-this-one'}, {'event': 'not-this-one'}, {'event': 'this-one'}])
+    '''
+    for e in event_list:
+        if e.get('event', None) == event_type:
+            return e
+    return None
+
+
+def encode_id(source, unsafe_id):
+    '''
+    This is a bit of encoding logic to generically encode IDs from
+    unknown sources. We want to avoid the problem of Little Bobby
+    Tables (https://xkcd.com/327/).
+
+    It's not clear this is needed long-term (we put this in when we
+    were using Google emails rather than numeric IDs), but we're
+    keeping it here for now for the test data sources. This just
+    generically sanitizes everything in case we either missed
+    something above, or just want to have a sane default before
+    implementing something fancy.
+
+    We also want to avoid overlapping UIDs between sources. For
+    example, we don't want an attack where e.g. a user carefully
+    creates an account on one auth provide to collide with a
+    pre-existing account on another auth provider. So we append
+    providence. Note that we don't want to do this twice (so
+    `authutils` does this already for Google)
+
+    >>> encode_id("gcu", "1234; DROP TABLE *")
+    'gcu-1234%3B+DROP+TABLE+%2A'
+    '''
+    return "{source}-{uid}".format(
+        source=source,
+        uid=urllib.parse.quote_plus(
+            unsafe_id,
+            safe='@'  # Keep emails more readable
+        )
+    )
+
+
+def token_authorize_user(auth_method, user_id_token):
+    '''
+    Authorize a user based on a list of allowed user ID tokens
+    '''
+    am_settings = learning_observer.settings.settings['event_auth'][auth_method]
+    if 'userfile' in am_settings:
+        userfile = am_settings['userfile']
+        users = [u.strip() for u in open(learning_observer.paths.data(userfile)).readlines()]
+        if user_id_token in users:
+            return "authenticated"
+    if am_settings.get("allow_guest", False):
+        return "unauthenticated"
+    raise aiohttp.web.HTTPUnauthorized()
+
+
+@register_event_auth("guest")
+async def guest_auth(request, headers, first_event, source):
+    '''
+    Guest users.
+
+    We assign a cookie on first visit, but we have no guarantee
+    the browser will keep cookies around.
+
+    >>> a = asyncio.run(guest_auth(TestRequest(), [], {}, 'org.mitros.test'))
+    >>> a['user_id'] = len(a['user_id'])  # Different user_id each time, and we want doctest to match exact string.
+    >>> a
+    {'sec': 'none', 'user_id': 32, 'providence': 'guest'}
+    '''
+    session = await aiohttp_session.get_session(request)
+    guest_id = session.get('guest_id', None)
+    if guest_id is None:
+        guest_id = secrets.token_hex(16)
+        session['guest_id'] = guest_id
+    return {
+        'sec': 'none',
+        'user_id': guest_id,
+        'providence': 'guest'
+    }
+
+
+@register_event_auth("local_storage")
+async def local_storage_auth(request, headers, first_event, source):
+    '''
+    This authentication method is used by the browser extension, based
+    on configuration options. Each Chromebook is given a unique ID
+    token, which is stored in local_storage.
+
+    This can be authenticated (if we have a list of such tokens),
+    unauthenticated (if we don't), or allow for both, with a tag for
+    guest versus non-guest accounts.
+
+    >>> auth_event = {'event': 'local_storage', 'user_tag': 'bob'}
+    >>> a = asyncio.run(local_storage_auth(TestRequest(), [], auth_event, 'org.mitros.test'))
+    >>> a
+    {'sec': 'authenticated', 'user_id': 'ls-bob', 'providence': 'ls'}
+    >>> auth_event['user_tag'] = 'jim'
+    >>> a = asyncio.run(local_storage_auth(TestRequest(), [auth_event], {}, 'org.mitros.test'))
+    >>> a
+    {'sec': 'unauthenticated', 'user_id': 'ls-jim', 'providence': 'ls'}
+    '''
+    authdata = find_event('local_storage', headers + [first_event])
+
+    if authdata is None or 'user_tag' not in authdata:
+        return False
+
+    user_id = "ls-" + authdata['user_tag']
+    authenticated = token_authorize_user('local_storage', user_id)
+
+    return {
+        'sec': token_authorize_user('local_storage', user_id),
+        'user_id': user_id,
+        'providence': 'ls'  # local storage
+    }
+
+
+@register_event_auth("chromebook")
+async def chromebook_auth(request, headers, first_event, source):
+    '''
+    Authenticate student Chromebooks.
+
+    TODO: We should have some way to do this securely -- to connect
+          the identity token to the Google ID.
     TODO: See about client-side oauth on Chromebooks
+    '''
+    authdata = find_event('chrome_identity', headers + [first_event])
+
+    if authdata is None or 'user_tag' not in authdata:
+        return False
+
+    # If we have an auth key, we are authenticated!
+    lsa = local_storage_auth(request, headers, first_event, source)
+
+    if lsa and lsa['sec'] == 'authenticated':
+        auth = 'authenticated'
+    else:
+        auth = 'unauthenticated'
+
+    untrusted_google_id = authdata.get('chrome_identity', {}).get('id', None)
+
+    if untrusted_google_id is None:
+        return False
+
+    gc_uid = authutils.google_id_to_user_id(untrusted_google_id)
+    return {
+        'sec': auth,
+        'user_id': gc_uid,
+        'safe_user_id': gc_uid,
+        'providence': 'gcu'  # Google Chrome, unauthenticated
+    }
+
+
+@register_event_auth("hash_identify")
+async def hash_identify(request, headers, first_event, source):
+    '''
+    It's sometimes convenient to point folks to pages where the
+    user ID is encoded in the URL e.g. by hash:
+
+       `http://myserver.ets.org/user-study-5/#user=zihan`
+
+    This fails for even modest-scale use; even in an afterschool
+    club, experience shows that at least one child WILL mistype
+    a URL, either unintentionally or as a joke.
+
+    But it is nice for one-offs where you're working directly
+    with a subject.
+
+    This could be made better by providing an authenticated user
+    list. Then, it'd be okay for the math team example
+    '''
+    authdata = find_event('hash_auth', headers + [first_event])
+
+    if authdata is None or 'hash_identity' not in authdata:
+        return False
+
+    return {
+        'sec': 'unauthenticated',
+        'user_id': "hi-" + metadata['hash_identity'],
+        'providence': 'mch'  # Math contest hash -- toying with plug-in archicture
+    }
+
+
+@register_event_auth("testcase_auth")
+async def test_case_identify(request, headers, first_event, source):
+    '''
+    This is for test cases. It's quick, easy, insecure, and shouldn't
+    be used in production.
+    '''
+    authdata = find_event('test_framework_fake_identity', headers + [first_event])
+
+    if authdata is None or 'user_id' not in authdata:
+        return False
+
+    return {
+        'sec': "unauthenticated",
+        'user_id': "testcase-" + authdata['user_id'],
+        'providence': 'tc'
+    }
+
+
+@register_event_auth("http_auth")
+async def http_auth_identify(request, headers, first_event, source):
+    '''
+    TODO: Allow events to be authorized by HTTP basic authentication
+    '''
+    raise NotImplementedError("Not yet built; sorry")
+
+
+async def authenticate(request, headers, first_event, source):
+    '''
+    Authenticate an event stream.
+
+        Parameters:
+            request: aio_http request object
+            headers: list of headers from event stream
+            first_event: first non-header event
+            source: where the events are coming from (e.g. `org.mitros.writing`)
+
     TODO: Allow configuring authentication methods based on event
     type (e.g. require auth for writing, but not for dynamic assessment)
-
-    This is a dummy authentication function. It trusts the metadata in the web
-    socket without auth/auth.
 
     Our thoughts are that the auth metadata ought to contain:
     1. Whether the user was authenticated (`sec` field):
@@ -41,63 +288,39 @@ async def dummy_auth(metadata):
        they are who they are.
     3. `user_id` -- a unique user identifier
     '''
-    if 'local_storage' in metadata and 'user-tag' in metadata['local_storage']:
-        auth_metadata = {
-            'sec': 'unauthenticated',
-            'user_id': "ls-" + metadata['local_storage']['user_tag'],
-            'providence': 'lsu'  # local storage, unauthenticated
-        }
-    elif 'chrome_identity' in metadata:
-        gc_uid = authutils.google_id_to_user_id(metadata['chrome_identity']['id'])
-        auth_metadata = {
-            'sec': 'unauthenticated',
-            'user_id': gc_uid,
-            'safe_user_id': gc_uid,
-            'providence': 'gcu'  # Google Chrome, unauthenticated
-        }
-    elif "hash_identity" in metadata:
-        auth_metadata = {
-            'sec': 'unauthenticated',
-            'user_id': "ts-" + metadata['hash_identity'],
-            'providence': 'mch'  # Math contest hash -- toying with plug-in archicture
-        }
-    elif 'test_framework_fake_identity' in metadata:
-        auth_metadata = {
-            'sec': 'unauthenticated',
-            'user_id': "ts-" + metadata['test_framework_fake_identity'],
-            'providence': 'tsu'  # Test Script, unauthenticated
-        }
-    else:
-        auth_metadata = {
-            'sec': 'none',
-            'user_id': 'guest',
-            'safe_user_id': 'guest',
-            'providence': 'guest'
-        }
+    for auth_method in learning_observer.settings.settings['event_auth']:
+        auth_metadata = await AUTH_METHODS[auth_method](request, headers, first_event, source)
+        if auth_metadata:
+            if "safe_user_id" not in auth_metadata:
+                auth_metadata['safe_user_id'] = encode_id(
+                    source=auth_metadata["providence"],
+                    unsafe_id=auth_metadata['user_id']
+                )
+            return auth_metadata
 
-    # This is a bit of encoding logic to generically encode IDs from
-    # unknown sources. We want to avoid the problem of Little Bobby
-    # Tables (https://xkcd.com/327/).
-    #
-    # It's not clear this is needed long-term (we put this in when we
-    # were using Google emails rather than numeric IDs), but we're
-    # keeping it here for now for the test data sources. This just
-    # generically sanitizes everything in case we either missed
-    # something above, or just want to have a sane default before
-    # implementing something fancy.
-    #
-    # We also want to avoid overlapping UIDs between sources. For
-    # example, we don't want an attack where e.g. a user carefully
-    # creates an account on one auth provide to collide with a
-    # pre-existing account on another auth provider. So we append
-    # providence. Note that we don't want to do this twice (so
-    # `authutils` does this already for Google)
-    if "safe_user_id" not in auth_metadata:
-        auth_metadata['safe_user_id'] = "{src}-{uid}".format(
-            src=auth_metadata["providence"],
-            uid=urllib.parse.quote_plus(
-                auth_metadata['user_id'],
-                safe='@'  # Keep emails more readable
-            )
-        )
-    return auth_metadata
+    print("Unauthorized")
+    raise aiohttp.web.HTTPUnauthorized
+
+
+for auth_method in learning_observer.settings.settings['event_auth']:
+    if auth_method not in AUTH_METHODS:
+        print("Unrecognized event authentication method in settings file:")
+        print(auth_method)
+        print("Valid methods:")
+        print(AUTH_METHODS.keys())
+        sys.exit(-1)
+
+if __name__ == "__main__":
+    import doctest
+    print("Running tests")
+
+    class TestRequest:
+        pass
+
+    session = {}
+
+    async def get_session(request):
+        return session
+
+    aiohttp_session.get_session = get_session
+    doctest.testmod()

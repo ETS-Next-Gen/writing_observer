@@ -26,12 +26,12 @@ auth:
   password-file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
   http-basic-auth:        # HTTP auth. You probably want to remove this.
-  	                  # Your server WILL be insecure if you configure
+                          # Your server WILL be insecure if you configure
                           # this incorrectly. Either nginx can verify passwords,
                           # or we can. The latter isn't fully implemented/tested.
                           # The former requires nginx to be correctly set up.
     mode: remove-this         # Can be 'nginx,' or 'password-file'
-    password-file: passwd.lo  # Remove this line for http auth
+    password-file: passwd.lo  # Set this to 'null' if authentication is done by nginx
 pubsub:
     type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
 kvs:
@@ -58,3 +58,7 @@ theme:
     server-name: Learning Observer
     front-page-pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
     logo-big: /static/media/logo-clean.jpg
+event_auth:
+    local_storage:
+        userfile: students.yaml
+        allow_guest: true

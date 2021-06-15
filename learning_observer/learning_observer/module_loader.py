@@ -31,9 +31,11 @@ COURSE_DASHBOARDS = []
 
 
 def extra_views():
-    '''We used to just have dashboards rendered as views as a hack. This
+    '''
+    We used to just have dashboards rendered as views as a hack. This
     will use the same API, provide backwards-compatibility, but also
-    act as a place for things which don't 
+    act as a place for things which aren't dashboards. Modules ought
+    to be able to define random views.
 
     To Be Implemented
     '''

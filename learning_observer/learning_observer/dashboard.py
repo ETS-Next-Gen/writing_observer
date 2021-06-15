@@ -86,7 +86,7 @@ def aggregate_course_data(
                 print(data)
                 if data is not None:
                     student_data[sa_helpers.fully_qualified_function_name(sa_module)] = data
-            cleaner = agg_module.get("cleaner", lambda x:x)
+            cleaner = agg_module.get("cleaner", lambda x: x)
             students.append(cleaner(student_data))
 
         return students
@@ -110,11 +110,11 @@ async def ws_course_aggregate_view(request):
         if lomlca[m]['short_id'] == module_id:
             # TODO: We should support multiple modules here.
             if agg_module is not None:
-                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: "+m)
+                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: " + m)
             agg_module = lomlca[m]
             default_data = agg_module.get('default-data', {})
     if agg_module is None:
-        raise aiohttp.web.HTTPBadRequest(text="Invalid module: "+m)
+        raise aiohttp.web.HTTPBadRequest(text="Invalid module: " + m)
 
     # We need to receive to detect web socket closures.
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
@@ -133,9 +133,9 @@ async def ws_course_aggregate_view(request):
     while True:
         sd = await rsd()
         data = {
-            "student-data": sd                                       # Per-student list
+            "student-data": sd   # Per-student list
         }
-        data.update(aggregator(sd));
+        data.update(aggregator(sd))
         await ws.send_json(data)
         # This is kind of an awkward block, but aiohttp doesn't detect
         # when sockets close unless they receive data. We try to receive,
@@ -212,5 +212,3 @@ async def ws_course_aggregate_view(request):
 #     return aiohttp.web.json_response({
 #         "new_student_data": synthetic_student_data.synthetic_data()
 #     })
-
-

@@ -49,6 +49,11 @@ if not os.path.exists(args.config_file):
 
 settings = yaml.safe_load(open(args.config_file))
 
+# For testing and similar, we'd like to be able to have alternative data
+# paths
+if 'data_path' in settings:
+    learning_observer.paths.override_data_path(settings['data_path'])
+
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY')
 
 RUN_MODE = None
@@ -71,10 +76,10 @@ if 'repos' in settings:
         if isinstance(settings['repos'][repo], str):
             learning_observer.paths.register_repo(repo, settings['repos'][repo])
         elif isinstance(settings['repos'][repo], dict):
-            ## HACK. We should figure out where to stick this. This does not belong in paths
+            # HACK. We should figure out where to stick this. This does not belong in paths
             debug_working = settings['repos'][repo].get("debug-working", False)
 
-            learning_observer.paths.register_repo(repo, settings['repos'][repo]['path'], debug_working = debug_working)
+            learning_observer.paths.register_repo(repo, settings['repos'][repo]['path'], debug_working=debug_working)
         else:
             print("settings.repos.{repo} should be a string or a dict. Please fix the settings file.")
             sys.exit(-1)

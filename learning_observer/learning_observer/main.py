@@ -19,6 +19,7 @@ import aiohttp
 import aiohttp_cors
 import aiohttp_session
 import aiohttp_session.cookie_storage
+import aiohttp.web
 
 import pathvalidate
 
@@ -29,6 +30,7 @@ import learning_observer.init as init
 
 import learning_observer.admin as admin
 import learning_observer.auth
+import learning_observer.auth.http_basic
 import learning_observer.client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
@@ -62,6 +64,15 @@ def static_file_handler(filename):
     async def handler(request):
         print(request.headers)
         return aiohttp.web.FileResponse(filename)
+    return handler
+
+
+def redirect(new_path):
+    '''
+    Static, fixed redirect to a new location
+    '''
+    async def handler(request):
+        raise aiohttp.web.HTTPFound(location=new_path)
     return handler
 
 
@@ -102,6 +113,7 @@ def ajax_handler_wrapper(f):
     def handler(request):
         return aiohttp.web.json_response(f())
     return handler
+
 
 # Allow debugging of memory leaks.  Helpful, but this is a massive
 # resource hog. Don't accidentally turn this on in prod :)
@@ -154,7 +166,6 @@ def add_routes():
                         static_directory_handler(paths.static("media/hubspot_persona_images/"))),
     ])
 
-
     # Handle web sockets event requests, incoming and outgoing
     app.add_routes([
         aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler)
@@ -181,7 +192,6 @@ def add_routes():
             aiohttp.web.get('/auth/login/{provider:google}', handler=learning_observer.auth.social_handler),
         ])
 
-
     if 'password-file' in settings.settings['auth']:
         print("Running with password authentication")
         if not os.path.exists(settings.settings['auth']['password-file']):
@@ -206,6 +216,30 @@ def add_routes():
                     settings.settings['auth']['password-file'])
             )])
 
+    # If we want to support multiple modes of authentication, including
+    # http-basic, we can configure a URL in nginx which will require
+    # http basic auth, which is used to log in, and then redirects back
+    # home.
+    if learning_observer.auth.http_basic.http_auth_page_enabled():
+        # If we don't have a password file, we shouldn't have an auth page.
+        # At the very least, the user should explicitly set it to `null`
+        # if they are planning on using nginx for auth
+        print("Enabling http basic auth page")
+        auth_file = settings.settings['auth']['http-basic']["password-file"]
+        app.add_routes([
+            aiohttp.web.get(
+                '/auth/login/http-basic',
+                learning_observer.auth.http_basic.http_basic_auth(
+                    filename=auth_file,
+                    response=lambda:aiohttp.web.HTTPFound(location="/")
+                )
+            )
+        ])
+
+    # General purpose status page:
+    # - List URLs
+    # - Show system resources
+    # Etc.
     app.add_routes([
         aiohttp.web.get('/admin/status', handler=admin.system_status)
     ])
@@ -253,7 +287,7 @@ def add_routes():
         giturl = r'/static/repos/' + repos[gitrepo]['module'] + '/' + gitrepo + '/{branch:[^{}/]+}/{filename:[^{}]+}'
 
         working_tree = paths.repo_debug_working_hack(gitrepo)  # Ignore the branch; serve from working tree
-        bare=repos[gitrepo].get("bare", False)
+        bare = repos[gitrepo].get("bare", False)
         if working_tree:
             bare = False
 

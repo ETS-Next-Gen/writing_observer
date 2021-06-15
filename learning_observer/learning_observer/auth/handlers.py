@@ -12,6 +12,7 @@ import aiohttp.web
 import aiohttp_session
 
 import learning_observer.auth.utils
+import learning_observer.auth.http_basic
 
 
 async def logout_handler(request):
@@ -52,9 +53,7 @@ async def auth_middleware(request, handler):
     request['user'] = session.get('user', None)
     request['auth_headers'] = session.get('auth_headers', None)
     resp = await handler(request)
-    if request['user'] is None:
-        userinfo = None
-    else:
+    if request['user'] is not None:
         userinfo = {
             "name": request['user']['name'],
             "picture": request['user']['picture'],
@@ -62,6 +61,12 @@ async def auth_middleware(request, handler):
             "google_id": request['user']['user_id'],
             "email": request['user']['email']
         }
+    elif (learning_observer.auth.http_basic.http_auth_middleware_enabled()
+          and learning_observer.auth.http_basic.has_http_auth_headers(request)):
+        userinfo = None
+    else:
+        userinfo = None
+
     # This is a dumb way to sanitize data and pass it to the front-end.
     #
     # Cookies tend to get encoded and decoded in ad-hoc strings a lot, often

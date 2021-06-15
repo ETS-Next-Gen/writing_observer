@@ -14,12 +14,24 @@ run:
 
 # Build browser extension
 extension-package:
-	google-chrome --pack-extension=extension --pack-extension-key=extension.pem --disable-setuid-sandbox --no-gpu --no-sandbox --headless
+	# I won't build this for you, but I will give you instructions, since
+	# the set of options will vary.
+	#
+	# On my last system, I needed:
+	#	google-chrome --pack-extension=extension --pack-extension-key=extension.pem --disable-setuid-sandbox --no-gpu --no-sandbox --headless
+	# On my current system
+	#	google-chrome --pack-extension=extension --pack-extension-key=extension.pem
+	# The pem file is your private key. You'll need to make one.
+	# The output will be called extension.crx
 
 codestyle:
 	# Check code style quality
 	#
-	# We ignore:
+	# In pycodestyle, we ignore E501 (line too long) and W503 (which
+	# requires a choice.
+        # https://stackoverflow.com/questions/57074300/what-is-the-recommended-way-to-break-long-if-statement-w504-line-break-after-b
+	#
+	# In pylint, we ignore:
 	# 1. W0613: unused arguments (common for e.g. `request` parameter)
 	# 2. E501/C0301: line too long (obsolete with modern computers
 	#    ref: https://lkml.org/lkml/2020/5/29/1038)
@@ -37,7 +49,7 @@ codestyle:
 	# upstream. Pylint issues are worth an occasional cleanup pass, but we
 	# can tolerate.
 
-	pycodestyle --ignore=E501 $(PYTHONFILES)
+	pycodestyle --ignore=E501,W503 $(PYTHONFILES)
 	pylint -d W0613,W0511,C0301,R0913,too-few-public-methods $(PYTHONFILES)
 
 install:

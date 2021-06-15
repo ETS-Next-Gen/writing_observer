@@ -13,6 +13,7 @@ To read objects:
 '''
 
 import asyncio
+import copy
 import json
 import sys
 
@@ -33,7 +34,7 @@ class InMemoryKVS():
 
         >> await kvs['item']
         '''
-        return OBJECT_STORE.get(key, None)
+        return copy.deepcopy(OBJECT_STORE.get(key, None))
 
     async def set(self, key, value):
         '''
@@ -59,6 +60,7 @@ class InMemoryKVS():
         Eventually, this might support wildcards.
         '''
         return list(OBJECT_STORE.keys())
+
 
 class _RedisKVS():
     '''

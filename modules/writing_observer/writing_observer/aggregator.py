@@ -11,7 +11,7 @@ def sanitize_and_shrink_per_student_data(student_data):
     * Cut down the text to just what the client needs to receive (we
       don't want to send 30 full essays)
     '''
-    text = student_data['writing_observer.writing_analysis.reconstruct']['text']
+    text = student_data['writing_observer.writing_analysis.reconstruct'].get('text', None)
     if text is None:
         student_data['writing-observer-compiled'] = {
             "text": "[None]",

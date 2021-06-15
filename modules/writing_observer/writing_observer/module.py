@@ -47,8 +47,10 @@ STUDENT_AGGREGATORS = {
 }
 
 # Incoming event APIs
-REDUCERS = [
-]
+REDUCERS = [{
+    'context': "org.mitros.writing-analytics",
+    'function': writing_observer.writing_analysis.pipeline
+}]
 
 
 # Required client-side JavaScript downloads
