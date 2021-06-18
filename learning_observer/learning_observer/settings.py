@@ -45,6 +45,12 @@ if not os.path.exists(args.config_file):
     print("Copy the example file into:")
     print(args.config_file)
     print("And then continue setup")
+    print()
+    print("The command is probably:")
+    print("cp {sourcedir}/creds.yaml.example {dest}".format(
+        sourcedir=os.path.dirname(os.path.abspath(__file__)),
+        dest=args.config_file
+    ))
     sys.exit(-1)
 
 settings = yaml.safe_load(open(args.config_file))
