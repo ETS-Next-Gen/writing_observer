@@ -254,6 +254,11 @@ if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
             print("Missing course roster files!")
             print("The following are required:")
             print("\t", "\n\t".join(r_paths))
+            print()
+            print("Run :")
+            for p in r_paths:
+                print("mkdir {path}".format(path=p))
+            print()
             print(
                 "(And ideally, they'll be populated with "
                 "a list of courses, and of students for "

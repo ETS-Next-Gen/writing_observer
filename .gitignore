@@ -16,4 +16,6 @@ learning_observer/learning_observer/static/3rd_party/
 learning_observer/learning_observer/static_data/course_lists/
 learning_observer/learning_observer/static_data/course_rosters/
 learning_observer/learning_observer/static_data/repos/
+learning_observer/learning_observer/static_data/courses.json
+learning_observer/learning_observer/static_data/students.json
 learning_observer/passwd.lo
