@@ -20,10 +20,7 @@ Options:
 
 Overview:
     Stream fake keystroke data to a server, emulating Google Docs
-    logging.
-
-    Note that this has only been tested with one stream. We need
-    server support to test with more.
+    extension log events.
 '''
 
 import asyncio
