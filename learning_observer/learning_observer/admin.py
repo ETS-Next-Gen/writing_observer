@@ -86,6 +86,8 @@ async def system_status(request):
             return [clean_json(i) for i in js]
         elif callable(js):
             return str(js)
+        elif js is None:
+            return js
         else:
             print(js)
             print(type(js))

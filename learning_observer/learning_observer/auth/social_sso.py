@@ -127,5 +127,5 @@ async def _google(request):
         'back_to': request.query.get('state'),
         'picture': profile['picture'],
         # TODO: Should this be immediate?
-        'authorized': await handlers.verify_teacher_account(profile['id'], profile['email'])
+        'authorized': await learning_observer.auth.utils.verify_teacher_account(profile['id'], profile['email'])
     }
