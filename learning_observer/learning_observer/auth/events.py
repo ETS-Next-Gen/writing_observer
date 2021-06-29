@@ -16,6 +16,8 @@ One piece of nuance:
 - Some schemes will include identity with each event.
 
 We're still figuring out the best ways to do this.
+
+Some of these code paths are untested. Please test and debug before using.
 '''
 
 import asyncio
@@ -185,11 +187,11 @@ async def chromebook_auth(request, headers, first_event, source):
     '''
     authdata = find_event('chrome_identity', headers + [first_event])
 
-    if authdata is None or 'user_tag' not in authdata:
+    if authdata is None or 'chrome_identity' not in authdata:
         return False
 
     # If we have an auth key, we are authenticated!
-    lsa = local_storage_auth(request, headers, first_event, source)
+    lsa = await local_storage_auth(request, headers, first_event, source)
 
     if lsa and lsa['sec'] == 'authenticated':
         auth = 'authenticated'
@@ -197,11 +199,12 @@ async def chromebook_auth(request, headers, first_event, source):
         auth = 'unauthenticated'
 
     untrusted_google_id = authdata.get('chrome_identity', {}).get('id', None)
+    print(untrusted_google_id)
 
     if untrusted_google_id is None:
         return False
 
-    gc_uid = authutils.google_id_to_user_id(untrusted_google_id)
+    gc_uid = learning_observer.auth.utils.google_id_to_user_id(untrusted_google_id)
     return {
         'sec': auth,
         'user_id': gc_uid,
