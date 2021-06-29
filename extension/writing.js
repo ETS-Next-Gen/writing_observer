@@ -58,7 +58,7 @@ function writing_eventlistener(event) {
     for (var property in properties) {
 	keystroke_data[properties[property]] = event[properties[property]];
     }
-    event['keystroke'] = keystroke_data;
+    event_data['keystroke'] = keystroke_data;
     log_event("keystroke", event_data);
 }
 
