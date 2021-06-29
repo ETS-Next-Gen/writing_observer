@@ -25,6 +25,18 @@ var RAW_DEBUG = false; // Do not save debug requests. We flip this frequently. P
 Dequeue events
 */
 
+function profileInfoWrapper(callback) {
+    /* Workaround for this bug:
+       https://bugs.chromium.org/p/chromium/issues/detail?id=907425#c6
+     */
+    try {
+	chrome.identity.getProfileUserInfo({accountStatus: 'ANY'}, callback);
+    } catch (e) {
+	// accountStatus not supported
+	chrome.identity.getProfileUserInfo(callback);
+    }
+}
+
 function console_logger() {
     /*
       Log to browser JavaScript console
@@ -97,7 +109,7 @@ function websocket_logger(server) {
     function prepare_socket() {
 	// Send the server the user info. This might not always be available.
 	state = new Set();
-	chrome.identity.getProfileUserInfo(function callback(userInfo) {
+	profileInfoWrapper(function callback(userInfo) {
 	    event = {
 		"chrome_identity": userInfo
 	    };
@@ -348,7 +360,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 log_event("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
-chrome.identity.getProfileUserInfo(function callback(userInfo) {
+profileInfoWrapper(function callback(userInfo) {
     log_event("chrome_identity", userInfo);
 });
 
