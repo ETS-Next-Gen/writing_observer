@@ -6,11 +6,17 @@ function treeget(tree, key) {
           {"hello": {"bar":"biff"}},
           "hello.bar"
       )
+
+      If not found, return `none`
       */
     let keylist = key.split(".");
     let subtree = tree;
-    for(var i=0; i<s.length; i++) {
-	subtree = subtree[s[i]];
+    for(var i=0; i<keylist.length; i++) {
+	if(keylist[i] in subtree) {
+	    subtree = subtree[keylist[i]];
+	} else {
+	    return null;
+	}
     }
     return subtree;
 }

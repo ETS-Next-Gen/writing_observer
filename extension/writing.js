@@ -53,7 +53,8 @@ EVENT_LIST = {
 	"properties": [
 	    'altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
 	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted',
-	    'timeStamp', 'type']
+	    'timeStamp', 'type'],
+	"target": "document"
     },
     "mouseclick": {
 	"events": [
@@ -69,9 +70,17 @@ EVENT_LIST = {
 	    'altKey', 'ctrlKey',
 	    'metaKey', 'shiftKey', 'which', 'isTrusted',
 	    'timeStamp', 'type',
-	    'originalTarget.textContent',
-	    'originalTarget.nodeName'
-	]
+	    'target.id',
+	    'target.innerText',
+	    'target.localName'
+	],
+	"target": "document"
+    },
+    "attention": {
+	"events": ["visibilitychange", "focusin", "focusout"],
+	// Not all of these are required for all events...
+	"properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
+	"target": "window"
     }
 };
 
@@ -85,26 +94,33 @@ function generic_eventlistener(event_type, event) {
 	properties = EVENT_LIST[event_type].properties;
 	var keystroke_data = {};
 	for (var property in properties) {
-	    keystroke_data[properties[property]] = event[properties[property]];
+	    const prop = treeget(event, properties[property]);
+	    if(prop !== null) {
+		keystroke_data[properties[property]] = treeget(event, properties[property]);
+	    }
 	}
 	event_data[event_type] = keystroke_data;
 	log_event(event_type, event_data);
     }
 }
 
-
 // We want to listen to events in all iFrames, as well as the main content document.
-// We should really make a list of documents instead....
 var frames = Array.from(document.getElementsByTagName("iframe"));
+// We should really make a list of documents instead of a fake iframe....
 frames.push({'contentDocument': document})
 
 for(var event_type in EVENT_LIST) {
     for(var event_idx in EVENT_LIST[event_type]['events']) {
 	js_event = EVENT_LIST[event_type]['events'][event_idx];
-	for(var iframe in frames){
-	    if(frames[iframe].contentDocument) {
-		frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type));
+	target = EVENT_LIST[event_type]['target']
+	if(target === 'document') {
+	    for(var iframe in frames){
+		if(frames[iframe].contentDocument) {
+		    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type));
+		}
 	    }
+	} else if (target === 'window') {
+	    window.addEventListener(js_event, generic_eventlistener(event_type));
 	}
     }
 }
