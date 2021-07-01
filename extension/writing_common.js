@@ -1,3 +1,21 @@
+function treeget(tree, key) {
+    /*
+      Retrieve an element from a tree with dotted notation
+
+      e.g. treeget(
+          {"hello": {"bar":"biff"}},
+          "hello.bar"
+      )
+      */
+    let keylist = key.split(".");
+    let subtree = tree;
+    for(var i=0; i<s.length; i++) {
+	subtree = subtree[s[i]];
+    }
+    return subtree;
+}
+
+
 function googledocs_id_from_url(url) {
     /*
       Given a URL like:
@@ -17,7 +35,14 @@ var writing_lasthash = "";
 function unique_id() {
     /*
       This function is used to generate a (hopefully) unique ID for
-      each event.
+      each event. This isn't designed to be cryptosecure, since an
+      untrusted client can set this to whatever it likes in either
+      case. If used by a server, it ought to be rehashed with
+      server-side info.
+
+      The major planned use is debugging. In the future, this might be
+      helpful for things like negotiating with the server too
+      (e.g. "Have you seen this event yet?")
     */
     var shaObj = new jsSHA("SHA-256", "TEXT");
     shaObj.update(writing_lasthash);

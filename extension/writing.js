@@ -9,8 +9,8 @@ function log_error(error_string) {
     /* 
        We should send errors to the server, but for now, we
        log to the console.
-     */ 
-    console.log(error_string);
+    */
+    console.trace(error_string);
 }
 
 function doc_id() {
@@ -44,36 +44,68 @@ function log_event(event_type, event) {
     chrome.runtime.sendMessage(event);
 }
 
-function writing_eventlistener(event) {
-    /*
-      Listen for keystroke events, and pass them back to the background page.
-     */
-    var event_data = {};
-    event_data["event_type"] = "keypress";
-    properties = [
-	'altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
-	'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted',
-	'timeStamp', 'type'];
-    var keystroke_data = {};
-    for (var property in properties) {
-	keystroke_data[properties[property]] = event[properties[property]];
+
+EVENT_LIST = {
+    "keystroke": {
+	"events": [
+	    "keypress", "keydown", "keyup"
+	],
+	"properties": [
+	    'altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
+	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted',
+	    'timeStamp', 'type']
+    },
+    "mouseclick": {
+	"events": [
+	    "mouseclick", "mousedown", "mouseup"
+	],
+	"properties": [
+	    "button", "buttons",
+	    "clientX", "clientY",
+	    "layerX", "layerY",
+	    "offsetX", "offsetY",
+	    "screenX", "screenY",
+	    "movementX", "movementY",
+	    'altKey', 'ctrlKey',
+	    'metaKey', 'shiftKey', 'which', 'isTrusted',
+	    'timeStamp', 'type',
+	    'originalTarget.textContent',
+	    'originalTarget.nodeName'
+	]
     }
-    event_data['keystroke'] = keystroke_data;
-    log_event("keystroke", event_data);
+};
+
+function generic_eventlistener(event_type, event) {
+    return function(event) {
+	/*
+	  Listen for events, and pass them back to the background page.
+	*/
+	var event_data = {};
+	event_data["event_type"] = event_type;
+	properties = EVENT_LIST[event_type].properties;
+	var keystroke_data = {};
+	for (var property in properties) {
+	    keystroke_data[properties[property]] = event[properties[property]];
+	}
+	event_data[event_type] = keystroke_data;
+	log_event(event_type, event_data);
+    }
 }
 
 
+// We want to listen to events in all iFrames, as well as the main content document.
+// We should really make a list of documents instead....
+var frames = Array.from(document.getElementsByTagName("iframe"));
+frames.push({'contentDocument': document})
 
-document.addEventListener("keypress", writing_eventlistener);
-document.addEventListener("keydown", writing_eventlistener);
-document.addEventListener("keyup", writing_eventlistener);
-
-var iframes = document.getElementsByTagName("iframe")
-for(iframe in iframes){
-    if(iframes[iframe].contentDocument) {
-	iframes[iframe].contentDocument.addEventListener("keypress", writing_eventlistener);
-	iframes[iframe].contentDocument.addEventListener("keydown", writing_eventlistener);
-	iframes[iframe].contentDocument.addEventListener("keyup", writing_eventlistener);
+for(var event_type in EVENT_LIST) {
+    for(var event_idx in EVENT_LIST[event_type]['events']) {
+	js_event = EVENT_LIST[event_type]['events'][event_idx];
+	for(var iframe in frames){
+	    if(frames[iframe].contentDocument) {
+		frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type));
+	    }
+	}
     }
 }
 
