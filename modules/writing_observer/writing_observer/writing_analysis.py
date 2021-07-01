@@ -102,8 +102,8 @@ async def baseline_typing_speed(event, internal_state):
             and not event['client']['keystroke']['altKey'] and not event['client']['keystroke']['ctrlKey'] \
             and ((event['client']['keystroke']['keyCode'] > 47 and event['client']['keystroke']['keyCode'] < 91)
                  or event['client']['keystroke']['keyCode'] == 173):
-        # print('updating the internal state')
-        # print(last_keycode)
+        #print('updating the internal state')
+        #print(last_keycode)
         internal_state['saved_keycode'] = event['client']['keystroke']['keyCode']
         if last_keycode is not None:
             internal_state['nWordInternalKeystrokes'] += 1
@@ -129,14 +129,13 @@ async def baseline_typing_speed(event, internal_state):
         )
         internal_state['total_inword_typing_time'] += delta_t
         internal_state['meanCharactersPerSecond'] = internal_state['nWordInternalKeystrokes'] / internal_state['total_inword_typing_time']
-        print('Total typing time: ' + str(internal_state['total_inword_typing_time']))
-        print('Current mean typing speed: ' + str(internal_state['meanCharactersPerSecond']))
+        # print('Total typing time: ' + str(internal_state['total_inword_typing_time']))
+        # print('Current mean typing speed: ' + str(internal_state['meanCharactersPerSecond']))
 
     # Report out of order events
     if last_time > internal_state['saved_time']:
         print('Event at ' + str(last_time) + 'appeared out of order.')
-
-# print(internal_state)
+    print(internal_state)
 
     return internal_state, internal_state
 
