@@ -90,7 +90,7 @@ async def baseline_typing_speed(event, internal_state):
     last_keycode = internal_state['saved_keycode']
     internal_state['saved_time'] = event['client']['ts'] / 1000
 
-    # Indentify in-word keypresses.
+    # Identify in-word keypresses.
     # Exclude events that aren't keypresses.
     # Exclude keypresses combined with the alt or ctrl keys
     # Exclude nonalphanumeric characters, defined as anything other than A-Z, a-z, 0-9, or hyphen
