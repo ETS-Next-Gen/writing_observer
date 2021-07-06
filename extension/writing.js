@@ -40,7 +40,7 @@ function log_event(event_type, event) {
     event["title"] = google_docs_title();
     event["doc_id"] = doc_id();
     event['event'] = event_type;
-
+    console.log(event);
     chrome.runtime.sendMessage(event);
 }
 
@@ -77,14 +77,36 @@ EVENT_LIST = {
 	"target": "document"
     },
     "attention": {
-	"events": ["visibilitychange", "focusin", "focusout"],
+       "events": ["focusin", "focusout"],
 	// Not all of these are required for all events...
 	"properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
 	"target": "window"
+    },
+    "visibility": {
+        "events": ["visibilitychange"],
+        "properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
+        "target": "document"
+    },
+    "save": {
+        "events": ["google_docs_save"],
+        "properties": [
+             "doc_id", "bundles", 
+             "event", "timestamp"
+        ],      
+        "target": "window"
+    },
+    "load": {
+        "events": ["document_loaded"],
+        "properties": [
+              "doc_id", "event",
+              "history", "title",
+              "timestamp"
+        ],
+        "target": "window"
     }
 };
 
-function generic_eventlistener(event_type, event) {
+function generic_eventlistener(event_type, frameindex, event) {
     return function(event) {
 	/*
 	  Listen for events, and pass them back to the background page.
@@ -99,8 +121,14 @@ function generic_eventlistener(event_type, event) {
 		keystroke_data[properties[property]] = treeget(event, properties[property]);
 	    }
 	}
-	event_data[event_type] = keystroke_data;
-	log_event(event_type, event_data);
+        if (frameindex===undefined) {
+            frameindex='0';
+        }
+        console.log(frameindex, event);
+
+        event_data[event_type] = keystroke_data;
+        event_data['frameindex']=frameindex;
+        log_event(event_type, event_data);
     }
 }
 
@@ -109,18 +137,25 @@ var frames = Array.from(document.getElementsByTagName("iframe"));
 // We should really make a list of documents instead of a fake iframe....
 frames.push({'contentDocument': document})
 
+var s = document.createElement('script');
+s.src = chrome.runtime.getURL('pageinfo.js');
+
+
 for(var event_type in EVENT_LIST) {
+
     for(var event_idx in EVENT_LIST[event_type]['events']) {
 	js_event = EVENT_LIST[event_type]['events'][event_idx];
 	target = EVENT_LIST[event_type]['target']
 	if(target === 'document') {
+ 
 	    for(var iframe in frames){
 		if(frames[iframe].contentDocument) {
-		    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type));
-		}
+                    console.log(iframe)
+                    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type,iframe));
+                 }
 	    }
 	} else if (target === 'window') {
-	    window.addEventListener(js_event, generic_eventlistener(event_type));
+            window.addEventListener(js_event, generic_eventlistener(event_type));
 	}
     }
 }

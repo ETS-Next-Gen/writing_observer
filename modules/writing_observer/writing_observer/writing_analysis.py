@@ -53,29 +53,156 @@ async def time_on_task(event, internal_state):
         internal_state['total-time-on-task'] += delta_t
     return internal_state, internal_state
 
+def internal_state_setup(event, internal_state, initial_doc_state):
+    '''
+    This function sets up the internal state variables used by some of the pipeline
+    functions, specifically, the hierarchy that tracks the user, document, and frame
+    within which an event happens.
+    '''
+
+    # Use the safe_user_id field from metadata
+    safe_user_id = event['metadata']['auth']['safe_user_id']
+
+    # Use the doc id from the event as the primary key
+    doc_id = event['client']['doc_id']
+
+    # Track frame ids
+    frameid = None
+    if 'frameindex' in event['client']:
+        frameid = event['client']['frameindex']
+
+    # Initialize internal_state so that it has key-value pairs for each doc_id + frameid combination
+    # for the visible feature. This is because Google Docs generates a separate visibilitystate event
+    # for each frame document in a Google Doc.
+    if internal_state is None:
+        internal_state = {}
+
+    if safe_user_id not in internal_state:
+        internal_state[safe_user_id] = {}
+
+    if doc_id not in internal_state[safe_user_id]:
+        internal_state[safe_user_id][doc_id] = initial_doc_state
+
+    if frameid not in internal_state[safe_user_id][doc_id]['frameset'] and frameid is not None:
+        frameset = {}
+        internal_state[safe_user_id][doc_id]['frameset'][frameid] = frameset
+    return (safe_user_id, doc_id, frameid, internal_state)
+
+@kvs_pipeline()
+async def attention_state(event, internal_state):
+    '''
+    This function tracks events that let us know whether we are currently in an active session
+    or in some other state. Visible means that the browser window is visible in the broser and the
+    browser has not been minimized. in_focus means that the window containing the document has received focus.
+    '''
+    # Do not calculate attentions states for non-document events like warnings
+    if 'doc_id' not in event['client']:
+        return (internal_state,internal_state)
+
+    initial_doc_state = {
+        "in_focus": True,
+        "frameset": {
+             "0": {
+                 "visible": True
+             },
+             "1": {
+                 "visible": True
+             },
+             "2": {
+                 "visible": True
+              },
+             "3": {
+                 "visible": True
+              }
+        }
+    }
+
+    (safe_user_id, doc_id, frameid, internal_state) = internal_state_setup(event, internal_state, initial_doc_state)
+
+    internal_state[safe_user_id][doc_id]['saved_time'] = event['client']['ts'] / 1000
+
+    # Track visibility using visibilitychange
+    if event['client']['event']=='visibility'  \
+        and event['client']['visibility']['type'] == "visibilitychange" \
+        and frameid is not None:
+        if internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible']:
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = False
+        else:
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = True
+
+    # Visibilitychange has one hole in it -- when a student alt-tabs to another page. This
+    # is not necessarily a visibility change -- that depends on window size. But alt tab doesn't
+    # tell us enough, so we need to track focusin / focusout. Focusin implies visiblity, though
+    # focusout doesn't guarantee the screen is hidden.
+    if event['client']['event'] == "attention" and event['client']['attention']['type'] == 'focusin':
+        internal_state[safe_user_id][doc_id]['in_focus'] = True
+    elif event['client']['event'] =="attention" and event['client']['attention']['type'] == 'focusout':
+        internal_state[safe_user_id][doc_id]['in_focus'] = False
+    elif event['client']['event'] == 'keystroke' or event['client']['event'] == 'mouseclick':
+        internal_state[safe_user_id][doc_id]['in_focus'] = True
+        for fid in internal_state[safe_user_id][doc_id]['frameset']:
+            internal_state[safe_user_id][doc_id]['frameset'][fid]['visible'] = True
+
+    print(internal_state)
+
+    return internal_state, internal_state
+
 
 @kvs_pipeline()
 async def baseline_typing_speed(event, internal_state):
     '''
-    Calculate baseline typing speed (characters per second for alphanumeric characters after the
-    first character in a word). In our research results so far, this is an extremely reliable metric.
+    This function calculates baseline typing speed (characters per second for alphanumeric characters after
+    the first character in a word). In our research results so far, this is an extremely reliable metric.
     Excluding word initial characters and nonalphanumeric keys eliminates pauses likely to be associated
     with most forms of metacognitive planning and deliberation, and so provides a relatively clean
-    measure of typing speed.
+    measure of typing speed. The best measure is probably median log latencies, but that would be harder
+    to report to users.
     '''
-
-    # We process keydown, but not keypress or keyup events.
-    if 'keystroke' in event['client'] and event['client']['keystroke']['type'] != 'keydown':
+    if 'doc_id' not in event['client'] \
+        or ('keystroke' in event['client'] and event['client']['keystroke']['type'] != 'keydown') \
+        or 'keystroke' in event['client'] and event['client']['keystroke']['keyCode']==16:
         return internal_state, internal_state
 
     if internal_state is None:
-        internal_state = {
-            'saved_time': None,
-            'saved_keycode': None,
-            'total_inword_typing_time': 0,
-            'nWordInternalKeystrokes': 0,
-            'meanCharactersPerSecond': 0.0
+        internal_state = {}
+
+    initial_doc_state = {
+        "frameset": {
+            "0": {
+                    'saved_time': None,
+                    'saved_keycode': None,
+                    'total_inword_typing_time': 0,
+                    'nWordInternalKeystrokes': 0,
+                    'meanCharactersPerSecond': 0.0
+            },
+            "1": {
+                    'saved_time': None,
+                    'saved_keycode': None,
+                    'total_inword_typing_time': 0,
+                    'nWordInternalKeystrokes': 0,
+                    'meanCharactersPerSecond': 0.0
+            },
+            "2": {
+                    'saved_time': None,
+                    'saved_keycode': None,
+                    'total_inword_typing_time': 0,
+                    'nWordInternalKeystrokes': 0,
+                    'meanCharactersPerSecond': 0.0
+            },
+            "3": {
+                    'saved_time': None,
+                    'saved_keycode': None,
+                    'total_inword_typing_time': 0,
+                    'nWordInternalKeystrokes': 0,
+                    'meanCharactersPerSecond': 0.0
+            }
         }
+    }
+
+    (safe_user_id, doc_id, frameid, internal_state) = internal_state_setup(event, internal_state, initial_doc_state)
+
+    if frameid is None:
+        return internal_state, internal_state
 
     # if 'event_type' in event['client'] and 'keystroke' in event['client']:
     #    print(event['client']['event_type'])
@@ -84,9 +211,13 @@ async def baseline_typing_speed(event, internal_state):
     #    print(event['client']['keystroke']['keyCode'])
     #    print(event['client']['keystroke']['key'])
 
-    last_time = internal_state['saved_time']
-    last_keycode = internal_state['saved_keycode']
-    internal_state['saved_time'] = event['client']['ts'] / 1000
+    if 'saved_time' in internal_state[safe_user_id][doc_id]['frameset'][frameid]:
+        last_time = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']
+    else:
+        last_time = None
+    internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time'] = event['client']['ts'] / 1000
+
+    last_keycode = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode']
 
     # Identify in-word keypresses.
     # Exclude events that aren't keypresses.
@@ -96,43 +227,47 @@ async def baseline_typing_speed(event, internal_state):
     # keycodes for variants of hyphen or apostrophe, but that's too complex to address
     # in the first instance.)
     # Exclude the first keypress after an excluded event
-    if 'event_type' in event['client'] and event['client']['event_type'] == 'keypress' \
-            and not event['client']['keystroke']['altKey'] and not event['client']['keystroke']['ctrlKey'] \
-            and ((event['client']['keystroke']['keyCode'] > 47 and event['client']['keystroke']['keyCode'] < 91)
-                 or event['client']['keystroke']['keyCode'] == 173):
-        #print('updating the internal state')
-        #print(last_keycode)
-        internal_state['saved_keycode'] = event['client']['keystroke']['keyCode']
-        if last_keycode is not None:
-            internal_state['nWordInternalKeystrokes'] += 1
-    # Reset keycode to None for non alphanumeric events.
+
+    if 'event_type' in event['client'] and event['client']['event_type'] == 'keystroke' \
+        and not event['client']['keystroke']['altKey'] and not event['client']['keystroke']['ctrlKey']:
+        if (event['client']['keystroke']['keyCode'] > 47 and event['client']['keystroke']['keyCode'] < 91) \
+            or event['client']['keystroke']['keyCode'] == 173:
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode'] = event['client']['keystroke']['keyCode']
+            if last_keycode is not None:
+                internal_state[safe_user_id][doc_id]['frameset'][frameid]['nWordInternalKeystrokes'] += 1
+        else:
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode'] = None
+
+    # Reset saved keycode to None for non alphanumeric events.
     else:
-        internal_state['saved_keycode'] = None
+        internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode'] = None
 
     # Initial conditions
     if last_time is None:
-        last_time = internal_state['saved_time']
+        last_time = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']
+    if last_keycode is None:
+        last_keycode = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode']
 
-    # print(last_time,last_keycode)
-    # Typing speed calculation based on assumption that events are reported in order
+    # Typing speed calculation based on assumption that events are reported in order.
     # last_time None will exclude nonalphanumerics.
-    # requiring keypress==down will make sure we only do interkey interval statistics
-    # and we want to avoid any crazies from out of order events that would give us
-    # negative times and thereby corrupt the speed measure
-    if last_time is not None and last_keycode is not None and last_time <= internal_state['saved_time']:
+    # requiring keypress==down will make sure we only do interkey interval statistics.
+    # and we want to avoid any crazies from out of order events that would give us.
+    # negative times and thereby corrupt the speed measure.
+    if last_time is not None and last_keycode is not None and last_time <= internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']:
         delta_t = min(
             TIME_ON_TASK_THRESHOLD,
             # Maximum time step
-            internal_state['saved_time'] - last_time  # Time step
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time'] - last_time  # Time step
         )
-        internal_state['total_inword_typing_time'] += delta_t
-        internal_state['meanCharactersPerSecond'] = internal_state['nWordInternalKeystrokes'] / internal_state['total_inword_typing_time']
-        # print('Total typing time: ' + str(internal_state['total_inword_typing_time']))
-        # print('Current mean typing speed: ' + str(internal_state['meanCharactersPerSecond']))
+        internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time'] += delta_t
+        internal_state[safe_user_id][doc_id]['frameset'][frameid]['meanCharactersPerSecond'] = internal_state[safe_user_id][doc_id]['frameset'][frameid]['nWordInternalKeystrokes'] / internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']
+        # print('Total typing time: ' + str(internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']))
+        # print('Current mean typing speed: ' + str(internal_state[safe_user_id][doc_id]['frameset'][frameid]['meanCharactersPerSecond']))
 
     # Report out of order events
-    if last_time > internal_state['saved_time']:
-        print('Event at ' + str(last_time) + 'appeared out of order.')
+    # if last_time is not None and last_time > internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']:
+    #    print('Event at ' + str(last_time) + 'appeared out of order.')
+
     print(internal_state)
 
     return internal_state, internal_state
@@ -173,12 +308,12 @@ async def pipeline(metadata):
     combine the results into a common state-of-the-universe to return
     for display in the dashboard.
     '''
-    processors = [time_on_task(metadata), reconstruct(metadata), baseline_typing_speed(metadata)]
+    processors = [time_on_task(metadata), reconstruct(metadata), attention_state(metadata), baseline_typing_speed(metadata)]
 
     async def process(event):
         external_state = {}
-        for processor in processors:
-            external_state.update(await processor(event))
+        if processors is not None:
+            for processor in processors:
+                external_state.update(await processor(event))
         return external_state
     return process
-

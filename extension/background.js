@@ -198,8 +198,8 @@ loggers_enabled = [
 */
 loggers_enabled = [
     console_logger(),
-    //ajax_logger("https://writing.hopto.org/webapi/")//,
-    websocket_logger("wss://writing.hopto.org/wsapi/in/")
+    //ajax_logger("https://pddeane.com/webapi/")//,
+    websocket_logger("wss://pddeane.com/wsapi/in/")
 ];
 
 function log_event(event_type, event) {
@@ -263,7 +263,7 @@ var WRITINGJS_AJAX_SERVER = null;
 chrome.storage.sync.get(['process-server'], function(result) {
     //WRITINGJS_AJAX_SERVER = result['process-server'];
     if(!WRITINGJS_AJAX_SERVER) {
-	WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
+	WRITINGJS_AJAX_SERVER = "https://pddean.com/webapi/";
     }
     dequeue_events();
 });*/
