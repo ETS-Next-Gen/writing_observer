@@ -143,7 +143,7 @@ s.src = chrome.runtime.getURL('pageinfo.js');
 
 var editor = document.querySelector('.kix-appview-editor');
 
-/*
+
   //This mutation observer code is commented out for now,
   // as recording mutations is like sipping from a firehose.
   // Once we figure out what specific things we want to watch,
@@ -167,8 +167,17 @@ var observer = new MutationObserver(function (mutations) {
       	oldValue: mutation.oldValue,
         timestamp: timeMil()
       };
-      console.log('Recording Mutation:', entry);
-      log_event(mutation.type,entry)
+    if (entry.className.indexOf("docos-stream-view")>=0) {
+          entry.type = 'Comment';
+          console.log('Recording Mutation:', entry);
+          log_event(mutation.type,entry); 
+      }
+      else if (entry.className.indexOf("docos")>=0) {
+
+          console.log('Recording Mutation:', entry);
+          log_event(mutation.type,entry);
+
+     }
   });
 });
 
@@ -179,7 +188,7 @@ var options = {
 };
 
 observer.observe(editor, options);
-*/
+
 
 for(var event_type in EVENT_LIST) {
 
