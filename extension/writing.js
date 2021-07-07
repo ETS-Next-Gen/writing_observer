@@ -25,6 +25,7 @@ function doc_id() {
     }
 }
 
+
 function this_is_a_google_doc() {
     /*
       Returns 'true' if we are in a Google Doc
@@ -140,6 +141,45 @@ frames.push({'contentDocument': document})
 var s = document.createElement('script');
 s.src = chrome.runtime.getURL('pageinfo.js');
 
+var editor = document.querySelector('.kix-appview-editor');
+
+/*
+  //This mutation observer code is commented out for now,
+  // as recording mutations is like sipping from a firehose.
+  // Once we figure out what specific things we want to watch,
+  // we can turn it on and only log the meaningful changes.
+
+function timeMil(){
+    var date = new Date();
+    var timeMil = date.getTime();
+
+    return timeMil;
+}
+
+var observer = new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
+      var entry = {
+      	mutation: mutation,
+      	el: mutation.target,
+        type: "mutation",
+        className: mutation.target.className,
+        value: mutation.target.textContent,
+      	oldValue: mutation.oldValue,
+        timestamp: timeMil()
+      };
+      console.log('Recording Mutation:', entry);
+      log_event(mutation.type,entry)
+  });
+});
+
+var options = {
+	subtree: true,
+	childList: true,
+	attributes: false
+};
+
+observer.observe(editor, options);
+*/
 
 for(var event_type in EVENT_LIST) {
 
@@ -152,7 +192,7 @@ for(var event_type in EVENT_LIST) {
 		if(frames[iframe].contentDocument) {
                     console.log(iframe)
                     frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type,iframe));
-                 }
+                }               
 	    }
 	} else if (target === 'window') {
             window.addEventListener(js_event, generic_eventlistener(event_type));

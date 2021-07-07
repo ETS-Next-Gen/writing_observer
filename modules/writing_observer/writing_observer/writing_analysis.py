@@ -204,12 +204,12 @@ async def baseline_typing_speed(event, internal_state):
     if frameid is None:
         return internal_state, internal_state
 
-    # if 'event_type' in event['client'] and 'keystroke' in event['client']:
-    #    print(event['client']['event_type'])
-    #    print(event['client']['keystroke']['altKey'])
-    #    print(event['client']['keystroke']['ctrlKey'])
-    #    print(event['client']['keystroke']['keyCode'])
-    #    print(event['client']['keystroke']['key'])
+    if 'event_type' in event['client'] and 'keystroke' in event['client']:
+        print(event['client']['event_type'])
+        print(event['client']['keystroke']['altKey'])
+        print(event['client']['keystroke']['ctrlKey'])
+        print(event['client']['keystroke']['keyCode'])
+        print(event['client']['keystroke']['key'])
 
     if 'saved_time' in internal_state[safe_user_id][doc_id]['frameset'][frameid]:
         last_time = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']
@@ -217,7 +217,8 @@ async def baseline_typing_speed(event, internal_state):
         last_time = None
     internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time'] = event['client']['ts'] / 1000
 
-    last_keycode = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode']
+    if 'saved_keycode' in internal_state[safe_user_id][doc_id]['frameset'][frameid]:
+        last_keycode = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode']
 
     # Identify in-word keypresses.
     # Exclude events that aren't keypresses.
