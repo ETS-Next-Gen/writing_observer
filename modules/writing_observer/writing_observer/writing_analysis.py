@@ -246,7 +246,7 @@ async def baseline_typing_speed(event, internal_state):
     # Initial conditions
     if last_time is None:
         last_time = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']
-    if last_keycode is None:
+    if last_keycode is None and 'saved_keycode' in internal_state[safe_user_id][doc_id]['frameset'][frameid]:
         last_keycode = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode']
 
     # Typing speed calculation based on assumption that events are reported in order.

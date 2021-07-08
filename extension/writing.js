@@ -45,7 +45,7 @@ function log_event(event_type, event) {
     chrome.runtime.sendMessage(event);
 }
 
-
+//Data structure specifying the events we want to capture from the browser.
 EVENT_LIST = {
     "keystroke": {
 	"events": [
@@ -108,6 +108,9 @@ EVENT_LIST = {
 };
 
 function generic_eventlistener(event_type, frameindex, event) {
+    /*
+       This function captures any events specified in EVENT_LIST and passes them to the server.
+    */
     return function(event) {
 	/*
 	  Listen for events, and pass them back to the background page.
@@ -133,63 +136,207 @@ function generic_eventlistener(event_type, frameindex, event) {
     }
 }
 
-// We want to listen to events in all iFrames, as well as the main content document.
-var frames = Array.from(document.getElementsByTagName("iframe"));
-// We should really make a list of documents instead of a fake iframe....
-frames.push({'contentDocument': document})
-
-var s = document.createElement('script');
-s.src = chrome.runtime.getURL('pageinfo.js');
-
+// Set up to observe changes in the document, not just events.
 var editor = document.querySelector('.kix-appview-editor');
 
-
-  //This mutation observer code is commented out for now,
-  // as recording mutations is like sipping from a firehose.
-  // Once we figure out what specific things we want to watch,
-  // we can turn it on and only log the meaningful changes.
-
-function timeMil(){
+function timeMil() {
+    /*
+        Timestamp generator to make sure that MutationObserver events will have client-side timestamps.
+    */
     var date = new Date();
     var timeMil = date.getTime();
 
     return timeMil;
 }
 
-var observer = new MutationObserver(function (mutations) {
-    mutations.forEach(function (mutation) {
-      var entry = {
-      	mutation: mutation,
-      	el: mutation.target,
-        type: "mutation",
-        className: mutation.target.className,
-        value: mutation.target.textContent,
-      	oldValue: mutation.oldValue,
-        timestamp: timeMil()
-      };
-    if (entry.className.indexOf("docos-stream-view")>=0) {
-          entry.type = 'Comment';
-          console.log('Recording Mutation:', entry);
-          log_event(mutation.type,entry); 
-      }
-      else if (entry.className.indexOf("docos")>=0) {
+//Data structure where we store information about which events to log how.
+//The categories insert, delete, input, clear, replace are hard coded into the
+//function that sets up the MutationObserver. Once we know that, we know
+//what information in the context will tell us whether to log a change.
+//We start by checking the target className, which is the second level key.
+//For insert and delete events, we have to also check the classname of
+//the node being inserted or deleted. Then we apply the label specified
+//as the last item in each record.
+var mutationsObserved = {
+        "insert": {
+            "docos-stream-view": ["docos-docoview-resolve-button-visible","add-comment"],
+            "docos-docoview-replycontainer": ["docos-replyview-comment","add-reply"]
+        },
+        "delete": {
+            "docos-docoview-rootreply": ["docos-replyview-comment","delete-comment"],        
+            "docos-docoview-replycontainer": ["docos-replyview-comment","delete-reply"],                
+        },
+        "input": {
+            "docos-input-textarea": [null, "type-input"]
+        },
+        "clear": {
+            "docos-input-textarea": [null, "clear-input"]       
+        },
+        "replace": {
+            "docos-replyview-body": [null, "edit-comment"]
+        }       
+    } 
 
-          console.log('Recording Mutation:', entry);
-          log_event(mutation.type,entry);
+function prepareMutationObserver(mutationsObserved) {
+    /*
+        Set up a MutationObserver that will use the mutationObserved dictionary
+        to tell it which changes to log and what label to log it as.
+    */
+    var observer = new MutationObserver(function (mutations) {
+           mutations.forEach(function (mutation) {
+           //log_event("general",mutation)
+           if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
+               var entry = {
+                   mutation: mutation,
+                   el: mutation.target,
+                   type: "mutation",
+                   numAdded: mutation.addedNodes.length,
+                   numDel: mutation.removedNodes.length,
+                   timestamp: timeMil(),
+                   value: mutation.value,
+                   attributeName: mutation.attributeName,
+                   className: mutation.target.className,
+                   firstRemovedClassName: ' ',
+                   firstAddedClassName: mutation.addedNodes[0].className
+               }
+               inserts = mutationsObserved["insert"];
+               for (var targetClass in inserts) {
+                      var addedClass = inserts[targetClass][0];
+                      var label = inserts[targetClass][1];
+                      if (entry.className.indexOf(targetClass)>=0 && entry.firstAddedClassName.indexOf(addedClass)>=0) {
+                          entry.type = label;
+                          log_event(mutation.type,entry);
+                      }
+               }
+            }
+            else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
+                if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
+                    var entry = {
+                        mutation: mutation,
+                        el: mutation.target,
+                        type: "mutation",
+                        numAdded: mutation.addedNodes.length,
+                        numDel: mutation.removedNodes.length,
+                        timestamp: timeMil(),
+                        value: mutation.target.value,
+                        attributeName: mutation.attributeName,
+                        className: mutation.target.className,
+                        firstRemovedClassName: mutation.removedNodes[0].className,
+                        firstAddedClassName: ' '
+                     }
+                     clears = mutationsObserved["clear"];
+                     for (var targetClass in clears) {
+                            var label = clears[targetClass][1];
+                            if (entry.className.indexOf(targetClass)>=0) {
+                                entry.type = label;
+                                log_event(mutation.type,entry);
+                            }
+                     }
+                }
+                else {
+                    var entry = {
+                        mutation: mutation,
+                        el: mutation.target,
+                        type: "mutation",
+                        numAdded: mutation.addedNodes.length,
+                        numDel: mutation.removedNodes.length,
+                        timestamp: timeMil(),
+                        value: mutation.value,
+                        attributeName: mutation.attributeName,
+                        className: mutation.target.className,
+                        firstRemovedClassName: mutation.removedNodes[0].className,
+                        firstAddedClassName: ' '
+                    }
+                    deletes = mutationsObserved["delete"];
+                    for (var targetClass in deletes) {
+                           var addedClass = deletes[targetClass][0];
+                           var label = deletes[targetClass][1];
+                           if (entry.className.indexOf(targetClass)>=0 && entry.firstRemovedClassName.indexOf(addedClass)>=0) {
+                               entry.type = label;
+                               log_event(mutation.type,entry);
+                           }
+                    }
+                }
+             }
+             else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
+                  mutation.removedNodes[0].nodeType == Node.TEXT_NODE &&
+                  mutation.addedNodes[0].nodeType == Node.TEXT_NODE
+             ) {
+                 var entry = {
+                    mutation: mutation,
+                    el: mutation.target,
+                    type: "mutation",
+                    numAdded: mutation.addedNodes.length,
+                    numDel: mutation.removedNodes.length,
+                    timestamp: timeMil(),
+                    value: mutation.addedNodes[0].data,
+                    attributeName: mutation.attributeName,
+                    className: mutation.target.className,
+                    firstRemovedClassName: ' ',
+                    firstAddedClassName: ' '
+                 }
 
-     }
-  });
-});
+                 replacements = mutationsObserved["replace"];
+                 for (var targetClass in replacements) {
+                        var label = replacements[targetClass][1];
+                        if (entry.className.indexOf(targetClass)>=0) {
+                            entry.type = label;
+                            log_event(mutation.type,entry);
+                        }
+                 }
+             }
+             else if (mutation.type=='characterData') {
+                var entry = {
+                    mutation: mutation,
+                    el: mutation.target,
+                    type: "mutation",
+                    numAdded: mutation.addedNodes.length,
+                    numDel: mutation.removedNodes.length,
+                    timestamp: timeMil(),
+                    value: mutation.target.data,
+                    attributeName: mutation.attributeName,
+                    className: mutation.target.parentNode.className,
+                    firstRemovedClassName: ' ',
+                    firstAddedClassName: ' '
+                }
+
+                 inputs = mutationsObserved["input"];
+                 for (var targetClass in inputs) {
+                     var label = inputs[targetClass][1];
+                     if (entry.className.indexOf(targetClass)>=0) {
+                        entry.type = label;
+                        log_event(mutation.type,entry);
+                     }
+                 }
+             }
+        });
+    });
+    return observer;
+}
 
 var options = {
-	subtree: true,
-	childList: true,
-	attributes: false
+    attributes: false,
+    childList: true,
+    characterData: true,
+    subtree: true  
 };
 
+//OK, now create the MutationObserver and start running it on the document.
+observer = prepareMutationObserver(mutationsObserved)
 observer.observe(editor, options);
 
+//Now initialize the event listeners.
 
+//We want to listen to events in all iFrames, as well as the main content document.
+var frames = Array.from(document.getElementsByTagName("iframe"));
+
+// We should really make a list of documents instead of a fake iframe....
+frames.push({'contentDocument': document})
+
+var s = document.createElement('script');
+s.src = chrome.runtime.getURL('pageinfo.js');
+
+//Add an event listener to each iframe in the iframes under frames.
 for(var event_type in EVENT_LIST) {
 
     for(var event_idx in EVENT_LIST[event_type]['events']) {
@@ -201,7 +348,7 @@ for(var event_type in EVENT_LIST) {
 		if(frames[iframe].contentDocument) {
                     console.log(iframe)
                     frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type,iframe));
-                }               
+              }               
 	    }
 	} else if (target === 'window') {
             window.addEventListener(js_event, generic_eventlistener(event_type));

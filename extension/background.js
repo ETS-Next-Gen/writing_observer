@@ -204,11 +204,10 @@ loggers_enabled = [
 
 function log_event(event_type, event) {
     /*
-       Eventually, this will send an event to the server. For now, we
-       either ignore it, or print it on our console.
+       This sends an event to the server.
     */
     event = add_event_metadata(event_type, event);
-    // TODO: Add username
+    
     if(event['wa-source'] = null) {
 	event['wa-source'] = 'background-page';
     }
