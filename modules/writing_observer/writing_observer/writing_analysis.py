@@ -83,7 +83,7 @@ def internal_state_setup(event, internal_state, initial_doc_state):
     if doc_id not in internal_state[safe_user_id]:
         internal_state[safe_user_id][doc_id] = initial_doc_state
 
-    if frameid not in internal_state[safe_user_id][doc_id]['frameset'] and frameid is not None:
+    if 'frameset' in internal_state[safe_user_id][doc_id] and frameid not in internal_state[safe_user_id][doc_id]['frameset'] and frameid is not None:
         frameset = {}
         internal_state[safe_user_id][doc_id]['frameset'][frameid] = frameset
     return (safe_user_id, doc_id, frameid, internal_state)
@@ -145,6 +145,70 @@ async def attention_state(event, internal_state):
 
     print(internal_state)
 
+    return internal_state, internal_state
+
+
+@kvs_pipeline()
+async def track_open_comments_by_document(event, internal_state):
+    '''
+    This pipeline is intended to be used to poll user/document/comment relationships,
+    for instance, when a teacher wants to know which students have made how many comments
+    on their fellow students' work during the current session.
+    '''
+
+    if internal_state is None:
+        internal_state = {
+        }
+ 
+    if 'doc_id' not in event['client'] or 'type' not in event['client']:
+        return internal_state, internal_state
+   
+    (safe_user_id, doc_id, frameid, internal_state) = internal_state_setup(event, internal_state, {})
+
+    if event['client']['event'] == "attention" and event['client']['attention']['type'] == 'focusin':
+        internal_state[safe_user_id][doc_id]['in_focus'] = True
+    elif event['client']['event'] =="attention" and event['client']['attention']['type'] == 'focusout':
+        internal_state[safe_user_id][doc_id]['in_focus'] = False
+    elif event['client']['type'] == 'type-input':
+        internal_state[safe_user_id][doc_id]['last_input_id'] = event['client']['parentID']
+        internal_state[safe_user_id][doc_id]['last_input'] = event['client']['value']
+        internal_state[safe_user_id][doc_id]['last_input_ts'] = event['client']['ts'] 
+        if 'first_input_ts' not in internal_state[safe_user_id][doc_id]:
+            internal_state[safe_user_id][doc_id]['first_input_ts'] = event['client']['ts']
+    elif event['client']['type'] == 'clear-input':
+        internal_state[safe_user_id][doc_id]['last_input'] = ''
+    elif event['client']['type'] == 'add-comment' or event['client']['type'] == 'edit-comment':
+        comment_id = internal_state[safe_user_id][doc_id]['last_input_id']
+        internal_state[safe_user_id][doc_id]['comments']={}
+        if comment_id not in internal_state[safe_user_id][doc_id]['comments']:
+            internal_state[safe_user_id][doc_id]['comments']={}
+            internal_state[safe_user_id][doc_id]['comments'][comment_id]={}
+        if internal_state[safe_user_id][doc_id]['last_input']!='':
+           internal_state[safe_user_id][doc_id]['comments'][comment_id]['comment_text'] = internal_state[safe_user_id][doc_id]['last_input'] 
+        else:
+            internal_state[safe_user_id][doc_id]['comments'][comment_id]['comment_text'] = None
+        if 'first_input_ts' not in internal_state[safe_user_id][doc_id]['comments'][comment_id]:
+            internal_state[safe_user_id][doc_id]['comments'][comment_id]['first_input_ts'] = event['client']['ts']
+        internal_state[safe_user_id][doc_id]['comments'][comment_id]['last_input_ts'] = event['client']['ts']
+    elif event['client']['type'] == 'add-reply':
+        reply_id = internal_state[safe_user_id][doc_id]['last_input_id'] 
+        internal_state[safe_user_id][doc_id]['replies']={}
+        if comment_id not in internal_state[safe_user_id][doc_id]['replies']:
+            internal_state[safe_user_id][doc_id]['replies']={}
+            internal_state[safe_user_id][doc_id]['replies'][reply_id]={}
+        if internal_state[safe_user_id][doc_id]['last_input']!='':
+           internal_state[safe_user_id][doc_id]['replies'][reply_id]['text'] = internal_state[safe_user_id][doc_id]['last_input'] 
+        else:
+            internal_state[safe_user_id][doc_id]['replies'][comment_id]['text'] = None
+        if 'first_input_ts' not in internal_state[safe_user_id][doc_id]['replies'][comment_id]:
+            internal_state[safe_user_id][doc_id]['replies'][comment_id]['first_input_ts'] = event['client']['ts']
+        internal_state[safe_user_id][doc_id]['replies'][comment_id]['last_input_ts'] = event['client']['ts']
+
+    # TO-DO: We need to purge users who aren't connected and documents that aren't open
+    # We also need to decide what to do about old comments from before a reload -- the way
+    # we are getting comment text depends on someone actually making a change to the text.
+      
+    print(internal_state)
     return internal_state, internal_state
 
 
@@ -309,7 +373,8 @@ async def pipeline(metadata):
     combine the results into a common state-of-the-universe to return
     for display in the dashboard.
     '''
-    processors = [time_on_task(metadata), reconstruct(metadata), attention_state(metadata), baseline_typing_speed(metadata)]
+    processors = [time_on_task(metadata), reconstruct(metadata), attention_state(metadata), baseline_typing_speed(metadata), track_open_comments_by_document(metadata)]
+    # processors = [time_on_task(metadata), reconstruct(metadata), attention_state(metadata), baseline_typing_speed(metadata)]
 
     async def process(event):
         external_state = {}

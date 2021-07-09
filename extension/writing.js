@@ -104,7 +104,20 @@ EVENT_LIST = {
               "timestamp"
         ],
         "target": "window"
-    }
+    },
+    "readystate": {
+        "events": ["readystatechange"],
+        "properties": [
+              "doc_id", "event",
+              "target", "timestamp", "type"
+        ],
+        "target": "window"
+    },
+    "pageshow": {
+        "events": ["pageshow"],
+        "properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
+        "target": "window"
+   }
 };
 
 function generic_eventlistener(event_type, frameindex, event) {
@@ -138,16 +151,6 @@ function generic_eventlistener(event_type, frameindex, event) {
 
 // Set up to observe changes in the document, not just events.
 var editor = document.querySelector('.kix-appview-editor');
-
-function timeMil() {
-    /*
-        Timestamp generator to make sure that MutationObserver events will have client-side timestamps.
-    */
-    var date = new Date();
-    var timeMil = date.getTime();
-
-    return timeMil;
-}
 
 //Data structure where we store information about which events to log how.
 //The categories insert, delete, input, clear, replace are hard coded into the
@@ -185,19 +188,23 @@ function prepareMutationObserver(mutationsObserved) {
     var observer = new MutationObserver(function (mutations) {
            mutations.forEach(function (mutation) {
            //log_event("general",mutation)
-           if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
+
+           // We only want to detect page change events that are initiated by the user.
+           // Changes that happen during loading are simply effects of the loading process.
+           if (!loading) {
+             if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
                var entry = {
                    mutation: mutation,
                    el: mutation.target,
                    type: "mutation",
                    numAdded: mutation.addedNodes.length,
                    numDel: mutation.removedNodes.length,
-                   timestamp: timeMil(),
                    value: mutation.value,
                    attributeName: mutation.attributeName,
                    className: mutation.target.className,
                    firstRemovedClassName: ' ',
-                   firstAddedClassName: mutation.addedNodes[0].className
+                   firstAddedClassName: mutation.addedNodes[0].className,
+                   parentID:  ''
                }
                inserts = mutationsObserved["insert"];
                for (var targetClass in inserts) {
@@ -208,8 +215,8 @@ function prepareMutationObserver(mutationsObserved) {
                           log_event(mutation.type,entry);
                       }
                }
-            }
-            else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
+              }
+              else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
                 if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
                     var entry = {
                         mutation: mutation,
@@ -217,12 +224,12 @@ function prepareMutationObserver(mutationsObserved) {
                         type: "mutation",
                         numAdded: mutation.addedNodes.length,
                         numDel: mutation.removedNodes.length,
-                        timestamp: timeMil(),
                         value: mutation.target.value,
                         attributeName: mutation.attributeName,
                         className: mutation.target.className,
                         firstRemovedClassName: mutation.removedNodes[0].className,
-                        firstAddedClassName: ' '
+                        firstAddedClassName: ' ',
+                        parentID: mutation.target.parentNode.id
                      }
                      clears = mutationsObserved["clear"];
                      for (var targetClass in clears) {
@@ -230,22 +237,22 @@ function prepareMutationObserver(mutationsObserved) {
                             if (entry.className.indexOf(targetClass)>=0) {
                                 entry.type = label;
                                 log_event(mutation.type,entry);
-                            }
+                             }
                      }
-                }
-                else {
+                  }
+                  else {
                     var entry = {
                         mutation: mutation,
                         el: mutation.target,
                         type: "mutation",
                         numAdded: mutation.addedNodes.length,
                         numDel: mutation.removedNodes.length,
-                        timestamp: timeMil(),
                         value: mutation.value,
                         attributeName: mutation.attributeName,
                         className: mutation.target.className,
                         firstRemovedClassName: mutation.removedNodes[0].className,
-                        firstAddedClassName: ' '
+                        firstAddedClassName: ' ',
+                        parentID: ''
                     }
                     deletes = mutationsObserved["delete"];
                     for (var targetClass in deletes) {
@@ -254,11 +261,11 @@ function prepareMutationObserver(mutationsObserved) {
                            if (entry.className.indexOf(targetClass)>=0 && entry.firstRemovedClassName.indexOf(addedClass)>=0) {
                                entry.type = label;
                                log_event(mutation.type,entry);
-                           }
+                            }
                     }
                 }
-             }
-             else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
+               }
+               else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
                   mutation.removedNodes[0].nodeType == Node.TEXT_NODE &&
                   mutation.addedNodes[0].nodeType == Node.TEXT_NODE
              ) {
@@ -268,12 +275,12 @@ function prepareMutationObserver(mutationsObserved) {
                     type: "mutation",
                     numAdded: mutation.addedNodes.length,
                     numDel: mutation.removedNodes.length,
-                    timestamp: timeMil(),
                     value: mutation.addedNodes[0].data,
                     attributeName: mutation.attributeName,
                     className: mutation.target.className,
                     firstRemovedClassName: ' ',
-                    firstAddedClassName: ' '
+                    firstAddedClassName: ' ',
+                    parentID: mutation.target.parentNode.id
                  }
 
                  replacements = mutationsObserved["replace"];
@@ -282,22 +289,22 @@ function prepareMutationObserver(mutationsObserved) {
                         if (entry.className.indexOf(targetClass)>=0) {
                             entry.type = label;
                             log_event(mutation.type,entry);
-                        }
+                         }
                  }
-             }
-             else if (mutation.type=='characterData') {
+               }
+               else if (mutation.type=='characterData') {
                 var entry = {
                     mutation: mutation,
                     el: mutation.target,
                     type: "mutation",
                     numAdded: mutation.addedNodes.length,
                     numDel: mutation.removedNodes.length,
-                    timestamp: timeMil(),
                     value: mutation.target.data,
                     attributeName: mutation.attributeName,
                     className: mutation.target.parentNode.className,
                     firstRemovedClassName: ' ',
-                    firstAddedClassName: ' '
+                    firstAddedClassName: ' ',
+                    parentID: mutation.target.parentNode.id
                 }
 
                  inputs = mutationsObserved["input"];
@@ -309,6 +316,7 @@ function prepareMutationObserver(mutationsObserved) {
                      }
                  }
              }
+           }
         });
     });
     return observer;
@@ -486,6 +494,9 @@ function google_docs_version_history() {
     });
 }
 
+//When the script is loaded, we assume the page is still being loaded
+var loading = 1;
+
 function writing_onload() {
     if(this_is_a_google_doc()) {
 	log_event("document_loaded", {
@@ -493,6 +504,8 @@ function writing_onload() {
 	})
 	google_docs_version_history();
     }
+    // So once we hit a load event, we can assume we're not loading any more.
+    loading = 0;
 }
 
-window.addEventListener("load", writing_onload);
+window.addEventListener("load", writing_onload); 
