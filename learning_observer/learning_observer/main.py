@@ -143,59 +143,90 @@ def add_routes():
     # Dashboard API
     # This serves up data (currently usually dummy data) for the dashboard
     app.add_routes([
-#        aiohttp.web.get('/webapi/dashboard/{module_id}/{course_id}/', learning_observer.dashboard.student_data_handler),
-        aiohttp.web.get('/wsapi/dashboard/{module_id}/{course_id}/',
-                        learning_observer.dashboard.ws_course_aggregate_view),
-        aiohttp.web.get('/webapi/course_dashboards',
-                        ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
-        aiohttp.web.get('/webapi/student_dashboards',
-                        ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
+        aiohttp.web.get(
+            '/wsapi/dashboard/{module_id}/{course_id}/',
+            learning_observer.dashboard.ws_course_aggregate_view),
+        aiohttp.web.get(
+            '/webapi/course_dashboards',
+            ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
+        aiohttp.web.get(
+            '/webapi/student_dashboards',
+            ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
     ])
 
     # Serve static files
     app.add_routes([
-        aiohttp.web.get('/static/{filename}', static_directory_handler(paths.static())),
-        aiohttp.web.get('/static/modules/{filename}', static_directory_handler(paths.static("modules"))),
+        aiohttp.web.get(
+            '/static/{filename}',
+            static_directory_handler(paths.static())),
+        aiohttp.web.get(
+            '/static/modules/{filename}',
+            static_directory_handler(paths.static("modules"))),
+
         # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
         aiohttp.web.get(
             r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
             static_directory_handler(paths.static("3rd_party"))),
-        aiohttp.web.get('/static/3rd_party/{filename}', static_directory_handler(paths.static("3rd_party"))),
-        aiohttp.web.get('/static/media/{filename}', static_directory_handler(paths.static("media"))),
-        aiohttp.web.get('/static/media/avatar/{filename}',
-                        static_directory_handler(paths.static("media/hubspot_persona_images/"))),
+        aiohttp.web.get(
+            '/static/3rd_party/{filename}',\
+            static_directory_handler(paths.static("3rd_party"))),
+        aiohttp.web.get(
+            '/static/media/{filename}',
+            static_directory_handler(paths.static("media"))),
+        aiohttp.web.get(
+            '/static/media/avatar/{filename}',
+            static_directory_handler(paths.static("media/hubspot_persona_images/"))),
     ])
 
     # Handle web sockets event requests, incoming and outgoing
     app.add_routes([
-        aiohttp.web.get('/wsapi/in/', incoming_student_event.incoming_websocket_handler)
+        aiohttp.web.get(
+            '/wsapi/in/',
+            incoming_student_event.incoming_websocket_handler)
     ])
 
     # Handle AJAX event requests, incoming
     app.add_routes([
-        aiohttp.web.get('/webapi/event/', incoming_student_event.ajax_event_request),
-        aiohttp.web.post('/webapi/event/', incoming_student_event.ajax_event_request),
-        aiohttp.web.get('/webapi/courselist/', rosters.courselist_api),
-        aiohttp.web.get('/webapi/courseroster/{course_id}', rosters.courseroster_api),
+        aiohttp.web.get(
+            '/webapi/event/',
+            incoming_student_event.ajax_event_request),
+        aiohttp.web.post(
+            '/webapi/event/',
+            incoming_student_event.ajax_event_request),
+        aiohttp.web.get(
+            '/webapi/courselist/',
+            rosters.courselist_api),
+        aiohttp.web.get(
+            '/webapi/courseroster/{course_id}',
+            rosters.courseroster_api),
     ])
 
     # Generic web-appy things
     app.add_routes([
-        aiohttp.web.get('/favicon.ico', static_file_handler(paths.static("favicon.ico"))),
-        aiohttp.web.get('/auth/logout', handler=learning_observer.auth.logout_handler),
-        aiohttp.web.get('/auth/userinfo', handler=learning_observer.auth.user_info_handler)
+        aiohttp.web.get(
+            '/favicon.ico',
+            static_file_handler(paths.static("favicon.ico"))),
+        aiohttp.web.get(
+            '/auth/logout',
+            handler=learning_observer.auth.logout_handler),
+        aiohttp.web.get(
+            '/auth/userinfo',
+            handler=learning_observer.auth.user_info_handler)
     ])
 
     if 'google-oauth' in settings.settings['auth']:
         print("Running with Google authentication")
         app.add_routes([
-            aiohttp.web.get('/auth/login/{provider:google}', handler=learning_observer.auth.social_handler),
+            aiohttp.web.get(
+                '/auth/login/{provider:google}',
+                handler=learning_observer.auth.social_handler),
         ])
 
     if 'password-file' in settings.settings['auth']:
         print("Running with password authentication")
         if not os.path.exists(settings.settings['auth']['password-file']):
-            print("Configured to run with password file, but no password file exists")
+            print("Configured to run with password file,"
+                  "but no password file exists")
             print()
             print("Please either:")
             print("* Remove auth/password-file from the settings file")
@@ -203,7 +234,9 @@ def add_routes():
                 fn=settings.settings['auth']['password-file']
             ))
             print("Typically:")
-            print("python util/lo_passwd.py --username {username} --password {password} --filename {fn}".format(
+            print("python util/lo_passwd.py "
+                  "--username {username} --password {password} "
+                  "--filename {fn}".format(
                 username=getpass.getuser(),
                 password=secrets.token_urlsafe(16),
                 fn=settings.settings['auth']['password-file']
@@ -261,11 +294,18 @@ def add_routes():
         ),
     ])
 
-    # We'd like to be able to have the root page themeable, for non-ETS deployments
-    # This is a quick-and-dirty way to override the main page.
+    # We'd like to be able to have the root page themeable, for
+    # non-ETS deployments. This is a quick-and-dirty way to override
+    # the main page.
     root_file = settings.settings.get("theme", {}).get("root_file", "webapp.html")
     app.add_routes([
         aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
+    ])
+
+    # E.g. We have an alias of /static/common to /common
+    # We place useful things modules can use, such as e.g. our logger
+    app.add_routes([
+        aiohttp.web.get('/common/{filename}', static_directory_handler(paths.static("common"))),
     ])
 
     # New-style modular views

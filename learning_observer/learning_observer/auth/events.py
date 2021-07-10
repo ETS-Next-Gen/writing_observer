@@ -232,13 +232,14 @@ async def hash_identify(request, headers, first_event, source):
     list. Then, it'd be okay for the math team example
     '''
     authdata = find_event('hash_auth', headers + [first_event])
+    print(authdata)
 
-    if authdata is None or 'hash_identity' not in authdata:
+    if authdata is None or 'hash' not in authdata:
         return False
 
     return {
         'sec': 'unauthenticated',
-        'user_id': "hi-" + metadata['hash_identity'],
+        'user_id': "hi-" + authdata['hash'],
         'providence': 'mch'  # Math contest hash -- toying with plug-in archicture
     }
 
