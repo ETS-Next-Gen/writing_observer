@@ -114,6 +114,8 @@ async def ws_course_aggregate_view(request):
             agg_module = lomlca[m]
             default_data = agg_module.get('default-data', {})
     if agg_module is None:
+        print("Bad module: ", module_id)
+        print("Available modules: ", lomlca)
         raise aiohttp.web.HTTPBadRequest(text="Invalid module: " + m)
 
     # We need to receive to detect web socket closures.

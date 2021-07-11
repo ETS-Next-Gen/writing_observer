@@ -126,13 +126,15 @@ async def all_ajax(
 
         def profile(student, index):
             idnum = str(index + 100)
+            # We'll created a name from the ID passed
+            name = '-'.join(student.split('-')[2:]).replace("%23", "")
             return {
                 "userId": student,
                 "profile": {
                     "name": {
-                        "givenName": "Student",
+                        "givenName": name,
                         "familyName": idnum,
-                        "fullName": "Student " + idnum
+                        "fullName": name
                     },
                     "emailAddress": "student" + idnum + "@localhost",
                     "photoUrl": "//"
