@@ -1,52 +1,3 @@
-function decode_string_dict(stringdict) {
-    /*
-      Decode a string dictionary of the form:
-        `key1=value1; key2=value2;key3=value3`
-      This is used both to encode document hashes and for cookies.
-
-      This is inspired by a (buggy) cookie decoder from w3cschools. We
-      wrote out own since that one starts out with decodeURIComponent,
-      potentially allowing for injections.
-     */
-    var decoded = {};
-    var splitstring = stringdict.split(';');
-    for(var i = 0; i<splitstring.length; i++) {
-	var pair = splitstring[i];
-	while (pair.charAt(0) == ' ') {
-	    pair = pair.substring(1);
-	}
-	pair = pair.split('=');
-	let key = decodeURIComponent(pair[0]);
-	let value = decodeURIComponent(pair[1]);
-	decoded[key] = value;
-    }
-    return decoded;
-}
-
-function getCookie(cookie_name) {
-    /*
-      Shortcut to grab a cookie. Return null if no cookie exists.
-     */
-    return decode_string_dict(document.cookie)[cookie_name];
-}
-
-function go_home() {
-    /*
-      Load the homepage.
-     */
-    window.location.href="/";
-}
-
-function error(error_message) {
-    /*
-      Show an error message.
-
-      TODO: Do this at least somewhat gracefully.
-     */
-    alert("Error: "+error_message);
-    go_home();
-}
-
 function ajax(config)
 {
     return function(url) {
@@ -87,34 +38,6 @@ requirejs(
 	    console.log(wobserver);
 	    d3.select(".main-page").text("Loading Writing Observer...");
 	    wobserver.initialize(d3, d3.select(".main-page"), course, config);
-	}
-
-	function user_info() {
-	    let userinfo = JSON.parse(atob(getCookie("userinfo").replace('"', '').replace('"', '')));
-	    //console.log(userinfo);
-	    return userinfo;
-	}
-
-	function authenticated() {
-	    // Decode user info.
-	    // I hate web browsers. There seems to be a more-or-less random addition of quotes
-	    // around cookies. Really.
-	    return user_info() !== null;
-	}
-
-	function authorized() {
-	    return user_info()['authorized'];
-	}
-
-	function decode_hash() {
-	    let hash = location.hash;
-	    if(hash.length === 0) {
-		return false;
-	    } else {
-		return decode_string_dict(location.hash.slice(1));
-	    }
-	    //console.log("Unrecognized hash");
-	    return false;
 	}
 
 	function loggedin_navbar_menu() {

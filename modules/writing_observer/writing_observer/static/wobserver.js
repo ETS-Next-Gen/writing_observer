@@ -215,37 +215,24 @@ function initialize(D3, div, course, config) {
     console.log(config);
 
     div.html(dashboard_template);
-    const protocol = {"http:": "ws:", "https:": "wss:"}[window.location.protocol];
-    var ws = new WebSocket(`${protocol}//${window.location.host}/wsapi/dashboard/writing-observer/${course}/`)
-    ws.onmessage = function (event) {
-	console.log("Got data");
-	let data = JSON.parse(event.data);
-	if(data.logged_in === false) {
-	    window.location.href="/";  // TODO: System.go_home() or something
-	} else if (data["student-data"]) {
-	    console.log("New data!");
-	    student_data = data["student-data"];
-	    summary_stats = data["summary-stats"];
-	    console.log(summary_stats);
-	    d3.select(".wo-tile-sheet").call(populate_tiles, student_data);
-            d3.selectAll(".wo-loading").classed("is-hidden", true);
-	    console.log("Hide labels?");
-	    if(config.modules.wobserver['hide-labels']) {
-		console.log("Hide labels");
-		d3.selectAll(".wo-desc-header").classed("is-hidden", true);
-	    }
+    dashboard_connection("writing-observer", course, function(data) {
+	console.log("New data!");
+	student_data = data["student-data"];
+	summary_stats = data["summary-stats"];
+	console.log(summary_stats);
+	d3.select(".wo-tile-sheet").call(populate_tiles, student_data);
+        d3.selectAll(".wo-loading").classed("is-hidden", true);
+	console.log("Hide labels?");
+	if(config.modules.wobserver['hide-labels']) {
+	    console.log("Hide labels");
+	    d3.selectAll(".wo-desc-header").classed("is-hidden", true);
 	}
+    });
     /*
     var tabs = ["typing", "deane", "summary", "outline", "timeline", "contact"];
     for(var i=0; i<tabs.length; i++) {
 	d3.select(".tilenav-"+tabs[i]).on("click", select_tab(tabs[i]));
     }*/
-    }
-
-    /*
-     * As we're using this API, we return an object (we don't get
-     * called with new), but this lets us work both ways.
-     */
 
     this.terminate = function() {
 	ws.close();
