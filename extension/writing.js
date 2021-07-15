@@ -52,9 +52,8 @@ EVENT_LIST = {
 	    "keypress", "keydown", "keyup"
 	],
 	"properties": [
-	    'altKey', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
-	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted',
-	    'timeStamp', 'type'],
+	    'altKey', 'buttons', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
+	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'timeStamp', 'type'],
 	"target": "document"
     },
     "mouseclick": {
@@ -69,7 +68,8 @@ EVENT_LIST = {
 	    "screenX", "screenY",
 	    "movementX", "movementY",
 	    'altKey', 'ctrlKey',
-	    'metaKey', 'shiftKey', 'which', 'isTrusted',
+	    'metaKey', 'shiftKey', 
+	    'which', 'isTrusted',
 	    'timeStamp', 'type',
 	    'target.id',
 	    'target.innerText',
@@ -117,7 +117,7 @@ EVENT_LIST = {
         "events": ["pageshow"],
         "properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
         "target": "window"
-   }
+    }
 };
 
 function generic_eventlistener(event_type, frameindex, event) {
@@ -156,29 +156,132 @@ var editor = document.querySelector('.kix-appview-editor');
 //The categories insert, delete, input, clear, replace are hard coded into the
 //function that sets up the MutationObserver. Once we know that, we know
 //what information in the context will tell us whether to log a change.
-//We start by checking the target className, which is the second level key.
+//We start by checking the target className, which is the first level key.
 //For insert and delete events, we have to also check the classname of
-//the node being inserted or deleted. Then we apply the label specified
+//the target node. Then we apply the label specified
 //as the last item in each record.
 var mutationsObserved = {
         "insert": {
-            "docos-stream-view": ["docos-docoview-resolve-button-visible","add-comment"],
-            "docos-docoview-replycontainer": ["docos-replyview-comment","add-reply"]
+             "docos-docoview-resolve-button-visible": ["docos-stream-view","add-comment"],
+             "docos-replyview-comment": ["docos-anchoreddocoview-content","add-reply"],
+             "kix-spell-bubble": ["kix-appview-editor","view-spelling-suggestion"]
         },
         "delete": {
-            "docos-docoview-rootreply": ["docos-replyview-comment","delete-comment"],        
-            "docos-docoview-replycontainer": ["docos-replyview-comment","delete-reply"],                
+            "docos-docoview-resolve-button-visible": ["docos-stream-view", "resolve-comment"],        
+            "docos-replyview-suggest": ["docos-docoview-rootreply", "resolve-suggestion"],
+            "docos-replyview-first": ["docos-docoview-rootreply", "delete-comment"],        
+            "docos-replyview-comment": ["docos-docoview-replycontainer", "delete-reply"]
         },
         "input": {
-            "docos-input-textarea": [null, "type-input"]
+            "docos-input-textarea": [null, "type-input"],
+             "kix-spell-bubble": [null,"view-spelling-suggestion"]
         },
         "clear": {
-            "docos-input-textarea": [null, "clear-input"]       
+            "docos-input-textarea": [null, "clear-input"],       
+            "docos-replyview-edit-pane": [null, "save-edit"],
+            "kix-spell-bubble": [null,"view-spelling-suggestion"]
         },
         "replace": {
-            "docos-replyview-body": [null, "edit-comment"]
-        }       
+            "docos-replyview-body": [null, "edit-comment"],
+             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+        },       
+        "suggest": {
+            "docos-replyview-static": [null, "add-suggestion"],
+             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+        },
+        "other": {
+             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+        }
     } 
+
+function createMutationEventList(mutation) {
+
+    var event_data = {};
+    event_data["event_type"] = "mutation";
+
+    numAdded =  mutation.addedNodes.length;
+    numDel = mutation.removedNodes.length;       
+    attributeName = mutation.attributeName;
+                         
+    className = mutation.target.className;
+    if (mutation.target.parentNode) {
+        parentID = mutation.target.parentNode.id;
+        parentClass = mutation.target.parentNode.className;
+    } else {
+        parentID = ' ';
+        parentClass = ' ';
+    }
+                
+    inputText='';
+    inputTextAdded = '';
+    inputTextDeleted = '';
+    firstAddedInnerText = ' ';
+    firstAddedClassName = ' ';
+    firstAddedNodeType = ' ';
+    firstRemovedInnerText = ' ';
+    firstRemovedClassName = ' ';
+    firstRemovedNodeType = ' ';
+    if (numAdded>0) {
+         if (mutation.addedNodes[0].nodeType == 3) {
+            inputTextAdded = mutation.addedNodes[0].textContent
+         } else {
+            firstAddedInnerText = mutation.addedNodes[0].innerText;
+            firstAddedClassName = mutation.addedNodes[0].className;
+            firstAddedNodeType = mutation.addedNodes[0].nodeType;
+         }    
+    }
+    if (numDel>0) {
+         if (mutation.removedNodes[0].nodeType == 3) {
+            inputTextDeleted = mutation.removedNodes[0].textContent;
+         } else {
+            firstRemovedInnerText = mutation.removedNodes[0].innerText;
+            firstRemovedClassName = mutation.removedNodes[0].className;
+            firstRemovedNodeType = mutation.removedNodes[0].nodeType;
+         }        
+    }
+    if (numAdded==0 && numDel==0 && mutation.target.nodeType == 3) {
+        inputText = mutation.target.data;
+    }
+    event_data['change'] = {type: "mutation", numAdded, numDel, attributeName, className, parentID, parentClass, firstAddedInnerText, firstAddedClassName, firstAddedNodeType, firstRemovedInnerText, firstRemovedClassName, firstRemovedNodeType, inputText};
+    return event_data;
+}
+
+function classifyModification(mutation) {
+    if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
+        return "insert";
+    }            
+    else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
+         if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
+             return "clear";
+         }
+         else {
+           return "delete";
+         }
+    }
+    else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
+            mutation.removedNodes[0].nodeType == Node.TEXT_NODE &&
+            mutation.addedNodes[0].nodeType == Node.TEXT_NODE
+    ) {
+         return "replace";
+    }
+    else if (mutation.type=='characterData') {
+        return "input";
+    } 
+    else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 ) {
+        return "suggest";
+    }
+    else {
+        return "other";
+    }
+}
+
+function stringCheck(myVar) {
+    if (typeof myVar === 'string' || myVar instanceof String) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 function prepareMutationObserver(mutationsObserved) {
     /*
@@ -186,137 +289,46 @@ function prepareMutationObserver(mutationsObserved) {
         to tell it which changes to log and what label to log it as.
     */
     var observer = new MutationObserver(function (mutations) {
-           mutations.forEach(function (mutation) {
-           //log_event("general",mutation)
+        mutations.forEach(function (mutation) {
 
-           // We only want to detect page change events that are initiated by the user.
-           // Changes that happen during loading are simply effects of the loading process.
-           if (!loading) {
-             if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
-               var entry = {
-                   mutation: mutation,
-                   el: mutation.target,
-                   type: "mutation",
-                   numAdded: mutation.addedNodes.length,
-                   numDel: mutation.removedNodes.length,
-                   value: mutation.value,
-                   attributeName: mutation.attributeName,
-                   className: mutation.target.className,
-                   firstRemovedClassName: ' ',
-                   firstAddedClassName: mutation.addedNodes[0].className,
-                   parentID:  ''
-               }
-               inserts = mutationsObserved["insert"];
-               for (var targetClass in inserts) {
-                      var addedClass = inserts[targetClass][0];
-                      var label = inserts[targetClass][1];
-                      if (entry.className.indexOf(targetClass)>=0 && entry.firstAddedClassName.indexOf(addedClass)>=0) {
-                          entry.type = label;
-                          log_event(mutation.type,entry);
-                      }
-               }
-              }
-              else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
-                if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
-                    var entry = {
-                        mutation: mutation,
-                        el: mutation.target,
-                        type: "mutation",
-                        numAdded: mutation.addedNodes.length,
-                        numDel: mutation.removedNodes.length,
-                        value: mutation.target.value,
-                        attributeName: mutation.attributeName,
-                        className: mutation.target.className,
-                        firstRemovedClassName: mutation.removedNodes[0].className,
-                        firstAddedClassName: ' ',
-                        parentID: mutation.target.parentNode.id
-                     }
-                     clears = mutationsObserved["clear"];
-                     for (var targetClass in clears) {
-                            var label = clears[targetClass][1];
-                            if (entry.className.indexOf(targetClass)>=0) {
-                                entry.type = label;
-                                log_event(mutation.type,entry);
-                             }
-                     }
-                  }
-                  else {
-                    var entry = {
-                        mutation: mutation,
-                        el: mutation.target,
-                        type: "mutation",
-                        numAdded: mutation.addedNodes.length,
-                        numDel: mutation.removedNodes.length,
-                        value: mutation.value,
-                        attributeName: mutation.attributeName,
-                        className: mutation.target.className,
-                        firstRemovedClassName: mutation.removedNodes[0].className,
-                        firstAddedClassName: ' ',
-                        parentID: ''
-                    }
-                    deletes = mutationsObserved["delete"];
-                    for (var targetClass in deletes) {
-                           var addedClass = deletes[targetClass][0];
-                           var label = deletes[targetClass][1];
-                           if (entry.className.indexOf(targetClass)>=0 && entry.firstRemovedClassName.indexOf(addedClass)>=0) {
-                               entry.type = label;
-                               log_event(mutation.type,entry);
-                            }
-                    }
-                }
-               }
-               else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
-                  mutation.removedNodes[0].nodeType == Node.TEXT_NODE &&
-                  mutation.addedNodes[0].nodeType == Node.TEXT_NODE
-             ) {
-                 var entry = {
-                    mutation: mutation,
-                    el: mutation.target,
-                    type: "mutation",
-                    numAdded: mutation.addedNodes.length,
-                    numDel: mutation.removedNodes.length,
-                    value: mutation.addedNodes[0].data,
-                    attributeName: mutation.attributeName,
-                    className: mutation.target.className,
-                    firstRemovedClassName: ' ',
-                    firstAddedClassName: ' ',
-                    parentID: mutation.target.parentNode.id
-                 }
-
-                 replacements = mutationsObserved["replace"];
-                 for (var targetClass in replacements) {
-                        var label = replacements[targetClass][1];
-                        if (entry.className.indexOf(targetClass)>=0) {
-                            entry.type = label;
-                            log_event(mutation.type,entry);
-                         }
-                 }
-               }
-               else if (mutation.type=='characterData') {
-                var entry = {
-                    mutation: mutation,
-                    el: mutation.target,
-                    type: "mutation",
-                    numAdded: mutation.addedNodes.length,
-                    numDel: mutation.removedNodes.length,
-                    value: mutation.target.data,
-                    attributeName: mutation.attributeName,
-                    className: mutation.target.parentNode.className,
-                    firstRemovedClassName: ' ',
-                    firstAddedClassName: ' ',
-                    parentID: mutation.target.parentNode.id
-                }
-
-                 inputs = mutationsObserved["input"];
-                 for (var targetClass in inputs) {
-                     var label = inputs[targetClass][1];
-                     if (entry.className.indexOf(targetClass)>=0) {
-                        entry.type = label;
+          entry = createMutationEventList(mutation);
+          //log_event("general",entry);
+          category = classifyModification(mutation);
+          actions = mutationsObserved[category];
+          for (var targetClass in actions) {
+              if (category=='insert') {
+                     if (stringCheck(entry.change.firstAddedClassName) 
+                        && entry.change.firstAddedClassName.indexOf(targetClass)>=0
+                        && entry.change.className.indexOf(actions[targetClass][0])>=0
+                     ) {
+                        if (loading) {
+                            entry.change.type = "loading: " + actions[targetClass][1];
+                        } else {
+                            entry.change.type = actions[targetClass][1];
+                        }
                         log_event(mutation.type,entry);
-                     }
-                 }
+                        break;
+                     } 
+              }
+              else if (category=='delete') { 
+                 if (stringCheck(entry.change.firstRemovedClassName) 
+                     && entry.change.firstRemovedClassName.indexOf(targetClass)>=0
+                     && entry.change.className.indexOf(actions[targetClass][0])>=0
+                 ) {
+                       //log_event("prep",mutation);
+                       entry.change.type = actions[targetClass][1];
+                       log_event(mutation.type,entry);                                             
+                       break;
+                 } 
              }
-           }
+             else if (stringCheck(entry.change.parentClass) 
+                     && entry.change.parentClass.indexOf(targetClass)>=0
+                 ) {
+                       entry.change.type = actions[targetClass][1];
+                       log_event(mutation.type,entry);
+                       break;
+                   }
+              }
         });
     });
     return observer;

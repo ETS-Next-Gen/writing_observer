@@ -31,8 +31,10 @@
 	"*://mail.google.com/*",
         "clipboardRead",
         "storage",
-        "activeTab"
-    ],
+        "activeTab",
+        "tabs",
+        "declarativeContent"
+   ],
     "icons": {
 	"48": "icons/lousy-fountain-pen-48.png"
     },
