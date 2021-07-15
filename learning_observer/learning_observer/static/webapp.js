@@ -151,14 +151,10 @@ requirejs(
 			.html(function(d) {
 			    let tools = "";
 			    for(var i=0; i<tool_list.length; i++) {
-				console.log(i);
-				console.log(tool_list[i]);
 				// Computer icon CSS class
 				tool_list[i]["icon_class"] = tool_list[i].icon.type +
 				    " " +
 				    tool_list[i].icon.icon;
-				// Add course properties
-				Object.assign(tool_list[i], d);
 				tools += mustache.render(tool, tool_list[i]);
 			    }
 			    d['tools'] = tools;
