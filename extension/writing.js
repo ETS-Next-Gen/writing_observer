@@ -53,7 +53,7 @@ EVENT_LIST = {
 	],
 	"properties": [
 	    'altKey', 'buttons', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
-	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'timeStamp', 'type'],
+	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'target', 'timeStamp', 'type'],
 	"target": "document"
     },
     "mouseclick": {
@@ -71,16 +71,21 @@ EVENT_LIST = {
 	    'metaKey', 'shiftKey', 
 	    'which', 'isTrusted',
 	    'timeStamp', 'type',
-	    'target.id',
-	    'target.innerText',
-	    'target.localName'
+	    'target.id', 'target.className',
+	    'target.innerText', 'target.nodeType','target.localName',
+	    'target.parentNode.id', 'target.parentNode.className',
+	    'target.parentNode.nodeType', 'target.parentNode.localName'
 	],
 	"target": "document"
     },
     "attention": {
        "events": ["focusin", "focusout"],
 	// Not all of these are required for all events...
-	"properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
+	"properties": ['bubbles', 'cancelable', 
+	'isTrusted', 'timeStamp', 'type',
+	'target.className', 'target.id', 'target.innertext', 'target.nodeType', 'target.localName',
+	'target.parentNode.className', 'target.parentNode.id', 'target.parentNode.innerText', 'target.parentNode.nodeType', 'target.parentNode.localName'
+	],
 	"target": "window"
     },
     "visibility": {
@@ -141,7 +146,7 @@ function generic_eventlistener(event_type, frameindex, event) {
         if (frameindex===undefined) {
             frameindex='0';
         }
-        console.log(frameindex, event);
+        //console.log(frameindex, event);
 
         event_data[event_type] = keystroke_data;
         event_data['frameindex']=frameindex;
@@ -156,97 +161,48 @@ var editor = document.querySelector('.kix-appview-editor');
 //The categories insert, delete, input, clear, replace are hard coded into the
 //function that sets up the MutationObserver. Once we know that, we know
 //what information in the context will tell us whether to log a change.
-//We start by checking the target className, which is the first level key.
-//For insert and delete events, we have to also check the classname of
-//the target node. Then we apply the label specified
-//as the last item in each record.
+//We start by checking classNames, for the added/removed node and the target.
+//That gives us the right list to use for pattern matching. The format lists
+//the first node matched in the rule as the key, and if a second node is needed,
+//that's the first item in the associated list. The second item in the list
+//indicates what to label the resulting event. The third item in the list
+//identifies the context within which the change happens, if not the empty string.
+//The innerText of this context will be recorded to track the effect of the edits
+//on the actual text -- this matters most for comments/suggestions, since the content
+//of the relevant plugin tells us what comments are actually in the document.
 var mutationsObserved = {
         "insert": {
-             "docos-docoview-resolve-button-visible": ["docos-stream-view","add-comment"],
-             "docos-replyview-comment": ["docos-anchoreddocoview-content","add-reply"],
-             "kix-spell-bubble": ["kix-appview-editor","view-spelling-suggestion"]
+             "docos-docoview-resolve-button-visible": ["docos-stream-view", "add-comment","kix-discussion-plugin"],
+             "docos-replyview-comment": ["docos-anchoreddocoview-content","add-reply","kix-discussion-plugin"],
+             "kix-spell-bubble": ["kix-appview-editor","view-spelling-suggestion",'']
         },
         "delete": {
-            "docos-docoview-resolve-button-visible": ["docos-stream-view", "resolve-comment"],        
-            "docos-replyview-suggest": ["docos-docoview-rootreply", "resolve-suggestion"],
-            "docos-replyview-first": ["docos-docoview-rootreply", "delete-comment"],        
-            "docos-replyview-comment": ["docos-docoview-replycontainer", "delete-reply"]
+            "docos-replyview-suggest": ["docos-docoview-rootreply", "resolve-suggestion","kix-discussion-plugin"],
+            "docos-replyview-first": ["docos-docoview-rootreply", "delete-comment","kix-discussion-plugin"],        
+            "docos-replyview-comment": ["docos-docoview-replycontainer", "delete-reply","kix-discussion-plugin"]
         },
         "input": {
-            "docos-input-textarea": [null, "type-input"],
-             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+            "docos-input-textarea": [null, "type-input",''],
         },
         "clear": {
-            "docos-input-textarea": [null, "clear-input"],       
-            "docos-replyview-edit-pane": [null, "save-edit"],
-            "kix-spell-bubble": [null,"view-spelling-suggestion"]
+            "docos-input-textarea": [null, "clear-input",''],       
         },
         "replace": {
-            "docos-replyview-body": [null, "edit-comment"],
-             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+            "docos-replyview-static": [null, "edit-comment","kix-discussion-plugin"],
         },       
         "suggest": {
-            "docos-replyview-static": [null, "add-suggestion"],
-             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+            "docos-replyview-static": [null, "add-suggestion","kix-discussion-plugin"],
         },
         "other": {
-             "kix-spell-bubble": [null,"view-spelling-suggestion"]
+             "kix-spell-bubble": [null,"view-spelling-suggestion",'']
         }
     } 
 
-function createMutationEventList(mutation) {
-
-    var event_data = {};
-    event_data["event_type"] = "mutation";
-
-    numAdded =  mutation.addedNodes.length;
-    numDel = mutation.removedNodes.length;       
-    attributeName = mutation.attributeName;
-                         
-    className = mutation.target.className;
-    if (mutation.target.parentNode) {
-        parentID = mutation.target.parentNode.id;
-        parentClass = mutation.target.parentNode.className;
-    } else {
-        parentID = ' ';
-        parentClass = ' ';
-    }
-                
-    inputText='';
-    inputTextAdded = '';
-    inputTextDeleted = '';
-    firstAddedInnerText = ' ';
-    firstAddedClassName = ' ';
-    firstAddedNodeType = ' ';
-    firstRemovedInnerText = ' ';
-    firstRemovedClassName = ' ';
-    firstRemovedNodeType = ' ';
-    if (numAdded>0) {
-         if (mutation.addedNodes[0].nodeType == 3) {
-            inputTextAdded = mutation.addedNodes[0].textContent
-         } else {
-            firstAddedInnerText = mutation.addedNodes[0].innerText;
-            firstAddedClassName = mutation.addedNodes[0].className;
-            firstAddedNodeType = mutation.addedNodes[0].nodeType;
-         }    
-    }
-    if (numDel>0) {
-         if (mutation.removedNodes[0].nodeType == 3) {
-            inputTextDeleted = mutation.removedNodes[0].textContent;
-         } else {
-            firstRemovedInnerText = mutation.removedNodes[0].innerText;
-            firstRemovedClassName = mutation.removedNodes[0].className;
-            firstRemovedNodeType = mutation.removedNodes[0].nodeType;
-         }        
-    }
-    if (numAdded==0 && numDel==0 && mutation.target.nodeType == 3) {
-        inputText = mutation.target.data;
-    }
-    event_data['change'] = {type: "mutation", numAdded, numDel, attributeName, className, parentID, parentClass, firstAddedInnerText, firstAddedClassName, firstAddedNodeType, firstRemovedInnerText, firstRemovedClassName, firstRemovedNodeType, inputText};
-    return event_data;
-}
-
 function classifyModification(mutation) {
+/*
+    Determine what kind of change is being made. We will use this information
+    to access the correct list of event triggers from the mutationsObserved variable.
+*/
     if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
         return "insert";
     }            
@@ -276,11 +232,20 @@ function classifyModification(mutation) {
 }
 
 function stringCheck(myVar) {
+/*
+    Utility function to check whether a variable is a string.
+    We need that because some classes in Google docs graphics are not strings.
+*/
     if (typeof myVar === 'string' || myVar instanceof String) {
         return true;
     } else {
         return false;
     }
+}
+
+function findAncestor (el, cls) {
+    while ((el = el.parentNode) && el.className.indexOf(cls) < 0);
+    return el;
 }
 
 function prepareMutationObserver(mutationsObserved) {
@@ -291,40 +256,72 @@ function prepareMutationObserver(mutationsObserved) {
     var observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
 
-          entry = createMutationEventList(mutation);
-          //log_event("general",entry);
+          entry = {}
+          entry['event_type'] = 'mutation';
+
+          //This list guarantees that we'll have the information we need to understand what happened
+          //in a change event.
+  	  properties = ['type', 'addedNodes.length', 'removedNodes.length', 'target.className', 'target.parentNode.id', 'target.parentNode.className', 'addedNodes[0].innerText', 'addedNodes[0].data', 'addedNodes[0].id', 'addedNodes[0].className', 'addedNodes[0].nodeType', 'removedNodes[0].innerText', 'removedNodes[0].data', 'removedNodes[0].id', 'removedNodes[0].className', 'removedNodes[0].nodeType', 'target.data','target.innertext'];
+  	  
+          //populate the mutation_data variable and set the timestamp
+	  var mutation_data = {};
+	  for (var property in properties) {
+	      const prop = treeget(mutation, properties[property]);
+	      if(prop !== null) {
+	          label = properties[property].replace('[','');
+	          label = label.replace(']','');
+	          label = label.replaceAll('.','');
+		  mutation_data[label] = treeget(mutation, properties[property]);
+	      }
+	  }
+          entry['change'] = mutation_data;
+          entry['ts'] = Date.now();
+
+          //uncomment this to observe all mutations in the console log.
+          //console.log(mutation);
+
+          //apply the rule engine defined by mutationsObserved to record watched events.
           category = classifyModification(mutation);
+          entry['event_type']=category;
           actions = mutationsObserved[category];
           for (var targetClass in actions) {
               if (category=='insert') {
-                     if (stringCheck(entry.change.firstAddedClassName) 
-                        && entry.change.firstAddedClassName.indexOf(targetClass)>=0
-                        && entry.change.className.indexOf(actions[targetClass][0])>=0
+                     if (stringCheck(entry.change.addedNodes0className) 
+                        && entry.change.addedNodes0className.indexOf(targetClass)>=0
+                        && entry.change.targetclassName.indexOf(actions[targetClass][0])>=0
                      ) {
                         if (loading) {
-                            entry.change.type = "loading: " + actions[targetClass][1];
+                            entry['type'] = "loading: " + actions[targetClass][1];
                         } else {
-                            entry.change.type = actions[targetClass][1];
+                            entry['type'] = actions[targetClass][1];
+                        }
+                        if (actions[targetClass][2]!='') {
+                            entry['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
                         }
                         log_event(mutation.type,entry);
                         break;
                      } 
               }
               else if (category=='delete') { 
-                 if (stringCheck(entry.change.firstRemovedClassName) 
-                     && entry.change.firstRemovedClassName.indexOf(targetClass)>=0
-                     && entry.change.className.indexOf(actions[targetClass][0])>=0
+                 if (stringCheck(entry.change.removedNodes0className) 
+                     && entry.change.removedNodes0className.indexOf(targetClass)>=0
+                     && entry.change.targetclassName.indexOf(actions[targetClass][0])>=0
                  ) {
-                       //log_event("prep",mutation);
-                       entry.change.type = actions[targetClass][1];
-                       log_event(mutation.type,entry);                                             
+                       entry['type'] = actions[targetClass][1];
+                       if (actions[targetClass][2]!='') {
+                           entry['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
+                       }
+                       log_event(mutation.type,entry);
                        break;
                  } 
              }
-             else if (stringCheck(entry.change.parentClass) 
-                     && entry.change.parentClass.indexOf(targetClass)>=0
+             else if (stringCheck(entry.change.targetparentNodeclassName) 
+                     && entry.change.targetparentNodeclassName.indexOf(targetClass)>=0
                  ) {
-                       entry.change.type = actions[targetClass][1];
+                       entry['type'] = actions[targetClass][1];
+                       if (actions[targetClass][2]!='') {
+                           entry['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
+                       }
                        log_event(mutation.type,entry);
                        break;
                    }
@@ -334,6 +331,7 @@ function prepareMutationObserver(mutationsObserved) {
     return observer;
 }
 
+//Set mutation observer options -- we don't want attribute changes, but others we do ...
 var options = {
     attributes: false,
     childList: true,

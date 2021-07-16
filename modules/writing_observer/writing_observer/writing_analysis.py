@@ -128,6 +128,7 @@ async def attention_state(event, internal_state):
         if internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible']:
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = False
         else:
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = True
 
     # Visibilitychange has one hole in it -- when a student alt-tabs to another page. This
@@ -151,63 +152,43 @@ async def attention_state(event, internal_state):
 @kvs_pipeline()
 async def track_open_comments_by_document(event, internal_state):
     '''
-    This pipeline is intended to be used to poll user/document/comment relationships,
-    for instance, when a teacher wants to know which students have made how many comments
-    on their fellow students' work during the current session.
+    This pipeline is currently a stub. Right now it captures the last input the user typed in a comment field,
+    plus the text of all extant comments (with user name and dates associated)
+    
+    The Google Doc displays the names of the poster, not the user IDs. I can't see any easy way to capture the full
+    content of the comments w/o also getting the names. We know the chrome ID of the current user, and could probably
+    replace their username in the comments field created here with a stub, but we would need a functon to get
+    the id + user name of everyone authorized to comment on the document if we want to encode it with user ids instead
+    of the actual names.... It's PII in either case, but we really need the true IDs to track this information properly.
+    It doesn't look like Google is directly exposing the IDs of contributors, perhaps because they're substituting
+    fake names for user names in publicly shared documents.	
+
+    Ultimately, we would elaborate this pipeline stub to support use cases where we needed to provide reports to teachers
+    about which students have commented on one another's work when and how much ... exact content TBD.
     '''
 
     if internal_state is None:
         internal_state = {
         }
- 
-    if 'doc_id' not in event['client'] or 'type' not in event['client']:
+
+    print(event['client'])
+
+    
+    if 'doc_id' not in event['client']:
         return internal_state, internal_state
-   
+
+  
     (safe_user_id, doc_id, frameid, internal_state) = internal_state_setup(event, internal_state, {})
 
-    if event['client']['event'] == "attention" and event['client']['attention']['type'] == 'focusin':
-        internal_state[safe_user_id][doc_id]['in_focus'] = True
-    elif event['client']['event'] =="attention" and event['client']['attention']['type'] == 'focusout':
-        internal_state[safe_user_id][doc_id]['in_focus'] = False
-    elif event['client']['type'] == 'type-input':
-        internal_state[safe_user_id][doc_id]['last_input_id'] = event['client']['parentID']
-        internal_state[safe_user_id][doc_id]['last_input'] = event['client']['value']
+    if 'context_content' in event['client']:
+        internal_state[safe_user_id][doc_id]['comments'] = event['client']['context_content']
+   
+    # Handle text input events
+    if 'type' in event['client'] and event['client']['type'] == 'type-input':
+        internal_state[safe_user_id][doc_id]['last_input_id'] = event['client']['change']['targetparentNodeid']
+        internal_state[safe_user_id][doc_id]['last_input'] = event['client']['change']['targetdata']
         internal_state[safe_user_id][doc_id]['last_input_ts'] = event['client']['ts'] 
-        if 'first_input_ts' not in internal_state[safe_user_id][doc_id]:
-            internal_state[safe_user_id][doc_id]['first_input_ts'] = event['client']['ts']
-    elif event['client']['type'] == 'clear-input':
-        internal_state[safe_user_id][doc_id]['last_input'] = ''
-    elif event['client']['type'] == 'add-comment' or event['client']['type'] == 'edit-comment':
-        comment_id = internal_state[safe_user_id][doc_id]['last_input_id']
-        internal_state[safe_user_id][doc_id]['comments']={}
-        if comment_id not in internal_state[safe_user_id][doc_id]['comments']:
-            internal_state[safe_user_id][doc_id]['comments']={}
-            internal_state[safe_user_id][doc_id]['comments'][comment_id]={}
-        if internal_state[safe_user_id][doc_id]['last_input']!='':
-           internal_state[safe_user_id][doc_id]['comments'][comment_id]['comment_text'] = internal_state[safe_user_id][doc_id]['last_input'] 
-        else:
-            internal_state[safe_user_id][doc_id]['comments'][comment_id]['comment_text'] = None
-        if 'first_input_ts' not in internal_state[safe_user_id][doc_id]['comments'][comment_id]:
-            internal_state[safe_user_id][doc_id]['comments'][comment_id]['first_input_ts'] = event['client']['ts']
-        internal_state[safe_user_id][doc_id]['comments'][comment_id]['last_input_ts'] = event['client']['ts']
-    elif event['client']['type'] == 'add-reply':
-        reply_id = internal_state[safe_user_id][doc_id]['last_input_id'] 
-        internal_state[safe_user_id][doc_id]['replies']={}
-        if comment_id not in internal_state[safe_user_id][doc_id]['replies']:
-            internal_state[safe_user_id][doc_id]['replies']={}
-            internal_state[safe_user_id][doc_id]['replies'][reply_id]={}
-        if internal_state[safe_user_id][doc_id]['last_input']!='':
-           internal_state[safe_user_id][doc_id]['replies'][reply_id]['text'] = internal_state[safe_user_id][doc_id]['last_input'] 
-        else:
-            internal_state[safe_user_id][doc_id]['replies'][comment_id]['text'] = None
-        if 'first_input_ts' not in internal_state[safe_user_id][doc_id]['replies'][comment_id]:
-            internal_state[safe_user_id][doc_id]['replies'][comment_id]['first_input_ts'] = event['client']['ts']
-        internal_state[safe_user_id][doc_id]['replies'][comment_id]['last_input_ts'] = event['client']['ts']
-
-    # TO-DO: We need to purge users who aren't connected and documents that aren't open
-    # We also need to decide what to do about old comments from before a reload -- the way
-    # we are getting comment text depends on someone actually making a change to the text.
-      
+              
     print(internal_state)
     return internal_state, internal_state
 
@@ -220,7 +201,12 @@ async def baseline_typing_speed(event, internal_state):
     Excluding word initial characters and nonalphanumeric keys eliminates pauses likely to be associated
     with most forms of metacognitive planning and deliberation, and so provides a relatively clean
     measure of typing speed. The best measure is probably median log latencies, but that would be harder
-    to report to users.
+    to report to users. Right now we're calculating typing speeds on a whole document level. At some point
+    we may want a function that gives us speed on the last 50 keystrokes or so, so that we can detect
+    unexpected changes in typing speed that might reflect someone else typing, not the student ... And we
+    might also want to build a way to track typing speed over time/multiple assignments. Again, a flag
+    for typing speeds on documents that are out of line with the student's fluency level might be worth
+    considering.
     '''
     if 'doc_id' not in event['client'] \
         or ('keystroke' in event['client'] and event['client']['keystroke']['type'] != 'keydown') \
@@ -268,19 +254,13 @@ async def baseline_typing_speed(event, internal_state):
     if frameid is None:
         return internal_state, internal_state
 
-    if 'event_type' in event['client'] and 'keystroke' in event['client']:
-        print(event['client']['event_type'])
-        print(event['client']['keystroke']['altKey'])
-        print(event['client']['keystroke']['ctrlKey'])
-        print(event['client']['keystroke']['keyCode'])
-        print(event['client']['keystroke']['key'])
-
     if 'saved_time' in internal_state[safe_user_id][doc_id]['frameset'][frameid]:
         last_time = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']
     else:
         last_time = None
     internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time'] = event['client']['ts'] / 1000
 
+    last_keycode = None;
     if 'saved_keycode' in internal_state[safe_user_id][doc_id]['frameset'][frameid]:
         last_keycode = internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_keycode']
 
@@ -318,20 +298,18 @@ async def baseline_typing_speed(event, internal_state):
     # requiring keypress==down will make sure we only do interkey interval statistics.
     # and we want to avoid any crazies from out of order events that would give us.
     # negative times and thereby corrupt the speed measure.
-    if last_time is not None and last_keycode is not None and last_time <= internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']:
+    if last_time is not None and last_keycode is not None \
+        and last_time <= internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']:
         delta_t = min(
             TIME_ON_TASK_THRESHOLD,
             # Maximum time step
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time'] - last_time  # Time step
         )
         internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time'] += delta_t
-        internal_state[safe_user_id][doc_id]['frameset'][frameid]['meanCharactersPerSecond'] = internal_state[safe_user_id][doc_id]['frameset'][frameid]['nWordInternalKeystrokes'] / internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']
-        # print('Total typing time: ' + str(internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']))
-        # print('Current mean typing speed: ' + str(internal_state[safe_user_id][doc_id]['frameset'][frameid]['meanCharactersPerSecond']))
-
-    # Report out of order events
-    # if last_time is not None and last_time > internal_state[safe_user_id][doc_id]['frameset'][frameid]['saved_time']:
-    #    print('Event at ' + str(last_time) + 'appeared out of order.')
+        if internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']>0:
+            internal_state[safe_user_id][doc_id]['frameset'][frameid]['meanCharactersPerSecond'] = \
+                internal_state[safe_user_id][doc_id]['frameset'][frameid]['nWordInternalKeystrokes'] / \
+                internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']
 
     print(internal_state)
 
