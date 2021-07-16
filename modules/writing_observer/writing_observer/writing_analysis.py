@@ -128,7 +128,6 @@ async def attention_state(event, internal_state):
         if internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible']:
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = False
         else:
-            internal_state[safe_user_id][doc_id]['frameset'][frameid]['total_inword_typing_time']
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = True
 
     # Visibilitychange has one hole in it -- when a student alt-tabs to another page. This

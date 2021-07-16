@@ -171,8 +171,12 @@ var editor = document.querySelector('.kix-appview-editor');
 //on the actual text -- this matters most for comments/suggestions, since the content
 //of the relevant plugin tells us what comments are actually in the document.
 var mutationsObserved = {
-        "insert": {
+        "insert": { // This is a category used by the rulebase It means there is at least one node added and none deleted.
              "docos-docoview-resolve-button-visible": ["docos-stream-view", "add-comment","kix-discussion-plugin"],
+             // docos-dovoview-resolve-button-visible is the class of the critical node -- inserted in this case
+             // docos-stream-view is the class of the target node
+             // add-comment is the label we'll attach to the event to say what happened
+             // kix-discussion-plugin is the class of the ancestor node we want to capture text content from to track what changed in the text content as a result of this action
              "docos-replyview-comment": ["docos-anchoreddocoview-content","add-reply","kix-discussion-plugin"],
              "kix-spell-bubble": ["kix-appview-editor","view-spelling-suggestion",'']
         },
@@ -256,73 +260,83 @@ function prepareMutationObserver(mutationsObserved) {
     var observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
 
-          entry = {}
-          entry['event_type'] = 'mutation';
+          event = {}
+          event['event_type'] = 'mutation';
 
           //This list guarantees that we'll have the information we need to understand what happened
           //in a change event.
-  	  properties = ['type', 'addedNodes.length', 'removedNodes.length', 'target.className', 'target.parentNode.id', 'target.parentNode.className', 'addedNodes[0].innerText', 'addedNodes[0].data', 'addedNodes[0].id', 'addedNodes[0].className', 'addedNodes[0].nodeType', 'removedNodes[0].innerText', 'removedNodes[0].data', 'removedNodes[0].id', 'removedNodes[0].className', 'removedNodes[0].nodeType', 'target.data','target.innertext'];
+  	  properties = [
+  	      'addedNodes.length', 'addedNodes[0].className', 'addedNodes[0].data',
+  	      'addedNodes[0].id', 'addedNodes[0].innerText', 'addedNodes[0].nodeType',
+  	      'removedNodes.length', 'removedNodes[0].className', 'removedNodes[0].data',
+  	      'removedNodes[0].id', 'removedNodes[0].innerText', 'removedNodes[0].nodeType', 
+  	      'target.className', 'target.data','target.innertext', 
+  	      'target.parentNode.id', 'target.parentNode.className','type'
+          ];
   	  
           //populate the mutation_data variable and set the timestamp
 	  var mutation_data = {};
 	  for (var property in properties) {
 	      const prop = treeget(mutation, properties[property]);
-	      if(prop !== null) {
-	          label = properties[property].replace('[','');
-	          label = label.replace(']','');
-	          label = label.replaceAll('.','');
-		  mutation_data[label] = treeget(mutation, properties[property]);
+	      if (prop !== null) {
+		  mutation_data[properties[property]] = treeget(mutation, properties[property]);
 	      }
 	  }
-          entry['change'] = mutation_data;
-          entry['ts'] = Date.now();
+          event['change'] = mutation_data;
 
           //uncomment this to observe all mutations in the console log.
-          //console.log(mutation);
+          console.log(mutation);
 
           //apply the rule engine defined by mutationsObserved to record watched events.
-          category = classifyModification(mutation);
-          entry['event_type']=category;
-          actions = mutationsObserved[category];
-          for (var targetClass in actions) {
-              if (category=='insert') {
-                     if (stringCheck(entry.change.addedNodes0className) 
-                        && entry.change.addedNodes0className.indexOf(targetClass)>=0
-                        && entry.change.targetclassName.indexOf(actions[targetClass][0])>=0
+          category = classifyModification(mutation); //Check what kind of event this is
+          event['event_type']=category;              //Record that category as an event_type
+          actions = mutationsObserved[category];     //Filter the templates to those that are relevant to this category
+          for (var targetClass in actions) {         //Loop through the available templates
+              // TODO: We do the same basic thing in each of the branches below, but we need
+              // to make sure we only trigger these actions in one of the branches.
+              // There's probably a more succinct way to code this but I haven't
+              // figured it out yet.
+              if (category=='insert') { //Branch for insertion events
+                     if (stringCheck(event.change['addedNodes[0].className']) 
+                        && event.change['addedNodes[0].className'].indexOf(targetClass)>=0
+                        && event.change['target.className'].indexOf(actions[targetClass][0])>=0
                      ) {
-                        if (loading) {
-                            entry['type'] = "loading: " + actions[targetClass][1];
-                        } else {
-                            entry['type'] = actions[targetClass][1];
+                        if (loading) { //Google Docs inserts comments during the document load. We need to flag that status.
+                            event['type'] = "loading_" + actions[targetClass][1];
+                        } else { //Otherwise use the normal label for this event
+                            event['type'] = actions[targetClass][1];
                         }
-                        if (actions[targetClass][2]!='') {
-                            entry['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
+                        if (actions[targetClass][2]!='' && findAncestor(mutation.target,actions[targetClass][2])) { 
+                            //If we specify a window we want to watch, get the innerText
+                            event['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
                         }
-                        log_event(mutation.type,entry);
+                        log_event(mutation.type,event);
                         break;
                      } 
               }
-              else if (category=='delete') { 
-                 if (stringCheck(entry.change.removedNodes0className) 
-                     && entry.change.removedNodes0className.indexOf(targetClass)>=0
-                     && entry.change.targetclassName.indexOf(actions[targetClass][0])>=0
+              else if (category=='delete') { //Branch for deletion events
+                 if (stringCheck(event.change['removedNodes[0].className']) 
+                     && event.change['removedNodes[0].className'].indexOf(targetClass)>=0
+                     && event.change['target.className'].indexOf(actions[targetClass][0])>=0
                  ) {
-                       entry['type'] = actions[targetClass][1];
-                       if (actions[targetClass][2]!='') {
-                           entry['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
+                       event['type'] = actions[targetClass][1]; //Apply the event label based on the rule
+                       if (actions[targetClass][2]!='' && findAncestor(mutation.target,actions[targetClass][2])) {
+                           //If we specify a window we want to watch, get the innerText
+                            event['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
                        }
-                       log_event(mutation.type,entry);
+                       log_event(mutation.type,event);
                        break;
                  } 
              }
-             else if (stringCheck(entry.change.targetparentNodeclassName) 
-                     && entry.change.targetparentNodeclassName.indexOf(targetClass)>=0
+             else if (stringCheck(event.change['target.parentNode.className']) //Branch for all other event types
+                     && event.change['target.parentNode.className'].indexOf(targetClass)>=0
                  ) {
-                       entry['type'] = actions[targetClass][1];
-                       if (actions[targetClass][2]!='') {
-                           entry['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
+                       event['type'] = actions[targetClass][1]; //Apply the event label based on the rule
+                       if (actions[targetClass][2]!='' && findAncestor(mutation.target,actions[targetClass][2])) {
+                           //If we specify a window we want to watch, get the innerText
+                           event['context_content'] = findAncestor(mutation.target,actions[targetClass][2]).innerText;
                        }
-                       log_event(mutation.type,entry);
+                       log_event(mutation.type,event);
                        break;
                    }
               }
@@ -331,9 +345,9 @@ function prepareMutationObserver(mutationsObserved) {
     return observer;
 }
 
-//Set mutation observer options -- we don't want attribute changes, but others we do ...
+//Set mutation observer options
 var options = {
-    attributes: false,
+    attributes: false, //We don't want to watch attribute changes
     childList: true,
     characterData: true,
     subtree: true  
