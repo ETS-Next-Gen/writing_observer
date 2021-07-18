@@ -5,12 +5,28 @@
 /* For debugging purposes: we know the extension is active */
 document.body.style.border = "5px solid blue";
 
+//////////////////////////////////
+/// GENERAL UTILITY FUNCTIONS ////
+//////////////////////////////////
+
 function log_error(error_string) {
     /* 
        We should send errors to the server, but for now, we
        log to the console.
     */
     console.trace(error_string);
+}
+
+function log_event(event_type, event) {
+    /*
+      We pass an event, annotated with the page document ID and title,
+      to the background script
+    */
+    event["title"] = google_docs_title();
+    event["doc_id"] = doc_id();
+    event['event'] = event_type;
+    console.log(event);
+    chrome.runtime.sendMessage(event);
 }
 
 function doc_id() {
@@ -31,508 +47,6 @@ function this_is_a_google_doc() {
       Returns 'true' if we are in a Google Doc
     */
     return window.location.href.search("://docs.google.com/") != -1;
-}
-
-function log_event(event_type, event) {
-    /*
-      We pass an event, annotated with the page document ID and title,
-      to the background script
-    */
-    event["title"] = google_docs_title();
-    event["doc_id"] = doc_id();
-    event['event'] = event_type;
-    console.log(event);
-    chrome.runtime.sendMessage(event);
-}
-
-// Data structure specifying the events we want to capture from the browser.
-EVENT_LIST = {
-    "keystroke": {
-	"events": [
-	    "keypress", "keydown", "keyup"
-	],
-	"properties": [
-	    'altKey', 'buttons', 'charCode', 'code', 'ctrlKey', 'isComposing', 'key', 'keyCode',
-	    'location', 'metaKey', 'repeat', 'shiftKey', 'which', 'isTrusted', 'target', 'timeStamp', 'type'],
-	"target": "document"
-    },
-    "mouseclick": {
-	"events": [
-	    "mouseclick", "mousedown", "mouseup"
-	],
-	"properties": [
-	    "button", "buttons",
-	    "clientX", "clientY",
-	    "layerX", "layerY",
-	    "offsetX", "offsetY",
-	    "screenX", "screenY",
-	    "movementX", "movementY",
-	    'altKey', 'ctrlKey',
-	    'metaKey', 'shiftKey', 
-	    'which', 'isTrusted',
-	    'timeStamp', 'type',
-            // We capture target and parent target info because it gives us
-            // a snapshot of what exactly got clicked on
-	    'target.id', 'target.className',
-	    'target.innerText', 'target.nodeType','target.localName',
-	    'target.parentNode.id', 'target.parentNode.className',
-	    'target.parentNode.nodeType', 'target.parentNode.localName'
-	],
-	"target": "document"
-    },
-    "attention": {
-       "events": ["focusin", "focusout"],
-	// Not all of these are required for all events...
-	"properties": ['bubbles', 'cancelable', 
-	'isTrusted', 'timeStamp', 'type',
-	// We capture related target, target and parent target info 
-	// because it gives us a snapshot of what exactly got or lost focus
-	'relatedTarget.className', 'relatedTarget.id',
-	'target.className', 'target.id', 'target.innertext', 
-	'target.nodeType', 'target.localName',
-	'target.parentNode.className', 'target.parentNode.id', 'target.parentNode.innerText', 'target.parentNode.nodeType', 'target.parentNode.localName'
-	],
-	"target": "window"
-    },
-    "visibility": {
-        "events": ["visibilitychange"],
-        "properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
-        "target": "document"
-    },
-    "save": {
-        "events": ["google_docs_save"],
-        "properties": [
-             "doc_id", "bundles", 
-             "event", "timestamp"
-        ],      
-        "target": "window"
-    },
-    "load": {
-        "events": ["document_loaded"],
-        "properties": [
-              "doc_id", "event",
-              "history", "title",
-              "timestamp"
-        ],
-        "target": "window"
-    },
-    "readystate": {
-        "events": ["readystatechange"],
-        "properties": [
-              "doc_id", "event",
-              "target", "timestamp", "type"
-        ],
-        "target": "window"
-    },
-    "pageshow": {
-        "events": ["pageshow"],
-        "properties": ['target', 'bubbles', 'cancelable', 'isTrusted', 'timeStamp', 'type'],
-        "target": "window"
-    }
-};
-
-function generic_eventlistener(event_type, frameindex, event) {
-    /*
-       This function calls eventlistener_prototype on setup, then
-       calls addStreamViewListeners, which have to be added dynamically
-       after content loads.
-    */
-
-
-    /*
-       This function captures any events specified in EVENT_LIST and passes them to the server.
-    */
-    return function(event) {
-        /*
-          Listen for events, and pass them back to the background page.
-        */
-        var event_data = {};
-        event_data["event_type"] = event_type;
-        properties = EVENT_LIST[event_type].properties;
-        var keystroke_data = {};
-        for (var property in properties) {
-            const prop = treeget(event, properties[property]);
-            if(prop !== null) {
-                keystroke_data[properties[property]] = treeget(event, properties[property]);
-            }
-        }
-        if (frameindex===undefined) {
-            frameindex='0';
-        }
-        
-        // uncomment this to see all events and the frame they occurred in
-        //console.log(frameindex, event);
-        
-        event_data[event_type] = keystroke_data;
-        event_data['frameindex']=frameindex;
-        log_event(event_type, event_data); 
-
- 	// When focus changes, update event listeners on docos_stream_view,
- 	// which is a dynamically updated display of comments and replies.
- 	// The dynamic updates means our initial set of listeners doesn't
- 	// always catch events that happen in this div. Specifically, if
- 	// the user clicks on the 'Comments' button, or if they click on
- 	// certain fields in displayed comments, events don't get registered
- 	// without the extra step called by addStreamViewListers().
- 	
- 	// TODO: figure out way to limit the number of times addStreamViewListeners
- 	// is called. We don't really want to call it every time focus shifts.
- 	if (event_type=='attention') {
-            addStreamViewListeners();
-        }        
-    }
-}
-
-function handleEvent(event, event_type, frameindex) {
-        /*
-          This function does basically the same thing as the generic eventlistener.
-          function. But I have to be able to define constant events so that I can 
-          remove them (so as not to have reduplicated event handlers for the same 
-          event), so I need to define the function outside of the anonymous context.
-        */
-	var event_data = {};
-	event_data["event_type"] = event_type;
-	properties = EVENT_LIST[event_type].properties;
-	var keystroke_data = {};
-	for (var property in properties) {
-	    const prop = treeget(event, properties[property]);
-	    if(prop !== null) {
-		keystroke_data[properties[property]] = treeget(event, properties[property]);
-	    }
-	}
-        event_data[event_type] = keystroke_data;
-        event_data['frameindex']=99;
-        log_event(event_type, event_data); 
-}
-
-function clickHandler(event) {
-        //Named function so we can specifically remove it.
-        handleEvent(event,'mouseclick',99);
-    }
-
-function keystrokeHandler(event) {
-        // Named function so we can specifically remove it.
-        handleEvent(event,'keystroke',99);
-    }
-
-function addStreamViewListeners() {
-        el = document.getElementById('docos-stream-view');
-        if (el) {
-            //remove any clickhandlers or keystrokehandlers that have
-            //already been attached to docos-stream-view.
-            el.removeEventListener('mousedown',clickHandler);
-            el.removeEventListener('mouseup',clickHandler);
-            el.removeEventListener('mouseclick',clickHandler);
-            el.removeEventListener('keydown',keystrokeHandler,true);
-            el.removeEventListener('keyup',keystrokeHandler,true);
-            el.removeEventListener('keypress',keystrokeHandler,true);
-
-            //Now add them afresh, to make sure that dynamically
-            //added content will generate events ...
-            el.addEventListener('mousedown',clickHandler);
-            el.addEventListener('mouseup',clickHandler);
-            el.addEventListener('mouseclick',clickHandler);
-            el.addEventListener('keydown',keystrokeHandler,true);
-            el.addEventListener('keyup',keystrokeHandler,true);
-            el.addEventListener('keypress',keystrokeHandler,true);
-        }       
-}
-
-
-var editor = document.querySelector('.kix-appview-editor');
-
-// The following code is designed to observe changes in the document,
-// not just html events. (Right now we're not observing CSS changes 
-// such as setting an element to display: none. Some of those matter
-// for Google Docs, for instance, when a comment is "resolved", it 
-// is merely hidden.)
-
-var mutationsObserved = {
-
-// mutationsObserved is the data structure where we store information 
-// about which events to log how. This functions as a rule base that 
-// governs what changes in the html document are logged and sent back
-// to the server. This code is based on the  MutationObserver and 
-// mutationRecord classes. See:
-//  
-// https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver 
-// https://developer.mozilla.org/en-US/docs/Web/API/MutationRecord 
-// 
-// Current format works like this:
-//  "insert": {
-//    ^^^       
-//  Category.  
-//  A term we   
-//  made up.    
-//  It describes
-// the type of  
-//  change made  
-//  by the      
-//  mutationRecord.
-//
-//
-//    “doc-os-view”:       [“foo”,          “bar”,          “bif”] 
-//        ^^^                 ^               ^               ^ 
-//  Class of (first)     Class of the    Type label in    Class of the parent 
-//  added node for       target node     our event sent   node whose inner  
-//  "insert", of the     for inserts or  to the Writing   text we want to  
-//  (first) removed      deletes. Null   Observer server  monitor. The innerText 
-//  node for "delete",   otherwise.                         will be sent to the 
-//  or class of the                                         WO server. 
-//  target node for all
-//  other categories.
-
-        "insert": {
-             "docos-docoview-resolve-button-visible": ["docos-stream-view", "add-comment","kix-discussion-plugin"],
-             "docos-replyview-comment": ["docos-anchoreddocoview-content","add-reply","kix-discussion-plugin"],
-             "kix-spell-bubble": ["kix-appview-editor","view-spelling-suggestion",'']
-        },
-        "delete": {
-            "docos-replyview-suggest": ["docos-docoview-rootreply", "resolve-suggestion","kix-discussion-plugin"],
-            "docos-replyview-first": ["docos-docoview-rootreply", "delete-comment","kix-discussion-plugin"],        
-            "docos-replyview-comment": ["docos-docoview-replycontainer", "delete-reply","kix-discussion-plugin"]
-        },
-        "input": {
-            "docos-input-textarea": [null, "type-input",''],
-        },
-        "clear": {
-            "docos-input-textarea": [null, "clear-input",''],       
-        },
-        "replace": {
-            "docos-replyview-static": [null, "edit-comment","kix-discussion-plugin"]
-        },       
-        "suggest": {
-            "docos-replyview-static": [null, "add-suggestion","kix-discussion-plugin"]
-        },
-        "other": {
-             "kix-spell-bubble": [null,"view-spelling-suggestion",'']
-        }
-    } 
-
-function classifyModification(mutation) {
-    /*
-      Determine what kind of change is being made. We will use this information
-      to assign the "category" that we use as the key to access the correct list
-      of rule patterns from the mutationsObserved variable.
-    */
-    if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
-        return "insert";
-    }            
-    else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
-         if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
-             return "clear";
-         }
-         else {
-           return "delete";
-         }
-    }
-    else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
-            mutation.removedNodes[0].nodeType == Node.TEXT_NODE &&
-            mutation.addedNodes[0].nodeType == Node.TEXT_NODE
-    ) {
-         return "replace";
-    }
-    else if (mutation.type=='characterData') {
-        return "input";
-    } 
-    else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 ) {
-        return "suggest";
-    }
-    else {
-        return "other";
-    }
-}
-
-function stringCheck(myVar) {
-    /*
-      Utility function to check whether a variable is a string.
-      We need that because some classes in Google docs graphics are not strings.
-    */
-    if (typeof myVar === 'string' || myVar instanceof String) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function findAncestor (el, cls) {
-    while ((el = el.parentNode) && el.className.indexOf(cls) < 0);
-    return el;
-}
-
-function prepareMutationObserver(mutationsObserved) {
-    /*
-      Set up a MutationObserver that will use the mutationObserved dictionary
-      to tell it which changes to log and what label to log it as.
-    */
-    var observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-
-          event = {}
-          event['event_type'] = 'mutation';
-
-          // This list guarantees that we'll have the information we need 
-          // to understand what happened in a change event.
-  	  properties = [
-  	      'addedNodes.length', 'addedNodes[0].className',
-  	      'addedNodes[0].data', 'addedNodes[0].id', 
-  	      'addedNodes[0].innerText', 'addedNodes[0].nodeType',
-  	      'removedNodes.length', 'removedNodes[0].className', 
-  	      'removedNodes[0].data', 'removedNodes[0].id', 
-  	      'removedNodes[0].innerText', 'removedNodes[0].nodeType', 
-  	      'target.className', 'target.data',
-  	      'target.innertext', 'target.parentNode.id', 
-  	      'target.parentNode.className','type'
-          ];
-          
-          // Populate the mutation_data subdictionary that we use to
-          // pass the details of the mutation back to the WO sever.
-	  var mutation_data = {};
-	  for (var property in properties) {
-	      const prop = treeget(mutation, properties[property]);
-	      if (prop !== null) {
-		  mutation_data[properties[property]] = 
-		      treeget(mutation, properties[property]);
-	      }
-	  }
-          event['change'] = mutation_data;
-
-          // uncomment this to observe all mutations in the console log.
-          //console.log(mutation);
-
-          // apply the rule engine defined by mutationsObserved to record
-          // watched events.
-
-          // First, check what kind of event this is
-          category = classifyModification(mutation);
-          
-          // Then record that category as an event_type
-          event['event_type']=category;
-          
-          // Filter the templates to those that are relevant to this category
-          actions = mutationsObserved[category];
-          
-          // Then loop through the available templates
-          for (var targetClass in actions) {
-          
-              // TODO: We do the same basic thing in each of the branches below, 
-              // but we need to make sure we only trigger these actions in ONE 
-              // of the branches. There's probably a more succinct way to code 
-              // this but I haven't figured it out yet.
-
-              // Branch for the insert category
-              //
-              if (category=='insert') {
-                     // Apply the event label based on the rule
-                     if (stringCheck(event.change['addedNodes[0].className']) 
-                        && event.change['addedNodes[0].className'].indexOf(targetClass)>=0
-                        && event.change['target.className'].indexOf(actions[targetClass][0])>=0
-                     ) {
-                        // Google Docs inserts comments during the document load. 
-                        // We need to flag that status.
-                        if (loading) { 
-                            event['type'] = "loading_" + actions[targetClass][1];
-                        //Otherwise use the normal label for this event
-                        } else { 
-                            event['type'] = actions[targetClass][1];
-                        }
-                        //If we specify a window we want to watch, get the innerText
-                        if (actions[targetClass][2]!='' 
-                           && findAncestor(mutation.target,actions[targetClass][2])) { 
-                            event['context_content'] = 
-                                findAncestor(mutation.target,actions[targetClass][2]).innerText;
-                        }
-                        // Then send the logged event to the WO server.
-                        log_event(mutation.type,event);
-                        break;
-                     } 
-              }
-
-              //Branch for the delete category
-              //
-              else if (category=='delete') {
-                 if (stringCheck(event.change['removedNodes[0].className']) 
-                    && event.change['removedNodes[0].className'].indexOf(targetClass)>=0
-                    && event.change['target.className'].indexOf(actions[targetClass][0])>=0
-                 ) {
-                       event['type'] = actions[targetClass][1];
-                       if (actions[targetClass][2]!='' 
-                           && findAncestor(mutation.target,actions[targetClass][2])) {
-                            event['context_content'] = 
-                                findAncestor(mutation.target,actions[targetClass][2]).innerText;
-                       }
-                       log_event(mutation.type,event);
-                       break;
-                 } 
-             }
-
-             //Branch for the all other categories
-             //
-             else if (stringCheck(event.change['target.parentNode.className'])
-                     && event.change['target.parentNode.className'].indexOf(targetClass)>=0
-                 ) {
-                       event['type'] = actions[targetClass][1];
-                       if (actions[targetClass][2]!='' 
-                          && findAncestor(mutation.target,actions[targetClass][2])) {
-                             event['context_content'] = 
-                                 findAncestor(mutation.target,actions[targetClass][2]).innerText;
-                       }
-                       log_event(mutation.type,event);
-                       break;
-                   }
-              }
-        });
-    });
-    return observer;
-}
-
-// Set mutation observer options
-var options = {
-
-    // We don't want to watch attribute changes
-    attributes: false,
-    
-    // but we do want to watch tree and character changes.
-    childList: true,
-    characterData: true,
-    subtree: true  
-};
-
-// OK, now create the MutationObserver and start running it
-// on the document.
-observer = prepareMutationObserver(mutationsObserved)
-observer.observe(editor, options);
-
-// Now initialize the generic event listener. We will listen to
-// events in all iFrames, as well as  the main content document.
-var frames = Array.from(document.getElementsByTagName("iframe"));
-
-// TODO: We should really make a list of documents instead of a fake iframe....
-frames.push({'contentDocument': document})
-
-var s = document.createElement('script');
-s.src = chrome.runtime.getURL('pageinfo.js');
-
-// Add an event listener to each iframe in the iframes under frames.
-for (var event_type in EVENT_LIST) {
-
-    for (var event_idx in EVENT_LIST[event_type]['events']) {
-	js_event = EVENT_LIST[event_type]['events'][event_idx];
-	target = EVENT_LIST[event_type]['target']
-	if(target === 'document') {
- 
-            var numFrames = 0;
-	    for(var iframe in frames) {
-		if(frames[iframe].contentDocument) {
-                    console.log(iframe,frames[iframe].contentDocument)
-                    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type,iframe));
-                    numFrames = iframe;
-              }               
-	    }	    
-	} else if (target === 'window') {
-            window.addEventListener(js_event, generic_eventlistener(event_type));
-	}
-    }
 }
 
 // NOTE: gmail listening is currently disabled.
@@ -673,6 +187,530 @@ function google_docs_version_history() {
 	});
     });
 }
+
+/////////////////////////////////
+/// EVENT LOGGING CODE BLOCK ////
+/////////////////////////////////
+
+// Data structure specifying the events we want to capture from the browser.
+// For keystroke and mouseclick events, we capture target and parent target info 
+// because it gives us info about what exactly got clicked on/changed.
+
+EVENT_LIST = {
+    "keystroke": {
+	"events": [
+	    "keypress", "keydown", "keyup"
+	],
+	"properties": [
+	    'altKey', 'buttons', 
+	    'charCode', 'code', 
+	    'ctrlKey', 'isComposing',
+	    'isTrusted', 'key', 
+	    'keyCode', 'location', 
+	    'metaKey', 'repeat', 
+	    'shiftKey', 'target.className',
+	    'target.id', 'target.nodeType',
+	    'target.localName', 'timeStamp',
+	    'type', 'which'
+	],
+	"target": "document"
+    },
+    "mouseclick": {
+	"events": [
+	    "mouseclick", "mousedown", "mouseup"
+	],
+	"properties": [
+	    "button", "buttons",
+	    "clientX", "clientY",
+	    "layerX", "layerY",
+	    "offsetX", "offsetY",
+	    "screenX", "screenY",
+	    "movementX", "movementY",
+	    'altKey', 'ctrlKey',
+	    'metaKey', 'shiftKey', 
+	    'which', 'isTrusted',
+	    'timeStamp', 'type',
+	    'target.id', 'target.className',
+	    'target.innerText', 'target.nodeType','target.localName',
+	    'target.parentNode.id', 'target.parentNode.className',
+	    'target.parentNode.nodeType', 'target.parentNode.localName'
+	],
+	"target": "document"
+    },
+    "attention": {
+       "events": ["focusin", "focusout"],
+
+	// Not all of these are required for all events...
+	"properties": [
+	    'bubbles', 'cancelable', 
+	    'isTrusted', 'timeStamp',
+            'relatedTarget.className', 'relatedTarget.id',
+            'target.className', 'target.id',
+            'target.innertext', 'target.nodeType',
+            'target.localName', 'target.parentNode.className',
+            'target.parentNode.id', 'target.parentNode.innerText',
+            'target.parentNode.nodeType', 'target.parentNode.localName',
+	    'type',
+	],
+	"target": "window"
+    },
+    "visibility": {
+        "events": ["visibilitychange"],
+        "properties": [
+            'target', 'bubbles',
+            'cancelable', 'isTrusted',
+            'timeStamp', 'type'
+        ],
+        "target": "document"
+    },
+    "save": {
+        "events": ["google_docs_save"],
+        "properties": [
+             "doc_id", "bundles", 
+             "event", "timestamp"
+        ],      
+        "target": "window"
+    },
+    "load": {
+        "events": ["document_loaded"],
+        "properties": [
+              "doc_id", "event",
+              "history", "title",
+              "timestamp"
+        ],
+        "target": "window"
+    },
+};
+
+function handleEvent(event, event_type, frameindex) {
+     /*
+       This function handles the core of the generic eventlistener function
+       defined below. We reuse it outside that function to preserve the option
+       of removing some listeners where needed.
+
+       It captures any events specified in EVENT_LIST and passes them to the server.
+     */
+
+       var event_data = {};
+       event_data["event_type"] = event_type;
+       properties = EVENT_LIST[event_type].properties;
+       var keystroke_data = {};
+       for (var property in properties) {
+           const prop = treeget(event, properties[property]);
+           if(prop !== null) {
+                keystroke_data[properties[property]] = treeget(event, properties[property]);
+           }
+       }
+       event_data[event_type] = keystroke_data;
+       event_data['frameindex']=99;
+       log_event(event_type, event_data); 
+}
+
+function generic_eventlistener(event_type, frameindex, event) {
+    /*
+       This function calls eventlistener_prototype on setup, then
+       calls the addStreamViewListeners function, which dynamically
+       adds listeners after focus events to handle events for dynamically
+       created nodes in docos-stream-view.
+    */
+
+    return function(event) {
+        /*
+          Listen for events, and pass them back to the background page.
+        */
+        handleEvent(event, event_type, frameindex);
+        
+ 	// Dynamic updates of docos-stream-view means our initial set of 
+ 	// listeners doesn't always catch events that happen in that div.
+ 	// Specifically, if the user clicks on the 'Comments' button, or
+ 	// if they click on certain fields in displayed comments, events 
+ 	// don't get registered without the extra step called by 
+ 	// addStreamViewListers().
+ 	
+ 	// TODO: figure out way to limit the number of times addStreamViewListeners()
+ 	// is called. We don't really want to call it every time focus shifts,
+ 	// but I'm not sure what specifically to listen for to minimize the
+ 	// number of times we swap out event listeners on the docos-stream-view
+ 	// element.
+ 	if (event_type=='attention') {
+            addStreamViewListeners();
+        }        
+    }
+}
+
+function clickHandler(event) {
+        //Named function so we can programmatically remove it.
+        handleEvent(event,'mouseclick',99);
+    }
+
+function keystrokeHandler(event) {
+        // Named function so we can programmatically remove it.
+        handleEvent(event,'keystroke',99);
+    }
+
+function addStreamViewListeners() {
+    /*
+      This function supports dynamic refreshing of the listeners
+      assocaited with docos-stream-view.
+    */
+        el = document.getElementById('docos-stream-view');
+        if (el) {
+            //remove any clickhandlers or keystrokehandlers that have
+            //already been attached to docos-stream-view.
+            el.removeEventListener('mousedown',clickHandler);
+            el.removeEventListener('mouseup',clickHandler);
+            el.removeEventListener('mouseclick',clickHandler);
+            el.removeEventListener('keydown',keystrokeHandler,true);
+            el.removeEventListener('keyup',keystrokeHandler,true);
+            el.removeEventListener('keypress',keystrokeHandler,true);
+
+            //Now add them afresh, to make sure that dynamically
+            //added content will generate events ...
+            el.addEventListener('mousedown',clickHandler);
+            el.addEventListener('mouseup',clickHandler);
+            el.addEventListener('mouseclick',clickHandler);
+            el.addEventListener('keydown',keystrokeHandler,true);             el.addEventListener('keyup',keystrokeHandler,true);   
+            el.addEventListener('keypress',keystrokeHandler,true); 
+            // Note: we have to set capture=true for keystroke events in order
+            // for this listener to capture keystrokes inside docos-stream-view
+        }       
+}
+
+var editor = document.querySelector('.kix-appview-editor');
+
+// Function definitions completed.
+// Now we initialize the generic event listener. 
+
+//We will listen to events in all iFrames, as well as the main content document.
+var frames = Array.from(document.getElementsByTagName("iframe"));
+
+// TODO: We should really make a list of documents instead of a fake iframe....
+frames.push({'contentDocument': document})
+
+var s = document.createElement('script');
+s.src = chrome.runtime.getURL('pageinfo.js');
+
+// Add an event listener to each iframe in the iframes under frames.
+for (var event_type in EVENT_LIST) {
+
+    for (var event_idx in EVENT_LIST[event_type]['events']) {
+	js_event = EVENT_LIST[event_type]['events'][event_idx];
+	target = EVENT_LIST[event_type]['target']
+	if(target === 'document') {
+ 
+            var numFrames = 0;
+	    for(var iframe in frames) {
+		if(frames[iframe].contentDocument) {
+                    console.log(iframe,frames[iframe].contentDocument)
+                    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type,iframe));
+                    numFrames = iframe;
+              }               
+	    }	    
+	} else if (target === 'window') {
+            window.addEventListener(js_event, generic_eventlistener(event_type));
+	}
+    }
+}
+
+//////////////////////////////////
+// CHANGE OBSERVER CODE BLOCK ////
+//////////////////////////////////
+
+// NOTE: The following code is designed to observe changes in the document,
+// not just html events. (Right now we're not observing CSS changes 
+// such as setting an element to display: none. Some of those may be
+// worth watching for Google Docs; for instance, when a comment is 
+// "resolved", it is merely hidden.)
+
+// mutationsObserved is the data structure where we store information 
+// about which html change events to log how. This functions as a rule
+// base that governs what changes in the html document are logged and
+// sent back to the server. This code is based on the  MutationObserver 
+// and mutationRecord classes. See:
+//  
+// https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver 
+// https://developer.mozilla.org/en-US/docs/Web/API/MutationRecord 
+// 
+// The format works like this:
+//  "insert": {
+//    ^^^       
+//  Category.  
+//  A term we   
+//  made up.    
+//  It describes
+// the type of  
+//  change made  
+//  by the      
+//  mutationRecord.
+//
+//
+// [ { “target”: "bif",  “added”: "bar",  “label”:"foo",   “watch”: "hoo"] , ... ] 
+//                       (or "removed")
+//        ^^^              ^^^               ^^^                ^^^ 
+//  Class of the         Class of the     Type label we     Class of the parent 
+//  target node where    node added       made up that      node whose inner  
+//  the change took      or removed       is sent to the    text we want to  
+//  place.                                Writing Observer  monitor. The innerText 
+//                                        server.           will be sent to the 
+//  }                                                       WO server. 
+var mutationsObserved = {
+        "insert": [
+            {
+                "target": "docos-stream-view",
+                "added": "docos-docoview-resolve-button-visible",
+                "label": "add-comment",
+                "watch": "kix-discussion-plugin"
+            },
+            {
+                "target": "docos-anchoreddocoview-content",
+                "added": "docos-replyview-comment",
+                "label": "add-reply",
+                "watch": "kix-discussion-plugin"
+            },
+            {
+                "target": "kix-appview-editor",
+                "added": "kix-spell-bubble",
+                "label": "view-spelling-suggestion",
+            }
+        ],
+        "delete": [
+            {
+                "target": "docos-docoview-rootreply",
+                "removed": "docos-replyview-suggest",
+                "label": "resolve-suggestion",
+                "watch": "kix-discussion-plugin"
+            },
+            {
+                "target": "docos-docoview-rootreply",
+                "removed": "docos-replyview-first",
+                "label": "delete-comment",
+                "watch": "kix-discussion-plugin"
+            },
+            {
+                "target": "docos-docoview-replycontainer",
+                "removed": "docos-replyview-comment",
+                "label": "delete-reply",
+                "watch": "kix-discussion-plugin"
+            }
+        ],
+        "input": [
+            {
+                "target": "docos-input-textarea",
+                "label": "type-input",
+            }
+        ],
+        "clear": [
+            {
+                "target": "docos-input-textarea",
+                "label": "clear-input",
+            }
+        ],
+        "replace": [
+            {
+                "target": "docos-replyview-static",
+                "label": "edit-comment",
+                "watch": "kix-discussion-plugin"
+            }
+        ],
+        "suggest": [
+            {
+                "target": "docos-replyview-static",
+                "label": "add-suggestion",
+                "watch": "kix-discussion-plugin"
+            }
+        ],
+        "other": [
+            {
+                "target": "kix-spell-bubble",
+                "label": "view-spelling-suggestion"
+            }
+        ]
+}
+
+function classifyModification(mutation) {
+    /*
+      Determine what kind of change is being made. We will use the category
+      label returned by this function as the key to the mutationObserved variable
+      to get a list of relevant rules to apply.
+    */
+    if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
+        return "insert";
+    }            
+    else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
+         if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
+             return "clear";
+         }
+         else {
+           return "delete";
+         }
+    }
+    else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 &&
+            mutation.removedNodes[0].nodeType == Node.TEXT_NODE &&
+            mutation.addedNodes[0].nodeType == Node.TEXT_NODE
+    ) {
+         return "replace";
+    }
+    else if (mutation.type=='characterData') {
+        return "input";
+    } 
+    else if (mutation.addedNodes.length > 0 && mutation.removedNodes.length > 0 ) {
+        return "suggest";
+    }
+    else {
+        return "other";
+    }
+}
+
+function stringCheck(myVar) {
+    /*
+      Utility function to check whether a variable is a string.
+      We need that because some Google docs graphical object classes
+      are not strings.
+    */
+    if (typeof myVar === 'string' || myVar instanceof String) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function findAncestor (el, cls) {
+    /* 
+      Utility function to find an ancestor node of a specified class.
+    */
+    while ((el = el.parentNode) && el.className.indexOf(cls) < 0);
+    return el;
+}
+
+function fireRule(mutation, event, actions, rule) {
+    /*
+      Common script to run when a mutationObserver rule has been matched.
+    */
+    
+    // Google Docs inserts comments during the document load. 
+    // We need to flag that status.
+    if (loading) { 
+        event['type'] = "loading_" + actions[rule]['label'];
+
+    //Otherwise use the normal label for this event
+    } else { 
+             event['type'] = actions[rule]['label'];
+    }
+
+    //If we specify a window we want to watch, get the innerText
+    if ('watched' in actions[rule] 
+        && findAncestor(mutation.target,actions[rule]['watched'])) { 
+            event['context_content'] = 
+                findAncestor(mutation.target,actions[rule]['watched']).innerText;
+    }
+    
+    // Then send the logged event to the WO server.
+    log_event(mutation.type,event);
+}
+
+function prepareMutationObserver(mutationsObserved) {
+    /*
+      Set up a MutationObserver that will use the mutationObserved dictionary
+      to tell it which changes to log and what label to log it as.
+    */
+    var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+
+          event = {}
+          event['event_type'] = 'mutation';
+
+          // This list guarantees that we'll have the information we need 
+          // to understand what happened in a change event.
+  	  properties = [
+  	      'addedNodes.length', 'addedNodes[0].className',
+  	      'addedNodes[0].data', 'addedNodes[0].id', 
+  	      'addedNodes[0].innerText', 'addedNodes[0].nodeType',
+  	      'removedNodes.length', 'removedNodes[0].className', 
+  	      'removedNodes[0].data', 'removedNodes[0].id', 
+  	      'removedNodes[0].innerText', 'removedNodes[0].nodeType', 
+  	      'target.className', 'target.data',
+  	      'target.innertext', 'target.parentNode.id', 
+  	      'target.parentNode.className','type'
+          ];
+          
+          // Populate the mutation_data subdictionary that we use to
+          // pass the details of the mutation back to the WO sever.
+	  var mutation_data = {};
+	  for (var property in properties) {
+	      const prop = treeget(mutation, properties[property]);
+	      if (prop !== null) {
+		  mutation_data[properties[property]] = 
+		      treeget(mutation, properties[property]);
+	      }
+	  }
+          event['change'] = mutation_data;
+
+          // uncomment this to observe all mutations in the console log.
+          //console.log(mutation);
+
+          // Now we apply the rules defined by mutationsObserved to record
+          // watched events.
+
+          // First, check what kind of event this is
+          category = classifyModification(mutation);
+          
+          // Then record that category as event_type
+          event['event_type']=category;
+          
+          // Filter the templates to those that are relevant to this category
+          actions = mutationsObserved[category];
+          
+          // Then loop through the available templates
+          for (var rule in actions) {
+              if (category=='insert' 
+                 &&stringCheck(event.change['addedNodes[0].className']) 
+                 && event.change['addedNodes[0].className'].indexOf(actions[rule]['added'])>=0
+                 && event.change['target.className'].indexOf(actions[rule]['target'])>=0
+                 ) {
+                     fireRule(mutation, event, actions, rule);
+                     break;
+              }
+              else if (category=='delete'
+                     && stringCheck(event.change['removedNodes[0].className']) 
+                     && event.change['removedNodes[0].className'].indexOf(actions[rule]['removed'])>=0
+                     && event.change['target.className'].indexOf(actions[rule]['target'])>=0
+              ) {
+                     fireRule(mutation, event, actions, rule);
+                     break;
+              }
+              else if (stringCheck(event.change['target.parentNode.className'])
+                     && event.change['target.parentNode.className'].indexOf(actions[rule]['target'])>=0
+                 ) {
+                     fireRule(mutation, event, actions, rule);
+                     break;
+                   }
+              }
+        });
+    });
+    return observer;
+}
+
+// Set mutation observer options
+var options = {
+
+    // We don't want to watch attribute changes
+    attributes: false,
+    
+    // but we do want to watch tree and character changes.
+    childList: true,
+    characterData: true,
+    subtree: true  
+};
+
+// OK, now create the MutationObserver and start running it
+// on the document.
+observer = prepareMutationObserver(mutationsObserved)
+observer.observe(editor, options);
+
+
+//////////////////////////////////
+//// DOCUMENT LOAD CODE BLOCK ////
+//////////////////////////////////
 
 // When the script is loaded, we assume the page is still being loaded
 var loading = 1;
