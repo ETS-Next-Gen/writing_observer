@@ -302,7 +302,7 @@ function handleEvent(event, event_type, frameindex) {
            }
        }
        event_data[event_type] = keystroke_data;
-       event_data['frameindex']=99;
+       event_data['frameindex']=frameindex;
        log_event(event_type, event_data); 
 }
 
@@ -340,12 +340,12 @@ function generic_eventlistener(event_type, frameindex, event) {
 
 function clickHandler(event) {
         //Named function so we can programmatically remove it.
-        handleEvent(event,'mouseclick',99);
+        handleEvent(event,'mouseclick','99');
     }
 
 function keystrokeHandler(event) {
         // Named function so we can programmatically remove it.
-        handleEvent(event,'keystroke',99);
+        handleEvent(event,'keystroke','99');
     }
 
 function addStreamViewListeners() {
@@ -369,7 +369,8 @@ function addStreamViewListeners() {
             el.addEventListener('mousedown',clickHandler);
             el.addEventListener('mouseup',clickHandler);
             el.addEventListener('mouseclick',clickHandler);
-            el.addEventListener('keydown',keystrokeHandler,true);             el.addEventListener('keyup',keystrokeHandler,true);   
+            el.addEventListener('keydown',keystrokeHandler,true);
+            el.addEventListener('keyup',keystrokeHandler,true);   
             el.addEventListener('keypress',keystrokeHandler,true); 
             // Note: we have to set capture=true for keystroke events in order
             // for this listener to capture keystrokes inside docos-stream-view

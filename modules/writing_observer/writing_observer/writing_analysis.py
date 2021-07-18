@@ -244,12 +244,20 @@ async def baseline_typing_speed(event, internal_state):
                     'total_inword_typing_time': 0,
                     'nWordInternalKeystrokes': 0,
                     'meanCharactersPerSecond': 0.0
+            },
+            "99": {
+                    'saved_time': None,
+                    'saved_keycode': None,
+                    'total_inword_typing_time': 0,
+                    'nWordInternalKeystrokes': 0,
+                    'meanCharactersPerSecond': 0.0
             }
         }
     }
 
     (safe_user_id, doc_id, frameid, internal_state) = internal_state_setup(event, internal_state, initial_doc_state)
-
+    print('ids are: ',safe_user_id, doc_id, frameid);
+    
     if frameid is None:
         return internal_state, internal_state
 
