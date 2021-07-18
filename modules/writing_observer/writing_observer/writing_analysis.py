@@ -184,8 +184,8 @@ async def track_open_comments_by_document(event, internal_state):
    
     # Handle text input events
     if 'type' in event['client'] and event['client']['type'] == 'type-input':
-        internal_state[safe_user_id][doc_id]['last_input_id'] = event['client']['change']['targetparentNodeid']
-        internal_state[safe_user_id][doc_id]['last_input'] = event['client']['change']['targetdata']
+        internal_state[safe_user_id][doc_id]['last_input_id'] = event['client']['change']['target.parentNode.id']
+        internal_state[safe_user_id][doc_id]['last_input'] = event['client']['change']['target.data']
         internal_state[safe_user_id][doc_id]['last_input_ts'] = event['client']['ts'] 
               
     print(internal_state)

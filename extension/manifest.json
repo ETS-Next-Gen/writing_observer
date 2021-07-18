@@ -28,7 +28,6 @@
 	"identity",
 	"identity.email",
 	"*://docs.google.com/*",
-	"*://mail.google.com/*",
         "clipboardRead",
         "storage",
         "activeTab",

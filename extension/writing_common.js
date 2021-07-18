@@ -6,18 +6,30 @@ function treeget(tree, key) {
           {"hello": {"bar":"biff"}},
           "hello.bar"
       )
+      
+      Modified by PD 6/16/2021 to also deal with embbedded
+      lists identified using notations like addedNodes[0].className.
 
-      If not found, return `none`
-      */
+      If not found, return null
+    */
        let keylist = key.split(".");
        let subtree = tree;
        for(var i=0; i<keylist.length; i++) {
+            // Don't process empty subtrees
             if (subtree == null) {
                 return null;
             }
+            // If the next dotted element is present,
+            // reset the subtree to only include that node
+            // and its descendants.
 	    if (keylist[i] in subtree) {
 	        subtree = subtree[keylist[i]];
-	    } else {
+	    }
+	    // If a bracketed element is present, parse out
+	    // the index, grab the node at the index, and
+	    // set the subtree equal to that node and its
+	    // descendants. 
+	    else {
                 if (keylist[i] && keylist[i].indexOf('[')>0) {
                     item = keylist[i].split('[')[0];
                     idx = keylist[i].split('[')[1];
