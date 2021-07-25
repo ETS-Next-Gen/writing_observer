@@ -12,11 +12,11 @@ function treeget(tree, key) {
     let keylist = key.split(".");
     let subtree = tree;
     for(var i=0; i<keylist.length; i++) {
-	if(keylist[i] in subtree) {
-	    subtree = subtree[keylist[i]];
-	} else {
-	    return null;
-	}
+        if(keylist[i] in subtree) {
+            subtree = subtree[keylist[i]];
+        } else {
+            return null;
+        }
     }
     return subtree;
 }
@@ -32,7 +32,7 @@ function googledocs_id_from_url(url) {
     */
     var match = url.match(/.*:\/\/docs\.google\.com\/document\/d\/([^\/]*)\/.*/i);
     if(match) {
-	return match[1];
+        return match[1];
     }
     return null;
 }
