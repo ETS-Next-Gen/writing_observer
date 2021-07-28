@@ -6,6 +6,7 @@ It just routes to smaller pipelines. Currently that's:
 '''
 from learning_observer.stream_analytics.helpers import kvs_pipeline
 import writing_observer.reconstruct_doc
+#from writing_observer.languagetool import processText
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -16,6 +17,7 @@ import writing_observer.reconstruct_doc
 # that as one minute. This threshold sets that maximum. For debugging,
 # a few seconds is convenient. For production use, 60-300 seconds (or
 # 1-5 minutes) might be more reasonable.
+
 #
 # In edX, for time-on-task calculations, the exact threshold had a
 # surprisingly small impact on any any sort of interpretation
@@ -24,7 +26,6 @@ import writing_observer.reconstruct_doc
 
 # Should be 60-300 in prod. 5 seconds is nice for debugging
 TIME_ON_TASK_THRESHOLD = 5
-
 
 @kvs_pipeline()
 async def time_on_task(event, internal_state):
@@ -151,9 +152,8 @@ async def attention_state(event, internal_state):
 @kvs_pipeline()
 async def track_open_comments_by_document(event, internal_state):
     '''
-    This pipeline is currently a stub. Right now it captures the last input the user typed in a comment field,
-    plus the text of all extant comments (with user name and dates associated)
-    
+    This pipeline is currently a stub. Right now it captures the last input the us
+
     The Google Doc displays the names of the poster, not the user IDs. I can't see any easy way to capture the full
     content of the comments w/o also getting the names. We know the chrome ID of the current user, and could probably
     replace their username in the comments field created here with a stub, but we would need a functon to get
@@ -165,7 +165,6 @@ async def track_open_comments_by_document(event, internal_state):
     Ultimately, we would elaborate this pipeline stub to support use cases where we needed to provide reports to teachers
     about which students have commented on one another's work when and how much ... exact content TBD.
     '''
-
     if internal_state is None:
         internal_state = {
         }
@@ -190,7 +189,6 @@ async def track_open_comments_by_document(event, internal_state):
               
     print(internal_state)
     return internal_state, internal_state
-
 
 @kvs_pipeline()
 async def baseline_typing_speed(event, internal_state):
@@ -348,9 +346,11 @@ async def reconstruct(event, internal_state):
             writing_observer.reconstruct_doc.google_text(), change_list
         )
     state = internal_state.json
+
+    #state['languagetool'] = await processText(event,internal_state.json['text'])
+
     print(state)
     return state, state
-
 
 async def pipeline(metadata):
     '''
@@ -359,8 +359,7 @@ async def pipeline(metadata):
     for display in the dashboard.
     '''
     processors = [time_on_task(metadata), reconstruct(metadata), attention_state(metadata), baseline_typing_speed(metadata), track_open_comments_by_document(metadata)]
-    # processors = [time_on_task(metadata), reconstruct(metadata), attention_state(metadata), baseline_typing_speed(metadata)]
-
+ 
     async def process(event):
         external_state = {}
         if processors is not None:
