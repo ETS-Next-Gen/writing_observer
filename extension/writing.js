@@ -278,8 +278,8 @@ EVENT_LIST = {
 
 // By having these, we have references to allow us to remove listeners later
 // See refresh_stream_view_listeners
-for(var event_class in EVENT_LIST) {
-    EVENT_LIST[event_class]['listener'] = generic_eventlistener(event_type, -1);
+for(var event_type in EVENT_LIST) {
+    EVENT_LIST[event_type]['listener'] = generic_eventlistener(event_type, -1);
 }
 
 function generic_eventlistener(event_type, frameindex) {
@@ -341,13 +341,15 @@ function refresh_stream_view_listeners() {
     }
 
     // Refresh mouseclick events
-    for(event in EVENT_LIST["mouseclick"].events) {
+    for(var eventNo in EVENT_LIST["mouseclick"].events) {
+	event = EVENT_LIST["mouseclick"].events[eventNo];
 	el.removeEventListener(event, EVENT_LIST["mouseclick"]["listener"]);
 	el.addEventListener(event, EVENT_LIST["mouseclick"]["listener"]);
     }
 
     // Refresh keystroke events
-    for(event in EVENT_LIST["keystroke"].events) {
+    for(var eventNo in EVENT_LIST["keystroke"].events) {
+	event = EVENT_LIST["mouseclick"].events[eventNo];
 	el.removeEventListener(event, EVENT_LIST["keystroke"]["listener"]);
 	el.addEventListener(event, EVENT_LIST["keystroke"]["listener"], true);
     }
@@ -372,11 +374,11 @@ for(var event_type in EVENT_LIST) {
         if(target === 'document') {
             for(var iframe in frames) {
                 if(frames[iframe].contentDocument) {
-                    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type));
+                    frames[iframe].contentDocument.addEventListener(js_event, generic_eventlistener(event_type, iframe));
                 }
             }
         } else if (target === 'window') {
-            window.addEventListener(js_event, generic_eventlistener(event_type));
+            window.addEventListener(js_event, generic_eventlistener(event_type, iframe));
         }
     }
 }
