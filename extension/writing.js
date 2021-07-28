@@ -510,8 +510,8 @@ var MUTATIONS_OBSERVED = {
 
 function classify_mutation(mutation) {
     /*
-      Determine what kind of change is being made: 'insert', 'addtext',
-      'delete', 'replace', 'input', 'suggest', or 'other'. 
+      Determine what kind of change is being made: `insert`, `addtext`,
+      `delete`, `replace`, `input`, `suggest`, or `other`. 
 
       We will use the category label returned by this function as the
       key to the mutationObserved variable to get a list of relevant
