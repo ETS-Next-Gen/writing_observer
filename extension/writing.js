@@ -29,6 +29,9 @@ function log_event(event_type, event) {
     // Google Docs inserts comments during the document load. 
     event['readyState'] = document.readyState;
 
+    // uncomment to watch events being logged from the client side with devtools
+    // console.log(event);
+
     chrome.runtime.sendMessage(event);
 }
 
@@ -349,7 +352,7 @@ function refresh_stream_view_listeners() {
 
     // Refresh keystroke events
     for(var eventNo in EVENT_LIST["keystroke"].events) {
-	event = EVENT_LIST["mouseclick"].events[eventNo];
+	event = EVENT_LIST["keystroke"].events[eventNo];
 	el.removeEventListener(event, EVENT_LIST["keystroke"]["listener"]);
 	el.addEventListener(event, EVENT_LIST["keystroke"]["listener"], true);
     }
@@ -437,12 +440,14 @@ var MUTATIONS_OBSERVED = {
             "added": "docos-replyview-comment",
             "label": "add-reply",
             "watch": "kix-discussion-plugin"
-        },
-        {
-            "target": "kix-appview-editor",
-            "added": "kix-spell-bubble",
-            "label": "view-spelling-suggestion",
         }
+    ],
+    "addtext": [
+        {
+            "target": "kix-spell-bubble-suggestion-text",
+            "label": "view_spelling_suggestion",
+            "watch": ""
+        },
     ],
     "delete": [
         {
@@ -481,7 +486,16 @@ var MUTATIONS_OBSERVED = {
             "target": "docos-replyview-static",
             "label": "edit-comment",
             "watch": "kix-discussion-plugin"
-        }
+        },
+        {
+            "target": "kix-spell-bubble-suggestion-text",
+            "label": "view-suggestion-text",
+        },
+        {
+            "target": "kix-spell-bubble",
+            "label": "view_spelling_suggestion",
+            "watch": ""
+        },
     ],
     "suggest": [
         {
@@ -491,24 +505,24 @@ var MUTATIONS_OBSERVED = {
         }
     ],
     "other": [
-        {
-            "target": "kix-spell-bubble",
-            "label": "view-spelling-suggestion"
-        }
     ]
 }
 
 function classify_mutation(mutation) {
     /*
-      Determine what kind of change is being made: `insert`, `delete`,
-      `replace`, `input`, `suggest`, or `other`.
+      Determine what kind of change is being made: 'insert', 'addtext',
+      'delete', 'replace', 'input', 'suggest', or 'other'. 
 
       We will use the category label returned by this function as the
       key to the mutationObserved variable to get a list of relevant
       rules to apply.
     */
     if (mutation.addedNodes.length > 0 && mutation.removedNodes.length == 0) {
-        return "insert";
+        if (mutation.addedNodes[0].nodeType == Node.TEXT_NODE) {
+          return "addtext";
+        } else {
+          return "insert";
+        }
     }
     else if (mutation.addedNodes.length == 0 && mutation.removedNodes.length > 0) {
         if (mutation.removedNodes[0].nodeType == Node.TEXT_NODE) {
@@ -548,6 +562,8 @@ function fire_rule(mutation, event, actions, rule) {
       Common script to run when a mutationObserver rule has been matched.
     */
 
+    event['event_type'] = actions[rule]['label'];
+   
     // If we specify a window we want to watch, get the innerText
     if ('watched' in actions[rule]
         && find_ancestor(mutation.target,actions[rule]['watched'])) {
@@ -567,7 +583,6 @@ function prepare_mutation_observer() {
     var observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             event = {}
-            event['event_type'] = 'mutation';
 
             // This list guarantees that we'll have the information we need
             // to understand what happened in a change event.
@@ -579,7 +594,7 @@ function prepare_mutation_observer() {
                 'removedNodes[0].data', 'removedNodes[0].id',
                 'removedNodes[0].innerText', 'removedNodes[0].nodeType',
                 'target.className', 'target.data',
-                'target.innertext', 'target.parentNode.id',
+                'target.innerText', 'target.parentNode.id',
                 'target.parentNode.className','type'
             ];
 
@@ -625,6 +640,12 @@ function prepare_mutation_observer() {
                          && event.change['removedNodes[0].className'].indexOf(actions[rule]['removed'])>=0
                          && event.change['target.className'].indexOf(actions[rule]['target'])>=0
                         ) {
+                    fire_rule(mutation, event, actions, rule);
+                    break;
+                }
+                else if (category=='addtext'
+                     && event.change['target.className'].indexOf(actions[rule]['target'])>=0
+                 ) {
                     fire_rule(mutation, event, actions, rule);
                     break;
                 }
