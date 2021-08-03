@@ -41,7 +41,6 @@ def aggregate_course_data(
         '''
         students = []
         for student in roster:
-            # print(student)
             student_data = {
                 # We're copying Google's roster format here.
                 #
@@ -102,6 +101,8 @@ async def ws_course_aggregate_view(request):
     # print("Serving")
     module_id = request.match_info['module_id']
     course_id = int(request.match_info['course_id'])
+    student_id = request.match_info.get('student_id', None)
+
     # Find the right module
     agg_module = None
 
@@ -123,6 +124,17 @@ async def ws_course_aggregate_view(request):
     await ws.prepare(request)
 
     roster = await rosters.courseroster(request, course_id)
+
+    # If we're grabbing data for just one student, we filter the
+    # roster down.  This pathway ensures we only serve data for
+    # students on a class roster.  I'm not sure this API is
+    # right. Should we have a different URL? A set of filters? A lot
+    # of that is TBD. Once nice property about this is that we have
+    # the same data format for 1 student as for a classroom of
+    # students.
+    if student_id is not None:
+        roster = [r for r in roster if r['userId'] == student_id]
+
     # Grab student list, and deliver to the client
     rsd = aggregate_course_data(
         course_id,
