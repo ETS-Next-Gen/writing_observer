@@ -7,16 +7,46 @@ function treeget(tree, key) {
           "hello.bar"
       )
 
-      If not found, return `none`
-      */
+      Modified by PD to also deal with embbedded lists identified
+      using notations like addedNodes[0].className.
+
+      If not found, return null
+    */
     let keylist = key.split(".");
     let subtree = tree;
     for(var i=0; i<keylist.length; i++) {
-	if(keylist[i] in subtree) {
-	    subtree = subtree[keylist[i]];
-	} else {
-	    return null;
-	}
+        // Don't process empty subtrees
+        if (subtree == null) {
+            return null;
+        }
+        // If the next dotted element is present,
+        // reset the subtree to only include that node
+        // and its descendants.
+        if (keylist[i] in subtree) {
+            subtree = subtree[keylist[i]];
+        }
+        // If a bracketed element is present, parse out
+        // the index, grab the node at the index, and
+        // set the subtree equal to that node and its
+        // descendants.
+        else {
+            if (keylist[i] && keylist[i].indexOf('[')>0) {
+                item = keylist[i].split('[')[0];
+                idx = keylist[i].split('[')[1];
+                idx = idx.split(']')[0];
+                if (item in subtree) {
+                    if (subtree[item][idx]!==undefined) {
+                        subtree =subtree[item][idx];
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        }
     }
     return subtree;
 }
@@ -32,7 +62,7 @@ function googledocs_id_from_url(url) {
     */
     var match = url.match(/.*:\/\/docs\.google\.com\/document\/d\/([^\/]*)\/.*/i);
     if(match) {
-	return match[1];
+        return match[1];
     }
     return null;
 }

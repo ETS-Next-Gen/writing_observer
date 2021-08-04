@@ -30,10 +30,10 @@ function profileInfoWrapper(callback) {
        https://bugs.chromium.org/p/chromium/issues/detail?id=907425#c6
      */
     try {
-	chrome.identity.getProfileUserInfo({accountStatus: 'ANY'}, callback);
+        chrome.identity.getProfileUserInfo({accountStatus: 'ANY'}, callback);
     } catch (e) {
-	// accountStatus not supported
-	chrome.identity.getProfileUserInfo(callback);
+        // accountStatus not supported
+        chrome.identity.getProfileUserInfo(callback);
     }
 }
 
@@ -75,95 +75,95 @@ function websocket_logger(server) {
     var queue = [];
 
     function new_websocket() {
-	socket = new WebSocket(server);
-	socket.onopen=prepare_socket;
-	socket.onerror = function(event) {
-	    console.log("Could not connect");
-	    var event = { "issue": "Could not connect" };
-	    event = add_event_metadata("warning", event);
-	    event = JSON.stringify(event);
-	    queue.push(event);
-	};
-	socket.onclose = function(event) {
-	    console.log("Lost connection");
-	    var event = { "issue": "Lost connection", "code": event.code };
-	    event = add_event_metadata("warning", event);
-	    event = JSON.stringify(event);
-	    queue.push(event);
-	};
-	return socket;
+        socket = new WebSocket(server);
+        socket.onopen=prepare_socket;
+        socket.onerror = function(event) {
+            console.log("Could not connect");
+            var event = { "issue": "Could not connect" };
+            event = add_event_metadata("warning", event);
+            event = JSON.stringify(event);
+            queue.push(event);
+        };
+        socket.onclose = function(event) {
+            console.log("Lost connection");
+            var event = { "issue": "Lost connection", "code": event.code };
+            event = add_event_metadata("warning", event);
+            event = JSON.stringify(event);
+            queue.push(event);
+        };
+        return socket;
     }
 
     socket = new_websocket();
 
     function are_we_done() {
-	if (state.has("chrome_identity") &&
-	    state.has("local_storage")) {
-	    event = {};
-	    event = add_event_metadata('metadata_finished', event);
-	    socket.send(JSON.stringify(event));
-	    state.add("ready");
-	}
+        if (state.has("chrome_identity") &&
+            state.has("local_storage")) {
+            event = {};
+            event = add_event_metadata('metadata_finished', event);
+            socket.send(JSON.stringify(event));
+            state.add("ready");
+        }
     }
 
     function prepare_socket() {
-	// Send the server the user info. This might not always be available.
-	state = new Set();
-	profileInfoWrapper(function callback(userInfo) {
-	    event = {
-		"chrome_identity": userInfo
-	    };
-	    event = add_event_metadata("chrome_identity", event);
-	    socket.send(JSON.stringify(event));
-	    state.add("chrome_identity");
-	    are_we_done();
-	});
-	chrome.storage.sync.get(["teacher-tag", "user-tag", "process-server", "unique-id"], function(result) {
-	    if(result !== undefined) {
-		event = {'local_storage': result};
-	    } else {
-		event = {'local_storage': {}};
-	    }
-	    console.log(event);
-	    event = add_event_metadata("local_storage", event);
-	    console.log(event);
-	    socket.send(JSON.stringify(event));
-	    state.add("local_storage");
-	    are_we_done();
-	});
+        // Send the server the user info. This might not always be available.
+        state = new Set();
+        profileInfoWrapper(function callback(userInfo) {
+            event = {
+                "chrome_identity": userInfo
+            };
+            event = add_event_metadata("chrome_identity", event);
+            socket.send(JSON.stringify(event));
+            state.add("chrome_identity");
+            are_we_done();
+        });
+        chrome.storage.sync.get(["teacher-tag", "user-tag", "process-server", "unique-id"], function(result) {
+            if(result !== undefined) {
+                event = {'local_storage': result};
+            } else {
+                event = {'local_storage': {}};
+            }
+            console.log(event);
+            event = add_event_metadata("local_storage", event);
+            console.log(event);
+            socket.send(JSON.stringify(event));
+            state.add("local_storage");
+            are_we_done();
+        });
     }
 
     function dequeue() {
-	if(socket === null) {
-	    // Do nothing. We're reconnecting.
-	    console.log("Event squelched; reconnecting");
-	} else if(socket.readyState === socket.OPEN &&
-	   state.has("ready")) {
-	    while(queue.length > 1) {
-		var event = queue.shift();
-		socket.send(event);  /* TODO: We should do receipt confirmation before dropping events */
-	    }
-	} else if((socket.readyState == socket.CLOSED) || (socket.readyState == socket.CLOSING)) {
-	    /*
-	      If we lost the connection, we wait a second and try to open it again.
+        if(socket === null) {
+            // Do nothing. We're reconnecting.
+            console.log("Event squelched; reconnecting");
+        } else if(socket.readyState === socket.OPEN &&
+           state.has("ready")) {
+            while(queue.length > 1) {
+                var event = queue.shift();
+                socket.send(event);  /* TODO: We should do receipt confirmation before dropping events */
+            }
+        } else if((socket.readyState == socket.CLOSED) || (socket.readyState == socket.CLOSING)) {
+            /*
+              If we lost the connection, we wait a second and try to open it again.
 
-	      Note that while socket is `null` or `CONNECTING`, we don't take either
-	      branch -- we just queue up events. We reconnect after 1 second if closed,
-	      or dequeue events if open.
-	    */
-	    console.log("Re-opening connection in 1s");
-	    socket = null;
-	    state = new Set();
-	    setTimeout(function() {
-		console.log("Re-opening connection");
-		socket = new_websocket();
-	    }, 1000);
-	}
+              Note that while socket is `null` or `CONNECTING`, we don't take either
+              branch -- we just queue up events. We reconnect after 1 second if closed,
+              or dequeue events if open.
+            */
+            console.log("Re-opening connection in 1s");
+            socket = null;
+            state = new Set();
+            setTimeout(function() {
+                console.log("Re-opening connection");
+                socket = new_websocket();
+            }, 1000);
+        }
     }
 
     return function(data) {
-	queue.push(data);
-	dequeue();
+        queue.push(data);
+        dequeue();
     }
 }
 
@@ -175,15 +175,15 @@ function ajax_logger(ajax_server) {
      */
     var server = ajax_server;
     return function(data) {
-	/*
-	  Helper function to send a logging AJAX request to the server.
-	  This function takes a JSON dictionary of data.
-	*/
+        /*
+          Helper function to send a logging AJAX request to the server.
+          This function takes a JSON dictionary of data.
+        */
 
-	httpRequest = new XMLHttpRequest();
-	//httpRequest.withCredentials = true;
-	httpRequest.open("POST", ajax_server);
-	httpRequest.send(data);
+        httpRequest = new XMLHttpRequest();
+        //httpRequest.withCredentials = true;
+        httpRequest.open("POST", ajax_server);
+        httpRequest.send(data);
     }
 }
 
@@ -204,18 +204,17 @@ loggers_enabled = [
 
 function log_event(event_type, event) {
     /*
-       Eventually, this will send an event to the server. For now, we
-       either ignore it, or print it on our console.
+       This sends an event to the server.
     */
     event = add_event_metadata(event_type, event);
-    // TODO: Add username
+    
     if(event['wa-source'] = null) {
-	event['wa-source'] = 'background-page';
+        event['wa-source'] = 'background-page';
     }
     var json_encoded_event = JSON.stringify(event);
 
     for (var i=0; i<loggers_enabled.length; i++) {
-	loggers_enabled[i](json_encoded_event);
+        loggers_enabled[i](json_encoded_event);
     }
 }
 
@@ -232,9 +231,9 @@ function send_chrome_identity() {
        Note this function is untested, following a refactor.
     */
     chrome.identity.getProfileInfo(function(userInfo) {
-	log_event("chrome_identity_load", {"email": userInfo.email,
-					   "id": userInfo.id
-					  });
+        log_event("chrome_identity_load", {"email": userInfo.email,
+                                           "id": userInfo.id
+                                          });
     });
 }
 
@@ -250,7 +249,7 @@ function this_a_google_docs_save(request) {
        confirm this never catches extra requests, though.
     */
     if(request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/save/i)) {
-	return true;
+        return true;
     }
     return false;
 }
@@ -263,7 +262,7 @@ var WRITINGJS_AJAX_SERVER = null;
 chrome.storage.sync.get(['process-server'], function(result) {
     //WRITINGJS_AJAX_SERVER = result['process-server'];
     if(!WRITINGJS_AJAX_SERVER) {
-	WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
+        WRITINGJS_AJAX_SERVER = "https://writing.hopto.org/webapi/";
     }
     dequeue_events();
 });*/
@@ -271,11 +270,11 @@ chrome.storage.sync.get(['process-server'], function(result) {
 // Listen for the keystroke messages from the page script and forward to the server.
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-	//chrome.extension.getBackgroundPage().console.log("Got message");
-	//chrome.extension.getBackgroundPage().console.log(request);
-	//console.log(sender);
-	request['wa-source'] = 'client-page';
-	log_event(request['event'], request);
+        //chrome.extension.getBackgroundPage().console.log("Got message");
+        //chrome.extension.getBackgroundPage().console.log(request);
+        //console.log(sender);
+        request['wa-source'] = 'client-page';
+        log_event(request['event'], request);
     }
 );
 
@@ -307,50 +306,50 @@ chrome.webRequest.onBeforeRequest.addListener(
       from there, being able to easily ignore these is nice.
      */
     function(request) {
-	//chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
-	var formdata = {};
-	if(request.requestBody) {
-	    formdata = request.requestBody.formData;
-	}
-	if(!formdata) {
-	    formdata = {};
-	}
-	if(RAW_DEBUG) {
-	    log_event('raw_http_request', {
-		'url':  request.url,
-		'form_data': formdata
-	    });
-	}
+        //chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
+        var formdata = {};
+        if(request.requestBody) {
+            formdata = request.requestBody.formData;
+        }
+        if(!formdata) {
+            formdata = {};
+        }
+        if(RAW_DEBUG) {
+            log_event('raw_http_request', {
+                'url':  request.url,
+                'form_data': formdata
+            });
+        }
 
-	if(this_a_google_docs_save(request)){
-	    //chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
-	    try {
-		/* We should think through which time stamps we should log. These are all subtly
-		   different: browser event versus request timestamp, as well as user time zone
-		   versus GMT. */
-		event = {
-		    'doc_id':  googledocs_id_from_url(request.url),
-		    'bundles': JSON.parse(formdata.bundles),
-		    'rev': formdata.rev,
-		    'timestamp': parseInt(request.timeStamp, 10)
-		}
-		chrome.extension.getBackgroundPage().console.log(event);
-		log_event('google_docs_save', event);
-	    } catch(err) {
-		/*
-		  Oddball events, like text selections.
-		 */
-		event = {
-		    'doc_id':  googledocs_id_from_url(request.url),
-		    'formdata': formdata,
-		    'rev': formdata.rev,
-		    'timestamp': parseInt(request.timeStamp, 10)
-		}
-		log_event('google_docs_save_extra', event);
-	    }
-	} else {
-	    //chrome.extension.getBackgroundPage().console.log("Not a save: "+request.url);
-	}
+        if(this_a_google_docs_save(request)){
+            //chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
+            try {
+                /* We should think through which time stamps we should log. These are all subtly
+                   different: browser event versus request timestamp, as well as user time zone
+                   versus GMT. */
+                event = {
+                    'doc_id':  googledocs_id_from_url(request.url),
+                    'bundles': JSON.parse(formdata.bundles),
+                    'rev': formdata.rev,
+                    'timestamp': parseInt(request.timeStamp, 10)
+                }
+                chrome.extension.getBackgroundPage().console.log(event);
+                log_event('google_docs_save', event);
+            } catch(err) {
+                /*
+                  Oddball events, like text selections.
+                 */
+                event = {
+                    'doc_id':  googledocs_id_from_url(request.url),
+                    'formdata': formdata,
+                    'rev': formdata.rev,
+                    'timestamp': parseInt(request.timeStamp, 10)
+                }
+                log_event('google_docs_save_extra', event);
+            }
+        } else {
+            //chrome.extension.getBackgroundPage().console.log("Not a save: "+request.url);
+        }
     },
     { urls: ["*://docs.google.com/*"/*, "*://mail.google.com/*"*/] },
     ['requestBody']
