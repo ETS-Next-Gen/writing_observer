@@ -126,7 +126,7 @@ async def attention_state(event, internal_state):
     if event['client']['event']=='visibility'  \
         and event['client']['visibility']['type'] == "visibilitychange" \
         and frameid is not None:
-        if internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible']:
+        if 'visible' in internal_state[safe_user_id][doc_id]['frameset'][frameid] and internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible']:
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = False
         else:
             internal_state[safe_user_id][doc_id]['frameset'][frameid]['visible'] = True

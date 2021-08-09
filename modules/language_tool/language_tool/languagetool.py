@@ -6,8 +6,16 @@ import asyncio
 import inspect
 import aiohttp
 import sys
-
-from language_tool.languagetool_rulemapping import ruleInfo
+import json
+import os
+  
+#import categories to add to languagetool outputs
+fn = os.path.dirname(os.path.abspath(__file__))
+fn += '/languagetool_rulemapping.json'
+fo = open(fn, "r")
+jsonContent = fo.read()
+ruleInfo = json.loads(jsonContent)
+fo.close()
 
 session = None
 
