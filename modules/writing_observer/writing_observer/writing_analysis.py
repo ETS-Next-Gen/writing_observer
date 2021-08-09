@@ -6,7 +6,7 @@ It just routes to smaller pipelines. Currently that's:
 '''
 from learning_observer.stream_analytics.helpers import kvs_pipeline
 import writing_observer.reconstruct_doc
-#from writing_observer.languagetool import processText
+from language_tool.languagetool import processText
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -347,7 +347,8 @@ async def reconstruct(event, internal_state):
         )
     state = internal_state.json
 
-    #state['languagetool'] = await processText(event,internal_state.json['text'])
+    
+    state['languagetool'] = await processText(event,internal_state.json['text'])
 
     print(state)
     return state, state
