@@ -40,7 +40,7 @@ ruleInfo = {
     "TL_DR": {
         "1": [
             "Capitalization",
-            "Acronym"
+            "Acronyms"
         ]
     },
     "THE_LATER_LATTER": {
@@ -2698,7 +2698,7 @@ ruleInfo = {
         ],
         "5": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "PRP_MD_NN": {
@@ -4984,7 +4984,7 @@ ruleInfo = {
     "HE_LIKE": {
         "1": [
             "Grammar",
-            "Subject/Verb Agreement"
+            "Subject/Verb agreement"
         ],
         "2": [
             "Grammar",
@@ -4994,67 +4994,67 @@ ruleInfo = {
     "DO_ANYONE": {
         "1": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ]
     },
     "DO_HE_VERB": {
         "1": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "2": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ]
     },
     "DOES_YOU": {
         "1": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "2": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ]
     },
     "SV_AGREEMENT_NEG_QS": {
         "1": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "2": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "3": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "4": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "5": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "6": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "7": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ],
         "8": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ]
     },
     "EACH_EVERY_NNS": {
         "1": [
             "Grammar",
-            "Subject-Verb Agreement"
+            "Subject/verb agreement"
         ]
     },
     "COMPARISONS_AS_ADJECTIVE_AS": {
@@ -5264,41 +5264,41 @@ ruleInfo = {
     "WELL_SUITING": {
         "1": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "2": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "3": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "4": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "5": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "6": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "7": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ],
         "8": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ]
     },
     "A_COMPLAIN": {
         "1": [
             "Grammar",
-            "Wrog part of speech"
+            "Wrong part of speech"
         ]
     },
     "ADJECTIVE_ADVERB": {
@@ -10194,7 +10194,7 @@ ruleInfo = {
         ],
         "2": [
             "Possible typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "DOS_AND_DONTS": {
@@ -10506,213 +10506,213 @@ ruleInfo = {
     "A_NNS_BEST_NN": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "CHILDRENS_DAY_APOSTROPHE": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "INTERNATIONAL_WORKERS_DAY_APOSTROPHE": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "PRESIDENTS_DAY_APOSTROPHE": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "THIS_YEARS_POSSESSIVE_APOSTROPHE": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "TOMORROW_POSSESSIVE_APOSTROPHE": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "ONES": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "EN_CONTRACTION_SPELLING": {
         "nil": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "A_BACHELORS_IN": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "APOSTROPHE_IN_DAYS": {
         "2": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "3": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "4": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "5": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "6": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "7": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "8": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "9": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ],
         "10": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "ASSASSINS_CREED": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "CONFUSION_OF_MANS_MEN": {
         "1": [
             "Possible typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "DOMINOS_PIZZA": {
         "1": [
             "Possible typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "FOR_NOUN_SAKE": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "GREYS_ANATOMY": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "HARPERS_BAZAAR": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "JACK_DANIELS": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "KELLOGGS": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "KINGS_COLLEGE": {
         "1": [
             "Possible typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "MCDONALDS": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "O_CONNOR": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "SAINSBURYS": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "SAMS_CLUB": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "SCHITTS_CREEK": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "UNCLE_BENS": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "VICTORIAS_SECRET": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "WENDYS": {
         "1": [
             "Possible Typo",
-            "Possessive as Plural"
+            "Possessive as plural"
         ]
     },
     "WITHOUT_OUT": {
         "1": [
             "Possible Typo",
-            "Repeated Words"
+            "Repeated words"
         ]
     },
     "ENGLISH_WORD_REPEAT_RULE": {
         "nil": [
             "Possible Typo",
-            "Repeated Words"
+            "Repeated words"
         ]
     },
     "ADVERB_VERB_ADVERB_REPETITION": {
         "1": [
             "Possible Typo",
-            "Repeated Words"
+            "Repeated words"
         ]
     },
     "ADD_NO": {
@@ -11006,7 +11006,7 @@ ruleInfo = {
     "BUENOS_DIAS": {
         "1": [
             "Possible Typo",
-            "Special Character"
+            "Special character"
         ]
     },
     "COTE_D_AZUR": {
@@ -11992,77 +11992,77 @@ ruleInfo = {
     "PRE_YEAR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "WEEK_LONG_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ZERO_DAY_EXPLOIT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "A_THANK_YOU": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ABOVE_MENTIONED": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "BARE_BONES_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_BRAND_NEW": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_BRICK_RED": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_BUG_EYED": {
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_CARD_CARRYING": {
         "4": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_COAST_TO_COAST": {
         "5": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_COOLING_OFF": {
         "6": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_CUT_AND_PASTE": {
@@ -12074,311 +12074,311 @@ ruleInfo = {
     "CA_CUT_THROAT": {
         "8": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_DO_OR_DIE": {
         "9": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_DOWN_AND_OUT": {
         "10": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_DUAL_PURPOSE": {
         "11": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_DUTY_FREE": {
         "12": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_EAGLE_EYED": {
         "13": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_EYE_CATCHING": {
         "14": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_FIRST_HAND": {
         "15": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_FLY_BY_NIGHT": {
         "16": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_FOLLOW_UP": {
         "17": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_HAND_TO_HAND": {
         "18": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_HEAVY_DUTY": {
         "10": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_KNIFE_EDGE": {
         "20": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_MOM_AND_POP": {
         "21": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_NEW_LOOK": {
         "22": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_OUT_OF_BODY": {
         "23": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_RAGS_TO_RICHES": {
         "24": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CA_WALL_TO_WALL": {
         "25": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CLICK_THROUGH_RATE": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "FIRST_PERSON_SHOOTER": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MAN_MADE": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MUST_HAVE": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "4": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "5": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "6": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "7": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "8": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ALL_YOU_CAN_EAT_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MID_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "DEGREE_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "STORY_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "YARD_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "WORD_ESSAY_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "4": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PIECE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "DOOR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "HOUSE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MILE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MONTH_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "YEAR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PERSON_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ROOM_APARTMENT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SEAT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "INCH_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "HOUR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "COURSE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CARAT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "FOUR_SEASON_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "WHEEL_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
@@ -12388,125 +12388,125 @@ ruleInfo = {
     "FIGURE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CYLINDER_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "WEEK_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "BIT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ALL_GIRLS_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ALL_KNOWING_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ALL_TIME_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ALL_WHEEL": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "BORN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ANTI_AMERICAN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MILLION_DOLLAR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "BUILT_IN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "4": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CALL_TO_ACTION_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CATCH_ALL_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "CLEAR_CUT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "DO_IT_YOURSELF_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "1": [
             "Word Boundaries",
@@ -12516,25 +12516,25 @@ ruleInfo = {
     "DRY_ERASE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "EASY_GOING_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "END_TO_END_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "FUND_RAISE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Word Boundaries",
@@ -12548,21 +12548,21 @@ ruleInfo = {
     "GO_TO_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "HANDS_ON_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Word Boundaries",
@@ -12572,107 +12572,107 @@ ruleInfo = {
     "HIGH_END_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "IN_APP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "IN_EAR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "LATE_TERM_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "LIFE_CHANGING_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "LOGGED_IN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "LOW_COST_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "LOW_HANGING_FRUIT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MAIL_IN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MANY_TO_MANY_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MONEY_BACK_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MUCH_NEEDED_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "NO_FAULT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "NO_FLY_ZONE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "NO_GO_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Word Boundaries",
@@ -12682,171 +12682,171 @@ ruleInfo = {
     "OFF_KEY_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ONE_NIGHT_STAND_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "OUT_OF_POCKET_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ONE_STOP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ONE_TERM_PRESIDENT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "OPEN_HEART_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "OPEN_PLAN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PASSWORD_PROTECTED_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PER_USER_BASIS_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PRIME_TIME_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PUSH_UP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "RED_LIGHT_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "RUN_ON_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "BUTTON_UP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SAME_SEX_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SECOND_LARGEST_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SET_TOP_BOX_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SIMPLE_TO_USE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SO_CALLED_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SUBJECT_MATTER_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "TAILOR_MADE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "THREE_LINE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "TO_DO_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Word Boundaries",
@@ -12868,7 +12868,7 @@ ruleInfo = {
     "TOP_DOWN_HYPHEN": {
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "1": [
             "Word Boundaries",
@@ -12878,51 +12878,51 @@ ruleInfo = {
     "TOSS_UP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "TRICKLE_DOWN_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "TRUE_CRIME_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ENGINED_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "FACTOR_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "HEADED_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "WAKE_UP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Word Boundaries",
@@ -12932,273 +12932,273 @@ ruleInfo = {
     "WORK_LIFE_BALANCE": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "WEEK_OVER_WEEK_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "4": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "FACE_FIRST": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "STARS_AND_STEPS": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "YEAR_OLD_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ALL_IN_ONE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "MISSING_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "4": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "5": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "6": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "7": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "8": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "9": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "10": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "11": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "12": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "13": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "14": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "DAY_TO_DAY_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "HEAD_TO_HEAD_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "SOON_TO_BE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "STEP_BY_STEP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "NEAR_DEATH_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "STATE_OF_THE_ART": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "STRAIGHT_UP_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "PRE_AND_POST_NN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "2": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ],
         "3": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "NOTE_TAKING_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjective"
+            "Compound adjective"
         ]
     },
     "ON_OFF_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjectives"
+            "Compound adjectives"
         ]
     },
     "ON_PAGE_HYPHEN": {
         "1": [
             "Punctuation",
-            "Compound Adjectives"
+            "Compound adjectives"
         ]
     },
     "COMMA_COMPOUND_SENTENCE_4": {
         "1": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "2": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ]
     },
     "COMMA_COMPOUND_SENTENCE_3": {
         "1": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "2": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "3": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ]
     },
     "COMMA_COMPOUND_SENTENCE": {
         "1": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "2": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "3": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "4": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "5": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "6": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "7": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "8": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "9": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "10": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "11": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ],
         "12": [
             "Punctuation",
-            "Compound Sentence"
+            "Compound sentence"
         ]
     },
     "COMMA_BEFORE_AND": {
         "1": [
             "Punctuation",
-            "Compound sentences"
+            "Compound sentence"
         ]
     },
     "UNNECESSARY_COMMA": {
@@ -13298,179 +13298,179 @@ ruleInfo = {
     "NO_COMMA_BEFORE_INDIRECT_QUESTION": {
         "1": [
             "Punctuation",
-            "Restrictive Modifier"
+            "Restrictive modifier"
         ]
     },
     "COMMA_WHICH": {
         "1": [
             "Punctuation",
-            "Restrictive Modifier"
+            "Restrictive modifier"
         ]
     },
     "I_FOR_ONE_VB_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "IF_WE_CANT_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "MISSING_COMMA_AFTER_INTRODUCTORY_PHRASE": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "PRP_MD_PRP_MD_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "2": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "3": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "4": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "PRP_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "BY_DEFAULT_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "FOR_GODS_SAKE_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "GO_FOR_IT_GIRLS_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "NOWADAYS_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "2": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "GOD_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "FINAL_ADVERB_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "COMMA_TAG_QUESTION": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "THANKS_SENT_END_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "2": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "HUH_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "2": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "THEN_WHEN_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "UH_UH_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "SENT_START_CONJUNCTIVE_LINKING_ADVERB_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "2": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "3": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "COMMA_THANKS": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "2": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "3": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "4": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "5": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ],
         "6": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "HAPPY_BIRTHDAY_COMMA": {
         "1": [
             "Punctuation",
-            "Sentence Modifier"
+            "Sentence modifier"
         ]
     },
     "MISSING_COMMA_WITH_NNP": {
@@ -18174,39 +18174,39 @@ ruleInfo = {
     "APOS_SPACE_CONTRACTION": {
         "1": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ],
         "2": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ]
     },
     "O_CLOCK": {
         "1": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ]
     },
     "COMMA_PARENTHESIS_WHITESPACE": {
         "nil": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ]
     },
     "WHITESPACE_RULE": {
         "nil": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ]
     },
     "EG_SPACE": {
         "1": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ],
         "2": [
             "Typography",
-            "Extra Whitespace"
+            "Extra whitespace"
         ]
     },
     "ENUMERATION_AND_DASHES": {
@@ -18606,377 +18606,377 @@ ruleInfo = {
     "WE_LL_WELL": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "CONSTELLATION_PRIZE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "CONSTITUTES_OF": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "COOPERATE_CORPORATE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "CONFUSION_OF_CORRAL_CORAL": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "DAILY_REGIMENT": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "DECEASE_DISEASE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "CONFUSION_OF_DECENT_DESCENT": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "DEEP_SEEDED": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "DESERT_DESSERT": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "DEFUSE_BOMB": {
         "1": [
             "USage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "DIFFUSE_TENSIONS": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "EARLY_ADAPTER": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "EASE_EASY": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "ECONOMIC_ECONOMICAL": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "EFFORT_AFFORD": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "EN_MASS": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "MASSAGE_MESSAGE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "ETHER_EITHER": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "GARDENERGARDEN_SNAKE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "GOGGLE_GOOGLE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "IN_MASSE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "INTENT_INTEND": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "3": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "4": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "KAMA_SUTRA": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "LOOK_WATCH": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "3": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "4": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "LOOSE_LOSE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "3": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "4": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "5": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "6": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "LOSE_LOOSE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "NIB_NUB": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "BASE_BASIS": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "ON_BEHAVE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "OPERATION_SYSTEM": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "PRICE_PRIZE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "3": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "4": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "5": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "PRICE_SENSIBILITY": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "PRIZE_PRICE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "PROSTRATE_PROSTATE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "RATIO_RATION": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "RELIEVE_RELIEF": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "CONFUSION_OF_SCEPTIC_SEPTIC": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "SOMETIME_SOMETIMES": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "SOUSE_CHEF": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "TAB_TAP": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "ELDER_OLDER": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "THEY_WHERE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "WHORE_WORE": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ],
         "2": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "WILDLY_ACCEPTED": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "ZERO-SUM_GAIN": {
         "1": [
             "Usage",
-            "Confused word"
+            "Confused words"
         ]
     },
     "MD_WON_T": {
@@ -21706,7 +21706,7 @@ ruleInfo = {
     "BAND_AID": {
         "1": [
             "Word Boundaries",
-            "Missing Hyphen"
+            "Missing hyphen"
         ]
     },
     "EN_COMPOUNDS": {
@@ -21740,11 +21740,11 @@ ruleInfo = {
     "APRIL_FOOLS": {
         "1": [
             "Word Boundaries",
-            "Missing Hyphen"
+            "Missing hyphen"
         ],
         "2": [
             "Word Boundaries",
-            "Missing Hyphen"
+            "Missing hyphen"
         ]
     },
     "COCA_COLA": {
