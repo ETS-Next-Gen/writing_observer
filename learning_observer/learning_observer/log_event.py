@@ -152,7 +152,7 @@ def log_event(event, filename=None, preencoded=False, timestamp=False):
         files[filename] = log_file_fp
 
     if not preencoded:
-        event = json.dumps(event, sort_keys=True)
+        event = encode_json_line(event)
     log_file_fp.write(event.encode('utf-8'))
     if timestamp:
         log_file_fp.write("\t".encode('utf-8'))
