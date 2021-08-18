@@ -205,8 +205,9 @@ def event_decoder_and_logger(request):
     # With multi-server installations, we might want to add
     # `socket.gethostname()`, but hopefully we'll have our
     # Merkle tree logger by then, and this will be obsolete.
-    filename = "{timestamp}-{ip:-<15}-{session_count:0>10}-{pid}".format(
+    filename = "{timestamp}-{ip:-<15}-{hip:-<15}-{session_count:0>10}-{pid}".format(
         ip=request.remote,
+        hip=request.headers.get('X-Real-IP', ''),
         timestamp=datetime.datetime.utcnow().isoformat(),
         session_count=COUNT,
         pid=os.getpid()
