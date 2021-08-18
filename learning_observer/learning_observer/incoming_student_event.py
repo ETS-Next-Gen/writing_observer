@@ -12,6 +12,7 @@ We:
 
 import datetime
 import json
+import os
 import time
 import traceback
 import urllib.parse
@@ -190,6 +191,39 @@ async def handle_incoming_client_event(metadata):
     return handler
 
 
+COUNT = 0
+
+
+def event_decoder_and_logger(request):
+    '''
+    HACK: We would like clean log files for the first classroom pilot.
+
+    This puts events in per-session files.
+    '''
+    global COUNT
+    # Count + PID should guarantee uniqueness.
+    # With multi-server installations, we might want to add
+    # `socket.gethostname()`, but hopefully we'll have our
+    # Merkle tree logger by then, and this will be obsolete.
+    filename = "{timestamp}-{ip:-<15}-{session_count:0>10}-{pid}".format(
+        ip=request.remote,
+        timestamp=datetime.datetime.utcnow().isoformat(),
+        session_count=COUNT,
+        pid=os.getpid()
+    )
+    COUNT += 1
+
+    def decode_and_log_event(msg):
+        '''
+        Take an aiohttp web sockets message, log it, and return
+        a clean event.
+        '''
+        json_event = json.loads(msg.data)
+        log_event.log_event(json_event, filename=filename)
+        return json_event
+    return decode_and_log_event
+
+
 async def incoming_websocket_handler(request):
     '''
     This handles incoming WebSockets requests. It does some minimal
@@ -199,6 +233,7 @@ async def incoming_websocket_handler(request):
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
+    decoder_and_logger = event_decoder_and_logger(request)
 
     # For now, we receive two packets to initialize:
     # * Chrome's identity information
@@ -211,7 +246,7 @@ async def incoming_websocket_handler(request):
     if INIT_PIPELINE:
         async for msg in ws:
             print("Auth", msg)
-            json_msg = json.loads(msg.data)
+            json_msg = decoder_and_logger(msg)
             header_events.append(json_msg)
             if json_msg["event"] == "metadata_finished":
                 break
@@ -237,7 +272,7 @@ async def incoming_websocket_handler(request):
             debug_log("Unknown event type: " + msg.type)
 
         debug_log("Web socket message received")
-        client_event = json.loads(msg.data)
+        client_event = decoder_and_logger(msg)
 
         # We set up metadata based on the first event, plus any headers
         if not AUTHENTICATED:

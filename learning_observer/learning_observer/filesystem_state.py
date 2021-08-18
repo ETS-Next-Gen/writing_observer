@@ -14,8 +14,11 @@ FILESTRING = """{filename}:
 """
 '''
 
+import datetime
 import hashlib
 import os
+import platform
+import socket
 import subprocess
 
 import learning_observer.paths as paths
@@ -70,6 +73,11 @@ def filesystem_state():
     except subprocess.CalledProcessError:
         print("Not a git repo")
         file_info['::git-head::'] = "Not a git repo"
+    file_info['::pid::'] = os.getpid()
+    file_info['::hostname::'] = socket.gethostname()
+    file_info['::platform::'] = platform.version()
+    file_info['::python::'] = platform.python_version()
+    file_info['::timestamp::'] = datetime.datetime.utcnow().isoformat()
     return file_info
 
 
