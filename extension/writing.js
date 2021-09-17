@@ -1,4 +1,4 @@
-*
+/*
    Page script. This is injected into each web page on associated web sites.
 */
 
