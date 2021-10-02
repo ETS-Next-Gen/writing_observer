@@ -15,8 +15,10 @@
   - screen
   - wipe
   - build-essential
-  - awscli
+  - net-tools
 
+# We don't need all of this per se, but it's convenient. If nothing
+# else, it gives prereqs for `pip`
 - name: Python
   apt: name={{ item }} 
   with_items:
@@ -46,9 +48,9 @@
 - name: Server
   apt: name={{ item }} 
   with_items:
-  - postgresql
+  - redis
   - nginx
   - certbot
   - apache2-utils
   - fcgiwrap
-  - redis
+  - python3-certbot-nginx
