@@ -142,6 +142,3 @@ COURSE_DASHBOARDS = [{
         "icon": "fa-pen-nib"
     }
 }]
-
-STUDENT_DASHBOARDS = {
-}
