@@ -1,0 +1,72 @@
+Deployment Scripts
+==================
+
+Our goals are:
+
+* We'd like to have a flock of LO servers for dynamic assessment,
+  Writing Observer, random demos, etc. These should have a common
+  configuration, with variations.
+* We'd like to have a log of how these are configured at every point
+  in time, and any changes, so we can have context for any process
+  data we collect.
+* We'd like this representation to be interoperable with our process
+  data storage formats
+* We'd like configuation data to be moderately secure. Device
+  configuration won't allow exploits in itself, but it can make
+  vulnerabilities more serious. While things like IDs and locations of
+  resources don't present an attack vector in themselves, knowing them
+  is sometimes the limiting factor on being able to exploit an attack
+  vector (for example, if I have an exploit where I can read one
+  arbitrary file on your system, being able to leverage that attack
+  hinges on knowing what files you have where)
+* However, configuration data also sometimes needs to stores things
+  which are super-sensitive, like security tokens and similar.
+* Making changes should be fast and easy. This happens all the time.
+* Digging into archives doesn't need to be easy, just possible. For
+  research, only a few types of analysis need it. For operations, you
+  usually only need it for debugging or disaster recovery.
+
+Our **planned** architecture is:
+
+* A set of `fabric` script which can spin up / spin down / update
+  machines (with appropriate logging)
+* A baseline configuration in `ansible`. 
+* Deltas from that configuration stored in an independent `git` repo
+* Security tokens stored in a seperate TBD data store. We'll populate
+  these with templates.
+* Log files of when new versions are updated/deployed/brought down, in
+  the same system as our process data
+* The tagging process data with `git` hashes of what state the system
+  was in when it generated it.
+
+We're making the baseline `ansible` configuration pretty featureful,
+since as a research project, it's helpful to be able to `ssh` into
+machines, and e.g. run `Python` scripts locally.
+
+Where we are
+------------
+
+This will be out-of-date quickly, but as of this writing:
+
+* We can provision, terminate, and update machines with a baseline
+  configuration.
+* A lot of stuff is hardcoded, which would make this difficult for
+  others to use (e.g. learning-observer.org).
+* We install packages, grab things from `git`, etc, but don't handle
+  configuration well yet.
+* We don't log.
+
+We orchestrate servers with [invoke](https://www.pyinvoke.org/):
+
+* `inv list` will show a listing of deployed machines
+* `inv provision [machine]` will spin up a new AWS machine
+* `inv update` will update all machines
+* `inv terminate` will shut down a machine
+* `inv connect` will open up an `ssh` session to a machine
+* `inv configure` is typically run after provision, and
+  will place configuration files (which might vary
+  machine-by-machine) (unfinished)
+* `inv certbot` will set up SSL (unfinished)
+
+A lot of this is unfinished, but still, it's already ahead of the AWS
+GUI and doing things by hand.

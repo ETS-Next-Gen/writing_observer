@@ -1,0 +1,5 @@
+creds.yaml,root:root,644,/home/ubuntu/writing_observer/learning_observer/creds.yaml,"Learning Observer settings file"
+nginx,root:root,644,/etc/nginx/sites-available/{hostname},"nginx site configuration"
+passwd.lo,root:root,644,/home/ubuntu/writing_observer/learning_observer/passwd.lo,"(Generally blank) passwords file"
+lo.sh,root:root,744,/home/ubuntu/writing_observer/learning_observer,"Script to start Learning Observer with a nice process name"
+init.d,root:root,755,/etc/init.d/learning_observer,"Simple init script"

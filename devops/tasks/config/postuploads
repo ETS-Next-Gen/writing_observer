@@ -1,0 +1,9 @@
+sudo rm -f /etc/nginx/sites-available/default
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -f /etc/nginx/sites-available/{hostname} /etc/nginx/sites-enabled/{hostname}
+sudo update-rc.d learning_observer enable
+sudo update-rc.d learning_observer defaults
+sudo service learning_observer stop
+sudo service learning_observer start
+sudo service nginx restart
+
