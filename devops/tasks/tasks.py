@@ -118,7 +118,7 @@ def configure(c, machine_name):
         )
 
     for command in open("config/postuploads").readlines():
-        group.run(command.format(**template_config))
+        group.run(command.format(**template_config).strip())
     
 
 @task

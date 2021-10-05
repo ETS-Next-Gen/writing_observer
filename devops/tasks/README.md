@@ -65,8 +65,21 @@ We orchestrate servers with [invoke](https://www.pyinvoke.org/):
 * `inv connect` will open up an `ssh` session to a machine
 * `inv configure` is typically run after provision, and
   will place configuration files (which might vary
-  machine-by-machine) (unfinished)
+  machine-by-machine) (mostly finished)
 * `inv certbot` will set up SSL (unfinished)
 
 A lot of this is unfinished, but still, it's already ahead of the AWS
-GUI and doing things by hand.
+GUI and doing things by hand. We need ways to pull settings back
+(especially after `certbot` is configured).
+
+Debugging
+---------
+
+The most annoying part of this setup is getting `systemd` working,
+which is poorly documented, inconsistent, and poorly-engineered. The
+tool are `journalctl -xe |tail -100`, looking at `lo.err` (currently
+in `/home/ubuntu/`, but should move to `/var/log/` eventually), and
+`systemctl status --full learning_observer`. The most common issues
+are permissions (e.g. running as the wrong user, log files generated
+as `root:root` at some point, etc), running from the wrong directory,
+and similar sorts of environment issues.

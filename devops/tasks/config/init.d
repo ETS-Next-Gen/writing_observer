@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # The world's simplest, stupidest init script.
+#
+# THIS IS CURRENTLY UNUSED, SINCE WE USE A SYSTEMD SCRIPT
 
 ### BEGIN INIT INFO
 # Provides:          learning_observer
