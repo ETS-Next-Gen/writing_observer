@@ -64,13 +64,13 @@ We orchestrate servers with [invoke](https://www.pyinvoke.org/):
 * `inv list` will show a listing of deployed machines
 * `inv provision [machine]` will spin up a new AWS machine
 * `inv update` will update all machines
-* `inv terminate` will shut down a machine
-* `inv connect` will open up an `ssh` session to a machine
-* `inv configure` is typically run after provision, and
+* `inv terminate [machine]` will shut down a machine
+* `inv connect [machine]` will open up an `ssh` session to a machine
+* `inv configure [machine]` is typically run after provision, and
   will place configuration files (which might vary
   machine-by-machine) (mostly finished)
-* `inv certbot` will set up SSL (unfinished)
-* `inv download` will copy the configuration back.
+* `inv certbot [machine]` will set up SSL (unfinished)
+* `inv download [machine]` will copy the configuration back.
 
 A lot of this is unfinished, but still, it's already ahead of the AWS
 GUI and doing things by hand. The key functionality missing is:
@@ -82,10 +82,17 @@ GUI and doing things by hand. The key functionality missing is:
 To set up a new machine, run:
 
 ```
-inv provision
-inv configure
-inv certbot
-inv download
+inv provision [machine]
+inv configure [machine]
+inv certbot [machine]
+inv download [machine]
+```
+
+From there, edit configuration files in `config` and to update the
+machine to a new version, run
+
+```
+inv configure [machine]
 ```
 
 Debugging
