@@ -9,31 +9,9 @@ import fabric
 import orchlib.config
 
 
-def machine_pool():
-    '''
-    Return a line formatted for Fabric with a list of hosts:
-
-    >>> "host1 host2 host3"
-
-    This is kind of obsolete, since this should be queried from
-    the provider
-    '''
-    def clean_line(line):
-        # Remove comments
-        if line.find("#") != -1:
-            line = line[:line.find("#")]
-        # Remove whitespace
-        return line.strip()
-
-    lines = open("settings/HOSTS").readlines()
-    cleaned = [clean_line(h) for h in lines]
-    host_string = " ".join(h for h in cleaned if len(h) > 0)
-    return host_string
-
-
-def group_from_poolstring(pool):
+def machine_group(*pool):
     return fabric.SerialGroup(
-        pool,
+        *pool,
         user=orchlib.config.creds['user'],
         connect_kwargs={"key_filename": orchlib.config.creds['key_filename']}
     )

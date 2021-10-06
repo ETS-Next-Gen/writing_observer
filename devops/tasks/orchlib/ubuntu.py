@@ -6,19 +6,14 @@ Learning Observer
 import orchlib.fabric_flock
 import orchlib.config
 
-ssh_pool = None
-
 
 def run_script(scriptfile):
     '''
-    
+    Helper which executes a series of commands on set of machines
     '''
-    global ssh_pool
-    if ssh_pool is None:
-        ssh_pool = orchlib.fabric_flock.machine_pool()
     script = open("scripts/{fn}.fab".format(fn=scriptfile)).read()
-    def run(pool = ssh_pool):
-        group = orchlib.fabric_flock.group_from_poolstring(pool)
+    def run(*machines):
+        group = orchlib.fabric_flock.machine_group(*machines)
 
         for line in ['hostname'] + script.split("\n"):
             line = line.strip()

@@ -201,11 +201,11 @@ def name_to_group(machine_name):
     For a machine name, return a fabric ssh group of machines with
     that name.
     '''
-    pool = " ".join([
+    pool = [
         i['PublicIpAddress']
         for i in list_instances()
         if i['Tags']['Name'] == machine_name
-    ])
+    ]
     print(pool)
-    group = orchlib.fabric_flock.group_from_poolstring(pool)
+    group = orchlib.fabric_flock.machine_group(*pool)
     return group

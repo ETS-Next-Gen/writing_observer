@@ -53,19 +53,16 @@ def upload(
         if key not in config:
             config["RANDOM"+str(i)] = secure_guid()
 
-    machine_version = "config/{machine_name}-{filename}".format(
-        machine_name=machine_name,
-        filename=filename
-    )
-    default_version = "config/{filename}".format(
-        filename=filename
-    )
+    machine_version = os.path.join("config", machine_name, filename)
+    default_version = os.path.join("config", filename)
 
     if os.path.exists(machine_version):
         local_filename=machine_version
     else:
         local_filename=default_version
 
+    # This seems like an odd place, but latest `fabric` has no way
+    # to handle uploads as root.
     group.put(
         render_file_for_transfer(
             local_filename,
@@ -88,3 +85,25 @@ def upload(
             permissions=permissions,
             remote_filename=remote_filename
         ))
+
+
+def download(
+        group,
+        machine_name,
+        filename,
+        remote_filename):
+    '''
+    This will download a configuration file from an AWS machine, as
+    specified in the machine configuration. It's a simple parallel
+    to `upload`
+    '''
+    pathname = os.path.join("config", machine_name)
+    local_filename = os.path.join(pathname, filename)
+
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+
+    group.get(
+        remote_filename,
+        local_filename
+    )

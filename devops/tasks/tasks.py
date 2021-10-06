@@ -53,7 +53,8 @@ def update(c):
     patches
     '''
     addresses = [i['PublicIpAddress'] for i in orchlib.aws.list_instances()]
-    orchlib.ubuntu.run_script("update")(" ".join(addresses))
+    print(addresses)
+    orchlib.ubuntu.run_script("update")(*addresses)
 
 
 @task
@@ -122,6 +123,23 @@ def configure(c, machine_name):
     
 
 @task
+def download(c, machine_name):
+    '''
+    After setting up certbot, it's helpful to download the nginx config
+    file. We also don't want to make changes remotely directly in deploy
+    settings, but if we have, we want to capture those changes.
+    '''
+    for [local_file, owner, perms, remote_file, description] in csv.reader(open("config/uploads.csv")):
+        print("Uploading: ", description)
+        orchlib.templates.upload(
+            group=group,
+            machine_name=machine_name,
+            filename=local_file,
+            remote_filename=remote_file.format(**template_config)
+        )
+
+
+@task
 def certbot(c, machine_name):
     '''
     This sets up SSL. Note that:
@@ -131,6 +149,7 @@ def certbot(c, machine_name):
     - This is untested :)
     '''
     group = orchlib.aws.name_to_group(machine_name)
-    group.run("sudo certbot -n --nginx --agree-tos --email {email}".format(
-        email=config.creds['email']
+    group.run("sudo certbot -n --nginx --agree-tos --redirect --email {email} --domains {hostname}.learning-observer.org".format(
+        email=orchlib.config.creds['email'],
+        hostname = machine_name
     ))

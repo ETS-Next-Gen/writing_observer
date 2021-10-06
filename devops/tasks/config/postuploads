@@ -1,7 +1,9 @@
+sudo hostnamectl set-hostname {hostname}
 sudo rm -f /etc/nginx/sites-available/default
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo ln -f /etc/nginx/sites-available/{hostname} /etc/nginx/sites-enabled/{hostname}
 sudo chown -R ubuntu:ubuntu /home/ubuntu/writing_observer
+sudo systemctl daemon-reload
 sudo service learning_observer stop
 sudo service learning_observer start
 sudo service nginx restart
