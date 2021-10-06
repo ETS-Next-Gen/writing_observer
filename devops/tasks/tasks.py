@@ -129,9 +129,15 @@ def download(c, machine_name):
     file. We also don't want to make changes remotely directly in deploy
     settings, but if we have, we want to capture those changes.
     '''
+    template_config = {
+        "nginx_root_options": "",
+        "hostname": machine_name
+    }
+
+    group = orchlib.aws.name_to_group(machine_name)
     for [local_file, owner, perms, remote_file, description] in csv.reader(open("config/uploads.csv")):
-        print("Uploading: ", description)
-        orchlib.templates.upload(
+        print("Downloading: ", description)
+        orchlib.templates.download(
             group=group,
             machine_name=machine_name,
             filename=local_file,

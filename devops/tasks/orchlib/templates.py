@@ -100,8 +100,8 @@ def download(
     pathname = os.path.join("config", machine_name)
     local_filename = os.path.join(pathname, filename)
 
-    if not os.path.exists(directory):
-        os.mkdir(directory)
+    if not os.path.exists(pathname):
+        os.mkdir(pathname)
 
     group.get(
         remote_filename,

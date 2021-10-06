@@ -43,6 +43,9 @@ We're making the baseline `ansible` configuration pretty featureful,
 since as a research project, it's helpful to be able to `ssh` into
 machines, and e.g. run `Python` scripts locally.
 
+Whether or not we need `ansible`, `fabric`, or both is a bit of an
+open question.
+
 Where we are
 ------------
 
@@ -67,10 +70,23 @@ We orchestrate servers with [invoke](https://www.pyinvoke.org/):
   will place configuration files (which might vary
   machine-by-machine) (mostly finished)
 * `inv certbot` will set up SSL (unfinished)
+* `inv download` will copy the configuration back.
 
 A lot of this is unfinished, but still, it's already ahead of the AWS
-GUI and doing things by hand. We need ways to pull settings back
-(especially after `certbot` is configured).
+GUI and doing things by hand. The key functionality missing is:
+
+* High-quality logging
+* Fault recovering
+* Version control of configurations
+
+To set up a new machine, run:
+
+```
+inv provision
+inv configure
+inv certbot
+inv download
+```
 
 Debugging
 ---------
