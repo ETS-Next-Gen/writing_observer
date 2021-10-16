@@ -70,7 +70,8 @@ We orchestrate servers with [invoke](https://www.pyinvoke.org/):
   will place configuration files (which might vary
   machine-by-machine) (mostly finished)
 * `inv certbot [machine]` will set up SSL (unfinished)
-* `inv download [machine]` will copy the configuration back.
+* `inv downloadconfig [machine]` will copy the configuration back.
+* `inv create [machine]` is a shortcut to do everything for a new instance in one step (provision, configure, certbotify, and download the SSL config)
 
 A lot of this is unfinished, but still, it's already ahead of the AWS
 GUI and doing things by hand. The key functionality missing is:
@@ -85,7 +86,7 @@ To set up a new machine, run:
 inv provision [machine]
 inv configure [machine]
 inv certbot [machine]
-inv download [machine]
+inv downloadconfig [machine]
 ```
 
 From there, edit configuration files in `config` and to update the

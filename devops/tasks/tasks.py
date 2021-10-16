@@ -9,6 +9,7 @@ import orchlib.config
 import orchlib.fabric_flock
 import orchlib.templates
 import orchlib.ubuntu
+import orchlib.helpers
 
 
 @task
@@ -53,8 +54,32 @@ def update(c):
     patches
     '''
     addresses = [i['PublicIpAddress'] for i in orchlib.aws.list_instances()]
+    # Machines without IPs don't get updates
+    addresses = [i for i in addresses if i != "--.--.--.--"]
     print(addresses)
     orchlib.ubuntu.run_script("update")(*addresses)
+
+
+@task
+def create(c, machine_name):
+    '''
+    Create a machine end-to-end. This is a shortcut for:
+    * Provision
+    * Configure
+    * Certbot
+    * Download
+    * Reboot
+    '''
+    print("Provisioning EC2 instance")
+    provision(c, machine_name)
+    print("Configuring the Learning Observer")
+    configure(c, machine_name)
+    print("Setting up SSL")
+    certbot(c, machine_name)
+    print("Saving config")
+    downloadconfig(c, machine_name)
+    print("Rebooting")
+    reboot(c, machine_name)
 
 
 @task
@@ -73,10 +98,12 @@ def connect(c, machine_name):
     '''
     `ssh` to a machine
     '''
-    os.system("ssh -i {key} ubuntu@{machine_name}".format(
+    command = "ssh -i {key} ubuntu@{machine_name}".format(
         key=orchlib.config.creds['key_filename'],
         machine_name = machine_name+".learning-observer.org"
-    ))
+    )
+    print(command)
+    os.system(command)
 
 
 @task
@@ -86,13 +113,7 @@ def configure(c, machine_name):
     '''
     group = orchlib.aws.name_to_group(machine_name)
 
-    # In most cases, these would correspond to static sites, or
-    # Learning Observer modules
-    print("Grabbing git packages")
-    for package in orchlib.config.config_lines(machine_name, "-git"):
-        group.run("git clone {package}".format(
-            package=package
-        ))
+    orchlib.repos.update(group, machine_name)
 
     print("Installing Python packages")
     for package in orchlib.config.config_lines(machine_name, "-pip"):
@@ -123,7 +144,7 @@ def configure(c, machine_name):
     
 
 @task
-def download(c, machine_name):
+def downloadconfig(c, machine_name):
     '''
     After setting up certbot, it's helpful to download the nginx config
     file. We also don't want to make changes remotely directly in deploy
@@ -159,3 +180,21 @@ def certbot(c, machine_name):
         email=orchlib.config.creds['email'],
         hostname = machine_name
     ))
+
+
+@task
+def reboot(c, machine_name):
+    '''
+    Untested: This doesn't seem to work yet....
+    '''
+    print("Trying to reboot... no promises.")
+    orchlib.ubuntu.reboot(machine_name)
+
+
+@task
+def downloadfile(c, machine_name, remote_filename, local_filename):
+    group = orchlib.aws.name_to_group(machine_name)
+    group.get(
+        remote_filename,
+        local_filename
+    )

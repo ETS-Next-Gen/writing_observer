@@ -34,6 +34,33 @@ def create_instance(name):
         }
     ]
 
+    # Baseline set of tags....
+    tags = [
+        {
+            'Key': 'Name',
+            'Value': name
+        },
+        {
+        'Key': 'Owner',
+            'Value': orchlib.config.creds['owner']
+        },
+        {
+            'Key': 'deploy-group',
+            'Value': 'learning-observer'
+        }
+    ]
+
+    # And we allow extra tags from the config file.
+    #
+    # This should be handled more nicely at some point. We want
+    # a global config, with per-machine overrides, and we want
+    # this config common for all templates, etc.
+    for (key, value) in orchlib.config.creds.get("ec2_tags", {}).items():
+        tags.append({
+            'Key': key,
+            'Value': value
+        })
+
     # This is kind of a mess.
     # Good command to help guide how to make this:
     # `aws ec2 describe-instances > template`
@@ -60,20 +87,7 @@ def create_instance(name):
         TagSpecifications=[
             {
                 'ResourceType': 'instance',
-                'Tags': [
-                    {
-                        'Key': 'Name',
-                        'Value': name
-                    },
-                    {
-                        'Key': 'Owner',
-                        'Value': orchlib.config.creds['owner']
-                    },
-                    {
-                        'Key': 'deploy-group',
-                        'Value': 'learning-observer'
-                    }
-                ]
+                'Tags': tags
             }
         ]
     )
@@ -82,6 +96,13 @@ def create_instance(name):
     instance.wait_until_running()
     # Reload, to update with assigned IP, etc.
     instance = ec2.Instance(instance.instance_id)
+
+    # Switch to IMDS v2, hopefully, due to security improvements
+    ec2client.modify_instance_metadata_options(
+        InstanceId=instance.instance_id,
+        HttpTokens='required',
+        HttpEndpoint='enabled'
+    )
 
     print("Launched ", instance.instance_id)
     print("IP: ", instance.public_ip_address)

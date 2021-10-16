@@ -11,7 +11,14 @@ def config_lines(machine_name, file_suffix):
     Handle paths, prefixes, missing files (return nothing),
     `strip()`ing lines, comments, etc.
     '''
-    fn = "config/{mn}-git".format(mn=machine_name)
+    fn = "config/{mn}/{fs}".format(
+        mn=machine_name,
+        fs=file_suffix
+    )
+
+    if not os.path.exists(fn):
+        fn = "config/{fs}".format(fs=file_suffix)
+
     if os.path.exists(fn):
         for line in open(fn.readlines()):
             line = line.strip()

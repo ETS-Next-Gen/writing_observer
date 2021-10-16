@@ -3,6 +3,8 @@ These are scripts for preparing an Ubuntu 20.04 machine to run the
 Learning Observer
 '''
 
+import fabric.exceptions
+
 import orchlib.fabric_flock
 import orchlib.config
 
@@ -27,13 +29,14 @@ baseline_packages = run_script("baseline_packages")
 python_venv = run_script("python_venv")
 
 
-def reboot():
+def reboot(machine):
     '''
     Run the reboot script. We expect an exception since the remote machine
     reboots while Fabric is connected.
     '''
     try:
-        run_script(REBOOT)
+        print("Trying to reboot (this doesn't always work")
+        run_script("reboot")(machine)
     except fabric.exceptions.GroupException:
         pass
 
