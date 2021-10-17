@@ -25,6 +25,7 @@ def working_repopath(repo=None):
     with a working tree, if it exists.
     '''
     if repo is None:
+        os.chdir(WORKING_REPO_PATH)
         return WORKING_REPO_PATH
 
     path = os.path.join(WORKING_REPO_PATH, repo)
@@ -40,7 +41,7 @@ def bare_repopath(repo=None):
     without a working tree, for pushing and pulling.
     '''
     if repo is None:
-        print(BARE_REPO_PATH)
+        os.chdir(BARE_REPO_PATH)
         return BARE_REPO_PATH
 
     path = os.path.join(BARE_REPO_PATH, repo)

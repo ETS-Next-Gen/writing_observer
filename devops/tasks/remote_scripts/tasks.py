@@ -92,12 +92,12 @@ def cloneupdate(c, fullrepo):
     Clone a remote repo.
     '''
     repo = gitpath_to_name(fullrepo)
-    barepath = bare_repopath(repopath)
+    barepath = bare_repopath(repo)
 
     working_repopath()
     if not working_repopath(repo):
         print("Cloning...")
-        os.system("git clone "+repopath)
+        os.system("git clone "+fullrepo)
         working_repopath(repo)
 
     print("Updating all branches")
