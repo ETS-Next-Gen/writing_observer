@@ -43,8 +43,8 @@ def reboot(machine):
 def provision(ip):
     group = fabric.SerialGroup(
         ip,
-        user=creds['user'],
-        connect_kwargs={"key_filename": creds['key_filename']}
+        user=orchlib.config.creds['user'],
+        connect_kwargs={"key_filename": orchlib.config.creds['key_filename']}
     )
     update()
     baseline_packages()

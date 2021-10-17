@@ -22,56 +22,41 @@ it's not there, we create it.
 
 As of this writing, this is not fully tested. We're going to test more
 fully by finishing the side from where we're orchestrating.
+
+Note that these scripts are designed to be as flexible as possible in terms
+of how a path is specified. E.g.: 
+
+  inv init https://gitserver.example.com/a/foo.git
+  inv init /temp/foo
+  inv init foo
+
+Will all do the same thing. They will go into the bare repo path, and crete
+an empty repository called `foo` if one doesn't already exist, ready for
+pushing.
+
+In the future, we should have a desired version and perhaps give warnings if
+the wrong one is used.
 '''
 
 import os
 import os.path
 
+import sys
+
 from invoke import task
 
 
-WORKING_REPO_PATH='/home/ubuntu/'
-BARE_REPO_PATH='/home/ubuntu/baregit/'
+# We would like to use these on the remote machine, but also on the local
+# machine.
+try:
+    from gitpaths import bare_repopath, working_repopath, gitpath_to_name
+except:
+    from orchlib.gitpaths import bare_repopath, working_repopath, gitpath_to_name
 
 # If we don't have a path for bare repos, create it.
-os.system("mkdir -p "+BARE_REPO_PATH)
-
-
-def gitpath_to_name(packagepath):
-    '''
-    Convert a git path to the name of the repo. For example:
-
-    `https://github.com/ETS-Next-Gen/writing_observer.git` ==> `writing_observer`
-    '''
-    package = os.path.split(packagepath)[1]
-    if package.endswith(".git"):
-        return package[:-4]
-    else:
-        return package
-
-
-def working_repopath(repo=""):
-    '''
-    Switch to the path where *working* `git` repo is located. E.g. one
-    with a working tree, if it exists.
-    '''
-    path = os.path.join(WORKING_REPO_PATH, repo)
-    if os.path.exists(path):
-        os.chdir(path)
-        return path
-    return False
-
-
-def bare_repopath(repo=""):
-    '''
-    Switch to the path where *bare* `git` repo is located. E.g. one
-    without a working tree, for pushing and pulling.
-    '''
-    path = os.path.join(BARE_REPO_PATH, repo)
-    if os.path.exists(path):
-        os.chdir(path)
-        return path
-    return False
+if(os.system("mkdir -p "+bare_repopath())):
+    print("Error creating or accessing bare repository directory")
+    sys.exit(-1)
 
 
 @task
@@ -79,6 +64,7 @@ def branch(c, repo, branch):
     '''
     Switch to a branch in a repo.
     '''
+    repo = gitpath_to_name(repo)
     print("Going to to: ", working_repopath(repo))
     os.system("git checkout "+branch)
 
@@ -92,6 +78,7 @@ def init(c, repo):
 
     This is for force pushes of remote repos.
     '''
+    repo = gitpath_to_name(repo)
     path = bare_repopath(repo)
     if not path:
         bare_repopath()
@@ -100,22 +87,26 @@ def init(c, repo):
 
 
 @task
-def cloneupdate(c, repopath):
+def cloneupdate(c, fullrepo):
     '''
     Clone a remote repo.
     '''
+    repo = gitpath_to_name(fullrepo)
+    barepath = bare_repopath(repopath)
+
     working_repopath()
-    if not working_repopath(gitpath_to_name(repopath)):
+    if not working_repopath(repo):
         print("Cloning...")
         os.system("git clone "+repopath)
-        working_repopath(gitpath_to_name(repopath))
+        working_repopath(repo)
 
     print("Updating all branches")
     os.system("git fetch --all")
 
 @task
 def cloneupdatelocal(c, repo):
-    clone_update(bare_repopath(repo))
+    repo = gitpath_to_name(repo)
+    cloneupdate(c, bare_repopath(repo))
 
 
 @task

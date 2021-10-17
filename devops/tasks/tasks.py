@@ -10,6 +10,9 @@ import orchlib.fabric_flock
 import orchlib.templates
 import orchlib.ubuntu
 import orchlib.helpers
+import orchlib.repos
+
+import remote_scripts.gitpaths
 
 
 @task
@@ -193,8 +196,38 @@ def reboot(c, machine_name):
 
 @task
 def downloadfile(c, machine_name, remote_filename, local_filename):
+    '''
+    Helper to download a single file.
+
+    This is verbose, and doesn't do wildcards. Perhaps better a helper to
+    `scp`? Don't use this in scripts until we've figured this out....
+    '''
     group = orchlib.aws.name_to_group(machine_name)
     group.get(
         remote_filename,
         local_filename
     )
+
+
+@task
+def uploadfile(c, machine_name, remote_filename, local_filename):
+    '''
+    Helper to upload a single file.
+
+    This is verbose, and doesn't do wildcards. Perhaps better a helper to
+    `scp`? Don't use this in scripts until we've figured this out....
+    '''
+    group = orchlib.aws.name_to_group(machine_name)
+    group.put(
+        remote_filename,
+        local_filename
+    )
+
+
+@task
+def runcommand(c, machine_name, command):
+    '''
+    Run a remote command. Don't forget quotes!
+    '''
+    group = orchlib.aws.name_to_group(machine_name)
+    group.run(command)

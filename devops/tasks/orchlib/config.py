@@ -20,7 +20,7 @@ def config_lines(machine_name, file_suffix):
         fn = "config/{fs}".format(fs=file_suffix)
 
     if os.path.exists(fn):
-        for line in open(fn.readlines()):
+        for line in open(fn).readlines():
             line = line.strip()
             if len(line) > 0:
                 yield line
