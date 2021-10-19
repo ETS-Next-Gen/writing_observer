@@ -83,12 +83,13 @@ instance, and that's how we do most of our testing and small-scale
 pilots. These instances have 512MB of RAM, and minimal CPU. It's
 important that this configuration remains usable.
 
-For deployment and use in classrooms, we expect to need **heavy**
-metal. As we're playing with algorithms, deep learning is turning out
-to work surprisingly well, and at the same time, requires surprisingly
-large amounts of computing power. A GPGPU with plenty of RAM is
-helpful if you want to work with more sophisticated algorithms, and is
-likely to be a requirement for many types of uses.
+For deployment and more sophisticated uses (e.g. NLP) in larger
+numbers of classrooms, we expect to need **heavy** metal. As we're
+playing with algorithms, deep learning is turning out to work
+surprisingly well, and at the same time, requires surprisingly large
+amounts of computing power. A GPGPU with plenty of RAM is helpful if
+you want to work with more sophisticated algorithms, and is likely to
+be a requirement for many types of uses.
 
 All _Learning Observer_ development has been on Linux-based platforms
 (including Ubuntu and RHEL). There are folks outside of the core team
