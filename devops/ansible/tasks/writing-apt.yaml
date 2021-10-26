@@ -44,6 +44,7 @@
   - python3-tornado
   - python3-yaml
   - python3-asyncpg
+  - python3-bcrypt
 
 - name: Server
   apt: name={{ item }} 

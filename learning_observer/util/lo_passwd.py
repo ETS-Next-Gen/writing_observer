@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 '''
 Add user to a password file.
 We shouldn't be reinventing wheels. But we couldn't find a good one.
@@ -46,6 +47,9 @@ if os.path.exists(args.filename):
 else:
     data = {}
 
+if data is None:
+    data = {}
+
 if 'users' not in data:
     data['users'] = {}
 
@@ -56,7 +60,7 @@ if args.notes is not None:
     data['users'][username]['notes'] = args.notes
 
 data['users'][username]['password'] = bcrypt.hashpw(
-    password,
+    password.encode('utf-8'),
     bcrypt.gensalt(12)
 )
 
