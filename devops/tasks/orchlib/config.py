@@ -23,7 +23,7 @@ def config_filename(machine_name, file_suffix, create=False):
         ),
         # And finally, as a fallback, default files
         os.path.join(
-            "config", machine_name, file_suffix
+            "config", file_suffix
         )
     ]
 
