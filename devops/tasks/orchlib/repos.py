@@ -14,7 +14,7 @@ GIT_SSH_COMMAND="ssh -i {key}" git
     --git-dir={localrepo}/.git
     push -f
     --mirror
-    ssh://ubuntu@{mn}.learning-observer.org/home/ubuntu/baregit/{reponame}
+    ssh://ubuntu@{mn}.{domain}/home/ubuntu/baregit/{reponame}
 '''.strip().replace('\n', '')
 
 
@@ -22,6 +22,7 @@ def force_push(machine, localrepo):
     print("LOCAL REPO: ", localrepo)
     command = GIT_PUSH.format(
         mn=machine,
+        domain=orchlib.config.creds['domain'],
         key=orchlib.config.creds['key_filename'],
         localrepo=localrepo,
         reponame=remote_scripts.gitpaths.gitpath_to_name(localrepo)

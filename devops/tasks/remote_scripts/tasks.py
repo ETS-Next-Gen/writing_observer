@@ -53,11 +53,6 @@ try:
 except:
     from orchlib.gitpaths import bare_repopath, working_repopath, gitpath_to_name
 
-# If we don't have a path for bare repos, create it.
-if(os.system("mkdir -p "+bare_repopath())):
-    print("Error creating or accessing bare repository directory")
-    sys.exit(-1)
-
 
 @task
 def branch(c, repo, branch):
@@ -66,7 +61,9 @@ def branch(c, repo, branch):
     '''
     repo = gitpath_to_name(repo)
     print("Going to to: ", working_repopath(repo))
-    os.system("git checkout "+branch)
+    command = "git checkout "+branch
+    print(command)
+    os.system(command)
 
 
 @task
@@ -82,7 +79,9 @@ def init(c, repo):
     path = bare_repopath(repo)
     if not path:
         bare_repopath()
-        os.system("git --bare init "+repo)
+        command = "git --bare init "+repo
+        print(command)
+        os.system(command)
     print(bare_repopath(repo))
 
 
@@ -97,7 +96,9 @@ def cloneupdate(c, fullrepo):
     working_repopath()
     if not working_repopath(repo):
         print("Cloning...")
-        os.system("git clone "+fullrepo)
+        command = "git clone "+fullrepo
+        print(command)
+        os.system(command)
         working_repopath(repo)
 
     print("Updating all branches")
@@ -115,5 +116,7 @@ def pull(c, repo):
     Update a repo to the latest version.
     '''
     path = working_repopath(repo)
-    os.system("git pull --all")
+    command = "git pull --all"
+    print(command)
+    os.system(command)
     return path

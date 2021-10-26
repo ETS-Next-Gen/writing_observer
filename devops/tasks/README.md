@@ -107,3 +107,18 @@ in `/home/ubuntu/`, but should move to `/var/log/` eventually), and
 are permissions (e.g. running as the wrong user, log files generated
 as `root:root` at some point, etc), running from the wrong directory,
 and similar sorts of environment issues.
+
+Logging
+-------
+
+We are logging system configuration with `git`. Note that this is
+**NOT** atomic or thread-safe. This is perhaps a bug, and perhaps by
+design:
+
+* Tasks take a _while_ to run, and they need to run in parallel when
+  managing many machines.
+* A better (much more complex) approach would use branches or do
+  atomic commits at the end (e.g. download to a temporary dir, and
+  move right before the commit.
+* However, it is possible to reverse-engineered exactly what happened,
+  roughly when. This is good enough for now.

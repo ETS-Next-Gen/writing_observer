@@ -4,6 +4,7 @@ import io
 import os.path
 import chevron
 
+import orchlib.config
 
 def secure_guid():
     '''
@@ -53,13 +54,7 @@ def upload(
         if key not in config:
             config["RANDOM"+str(i)] = secure_guid()
 
-    machine_version = os.path.join("config", machine_name, filename)
-    default_version = os.path.join("config", filename)
-
-    if os.path.exists(machine_version):
-        local_filename=machine_version
-    else:
-        local_filename=default_version
+    local_filename = orchlib.config.config_filename(machine_name, filename)
 
     # This seems like an odd place, but latest `fabric` has no way
     # to handle uploads as root.
@@ -97,9 +92,17 @@ def download(
     specified in the machine configuration. It's a simple parallel
     to `upload`
     '''
-    pathname = os.path.join("config", machine_name)
-    local_filename = os.path.join(pathname, filename)
+    print("Remote file: ", remote_filename)
 
+    local_filename = orchlib.config.config_filename(
+        machine_name,
+        filename,
+        create=True
+    )
+
+    print("Local filename: ", local_filename)
+
+    pathname = os.path.split(local_filename)[1]
     if not os.path.exists(pathname):
         os.mkdir(pathname)
 

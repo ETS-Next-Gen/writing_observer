@@ -158,7 +158,7 @@ def terminate_instances(name):
     for instance in matching_instances:
         register_dns(
             name,
-            'learning-observer.org',
+            orchlib.config.creds['domain'],
             instance['PublicIpAddress'],
             unregister=True
         )

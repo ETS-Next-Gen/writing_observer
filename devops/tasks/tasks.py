@@ -1,16 +1,21 @@
-from invoke import task
-
+import atexit
 import csv
 import sys
 import os
+import shlex
+import datetime
+
+from invoke import task
+
+import fabric.exceptions
 
 import orchlib.aws
 import orchlib.config
 import orchlib.fabric_flock
 import orchlib.templates
 import orchlib.ubuntu
-import orchlib.helpers
 import orchlib.repos
+from orchlib.logger import system
 
 import remote_scripts.gitpaths
 
@@ -41,7 +46,7 @@ def provision(c, machine_name):
     print("Updating...")
     ip = machine_info.public_ip_address
     print("DNS....")
-    orchlib.aws.register_dns(machine_name, "learning-observer.org", ip)
+    orchlib.aws.register_dns(machine_name, orchlib.config.creds['domain'], ip)
     print("IP", ip)
     orchlib.ubuntu.update(ip)
     print("Baseline...")
@@ -103,10 +108,10 @@ def connect(c, machine_name):
     '''
     command = "ssh -i {key} ubuntu@{machine_name}".format(
         key=orchlib.config.creds['key_filename'],
-        machine_name = machine_name+".learning-observer.org"
+        machine_name = machine_name+"."+orchlib.config.creds['domain']
     )
     print(command)
-    os.system(command)
+    system(command)
 
 
 @task
@@ -119,7 +124,7 @@ def configure(c, machine_name):
     orchlib.repos.update(group, machine_name)
 
     print("Installing Python packages")
-    for package in orchlib.config.config_lines(machine_name, "-pip"):
+    for package in orchlib.config.config_lines(machine_name, "pip"):
         group.run("source ~/.profile; pip install {package}".format(
             package=package
         ))
@@ -130,7 +135,8 @@ def configure(c, machine_name):
     }
 
     print("Uploading files")
-    for [local_file, owner, perms, remote_file, description] in csv.reader(open("config/uploads.csv")):
+    for [local_file, owner, perms, remote_file, description] in csv.reader(
+            open("config/uploads.csv")):
         print("Uploading: ", description)
         orchlib.templates.upload(
             group=group,
@@ -159,15 +165,23 @@ def downloadconfig(c, machine_name):
     }
 
     group = orchlib.aws.name_to_group(machine_name)
-    for [local_file, owner, perms, remote_file, description] in csv.reader(open("config/uploads.csv")):
+    for [local_file, owner, perms, remote_file, description] in csv.reader(
+            open("config/uploads.csv")):
         print("Downloading: ", description)
-        orchlib.templates.download(
-            group=group,
-            machine_name=machine_name,
-            filename=local_file,
-            remote_filename=remote_file.format(**template_config)
-        )
-
+        try:
+            orchlib.templates.download(
+                group=group,
+                machine_name=machine_name,
+                filename=local_file,
+                remote_filename=remote_file.format(**template_config)
+            )
+        except fabric.exceptions.GroupException:
+            # This usually means the file is not found. In most cases,
+            # this happens when we've added a new file to the config,
+            # and we're grabbing from an old server.
+            #
+            # We should handle this more gracefully. How is TBD
+            print("Could not download file!")
 
 @task
 def certbot(c, machine_name):
@@ -179,9 +193,12 @@ def certbot(c, machine_name):
     - This is untested :)
     '''
     group = orchlib.aws.name_to_group(machine_name)
-    group.run("sudo certbot -n --nginx --agree-tos --redirect --email {email} --domains {hostname}.learning-observer.org".format(
+    CERT_CMD = "sudo certbot -n --nginx --agree-tos --redirect " \
+        "--email {email} --domains {hostname}.{domain}"
+    group.run(CERT_CMD.format(
         email=orchlib.config.creds['email'],
-        hostname = machine_name
+        hostname = machine_name,
+        domain=orchlib.config.creds['domain']
     ))
 
 
@@ -231,3 +248,79 @@ def runcommand(c, machine_name, command):
     '''
     group = orchlib.aws.name_to_group(machine_name)
     group.run(command)
+
+
+@task
+def hello(c):
+    '''
+    For testing!
+
+    For example, hooks.
+    '''
+    print("Hello, world!")
+
+
+@task
+def backup(c, machine_name, target):
+    '''
+    Grab a backup of a given directory by name
+    '''
+    targets = {
+        'nginx': "/var/log/nginx/",
+        'certs': "/etc/letsencrypt/"
+    }
+
+    if target not in targets:
+        print("Invalid target. Should be one of:")
+        print("\n".join(targets))
+        sys.exit(-1)
+
+    ts = datetime.datetime.utcnow().isoformat().replace(":", "-")
+    filebase = "{ts}-{mn}-{tg}".format(
+        ts=ts,
+        mn=machine_name,
+        tg=target
+    )
+
+    command = "tar /tmp/{filebase} {target}".format(
+        filebase=filebase,
+        target=target
+    )
+
+    group = orchlib.aws.name_to_group(machine_name)
+    group.get(
+        remote_filename,
+        local_filename
+    )
+
+
+@task
+def commit(c, msg):
+    '''
+    This should probably not be a task but a utility function. It's
+    helpful for debuggin, though.
+    '''
+    system(
+        "cd {gitpath} ; git add -A; git commit -m {msg}".format(
+            gitpath=orchlib.config.creds["flock-config"],
+            msg=msg
+        )
+    )
+
+
+START_TIME = datetime.datetime.utcnow().isoformat()
+
+def committer():
+    '''
+    On exit, commit changes to repo. This code is not finished.
+    '''
+    command_options = shlex.quote(" ".join(sys.argv))
+    stop_time = datetime.datetime.utcnow().isoformat()
+    log = {
+        'start_time': START_TIME,
+        'stop_time': stop_time,
+        'command_options': command_options
+    }
+
+
+atexit.register(committer)

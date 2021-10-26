@@ -40,6 +40,11 @@ def bare_repopath(repo=None):
     Switch to the path where *bare* `git` repo is located. E.g. one
     without a working tree, for pushing and pulling.
     '''
+    # If we don't have a path for bare repos, create it.
+    if(os.system("mkdir -p "+BARE_REPO_PATH)):
+        print("Error creating or accessing bare repository directory")
+        sys.exit(-1)
+
     if repo is None:
         os.chdir(BARE_REPO_PATH)
         return BARE_REPO_PATH
