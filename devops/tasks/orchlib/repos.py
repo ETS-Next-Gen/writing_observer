@@ -10,7 +10,7 @@ import remote_scripts.gitpaths
 
 # This command will forcefully push a local repo to a remote server, including all branches
 GIT_PUSH ='''
-GIT_SSH_COMMAND="ssh -i {key}" git 
+GIT_SSH_COMMAND="ssh -i {key} -o 'StrictHostKeyChecking no'" git
     --git-dir={localrepo}/.git
     push -f
     --mirror

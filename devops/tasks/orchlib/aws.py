@@ -11,6 +11,8 @@ import boto3
 
 import orchlib.config
 import orchlib.fabric_flock
+from orchlib.logger import system
+
 
 session = boto3.session.Session()
 ec2 = session.resource('ec2')
@@ -166,7 +168,10 @@ def terminate_instances(name):
     ec2client.terminate_instances(
         InstanceIds = [i['InstanceId'] for i in matching_instances]
     )
-    
+    system("ssh-keygen -R {host}.{domain}".format(
+        host=name,
+        domain=orchlib.config.creds['domain']
+    ))
     return len(matching_instances)
 
 

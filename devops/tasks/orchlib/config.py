@@ -11,11 +11,20 @@ def config_filename(machine_name, file_suffix, create=False):
     * Per-machine config
     * System-wide defaults
     * Defaults for this for the Learning Observer (defined in this repo)
+
+    Absolute paths (e.g. beginning with '/') are returned as-is.
     '''
+    if file_suffix.startswith("/"):
+        return file_suffix
+
     paths = [
         # First, we try per-machine configuration
         os.path.join(
             creds["flock-config"], "config", machine_name, file_suffix
+        ),
+        # Next, we try the per-machine override
+        os.path.join(
+            creds["flock-config"], "config", machine_name, file_suffix+".base"
         ),
         # Then, system-wide configuration
         os.path.join(

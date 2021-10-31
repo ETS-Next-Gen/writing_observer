@@ -1,9 +1,10 @@
 import atexit
 import csv
-import sys
+import datetime
+import itertools
 import os
 import shlex
-import datetime
+import sys
 
 from invoke import task
 
@@ -121,8 +122,12 @@ def configure(c, machine_name):
     '''
     group = orchlib.aws.name_to_group(machine_name)
 
+    # We start be setting up `git` repos. This will fail if done later,
+    # since we need these to install pip packages, etc.
     orchlib.repos.update(group, machine_name)
 
+    # Set up Python packages. We need git repos for this, but we might
+    # want to us these in scripts later.
     print("Installing Python packages")
     for package in orchlib.config.config_lines(machine_name, "pip"):
         group.run("source ~/.profile; pip install {package}".format(
@@ -135,9 +140,19 @@ def configure(c, machine_name):
     }
 
     print("Uploading files")
-    for [local_file, owner, perms, remote_file, description] in csv.reader(
-            open("config/uploads.csv")):
+    uploads = [
+        l.strip().split(',')
+        for l in itertools.chain(
+                orchlib.config.config_lines(machine_name, "sync.csv"),
+                orchlib.config.config_lines(machine_name, "uploads.csv"),
+        )
+    ]
+    # We should consider switching back to csvreader, so we handle commas in
+    # the description
+    for [local_file, owner, perms, remote_file, description] in uploads:
         print("Uploading: ", description)
+        remote_path = os.path.dirname(remote_file)
+        group.run("mkdir -p "+remote_path)
         orchlib.templates.upload(
             group=group,
             machine_name=machine_name,
@@ -165,8 +180,16 @@ def downloadconfig(c, machine_name):
     }
 
     group = orchlib.aws.name_to_group(machine_name)
-    for [local_file, owner, perms, remote_file, description] in csv.reader(
-            open("config/uploads.csv")):
+    downloads = [
+        l.strip().split(',')
+        for l in itertools.chain(
+                orchlib.config.config_lines(machine_name, "sync.csv"),
+                orchlib.config.config_lines(machine_name, "downloads.csv"),
+        )
+    ]
+    # We should consider switching back to csvreader, so we handle commas in
+    # the description
+    for [local_file, owner, perms, remote_file, description] in downloads:
         print("Downloading: ", description)
         try:
             orchlib.templates.download(

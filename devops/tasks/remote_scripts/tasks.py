@@ -103,6 +103,7 @@ def cloneupdate(c, fullrepo):
 
     print("Updating all branches")
     os.system("git fetch --all")
+    os.system("git pull")
 
 @task
 def cloneupdatelocal(c, repo):

@@ -1,8 +1,10 @@
 import base64
-import uuid
 import io
 import os.path
+import uuid
+
 import chevron
+import filetype
 
 import orchlib.config
 
@@ -23,8 +25,32 @@ def render_file_for_transfer(filename, config):
     This converts a filename and a dictionary into a file-like
     object, ready for upload.
     '''
+    # We don't render binary files. This is not a complete set, and we might extend this
+    # later
+    BINARY_TYPES = filetype.audio_matchers + filetype.image_matchers + filetype.video_matchers
+    endings = [".js", ".css", ".ttf", ".ogg", ".jpg", ".png", ".webm", ".mp4"]
+    def skip_encode(filename):
+        '''We don't want to run most binary files, code, etc. through our
+        templating engine.  These are heuristics.
+
+        We probably should be explicit and add a field to the config
+        file, so we don't need heuristics. This is a little bit more
+        complex and ad-hoc than I like.
+        '''
+        for e in endings:
+            if filename.endswith(e):
+                return True
+        if filetype.guess(filename) in BINARY_TYPES:
+            return True
+        return False
+
+    if skip_encode(filename):
+        return open(filename, "rb")
+
+    # Other files, we run through our templating engine
     with open(filename) as fp:
-        return io.StringIO(chevron.render(fp, config))
+        # We convert to bytes as a hack-around for this bug: https://github.com/paramiko/paramiko/issues/1133
+        return io.BytesIO(chevron.render(fp, config).encode('utf-8'))
 
 
 def upload(
