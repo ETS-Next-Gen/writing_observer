@@ -3,6 +3,7 @@
 # 1) These are friendly to templating languages and Python's str.format()
 # 2) These generate dictionaries, and we can throw an exception if unset. If we forget to
 #    throw an exception, these won't give a valid string
+hostname: learning-observer.org
 xmpp:
   sink: # Receives messages. We'll need many of these.
     jid: sink@localhost

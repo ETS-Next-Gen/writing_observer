@@ -1,3 +1,4 @@
+hostname: {{hostname}}.{{domain}}
 xmpp:
   sink: # Receives messages. We'll need many of these.
     jid: sink@localhost

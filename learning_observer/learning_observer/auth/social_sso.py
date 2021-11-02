@@ -72,7 +72,9 @@ async def _google(request):
 
     common_params = {
         'client_id': settings.settings['auth']['google-oauth']['web']['client_id'],
-        'redirect_uri': "https://writing.hopto.org/auth/login/google",
+        'redirect_uri': "https://{hostname}/auth/login/google".format(
+            hostname = settings.settings['hostname']
+        )
     }
 
     # Step 1: redirect to get code

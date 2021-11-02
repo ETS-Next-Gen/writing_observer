@@ -136,7 +136,8 @@ def configure(c, machine_name):
 
     template_config = {
         "nginx_root_options": "",
-        "hostname": machine_name
+        "hostname": machine_name,
+        "domain": orchlib.config.creds['domain']
     }
 
     print("Uploading files")
@@ -176,7 +177,8 @@ def downloadconfig(c, machine_name):
     '''
     template_config = {
         "nginx_root_options": "",
-        "hostname": machine_name
+        "hostname": machine_name,
+        "domain": orchlib.config.creds['domain']
     }
 
     group = orchlib.aws.name_to_group(machine_name)
