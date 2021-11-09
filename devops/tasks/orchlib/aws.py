@@ -48,7 +48,7 @@ def create_instance(name):
         },
         {
             'Key': 'deploy-group',
-            'Value': 'learning-observer'
+            'Value': orchlib.config.creds['deploy-group']
         }
     ]
 
@@ -123,7 +123,7 @@ def list_instances():
     reservations = ec2client.describe_instances(Filters=[
         {
             'Name': 'tag:deploy-group',
-            'Values': ['learning-observer']
+            'Values': [orchlib.config.creds['deploy-group']]
         },
     ])['Reservations']
     instances = sum([i['Instances'] for i in reservations], [])

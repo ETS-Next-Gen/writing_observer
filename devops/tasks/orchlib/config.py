@@ -1,3 +1,4 @@
+import os
 import os.path
 
 import json
@@ -17,7 +18,8 @@ if not os.path.exists(creds_file):
         "owner": "Your name",
         "email": "Your email",
         "domain": "Domain name (e.g. learning-observer.org)",
-        "flock-config": "Git repo on your hard drive where we'll store machine config.",
+        "flock-config": "Path to git repo where we'll store machine config.",
+        "deploy-group": "Tag to identify all machines (typically, learning-observer)",
         "ec2_tags": "JSON dictionary of any additional tags you'd like on your machines. If you're not sure, type {}"
     }
     print("I'll need:")
@@ -29,10 +31,13 @@ if not os.path.exists(creds_file):
         print(value)
         d[key] = input("{key}: ".format(key=key)).strip()
     d['ec2_tags'] = json.loads(d['ec2_tags'])
+    if not os.path.exists(d['flock-config']):
+        os.system("git init {path}".format(path=d['flock-config']))
+        os.mkdir(os.path.join(d['flock-config'], "config"))
     with open("settings/CREDS.YAML", "w") as fp:
         yaml.dump(d, fp)
 
-creds = yaml.safe_load(creds_file)
+creds = yaml.safe_load(open(creds_file))
 
 def config_filename(machine_name, file_suffix, create=False):
     '''
