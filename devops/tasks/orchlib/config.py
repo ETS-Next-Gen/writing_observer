@@ -1,9 +1,38 @@
 import os.path
 
+import json
 import yaml
 
-creds = yaml.safe_load(open("settings/CREDS.YAML"))
+creds_file = "settings/CREDS.YAML"
 
+if not os.path.exists(creds_file):
+    print("No credentials file. I'll need a bit of info from you")
+    print("to make one.")
+    info = {
+        "user": "Your username on the remote machine (probably ubuntu)",
+        "key_filename": "Your AWS key filename (something like /home/me/.ssh/aws.pem)",
+        "aws_keyname": "Your AWS key id (as AWS knows it; e.g. aws.pem)",
+        "aws_subnet_id": "AWS subnet (e.g. subnet-012345abc)",
+        "aws_security_group": "AWS security group (e.g. sg-012345abc)",
+        "owner": "Your name",
+        "email": "Your email",
+        "domain": "Domain name (e.g. learning-observer.org)",
+        "flock-config": "Git repo on your hard drive where we'll store machine config.",
+        "ec2_tags": "JSON dictionary of any additional tags you'd like on your machines. If you're not sure, type {}"
+    }
+    print("I'll need:")
+    for key, value in info.items():
+        print("* {value}".format(value=value))
+    print("Let's get going")
+    d = {}
+    for key, value in info.items():
+        print(value)
+        d[key] = input("{key}: ".format(key=key)).strip()
+    d['ec2_tags'] = json.loads(d['ec2_tags'])
+    with open("settings/CREDS.YAML", "w") as fp:
+        yaml.dump(d, fp)
+
+creds = yaml.safe_load(creds_file)
 
 def config_filename(machine_name, file_suffix, create=False):
     '''
