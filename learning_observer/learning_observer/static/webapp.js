@@ -148,17 +148,24 @@ requirejs(
 			.data(data)
 			.enter()
 			.append("div")
-			.html(function(d) {
+			.html(function(course_json) {
+			    console.log(course_json);
 			    let tools = "";
 			    for(var i=0; i<tool_list.length; i++) {
 				// Computer icon CSS class
 				tool_list[i]["icon_class"] = tool_list[i].icon.type +
 				    " " +
 				    tool_list[i].icon.icon;
-				tools += mustache.render(tool, tool_list[i]);
+				// This does a union.
+				// * tool_list[i] are the tool properties
+				// * course_json are the course properties
+				// Merged, we can render tools for courses!
+				joined = Object.assign({}, course_json, tool_list[i]);
+				console.log(joined);
+				tools += mustache.render(tool, joined);
 			    }
-			    d['tools'] = tools;
-			    return mustache.render(course, d);
+			    course_json['tools'] = tools;
+			    return mustache.render(course, course_json);
 			});
 		}
 	    });
