@@ -37,10 +37,22 @@ def password_auth(filename):
         if 'username' not in data:
             data = json.loads(body)
         password_data = yaml.safe_load(open(filename))
+
+        # If you run into errors on the line below, you *probably*
+        # have a dependency issue. Errors:
+        # * AttributeError: module 'bcrypt' has no attribute 'checkpw'
+        # * AttributeError: module 'bcrypt._bcrypt' has no attribute 'ffi'
+        # Try uninstalling bcrypt and reinstalling / upgrading pi-bcrypt
+        #
+        # If you run into unicode errors, see if you can debug them. There
+        # is randomness about whether we do or don't need to .encode('utf-8').
+        #
+        # It reliably either works or doesn't, but it doesn't change. If your
+        # environment has a happy `bcrypt`, it will keep on working.
         if (data['username'] in password_data['users']
             and bcrypt.checkpw(
-                data['password'],
-                password_data['users'][data['username']]['password']
+                data['password'].encode('utf-8'),
+                password_data['users'][data['username']]['password'].encode('utf-8')
         )):
             print("Authorized")
             await learning_observer.auth.utils.update_session_user_info(
