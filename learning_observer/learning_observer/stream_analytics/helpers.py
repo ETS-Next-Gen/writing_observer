@@ -39,6 +39,26 @@ import learning_observer.kvs
 
 KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 
+# This is a set of fields which we use to index reducers. For example,
+# if we'd like to know how many students accessed a specific Google
+# Doc, we might create a RESOURCE key (which would receive events for
+# all students accessing that resource). If we'd like to keep track of
+# a students' work in a particular Google Doc, we'd create a
+# STUDENT/RESOURCE key.
+#
+# At some point, this shouldn't be hardcoded
+#
+# We'd also like a better way to think of the hierarchy of assignments than ITEM/ASSIGNMENT
+KeyFields = [
+    "STUDENT",    # A single student
+    "CLASS",      # A group of students. Typically, one class roster in Google Classroom
+    "RESOURCE"    # E.g. One Google Doc
+#   "ASSIGNMENT"  # E.g. A collection of Google Docs (e.g. notes, outline, draft)
+#   "TEACHER"     #
+#    ...          # ... and so on.
+]
+
+KeyField = enum.Enum("KeyField", " ".join(KeyFields))
 
 def fully_qualified_function_name(func):
     '''
@@ -58,7 +78,7 @@ def fully_qualified_function_name(func):
     )
 
 
-def make_key(func, safe_user_id, state_type):
+def make_key(func, key_dict, state_type):
     '''
     Create a KVS key
 
@@ -71,6 +91,8 @@ def make_key(func, safe_user_id, state_type):
     assert callable(func)
 
     streammodule = fully_qualified_function_name(func)
+
+    safe_user_id = key_dict[KeyField.STUDENT]
 
     return "{state_type}:{streammodule}:{user}".format(
         state_type=state_type.name.capitalize(),
@@ -116,8 +138,16 @@ def kvs_pipeline(
                 safe_user_id = '[guest]'
                 # TODO: raise an exception.
 
-            internal_key = make_key(func, safe_user_id, KeyStateType.INTERNAL)
-            external_key = make_key(func, safe_user_id, KeyStateType.EXTERNAL)
+            internal_key = make_key(
+                func,
+                {KeyField.STUDENT: safe_user_id},
+                KeyStateType.INTERNAL
+            )
+            external_key = make_key(
+                func,
+                {KeyField.STUDENT: safe_user_id},
+                KeyStateType.EXTERNAL
+            )
             taskkvs = learning_observer.kvs.KVS()
 
             async def process_event(events):

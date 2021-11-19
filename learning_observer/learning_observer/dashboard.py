@@ -78,7 +78,7 @@ def aggregate_course_data(
             for sa_module in agg_module['sources']:
                 key = sa_helpers.make_key(
                     sa_module,
-                    student_id,
+                    {sa_helpers.KeyField.STUDENT: student_id},
                     sa_helpers.KeyStateType.EXTERNAL)
                 print(key)
                 data = await teacherkvs[key]
