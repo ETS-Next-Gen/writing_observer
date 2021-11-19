@@ -689,4 +689,23 @@ function writing_onload() {
     }
 }
 
+/*
+This is code which, if executed on the page space, will capture HTTP
+AJAX responses.
+
+This is impossible to do directly from within an extension.
+
+This is currently unused.
+*/
+const LOG_AJAX = "
+const WO_XHR = XMLHttpRequest.prototype;
+const wo_send = WO_XHR.send;
+
+
+WO_XHR.send = function () {
+    this.addEventListener('load', function () {
+        console.log(this); console.log(this.getAllResponseHeaders());
+    }); return wo_send.apply(this, arguments); }
+"
+
 window.addEventListener("load", writing_onload);

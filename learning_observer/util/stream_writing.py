@@ -8,6 +8,7 @@ Usage:
                       [--source=filename,fn,fn,...]
                       [--gdids=googledoc_id,gdi,gdi,...]
                       [--text-length=5]
+                      [--fake-name]
 
 Options:
     --url=url                URL to connect [default: http://localhost:8888/wsapi/in/]
@@ -17,6 +18,7 @@ Options:
     --gdids=gdi,gdi,gdi      Google document IDs of spoofed documents
     --source=filename        Stream text instead of lorem ipsum
     --text-length=n          Number of paragraphs of lorem ipsum [default: 5]
+    --fake-name              Use fake names (instead of test-user)
 
 Overview:
     Stream fake keystroke data to a server, emulating Google Docs
@@ -31,6 +33,7 @@ import aiohttp
 import docopt
 
 import loremipsum
+import names
 
 ARGS = docopt.docopt(__doc__)
 print(ARGS)
@@ -50,10 +53,12 @@ if len(ARGS['--ici']) == 1:
 else:
     ICI = ARGS['--ici']
 
-if ARGS['--users'] == []:
-    USERS = ["test-user-{n}".format(n=i) for i in range(STREAMS)]
-else:
+if ARGS['--users'] != []:
     USERS = ARGS['--users']
+elif ARGS['--fake-name']:
+    USERS = [names.get_first_name() for i in range(STREAMS)]
+else:
+    USERS = ["test-user-{n}".format(n=i) for i in range(STREAMS)]
 
 if ARGS["--gdids"] == []:
     DOC_IDS = ["fake-google-doc-id-{n}".format(n=i) for i in range(STREAMS)]
