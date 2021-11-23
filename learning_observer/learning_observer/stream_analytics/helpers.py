@@ -95,11 +95,27 @@ def make_key(func, key_dict, state_type):
 
     safe_user_id = key_dict[KeyField.STUDENT]
 
-    return "{state_type}:{streammodule}:{user}".format(
-        state_type=state_type.name.capitalize(),
-        streammodule=streammodule,
-        user=safe_user_id
-    )
+    # Key starts with whether it is internal versus external state, and what module it comes from
+    key_list = [
+        state_type.name.capitalize(),
+        streammodule
+    ]
+
+    # It continues with the fields. These are organized as key-value
+    # pairs. These need a well-defined order. I'm sure there's a
+    # logical order here, but for now, we do alphabetical.
+    #
+    # We will want to be able to do reduce operations across multiple
+    # axes. This is where an RDS with multiple indexes might be nice,
+    # if we can figure out the sharding, etc. Another alternative
+    # might be to use postgres to organize things (which changes
+    # rarely), but to keep actual key/value pairs in redis (which
+    # changes a lot).
+    for key in sorted(key_dict.keys(), key = lambda x: x.name):
+        key_list.append("{key}:{value}".format(key=key.name, value=key_dict[key]))
+
+    # And we return this as comma-seperated values
+    return ",".join(key_list)
 
 
 def kvs_pipeline(

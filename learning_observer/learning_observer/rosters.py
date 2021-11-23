@@ -96,10 +96,17 @@ async def all_students():
     large-scale production.
     '''
     keys = await learning_observer.kvs.KVS().keys()
-    internal_keys = [k for k in keys if k.startswith("Internal:")]
-    split_keys = [k.split(":") for k in internal_keys]
-    valid_keys = [k for k in split_keys if len(k) > 2]
-    user_ids = sorted(set([k[2] for k in valid_keys]))
+    # Reduce list length by 2
+    internal_keys = [k for k in keys if k.startswith("Internal")]
+
+    # Pick out the STUDENT field, and place those in a list. This list should
+    # have length 1 (if the field is there) or 0 (if it is not).
+    student_field_lists = [[f for f in k.split(",") if f.startswith("STUDENT:")] for k in internal_keys]
+
+    # Drop invalid keys, as well as ones which don't have a student field.
+    #
+    # For the remaining ones -- ones with a student ID -- just pick out the student ID.
+    user_ids = [k[0].split(":")[1] for k in student_field_lists if len(k) == 1]
     return user_ids
 
 
