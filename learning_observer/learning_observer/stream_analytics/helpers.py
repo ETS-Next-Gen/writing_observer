@@ -119,7 +119,8 @@ def make_key(func, key_dict, state_type):
 
 
 def kvs_pipeline(
-        null_state=None
+        null_state=None,
+        scope=None
 ):
     '''
     Closures, anyone?
@@ -133,6 +134,9 @@ def kvs_pipeline(
       happened. This can be important for the aggregator. We're documenting the
       code before we've written it, so please make sure this works before using.
     '''
+    if scope==None:
+        print("TODO: explicitly specify a scope")
+        scope = [KeyField.STUDENT]
     def decorator(func):
         '''
         The decorator itself
@@ -153,7 +157,7 @@ def kvs_pipeline(
                 safe_user_id = metadata['auth']['safe_user_id']
             else:
                 safe_user_id = '[guest]'
-                # TODO: raise an exception.
+                # TODO: raise an exception?
 
             internal_key = make_key(
                 func,
@@ -226,10 +230,10 @@ def kvs_pipeline(
         return wrapper_closure
     return decorator
 
-# `kvs_pipeline` is obsolete.
+# `kvs_pipeline`, in it's current incarnation, is obsolete.
 #
 # We will now have reducers of multiple types.
 #
-# We might keep `kvs_pipeline` as a generic, but in it's current form,
-# it is obsolete
-student_event_reducer = kvs_pipeline
+# We will probably keep `kvs_pipeline` as a generic, and this is part of that
+# transition.
+student_event_reducer = functools.partial(kvs_pipeline, scope=[KeyField.STUDENT])
