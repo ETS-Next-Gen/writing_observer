@@ -7,7 +7,7 @@ It just routes to smaller pipelines. Currently that's:
 '''
 import writing_observer.reconstruct_doc
 
-from learning_observer.stream_analytics.helpers import kvs_pipeline
+from learning_observer.stream_analytics.helpers import student_event_reducer
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -28,7 +28,7 @@ from learning_observer.stream_analytics.helpers import kvs_pipeline
 TIME_ON_TASK_THRESHOLD = 5
 
 
-@kvs_pipeline()
+@student_event_reducer()
 async def time_on_task(event, internal_state):
     '''
     This adds up time intervals between successive timestamps. If the interval
@@ -56,7 +56,7 @@ async def time_on_task(event, internal_state):
     return internal_state, internal_state
 
 
-@kvs_pipeline()
+@student_event_reducer()
 async def reconstruct(event, internal_state):
     '''
     This is a thin layer to route events to `reconstruct_doc` which compiles

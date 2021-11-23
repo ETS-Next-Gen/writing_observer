@@ -26,10 +26,11 @@ system. For now, our overall system diagram is:
                   |            |
                   +------------+
 
-We create reducers with the `kvs_pipeline` decorator. In the longer
-term, we'll want to be able to plug together different aggregators,
-state types, etc. We'll also want different keys for reducers
-(per-student, per-resource, etc.). For now, though, this works.
+We create reducers with the `student_event_reducer` decorator. In the
+longer term, we'll want to be able to plug together different
+aggregators, state types, etc. We'll also want different keys for
+reducers (per-student, per-resource, etc.). For now, though, this
+works.
 '''
 import enum
 import functools
@@ -208,3 +209,11 @@ def kvs_pipeline(
             return process_event
         return wrapper_closure
     return decorator
+
+# `kvs_pipeline` is obsolete.
+#
+# We will now have reducers of multiple types.
+#
+# We might keep `kvs_pipeline` as a generic, but in it's current form,
+# it is obsolete
+student_event_reducer = kvs_pipeline
