@@ -1,5 +1,15 @@
+/*
+  Top-level JavaScript file.
+
+  This is mostly a loader.
+ */
+
 function ajax(config)
 {
+    /*
+      Perhaps overkill, but we'd like to be able to have LO
+      have modularized URLs.
+     */
     return function(url) {
 	// Do AJAX calls with error handling
 	return new Promise(function(resolve, reject) {
@@ -16,7 +26,9 @@ function ajax(config)
 
 
 requirejs(
-    // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
+    // These are helper functions defined in liblo.js
+    //
+    // They allow us to change URL schemes later.
     [requireconfig(),
      requireexternallib("d3.v5.min.js"),
      requireexternallib("mustache.min.js"),
@@ -25,11 +37,16 @@ requirejs(
      requiremodulelib("wobserver.js"),
      requiresystemtext("modules/navbar_loggedin.html"),
     ],
-    function(config, d3, mustache, showdown, fontawesome, wobserver, navbar_li) {
+    function(config, // Learning Observer config
+	     d3, mustache, showdown, fontawesome,  // 3rd party
+	     wobserver,  // The Writing Observer
+	     navbar_li) {  // Top bar
 	// Parse client configuration.
 	config = JSON.parse(config);
-	// Add libraries
 	config.d3 = d3;
+	// Create a function to make AJAX calls based on the
+	// config. This should move into liblo?
+
 	config.ajax = ajax(config);
 	function load_dashboard_page(course) {
 	    /*

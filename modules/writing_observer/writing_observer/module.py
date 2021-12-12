@@ -11,6 +11,8 @@ NAME = "The Writing Observer"
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
 
+import learning_observer.stream_analytics.helpers as helpers
+
 import writing_observer.aggregator
 import writing_observer.writing_analysis
 
@@ -49,6 +51,7 @@ STUDENT_AGGREGATORS = {
 # Incoming event APIs
 REDUCERS = [{
     'context': "org.mitros.writing-analytics",
+    'scope': [helpers.KeyField.STUDENT],
     'function': writing_observer.writing_analysis.pipeline
 }]
 

@@ -144,8 +144,8 @@ def add_routes():
     # This serves up data (currently usually dummy data) for the dashboard
     app.add_routes([
         aiohttp.web.get(
-            '/wsapi/dashboard/{module_id}/{course_id}/',
-            learning_observer.dashboard.ws_course_aggregate_view),
+            '/wsapi/dashboard',
+            learning_observer.dashboard.websocket_dashboard_view),
         aiohttp.web.get(
             '/webapi/course_dashboards',
             ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),

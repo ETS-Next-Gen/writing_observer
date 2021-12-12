@@ -21,12 +21,14 @@ import learning_observer.auth
 import learning_observer.rosters as rosters
 
 
-def aggregate_course_data(
+def fetch_student_state(
         course_id, module_id,
         agg_module, roster,
         default_data={}
 ):
     '''
+    This closure will compile student data from a roster of students.
+
     Closure remembers course roster, and redis KVS.
 
     Reopening connections to redis every few seconds otherwise would
@@ -34,14 +36,14 @@ def aggregate_course_data(
     '''
     teacherkvs = kvs.KVS()
 
-    async def rsd():
+    async def student_state_fetcher():
         '''
         Poll redis for student state. This should be abstracted out into a generic
         aggregator API, much like we have a reducer on the incoming end.
         '''
         students = []
         for student in roster:
-            student_data = {
+            student_state = {
                 # We're copying Google's roster format here.
                 #
                 # It's imperfect, and we may want to change it later, but it seems
@@ -59,7 +61,7 @@ def aggregate_course_data(
                 "courseId": course_id,
                 "userId": student['userId'],  # TODO: Encode?
             }
-            student_data.update(default_data)
+            student_state.update(default_data)
 
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
@@ -84,40 +86,51 @@ def aggregate_course_data(
                 data = await teacherkvs[key]
                 print(data)
                 if data is not None:
-                    student_data[sa_helpers.fully_qualified_function_name(sa_module)] = data
+                    student_state[sa_helpers.fully_qualified_function_name(sa_module)] = data
             cleaner = agg_module.get("cleaner", lambda x: x)
-            students.append(cleaner(student_data))
+            students.append(cleaner(student_state))
 
         return students
-    return rsd
+    return student_state_fetcher
 
 
 @learning_observer.auth.teacher
-async def ws_course_aggregate_view(request):
+async def websocket_dashboard_view(request):
     '''
     Handler to aggregate student data, and serve it back to the client
     every half-second to second or so.
     '''
-    # print("Serving")
-    module_id = request.match_info['module_id']
-    course_id = int(request.match_info['course_id'])
-    student_id = request.match_info.get('student_id', None)
+    # Extract parameters from the URL
+    #
+    # Note that we need to do auth/auth. At present, we always want a
+    # course ID, even for a single student. If a teacher requests a
+    # students' data, we want to make sure that sutdnet is in that
+    # teacher's course.
+    course_id = request.rel_url.query.get("course")
+    # module_id should support a list, perhaps?
+    module_id = request.rel_url.query.get("module")
+    # For student dashboards
+    student_id = request.rel_url.query.get("student", None)
+    # For individual resources
+    resource_id = request.rel_url.query.get("resource", None)
+    # How often do we refresh? Default is 0.5 seconds
+    refresh = 0.5  # request.match_info.get('refresh', 0.5)
 
     # Find the right module
-    agg_module = None
+    course_aggregator_module = None
 
-    lomlca = learning_observer.module_loader.course_aggregators()
-    for m in lomlca:
-        if lomlca[m]['short_id'] == module_id:
+    course_aggregator_list = learning_observer.module_loader.course_aggregators()
+    for candidate_module in course_aggregator_list:
+        if course_aggregator_list[candidate_module]['short_id'] == module_id:
             # TODO: We should support multiple modules here.
-            if agg_module is not None:
-                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: " + m)
-            agg_module = lomlca[m]
-            default_data = agg_module.get('default-data', {})
-    if agg_module is None:
+            if course_aggregator_module is not None:
+                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: " + candidate_module)
+            course_aggregator_module = course_aggregator_list[candidate_module]
+            default_data = course_aggregator_module.get('default-data', {})
+    if course_aggregator_module is None:
         print("Bad module: ", module_id)
-        print("Available modules: ", lomlca)
-        raise aiohttp.web.HTTPBadRequest(text="Invalid module: " + m)
+        print("Available modules: ", course_aggregator_list)
+        raise aiohttp.web.HTTPBadRequest(text="Invalid module: " + candidate_module)
 
     # We need to receive to detect web socket closures.
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
@@ -136,16 +149,16 @@ async def ws_course_aggregate_view(request):
         roster = [r for r in roster if r['userId'] == student_id]
 
     # Grab student list, and deliver to the client
-    rsd = aggregate_course_data(
+    student_state_fetcher = fetch_student_state(
         course_id,
         module_id,
-        agg_module,
+        course_aggregator_module,
         roster,
         default_data
     )
-    aggregator = agg_module.get('aggregator', lambda x: {})
+    aggregator = course_aggregator_module.get('aggregator', lambda x: {})
     while True:
-        sd = await rsd()
+        sd = await student_state_fetcher()
         data = {
             "student-data": sd   # Per-student list
         }

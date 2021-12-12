@@ -2,10 +2,33 @@
   This ought to be packaged up at some point....
  */
 
-function dashboard_connection(module, course, callback) {
+function encode_query_string(obj) {
+    /*
+       Create a query string from a dictionary
+
+       {a:'b', c:'d'} ==> "a=b&c=d"
+
+       dictionary -> string
+    */
+    var str = [];
+    for (var p in obj)
+	if (obj.hasOwnProperty(p)) {
+	    str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+	}
+    return str.join("&");
+}
+
+
+function dashboard_connection(key, callback, params) {
+    /*
+       Create a web socket connection to the server.
+     */
+    const course = key.course;
+    const module = key.module;
+    const get_params = encode_query_string(key);
     // TODO: Course should be abstracted out
     const protocol = {"http:": "ws:", "https:": "wss:"}[window.location.protocol];
-    var ws = new WebSocket(`${protocol}//${window.location.host}/wsapi/dashboard/${module}/${course}/`)
+    var ws = new WebSocket(`${protocol}//${window.location.host}/wsapi/dashboard?${get_params}`);
     ws.onmessage = function (event) {
 	console.log("Got data");
 	let data = JSON.parse(event.data);

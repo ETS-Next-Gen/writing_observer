@@ -1,5 +1,7 @@
 /*
   Main visualization for The Writing Observer
+
+  This is the meat of the system.
 */
 
 var student_data;
@@ -7,76 +9,6 @@ var summary_stats;
 var tile_template;
 var d3;
 
-function rendertime1(t) {
-    /*
-      Convert seconds to a time string.
-         10     ==> 10 sec
-	 120    ==> 2:00
-	 3600   ==> 1:00:00
-	 7601   ==> 2:06:41
-	 764450 ==> 8 days
-
-     */
-    function str(i) {
-        if(i<10) {
-            return "0"+String(i);
-        }
-        return String(i)
-    }
-    var seconds = Math.floor(t) % 60;
-    var minutes = Math.floor(t/60) % 60;
-    var hours = Math.floor(t/3600) % 60;
-    var days = Math.floor(t/3600/24);
-
-    if ((minutes === 0) && (hours === 0) && (days === 0)) {
-	return String(seconds) + " sec"           // 0-59 seconds
-    }
-    if (days>0) {
-	return String(days) + " days"             // >= 1 day
-    }
-    if(hours === 0) {
-	return String(minutes)+":"+str(seconds);  // 1 minute - 1 hour
-    }
-    return String(hours)+":"+str(minutes)+":"+str(seconds)  // 1 - 24 hours
-}
-
-function rendertime2(t) {
-    /*
-      Convert seconds to a time string.
-
-      Compact representation.
-         10     ==> 10s
-	 125    ==> 2m
-	 3600   ==> 1h
-	 7601   ==> 2h
-	 764450 ==> 8d
-
-     */
-    function str(i) {
-        if(i<10) {
-            return "0"+String(i);
-        }
-        return String(i)
-    }
-    var seconds = Math.floor(t) % 60;
-    var minutes = Math.floor(t/60) % 60;
-    var hours = Math.floor(t/3600) % 60;
-    var days = Math.floor(t/3600/24);
-
-    if(days>0) {
-	return String(days)+'d';
-    }
-    if(hours>0) {
-	return String(hours)+'h';
-    }
-    if(minutes>0) {
-	return String(minutes)+'m';
-    }
-    if(seconds>0) {
-	return String(seconds)+'s';
-    }
-    return '-';
-}
 
 var first_time = true;
 
@@ -215,19 +147,24 @@ function initialize(D3, div, course, config) {
     console.log(config);
 
     div.html(dashboard_template);
-    dashboard_connection("writing-observer", course, function(data) {
-	console.log("New data!");
-	student_data = data["student-data"];
-	summary_stats = data["summary-stats"];
-	console.log(summary_stats);
-	d3.select(".wo-tile-sheet").call(populate_tiles, student_data);
-        d3.selectAll(".wo-loading").classed("is-hidden", true);
-	console.log("Hide labels?");
-	if(config.modules.wobserver['hide-labels']) {
-	    console.log("Hide labels");
-	    d3.selectAll(".wo-desc-header").classed("is-hidden", true);
-	}
-    });
+    dashboard_connection(
+	{
+	    module: "writing-observer",
+	    course: course
+	},
+	function(data) {
+	    console.log("New data!");
+	    student_data = data["student-data"];
+	    summary_stats = data["summary-stats"];
+	    console.log(summary_stats);
+	    d3.select(".wo-tile-sheet").call(populate_tiles, student_data);
+            d3.selectAll(".wo-loading").classed("is-hidden", true);
+	    console.log("Hide labels?");
+	    if(config.modules.wobserver['hide-labels']) {
+		console.log("Hide labels");
+		d3.selectAll(".wo-desc-header").classed("is-hidden", true);
+	    }
+	});
     /*
     var tabs = ["typing", "deane", "summary", "outline", "timeline", "contact"];
     for(var i=0; i<tabs.length; i++) {
