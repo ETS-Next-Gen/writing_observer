@@ -2,10 +2,10 @@
     "author": "Piotr Mitros",
     "manifest_version": 2,
     "name": "Writing Process",
-    "homepage_url": "http://mitros.org/",
+    "homepage_url": "https://github.com/ETS-Next-Gen/writing_observer",
     "incognito": "not_allowed",
     "offline_enabled": true,
-    "version": "1.0",
+    "version": "0.0.0.1",
     "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
 
     "browser_action": {
