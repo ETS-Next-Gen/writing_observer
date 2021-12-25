@@ -29,6 +29,9 @@ STATIC_REPOS = {}
 STUDENT_DASHBOARDS = []
 COURSE_DASHBOARDS = []
 
+# Additional calls, primarily for metadata
+AJAX = {}
+
 
 def extra_views():
     '''
@@ -136,6 +139,11 @@ def static_repos():
     return STATIC_REPOS
 
 
+def ajax():
+    load_modules()
+    return AJAX
+
+
 def load_modules():
     '''
     Iterate through entry points to:
@@ -220,6 +228,10 @@ def load_modules():
                 })
         else:
             print("Module has no reducers")
+
+        # Load additional AJAX calls
+        if hasattr(module, "AJAX"):
+            AJAX[entrypoint.name] = module.AJAX
 
         # Load a list of static files our server will serve
         #
