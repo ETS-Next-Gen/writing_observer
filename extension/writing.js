@@ -22,8 +22,21 @@ function log_event(event_type, event) {
       We pass an event, annotated with the page document ID and title,
       to the background script
     */
-    event["title"] = google_docs_title();
-    event["doc_id"] = doc_id();
+    // This is a compromise. We'd like to be similar to xAPI / Caliper, both
+    // of which use the 'object' field with a bunch of verbose stuff.
+    //
+    // Verbosity is bad for analytics, but compatibility is good.
+    //
+    // This is how Caliper thinks of this: https://www.imsglobal.org/spec/caliper/v1p2#entity
+    // This is how Tincan/xAPI thinks of this: https://xapi.com/statements-101/
+    //
+    // "Object" is a really bad name. Come on. Seriously?
+    event["object"] = {
+	"type": "http://schema.learning-observer.org/writing-observer/",
+	"title": google_docs_title(),
+	"id": doc_id()
+    }
+
     event['event'] = event_type;
     // We want to track the page status during events. For example,
     // Google Docs inserts comments during the document load.

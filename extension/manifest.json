@@ -28,11 +28,7 @@
 	"identity",
 	"identity.email",
 	"*://docs.google.com/*",
-        "clipboardRead",
-        "storage",
-        "activeTab",
-        "tabs",
-        "declarativeContent"
+        "storage"
    ],
     "icons": {
 	"48": "icons/lousy-fountain-pen-48.png"
