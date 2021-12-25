@@ -251,9 +251,15 @@ async def incoming_websocket_handler(request):
     # header. Setting INIT_PIPELINE to False allows us to use those
     # files in the current system.
     #
-    # At some point, we should just change restream.py to inject a
-    # false header, or archive the source files and migrate the files, so
-    # that we can eliminate this setting.
+    # At some point, we should either:
+    #
+    # 1) Change restream.py to inject a false header, or archive the
+    # source files and migrate the files, so that we can eliminate
+    # this setting; or
+    # 2) Dispatch on type of event
+    #
+    # This should not be a config setting.
+
     INIT_PIPELINE = settings.settings.get("init_pipeline", True)
     json_msg = None
     if INIT_PIPELINE:
@@ -291,7 +297,7 @@ async def incoming_websocket_handler(request):
         if not AUTHENTICATED:
             # If INIT_PIPELINE == False
             if json_msg is None:
-                json_msg = msg
+                json_msg = client_event
             # E.g. is this from Writing Observer? Some math assessment? Etc. We dispatch on this
             if 'source' in json_msg:
                 event_metadata['source'] = json_msg['source']
