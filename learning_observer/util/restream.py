@@ -4,10 +4,10 @@ Usage:
     restream.py [--url=<url>] [--extract-client] [--rate=<rate>] [--max-wait=<sec>] [--filelist] [--rename=auth.user_id] <filename>
 
 Options
-    --url=<url>       URL to connect [default: http://localhost:8888/]
+    --url=<url>       URL to connect [default: http://localhost:8888/wsapi/in/]
     --extract-client  Parse JSON and extract unannoted client-side event
     --filelist        File is a list of files to play at once
-    --rate=<rate>     Throttle events to: rate*timestamps
+    --rate=<rate>     Throttle events to: rate*timestamps [default: 1]
     --max-wait=<sec>  Maximum delay (if throttling)
     --rename=<field>  Rename students, randomly. If set, <field> must be auth.user_id.
 
@@ -46,7 +46,7 @@ async def restream(
         rename
 ):
     '''
-    Simplest function in the world.
+    Formerly, the simplest function in the world.
 
     Open up a session, then a socket, and then stream lines from the
     file to the socket.
