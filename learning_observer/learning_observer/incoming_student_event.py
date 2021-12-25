@@ -243,7 +243,19 @@ async def incoming_websocket_handler(request):
 
     print("Init pipeline")
     header_events = []
-    INIT_PIPELINE = True
+
+    # This will take a little bit of explaining....
+    #
+    # We originally did not have a way to do auth/auth. Now, we do
+    # auth with a header. However, we have old log files without that
+    # header. Setting INIT_PIPELINE to False allows us to use those
+    # files in the current system.
+    #
+    # At some point, we should just change restream.py to inject a
+    # false header, or archive the source files and migrate the files, so
+    # that we can eliminate this setting.
+    INIT_PIPELINE = settings.settings.get("init_pipeline", True)
+    json_msg = None
     if INIT_PIPELINE:
         async for msg in ws:
             print("Auth", msg)
@@ -277,6 +289,9 @@ async def incoming_websocket_handler(request):
 
         # We set up metadata based on the first event, plus any headers
         if not AUTHENTICATED:
+            # If INIT_PIPELINE == False
+            if json_msg is None:
+                json_msg = msg
             # E.g. is this from Writing Observer? Some math assessment? Etc. We dispatch on this
             if 'source' in json_msg:
                 event_metadata['source'] = json_msg['source']
