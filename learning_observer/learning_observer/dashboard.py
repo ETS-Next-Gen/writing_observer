@@ -38,8 +38,9 @@ def fetch_student_state(
 
     async def student_state_fetcher():
         '''
-        Poll redis for student state. This should be abstracted out into a generic
-        aggregator API, much like we have a reducer on the incoming end.
+        Poll redis for student state. This should be abstracted out into a
+        generic aggregator API, much like we have a reducer on the
+        incoming end.
         '''
         students = []
         for student in roster:
@@ -94,6 +95,26 @@ def fetch_student_state(
     return student_state_fetcher
 
 
+def find_course_aggregator(module_id):
+    '''
+    Find a course aggregator based on a `module_id`
+
+    * This should move to the modules package.
+    * We should support having a list of these
+    '''
+    course_aggregator_module = None
+    default_data = {}
+    course_aggregator_candidates = learning_observer.module_loader.course_aggregators()
+    for candidate_module in course_aggregator_candidates:
+        if course_aggregator_candidates[candidate_module]['short_id'] == module_id:
+            # TODO: We should support multiple modules here.
+            if course_aggregator_module is not None:
+                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: " + candidate_module)
+            course_aggregator_module = course_aggregator_candidates[candidate_module]
+            default_data = course_aggregator_module.get('default-data', {})
+    return (course_aggregator_module, default_data)
+
+
 @learning_observer.auth.teacher
 async def websocket_dashboard_view(request):
     '''
@@ -117,20 +138,12 @@ async def websocket_dashboard_view(request):
     refresh = 0.5  # request.match_info.get('refresh', 0.5)
 
     # Find the right module
-    course_aggregator_module = None
+    course_aggregator_module, default_data = find_course_aggregator(module_id)
 
-    course_aggregator_list = learning_observer.module_loader.course_aggregators()
-    for candidate_module in course_aggregator_list:
-        if course_aggregator_list[candidate_module]['short_id'] == module_id:
-            # TODO: We should support multiple modules here.
-            if course_aggregator_module is not None:
-                raise aiohttp.web.HTTPNotImplemented(text="Duplicate module: " + candidate_module)
-            course_aggregator_module = course_aggregator_list[candidate_module]
-            default_data = course_aggregator_module.get('default-data', {})
     if course_aggregator_module is None:
         print("Bad module: ", module_id)
-        print("Available modules: ", course_aggregator_list)
-        raise aiohttp.web.HTTPBadRequest(text="Invalid module: " + candidate_module)
+        print("Available modules: ", learning_observer.module_loader.course_aggregators())
+        raise aiohttp.web.HTTPBadRequest(text="Invalid module: " + str(module_id))
 
     # We need to receive to detect web socket closures.
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
