@@ -1,16 +1,16 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-    <script src="/static/3rd_party/d3.v5.min.js"></script> <!-- Temporary, for debugging. require pulls this in -->
-    <script data-main="/static/webapp.js" src="/static/3rd_party/require.js"></script>
+    <script src="/static/3rd_party/d3.v5.min.js"></script>
+    <script src="/common/dashboard.js"></script>
+    <script data-main="/static/debug.js" src="/static/3rd_party/require.js"></script>
 
     <!-- Our stylesheet / CSS framework is Bulma, for now--> 
     <link rel="stylesheet" href="/static/3rd_party/bulma.min.css"/>
     <link rel="stylesheet" href="/static/3rd_party/bulma-tooltip-min.css"/>
-    <link rel="stylesheet" href="/static/ux.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
-    <title> Writing Analysis </title>
+    <title> Dashboard Debugger </title>
     <!--link rel="stylesheet" href="da.css"/-->
   </head>
   <body>
@@ -36,7 +36,11 @@
 
     <!-- Main page body -->
     <section class="section main-page">
-	<!-- Replaced once page loads. Unique identifier main-page. -->
+      <p> This is a test page. We can write a JSON key, and monitor a dashboard </p>
+      <p> It is not designed to be robust. </p>
+      <textarea id="query_string" class="textarea" placeholder='{"module": "da_timeline", "course": "12345", "student": "bob"}' rows="10"></textarea>
+      <button id="query_button" class="Query">Query</button>
+      <textarea id="query_response" class="textarea" placeholder="Bob's response" rows="10"></textarea>
     </section>
     <footer class="footer">
       <div class="content has-text-centered">
