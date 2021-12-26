@@ -1,15 +1,16 @@
 '''ReStream
 
 Usage:
-    restream.py [--url=<url>] [--extract-client] [--rate=<rate>] [--max-wait=<sec>] [--filelist] [--rename=auth.user_id] <filename>
+    restream.py [--url=<url>] [--extract-client] [--rate=<rate>] [--max-wait=<sec>] [--filelist] [--rename=auth.user_id] [--skip=<events>] <filename>
 
 Options
-    --url=<url>       URL to connect [default: http://localhost:8888/wsapi/in/]
-    --extract-client  Parse JSON and extract unannoted client-side event
-    --filelist        File is a list of files to play at once
-    --rate=<rate>     Throttle events to: rate*timestamps [default: 1]
-    --max-wait=<sec>  Maximum delay (if throttling)
-    --rename=<field>  Rename students, randomly. If set, <field> must be auth.user_id.
+    --url=<url>        URL to connect [default: http://localhost:8888/wsapi/in/]
+    --extract-client   Parse JSON and extract unannoted client-side event
+    --filelist         File is a list of files to play at once
+    --rate=<rate>      Throttle events to: timestamps / rate [default: 1]
+    --max-wait=<sec>   Maximum delay (if throttling)
+    --rename=<field>   Rename students, randomly. If set, <field> must be auth.user_id.
+    --skip=<events>    For performance, a list of events to skip (e.g. mouse)
 
 Overview:
     * Restream logs from a file a web sockets server
@@ -43,7 +44,8 @@ async def restream(
         rate,
         max_wait,
         extract_client,
-        rename
+        rename,
+        skip
 ):
     '''
     Formerly, the simplest function in the world.
@@ -52,6 +54,13 @@ async def restream(
     file to the socket.
     '''
     old_ts = None
+    if isinstance(skip, str):
+        skip = set(",".split(skip))
+    elif skip == None:
+        skip = set()
+    else:
+        raise Exception("Bug in skip. Debug please.")
+
     if rename is not None:
         new_id = "rst-{name}-{number}".format(
             name = names.get_first_name(),
@@ -63,9 +72,12 @@ async def restream(
             async with aiofiles.open(filename) as log_file:
                 async for line in log_file:
                     if rate is not None:
-                        new_ts = json.loads(line)["server"]["time"]
+                        jline = json.loads(line)
+                        if jline['client']['event'] in skip:
+                            continue
+                        new_ts = jline["server"]["time"]
                         if old_ts is not None:
-                            delay = (new_ts - old_ts) * rate
+                            delay = (new_ts - old_ts) / rate
                             if max_wait is not None:
                                 delay = min(delay, max_wait)
                             print(line)
@@ -103,7 +115,8 @@ async def run():
             rate = float(args["--rate"]),
             max_wait = args["--max-wait"],
             extract_client = args['--extract-client'],
-            rename = args['--rename']
+            rename = args['--rename'],
+            skip = args.get('--skip', None)
         ) for filename in filelist]
     await asyncio.gather(*coroutines)
 
