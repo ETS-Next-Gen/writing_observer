@@ -5,8 +5,8 @@ function query_dashboard() {
     dashboard_connection(
 	JSON.parse(d3.select("#query_string").property("value")),
 	function(data) {
-	    console.log(data['student-data']);
-	    d3.select("#query_response").property("value", JSON.stringify(data['student-data']));
+	    console.log(data);
+	    d3.select("#query_response").property("value", JSON.stringify(data));
 	}
     );
 };
