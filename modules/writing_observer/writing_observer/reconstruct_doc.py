@@ -242,7 +242,8 @@ dispatch = {
     'ds': delete,
     'is': insert,
     'mlti': multi,
-    'null': null
+    'null': null,
+    'sl': null
 }
 
 if __name__ == '__main__':
