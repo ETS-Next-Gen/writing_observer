@@ -155,7 +155,7 @@ function websocket_logger(server) {
             console.log("Event squelched; reconnecting");
         } else if(socket.readyState === socket.OPEN &&
            state.has("ready")) {
-            while(queue.length > 1) {
+            while(queue.length > 0) {
                 var event = queue.shift();
                 socket.send(event);  /* TODO: We should do receipt confirmation before dropping events */
             }
