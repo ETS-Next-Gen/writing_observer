@@ -34,7 +34,8 @@ function log_event(event_type, event) {
     event["object"] = {
 	"type": "http://schema.learning-observer.org/writing-observer/",
 	"title": google_docs_title(),
-	"id": doc_id()
+	"id": doc_id(),
+	"url": window.location.href,
     }
 
     event['event'] = event_type;
@@ -96,7 +97,7 @@ function google_docs_partial_text() {
     try {
         return document.getElementsByClassName("kix-page")[0].innerText;
     } catch(error) {
-        log_error("Could get document text");
+        log_error("Could not get document text");
         return null;
     }
 }
@@ -710,15 +711,15 @@ This is impossible to do directly from within an extension.
 
 This is currently unused.
 */
-const LOG_AJAX = "
-const WO_XHR = XMLHttpRequest.prototype;
-const wo_send = WO_XHR.send;
-
-
-WO_XHR.send = function () {
-    this.addEventListener('load', function () {
-        console.log(this); console.log(this.getAllResponseHeaders());
-    }); return wo_send.apply(this, arguments); }
+const LOG_AJAX = "\n\
+const WO_XHR = XMLHttpRequest.prototype;\n\
+const wo_send = WO_XHR.send;\n\
+\n\
+\n\
+WO_XHR.send = function () {\n\
+    this.addEventListener('load', function () {\n\
+        console.log(this); console.log(this.getAllResponseHeaders());\n\
+    }); return wo_send.apply(this, arguments); }\n\
 "
 
 window.addEventListener("load", writing_onload);

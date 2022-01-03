@@ -361,6 +361,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                    versus GMT. */
                 event = {
                     'doc_id':  googledocs_id_from_url(request.url),
+		    'url': request.url,
                     'bundles': JSON.parse(formdata.bundles),
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
@@ -373,6 +374,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                  */
                 event = {
                     'doc_id':  googledocs_id_from_url(request.url),
+		    'url': request.url,
                     'formdata': formdata,
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
