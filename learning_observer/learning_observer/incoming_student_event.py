@@ -68,6 +68,7 @@ async def student_event_pipeline(metadata):
     # Create an event processor for this user
     # TODO: This should happen in parallel: https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
     event_processors = [await am['student_event_reducer'](metadata) for am in analytics_modules]
+    print("Event processors: ", event_processors)
 
     async def pipeline(parsed_message):
         '''
@@ -83,7 +84,6 @@ async def student_event_pipeline(metadata):
         # To do: Finer-grained exception handling. Right now, if we break, we don't run
         # through remaining processors.
         try:
-            print(event_processors)
             processed_analytics = [await ep(parsed_message) for ep in event_processors]
         except Exception as e:
             traceback.print_exc()
@@ -309,7 +309,8 @@ async def incoming_websocket_handler(request):
             )
             AUTHENTICATED = True
 
-        event_handler = await handle_incoming_client_event(metadata=event_metadata)
+        if not event_handler:
+            event_handler = await handle_incoming_client_event(metadata=event_metadata)
 
         debug_log(
             "Dispatch incoming ws event: " + client_event['event']

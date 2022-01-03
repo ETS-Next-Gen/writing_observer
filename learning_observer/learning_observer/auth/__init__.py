@@ -94,4 +94,7 @@ if 'google-oauth' in settings.settings['auth']:
         print("  https://console.developers.google.com/")
         print("And set up an OAuth client for a web application. Make sure that configuration")
         print("mirrors the one here.")
+        print("")
+        print("If you are not planning to use Google auth (which is the case for most dev")
+        print("settings), please disable Google authentication in creds.yaml")
         sys.exit(-1)

@@ -41,7 +41,7 @@ print(ARGS)
 STREAMS = int(ARGS["--streams"])
 
 if ARGS['--source'] == []:
-    TEXT = ["\n".join(loremipsum.get_paragraphs(5)) for i in range(STREAMS)]
+    TEXT = ["\n".join(loremipsum.get_paragraphs(int(ARGS.get("--text-length", 5)))) for i in range(STREAMS)]
     print(TEXT)
 else:
     filenames = ARGS['--source']
