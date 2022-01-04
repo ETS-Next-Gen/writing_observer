@@ -56,4 +56,5 @@ KeyFields = [
 
 KeyField = enum.Enum("KeyField", " ".join(KeyFields))
 
-FieldSet = frozenset
+class FieldSet(frozenset):
+    pass

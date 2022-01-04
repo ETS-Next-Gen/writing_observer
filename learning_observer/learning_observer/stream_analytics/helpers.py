@@ -125,7 +125,8 @@ def kvs_pipeline(
     '''
     if scope==None:
         print("TODO: explicitly specify a scope")
-        scope = [KeyField.STUDENT]
+        print("Defaulting to student scope")
+        scope = FieldSet([KeyField.STUDENT])
 
     def decorator(func):
         '''
@@ -154,7 +155,7 @@ def kvs_pipeline(
                     safe_user_id = '[guest]'
                 keydict[KeyField.STUDENT] = safe_user_id
 
-            async def process_event(events):
+            async def process_event(events, additional_metadata = {}):
                 '''
                 This is the function which processes events. It calls the event
                 processor, passes in the event(s) and state. It takes

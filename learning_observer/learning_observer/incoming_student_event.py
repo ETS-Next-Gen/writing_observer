@@ -59,15 +59,16 @@ async def student_event_pipeline(metadata):
     '''
     client_source = metadata["source"]
     print("client_source")
-    print(stream_analytics.student_reducer_modules())
-    if client_source not in stream_analytics.student_reducer_modules():
+    print(stream_analytics.reducer_modules())
+    if client_source not in stream_analytics.reducer_modules():
         debug_log("Unknown event source: " + str(client_source))
-        debug_log("Known sources: " + repr(stream_analytics.student_reducer_modules().keys()))
+        debug_log("Known sources: " + repr(stream_analytics.reducer_modules().keys()))
         raise learning_observer.exceptions.SuspiciousOperation("Unknown event source")
-    analytics_modules = stream_analytics.student_reducer_modules()[client_source]
+    analytics_modules = stream_analytics.reducer_modules()[client_source]
     # Create an event processor for this user
-    # TODO: This should happen in parallel: https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
-    event_processors = [await am['student_event_reducer'](metadata) for am in analytics_modules]
+    # TODO: This should happen in parallel:
+    # https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
+    event_processors = [await am['reducer'](metadata) for am in analytics_modules]
     print("Event processors: ", event_processors)
 
     async def pipeline(parsed_message):

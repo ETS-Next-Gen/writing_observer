@@ -15,17 +15,17 @@ import collections
 import functools
 import learning_observer.module_loader
 
-STUDENT_REDUCER_MODULES = None
+REDUCER_MODULES = None
 
 
-def student_reducer_modules():
+def reducer_modules():
     '''
     Helper.
 
     TODO: Somewhat obsolete, since a lot of this code will migrate into module_loader.
     '''
-    global STUDENT_REDUCER_MODULES
-    return STUDENT_REDUCER_MODULES
+    global REDUCER_MODULES
+    return REDUCER_MODULES
 
 
 def async_lambda(function):
@@ -47,7 +47,7 @@ def init():
     srm = collections.defaultdict(lambda: list())
 
     # For debugging; this can go away at some point
-    srm['org.mitros.mirror'].append({'student_event_reducer': async_lambda(
+    srm['org.mitros.mirror'].append({'reducer': async_lambda(
         lambda metadata: async_lambda(lambda event: event)
     )})
 
@@ -55,9 +55,11 @@ def init():
     for reducer in reducers:
         context = reducer['context']
         function = reducer['function']
+        scope = reducer.get('scope', helpers.FieldSet([helpers.KeyField.STUDENT]))
         srm[context].append({
-            'student_event_reducer': function
+            'reducer': function,
+            'scope': scope
         })
 
-    global STUDENT_REDUCER_MODULES
-    STUDENT_REDUCER_MODULES = dict(srm)
+    global REDUCER_MODULES
+    REDUCER_MODULES = dict(srm)
