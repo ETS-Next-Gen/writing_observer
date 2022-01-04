@@ -32,34 +32,11 @@ aggregators, state types, etc. We'll also want different keys for
 reducers (per-student, per-resource, etc.). For now, though, this
 works.
 '''
-import enum
 import functools
 
 import learning_observer.kvs
+from learning_observer.stream_analytics.fields import KeyStateType, KeyField, EventField, FieldSet
 
-
-KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
-
-# This is a set of fields which we use to index reducers. For example,
-# if we'd like to know how many students accessed a specific Google
-# Doc, we might create a RESOURCE key (which would receive events for
-# all students accessing that resource). If we'd like to keep track of
-# a students' work in a particular Google Doc, we'd create a
-# STUDENT/RESOURCE key.
-#
-# At some point, this shouldn't be hardcoded
-#
-# We'd also like a better way to think of the hierarchy of assignments than ITEM/ASSIGNMENT
-KeyFields = [
-    "STUDENT",    # A single student
-    "CLASS",      # A group of students. Typically, one class roster in Google Classroom
-    "RESOURCE"    # E.g. One Google Doc
-#   "ASSIGNMENT"  # E.g. A collection of Google Docs (e.g. notes, outline, draft)
-#   "TEACHER"     #
-#    ...          # ... and so on.
-]
-
-KeyField = enum.Enum("KeyField", " ".join(KeyFields))
 
 def fully_qualified_function_name(func):
     '''
@@ -81,11 +58,23 @@ def fully_qualified_function_name(func):
 
 def make_key(func, key_dict, state_type):
     '''
-    Create a KVS key
+    Create a KVS key.
 
-    This joins a stream module ID, a sanitized user ID, and
-    whether this is the internal state of the module or the
-    external state.
+    It combines:
+
+    * A fully-qualified name for the reducer function
+    * A dictionary of fields
+    * Whether the key is internal or external
+
+    Into a unique string
+
+    For example:
+    >>> make_key(
+          some_module.reducer,
+          {h.KeyField.STUDENT: 123}, 
+          h.KeyStateType.INTERNAL
+    )
+    'Internal,some_module.reducer,STUDENT:123'
     '''
     # pylint: disable=isinstance-second-argument-not-valid-type
     assert isinstance(state_type, KeyStateType)
@@ -137,6 +126,7 @@ def kvs_pipeline(
     if scope==None:
         print("TODO: explicitly specify a scope")
         scope = [KeyField.STUDENT]
+
     def decorator(func):
         '''
         The decorator itself
@@ -153,23 +143,16 @@ def kvs_pipeline(
             '''
             print("Metadata: ")
             print(metadata)
-            if metadata is not None and 'auth' in metadata:
-                safe_user_id = metadata['auth']['safe_user_id']
-            else:
-                safe_user_id = '[guest]'
-                # TODO: raise an exception?
 
-            internal_key = make_key(
-                func,
-                {KeyField.STUDENT: safe_user_id},
-                KeyStateType.INTERNAL
-            )
-            external_key = make_key(
-                func,
-                {KeyField.STUDENT: safe_user_id},
-                KeyStateType.EXTERNAL
-            )
             taskkvs = learning_observer.kvs.KVS()
+            keydict = {}
+
+            if KeyField.STUDENT in scope:
+                if metadata is not None and 'auth' in metadata:
+                    safe_user_id = metadata['auth']['safe_user_id']
+                else:
+                    safe_user_id = '[guest]'
+                keydict[KeyField.STUDENT] = safe_user_id
 
             async def process_event(events):
                 '''
@@ -219,6 +202,17 @@ def kvs_pipeline(
                 # * We could have modules explicitly indicate where they need
                 #   thread safety and transactions. That'd be easy enough.
                 #
+                internal_key = make_key(
+                    func,
+                    {KeyField.STUDENT: safe_user_id},
+                    KeyStateType.INTERNAL
+                )
+                external_key = make_key(
+                    func,
+                    {KeyField.STUDENT: safe_user_id},
+                    KeyStateType.EXTERNAL
+                )
+
                 internal_state = await taskkvs[internal_key]
                 internal_state, external_state = await func(
                     events, internal_state
