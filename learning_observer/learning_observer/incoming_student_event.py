@@ -59,17 +59,17 @@ async def student_event_pipeline(metadata):
     '''
     client_source = metadata["source"]
     print("client_source")
-    print(stream_analytics.reducer_modules())
-    if client_source not in stream_analytics.reducer_modules():
-        debug_log("Unknown event source: " + str(client_source))
-        debug_log("Known sources: " + repr(stream_analytics.reducer_modules().keys()))
-        raise learning_observer.exceptions.SuspiciousOperation("Unknown event source")
-    analytics_modules = stream_analytics.reducer_modules()[client_source]
+    print(stream_analytics.reducer_modules(client_source))
+    analytics_modules = stream_analytics.reducer_modules(client_source)
+
     # Create an event processor for this user
-    # TODO: This should happen in parallel:
-    # https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
-    event_processors = [await am['reducer'](metadata) for am in analytics_modules]
-    print("Event processors: ", event_processors)
+    # TODO:
+    # * Thing like this (esp. below) should happen in parallel:
+    #   https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
+    # * We should create cached modules for each key, rather than this partial evaluation
+    #   kludge
+    for am in analytics_modules:
+        am['reducer_partial'] = await am['reducer'](metadata)
 
     async def pipeline(parsed_message):
         '''
@@ -85,7 +85,10 @@ async def student_event_pipeline(metadata):
         # To do: Finer-grained exception handling. Right now, if we break, we don't run
         # through remaining processors.
         try:
-            processed_analytics = [await ep(parsed_message) for ep in event_processors]
+            processed_analytics = []
+            for am in analytics_modules:
+                print(am['scope'])
+                processed_analytics.append(await am['reducer_partial'](parsed_message))
         except Exception as e:
             traceback.print_exc()
             filename = paths.logs("critical-error-{ts}-{rnd}.tb".format(

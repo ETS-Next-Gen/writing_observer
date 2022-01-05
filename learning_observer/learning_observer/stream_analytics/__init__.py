@@ -12,20 +12,28 @@ This should move into a config file.
 '''
 
 import collections
+import copy
 import functools
+import learning_observer.exceptions
 import learning_observer.module_loader
 
 REDUCER_MODULES = None
 
 
-def reducer_modules():
+def reducer_modules(source):
     '''
     Helper.
 
     TODO: Somewhat obsolete, since a lot of this code will migrate into module_loader.
     '''
     global REDUCER_MODULES
-    return REDUCER_MODULES
+    modules = copy.deepcopy(REDUCER_MODULES.get(source, None))
+    if modules is None:
+        debug_log("Unknown event source: " + str(client_source))
+        debug_log("Known sources: " + repr(stream_analytics.reducer_modules().keys()))
+        raise learning_observer.exceptions.SuspiciousOperation("Unknown event source")
+
+    return modules
 
 
 def async_lambda(function):
