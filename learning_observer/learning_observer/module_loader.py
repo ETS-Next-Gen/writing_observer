@@ -218,13 +218,21 @@ def load_modules():
                 print("Reducer: ", reducer)
                 function = reducer['function']
                 context = reducer['context']
+                scope = reducer.get('scope', None)
+                if scope is None:
+                    print("SCOPE REQUIRED! Fix your code")
+                    print("This error will be removed and changed to an exception")
+                    print("once everything is migrated")
+                    import learning_observer.stream_analytics.helpers as helpers
+                    scope = helpers.Scope([helpers.KeyField.STUDENT])
                 # reducer_id = "{module}.{name}".format(
                 #     module=function.__module__,
                 #     name=function.__name__
                 # )
                 REDUCERS.append({
                     "context": context,
-                    "function": function
+                    "function": function,
+                    "scope": scope
                 })
         else:
             print("Module has no reducers")

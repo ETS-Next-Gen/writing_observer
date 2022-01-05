@@ -63,7 +63,7 @@ def init():
     for reducer in reducers:
         context = reducer['context']
         function = reducer['function']
-        scope = reducer.get('scope', helpers.FieldSet([helpers.KeyField.STUDENT]))
+        scope = reducer.get('scope', helpers.Scope([helpers.KeyField.STUDENT]))
         srm[context].append({
             'reducer': function,
             'scope': scope

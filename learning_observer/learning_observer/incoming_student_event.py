@@ -29,6 +29,8 @@ import learning_observer.stream_analytics as stream_analytics  # Individual anal
 
 import learning_observer.settings as settings
 
+import learning_observer.stream_analytics.helpers
+
 from learning_observer.log_event import debug_log
 
 import learning_observer.exceptions
@@ -88,7 +90,19 @@ async def student_event_pipeline(metadata):
             processed_analytics = []
             for am in analytics_modules:
                 print(am['scope'])
-                processed_analytics.append(await am['reducer_partial'](parsed_message))
+                args = {}
+                skip = False
+                for field in am['scope']:
+                    if isinstance(field, learning_observer.stream_analytics.helpers.EventField):
+                        print("event", parsed_message)
+                        print("field", field)
+                        client_event = parsed_message.get('client', {})
+                        if field.event not in client_event:
+                            print(field.event, "not found")
+                            skip = True
+                        args[field.event] = client_event.get(field.event)
+                if not skip:
+                    processed_analytics.append(await am['reducer_partial'](parsed_message, **args))
         except Exception as e:
             traceback.print_exc()
             filename = paths.logs("critical-error-{ts}-{rnd}.tb".format(

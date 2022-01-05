@@ -35,7 +35,7 @@ works.
 import functools
 
 import learning_observer.kvs
-from learning_observer.stream_analytics.fields import KeyStateType, KeyField, EventField, FieldSet
+from learning_observer.stream_analytics.fields import KeyStateType, KeyField, EventField, Scope
 
 
 def fully_qualified_function_name(func):
@@ -126,7 +126,7 @@ def kvs_pipeline(
     if scope==None:
         print("TODO: explicitly specify a scope")
         print("Defaulting to student scope")
-        scope = FieldSet([KeyField.STUDENT])
+        scope = Scope([KeyField.STUDENT])
 
     def decorator(func):
         '''

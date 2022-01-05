@@ -13,7 +13,7 @@ class EventField:
         return hash(self.event)
 
     def name(self):
-        return("EVENTFIELD."+self.event)
+        return("EventField."+self.event)
 
     def __str__(self):
         return self.name()
@@ -56,5 +56,5 @@ KeyFields = [
 
 KeyField = enum.Enum("KeyField", " ".join(KeyFields))
 
-class FieldSet(frozenset):
+class Scope(frozenset):
     pass
