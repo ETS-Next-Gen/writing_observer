@@ -142,9 +142,6 @@ def kvs_pipeline(
             want to allow sharding, etc. If two users are connected, each
             will have their own data store connection.
             '''
-            print("Metadata: ")
-            print(metadata)
-
             taskkvs = learning_observer.kvs.KVS()
             keydict = {}
 
@@ -155,7 +152,7 @@ def kvs_pipeline(
                     safe_user_id = '[guest]'
                 keydict[KeyField.STUDENT] = safe_user_id
 
-            async def process_event(events, additional_metadata = {}):
+            async def process_event(events, **additional_metadata):
                 '''
                 This is the function which processes events. It calls the event
                 processor, passes in the event(s) and state. It takes
@@ -202,15 +199,17 @@ def kvs_pipeline(
                 #   enough and probably the right long-term solution
                 # * We could have modules explicitly indicate where they need
                 #   thread safety and transactions. That'd be easy enough.
-                #
+                for field in scope:
+                    if field not in keydict and isinstance(field, EventField):
+                        keydict[field] = additional_metadata.get(field.event, "bug")
                 internal_key = make_key(
                     func,
-                    {KeyField.STUDENT: safe_user_id},
+                    keydict,
                     KeyStateType.INTERNAL
                 )
                 external_key = make_key(
                     func,
-                    {KeyField.STUDENT: safe_user_id},
+                    keydict,
                     KeyStateType.EXTERNAL
                 )
 

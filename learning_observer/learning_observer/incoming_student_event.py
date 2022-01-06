@@ -71,7 +71,17 @@ async def student_event_pipeline(metadata):
     # * We should create cached modules for each key, rather than this partial evaluation
     #   kludge
     for am in analytics_modules:
-        am['reducer_partial'] = await am['reducer'](metadata)
+        f = am['reducer']
+        import inspect
+
+        # We're moving to this always being a co-routine. This is
+        # backwards-compatibility code which should be removed as soon
+        # as we no longer print ISE78
+        if inspect.iscoroutinefunction(f):
+            am['reducer_partial'] = await am['reducer'](metadata)
+        else:
+            print("ISE78: HACK")
+            am['reducer_partial'] = am['reducer'](metadata)
 
     async def pipeline(parsed_message):
         '''
@@ -102,6 +112,7 @@ async def student_event_pipeline(metadata):
                             skip = True
                         args[field.event] = client_event.get(field.event)
                 if not skip:
+                    print("args", args)
                     processed_analytics.append(await am['reducer_partial'](parsed_message, **args))
         except Exception as e:
             traceback.print_exc()

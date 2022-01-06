@@ -8,18 +8,16 @@ class EventField:
     '''
     def __init__(self, event):
         self.event = event
+        self.name = "EventField."+self.event
 
     def __hash__(self):
         return hash(self.event)
 
-    def name(self):
-        return("EventField."+self.event)
-
     def __str__(self):
-        return self.name()
+        return self.name
 
     def __repr__(self):
-        return "<{name}>".format(name=self.name())
+        return "<{name}>".format(name=self.name)
 
     def __eq__(self, other):
         if not isinstance(other, EventField):
