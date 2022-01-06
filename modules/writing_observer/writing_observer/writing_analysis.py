@@ -29,9 +29,10 @@ TIME_ON_TASK_THRESHOLD = 5
 
 
 gdoc_scope = Scope([KeyField.STUDENT, EventField('doc_id')])
+student_scope = Scope([KeyField.STUDENT])
 
 
-@student_event_reducer()
+@kvs_pipeline(scope=student_scope)
 async def time_on_task(event, internal_state):
     '''
     This adds up time intervals between successive timestamps. If the interval
@@ -59,7 +60,7 @@ async def time_on_task(event, internal_state):
     return internal_state, internal_state
 
 
-@student_event_reducer()
+@kvs_pipeline(scope=student_scope)
 async def reconstruct(event, internal_state):
     '''
     This is a thin layer to route events to `reconstruct_doc` which compiles
@@ -97,4 +98,23 @@ async def event_count(event, internal_state):
     '''
     print("I'm getting called!")
     print(event)
-    return None, None
+
+    return False, False
+
+
+@kvs_pipeline(scope=student_scope, null_state={})
+async def document_list(event, internal_state):
+    '''
+    We would like to gather a list of all Google Docs a student
+    has visited / edited. This can then be used to decide which
+    ones to show.
+    '''
+    document_id = event.get('client', {}).get('doc_id', None)
+
+    if document_id is not None:
+        if document_id not in internal_state:
+            # In the future, we might include things like e.g. document title.
+            internal_state[document_id] = {}
+            return internal_state, internal_state
+
+    return False, False

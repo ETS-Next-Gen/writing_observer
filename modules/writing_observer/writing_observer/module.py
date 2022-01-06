@@ -64,6 +64,11 @@ REDUCERS = [
         'context': "org.mitros.writing-analytics",
         'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
         'function': writing_observer.writing_analysis.event_count
+    },
+    {
+        'context': "org.mitros.writing-analytics",
+        'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
+        'function': writing_observer.writing_analysis.document_list
     }
 ]
 

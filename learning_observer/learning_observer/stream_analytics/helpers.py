@@ -32,6 +32,8 @@ aggregators, state types, etc. We'll also want different keys for
 reducers (per-student, per-resource, etc.). For now, though, this
 works.
 '''
+
+import copy
 import functools
 
 import learning_observer.kvs
@@ -214,6 +216,10 @@ def kvs_pipeline(
                 )
 
                 internal_state = await taskkvs[internal_key]
+                if internal_state is None:
+                    internal_state = copy.deepcopy(null_state)
+                    await taskkvs.set(internal_key, internal_state)
+
                 internal_state, external_state = await func(
                     events, internal_state
                 )
@@ -235,4 +241,4 @@ def kvs_pipeline(
 #
 # We will probably keep `kvs_pipeline` as a generic, and this is part of that
 # transition.
-student_event_reducer = functools.partial(kvs_pipeline, scope=[KeyField.STUDENT])
+student_event_reducer = functools.partial(kvs_pipeline, scope=Scope([KeyField.STUDENT]))
