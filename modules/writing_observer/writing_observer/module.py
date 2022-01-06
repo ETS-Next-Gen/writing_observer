@@ -49,11 +49,23 @@ STUDENT_AGGREGATORS = {
 }
 
 # Incoming event APIs
-REDUCERS = [{
-    'context': "org.mitros.writing-analytics",
-    'scope': [helpers.KeyField.STUDENT],
-    'function': writing_observer.writing_analysis.pipeline
-}]
+REDUCERS = [
+    {
+        'context': "org.mitros.writing-analytics",
+        'scope': helpers.Scope([helpers.KeyField.STUDENT]),
+        'function': writing_observer.writing_analysis.time_on_task
+    },
+    {
+        'context': "org.mitros.writing-analytics",
+        'scope': helpers.Scope([helpers.KeyField.STUDENT]),
+        'function': writing_observer.writing_analysis.reconstruct
+    },
+    {
+        'context': "org.mitros.writing-analytics",
+        'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
+        'function': writing_observer.writing_analysis.event_count
+    }
+]
 
 
 # Required client-side JavaScript downloads

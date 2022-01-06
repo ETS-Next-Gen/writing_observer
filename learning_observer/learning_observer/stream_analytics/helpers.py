@@ -217,8 +217,13 @@ def kvs_pipeline(
                 internal_state, external_state = await func(
                     events, internal_state
                 )
-                await taskkvs.set(internal_key, internal_state)
-                await taskkvs.set(external_key, external_state)
+
+                # We would like to give reducers the opton to /not/ write
+                # on all events
+                if internal_state is not False:
+                    await taskkvs.set(internal_key, internal_state)
+                if external_state is not False:
+                    await taskkvs.set(external_key, external_state)
                 return external_state
             return process_event
         return wrapper_closure

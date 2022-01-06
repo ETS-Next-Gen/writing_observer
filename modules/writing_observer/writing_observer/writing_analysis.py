@@ -7,7 +7,7 @@ It just routes to smaller pipelines. Currently that's:
 '''
 import writing_observer.reconstruct_doc
 
-from learning_observer.stream_analytics.helpers import student_event_reducer
+from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -26,6 +26,9 @@ from learning_observer.stream_analytics.helpers import student_event_reducer
 
 # Should be 60-300 in prod. 5 seconds is nice for debugging
 TIME_ON_TASK_THRESHOLD = 5
+
+
+gdoc_scope = Scope([KeyField.STUDENT, EventField('doc_id')])
 
 
 @student_event_reducer()
@@ -63,6 +66,10 @@ async def reconstruct(event, internal_state):
     Google's deltas into a document. It also adds a bit of metadata e.g. for
     Deane plots.
     '''
+    # If it's not a relevant event, ignore it
+    if event['client']['event'] not in ["google_docs_save", "document_history"]:
+        return False, False
+
     internal_state = writing_observer.reconstruct_doc.google_text.from_json(
         json_rep=internal_state)
     if event['client']['event'] == "google_docs_save":
@@ -83,17 +90,11 @@ async def reconstruct(event, internal_state):
     return state, state
 
 
-async def pipeline(metadata):
+@kvs_pipeline(scope=gdoc_scope)
+async def event_count(event, internal_state):
     '''
-    We pass the event through all of our analytic pipelines, and
-    combine the results into a common state-of-the-universe to return
-    for display in the dashboard.
+    An example of a per-document pipeline
     '''
-    processors = [time_on_task(metadata), reconstruct(metadata)]
-
-    async def process(event):
-        external_state = {}
-        for processor in processors:
-            external_state.update(await processor(event))
-        return external_state
-    return process
+    print("I'm getting called!")
+    print(event)
+    return None, None
