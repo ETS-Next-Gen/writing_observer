@@ -107,7 +107,9 @@ async def all_students():
     #
     # For the remaining ones -- ones with a student ID -- just pick out the student ID.
     user_ids = [k[0].split(":")[1] for k in student_field_lists if len(k) == 1]
-    return user_ids
+
+    # Drop duplicates
+    return sorted(set(user_ids))
 
 
 async def all_ajax(
