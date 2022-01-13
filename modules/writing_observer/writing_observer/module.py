@@ -57,7 +57,7 @@ REDUCERS = [
     },
     {
         'context': "org.mitros.writing-analytics",
-        'scope': helpers.Scope([helpers.KeyField.STUDENT]),
+        'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
         'function': writing_observer.writing_analysis.reconstruct
     },
     {

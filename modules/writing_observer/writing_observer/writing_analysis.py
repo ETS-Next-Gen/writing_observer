@@ -60,7 +60,7 @@ async def time_on_task(event, internal_state):
     return internal_state, internal_state
 
 
-@kvs_pipeline(scope=student_scope)
+@kvs_pipeline(scope=gdoc_scope)
 async def reconstruct(event, internal_state):
     '''
     This is a thin layer to route events to `reconstruct_doc` which compiles
@@ -99,7 +99,9 @@ async def event_count(event, internal_state):
     print("I'm getting called!")
     print(event)
 
-    return False, False
+    state = {"status": "called"}
+
+    return state, state
 
 
 @kvs_pipeline(scope=student_scope, null_state={})

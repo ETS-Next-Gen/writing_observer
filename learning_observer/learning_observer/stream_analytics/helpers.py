@@ -154,7 +154,7 @@ def kvs_pipeline(
                     safe_user_id = '[guest]'
                 keydict[KeyField.STUDENT] = safe_user_id
 
-            async def process_event(events, **additional_metadata):
+            async def process_event(event, **additional_metadata):
                 '''
                 This is the function which processes events. It calls the event
                 processor, passes in the event(s) and state. It takes
@@ -202,8 +202,15 @@ def kvs_pipeline(
                 # * We could have modules explicitly indicate where they need
                 #   thread safety and transactions. That'd be easy enough.
                 for field in scope:
+                    # Skip out-of-scope events. E.g. if we have an event stream
+                    # where we're scoped to a document ID, we want to skip global events,
+                    # which don't have that document ID
                     if field not in keydict and isinstance(field, EventField):
-                        keydict[field] = additional_metadata.get(field.event, "bug")
+                        AMG = additional_metadata.get(field.event, None)
+                        if AMG is None:
+                            return None
+                        keydict[field] = AMG
+
                 internal_key = make_key(
                     func,
                     keydict,
@@ -221,10 +228,10 @@ def kvs_pipeline(
                     await taskkvs.set(internal_key, internal_state)
 
                 internal_state, external_state = await func(
-                    events, internal_state
+                    event, internal_state
                 )
 
-                # We would like to give reducers the opton to /not/ write
+                # We would like to give reducers the option to /not/ write
                 # on all events
                 if internal_state is not False:
                     await taskkvs.set(internal_key, internal_state)

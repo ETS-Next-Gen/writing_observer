@@ -63,3 +63,4 @@ event_auth:
     local_storage:
         userfile: students.yaml
         allow_guest: true
+feature_flags: {}  # For enabling / disabling features in development

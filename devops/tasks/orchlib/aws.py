@@ -138,8 +138,6 @@ def terminate_instances(name):
     '''
     Terminate all instances give the name.
 
-    UNTESTED! DANGER. DANGER. DANGER. UNTESTED!
-
     Returns the number of instances terminated. We might kill more
     than one if we assign several the same name.
 
@@ -185,6 +183,19 @@ def register_dns(subdomain, domain, ip, unregister=False):
     zones = r53.list_hosted_zones_by_name(
         DNSName=domain
     )['HostedZones']
+
+    # AWS seems to ignore DNSName=domain. We filter down to the right
+    # domain AWS does include a dot at the end
+    # (e.g. 'learning-observer.org.'), and we don't right now
+    # (e.g. `learning-observer.org`). We don't need the first test,
+    # but we included it so we don't break if we ever do pass a domain
+    # in with the dot.
+    zones = [
+        z for z in zones # Take all the zone where....
+        if z['Name'].upper() == domain.upper() # The domain name is correct
+        or z['Name'].upper() == (domain+".").upper() # With a dot at the end
+    ]
+
     if len(zones)!= 1:
         raise Exception("Wrong number of hosted zones!")
     zoneId = zones[0]['Id']
