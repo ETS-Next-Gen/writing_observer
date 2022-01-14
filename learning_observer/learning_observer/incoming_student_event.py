@@ -10,7 +10,9 @@ We:
 * Optionally, notify via a pubsub of new data
 '''
 
+import asyncio
 import datetime
+import inspect
 import json
 import os
 import time
@@ -70,18 +72,23 @@ async def student_event_pipeline(metadata):
     #   https://stackoverflow.com/questions/57263090/async-list-comprehensions-in-python
     # * We should create cached modules for each key, rather than this partial evaluation
     #   kludge
-    for am in analytics_modules:
-        f = am['reducer']
-        import inspect
-
+    async def prepare_reducer(analytics_module):
+        '''
+        Prepare a reducer for the analytics module. Note that this is in-place (the
+        field is mutated).
+        '''
+        f = analytics_module['reducer']
         # We're moving to this always being a co-routine. This is
         # backwards-compatibility code which should be removed as soon
         # as we no longer print ISE78
-        if inspect.iscoroutinefunction(f):
-            am['reducer_partial'] = await am['reducer'](metadata)
-        else:
-            print("ISE78: HACK")
-            am['reducer_partial'] = am['reducer'](metadata)
+        if not inspect.iscoroutinefunction(f):
+            print(analytics_module)
+            raise("The reducer should be a co-routine")
+
+        analytics_module['reducer_partial'] = await analytics_module['reducer'](metadata)
+        return analytics_module
+
+    analytics_modules = await asyncio.gather(*[prepare_reducer(am) for am in analytics_modules])
 
     async def pipeline(parsed_message):
         '''

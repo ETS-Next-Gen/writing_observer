@@ -135,7 +135,7 @@ def kvs_pipeline(
         The decorator itself
         '''
         @functools.wraps(func)
-        def wrapper_closure(metadata):
+        async def wrapper_closure(metadata):
             '''
             The decorator itself. We create a function that, when called,
             creates an event processing pipeline. It keeps a pointer

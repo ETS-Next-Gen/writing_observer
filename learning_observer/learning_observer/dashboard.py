@@ -21,6 +21,92 @@ import learning_observer.auth
 import learning_observer.rosters as rosters
 
 
+def timelist_to_seconds(l):
+    '''
+    [5, "seconds"] ==> 5
+    [5, "minutes"] ==> 300
+    etc.
+    '''
+    import numbers
+    if len(l) != 2:
+        raise Exception("Time lists should have number and units")
+    if not isinstance(l[0], numbers.Number):
+        raise Exception("First element should be a number")
+    if not isinstance(l[1], str):
+        raise Exception("Second element should be a string")
+    units = {
+        "seconds": 1,
+        "minutes": 60,
+        "hours": 3600
+    }
+    if l[1] not in units:
+        raise Exception("Second element should be a time unit")
+    return l[0] * units[l[1]]
+
+
+async def generic_dashboard(request):
+    '''
+    We would like to be able to support pretty arbitrary dashboards,
+    where the client asks for a subset of data and we send it.
+
+    This is probably the wrong abstraction, but our goal is to allows
+    arbitrary dashboards client-side.
+
+    We're figuring out what we're doing. This view is behind a feature
+    flag, since we have no clear idea.
+
+    Our goal is to be able to set up appropriate queries to deliver
+    pretty generic aggregations.
+
+    The current model has the client ask for specific data, and for us
+    to send it back. However, the concept of doing this more server-side
+    makes a lot of sense too.
+
+    GraphQL looks super-relevant. Implementing it is a big lift, and
+    it might need to be slightly adapted to the context.
+
+    '''
+    teacherkvs = kvs.KVS();
+    ws = aiohttp.web.WebSocketResponse()
+    await ws.prepare(request)
+    subscriptions = []
+
+    while True:
+        try:
+            async for msg in ws:
+                print("msg", msg)
+                if msg.type == aiohttp.WSMsgType.CLOSE:
+                    print("Socket closed!")
+                    # By this point, the client is long gone, but we want to
+                    # return something to avoid confusing middlewares.
+                    return aiohttp.web.Response(text="This never makes it back....")
+                elif msg.type == aiohttp.WSMsgType.TEXT:
+                    message = json.loads(msg.data)
+                    print(message)
+                    if message['action'] == 'subscribe':
+                        subscriptions.append({
+                            'key': message['key'],
+                            'refresh': timelist_to_seconds(message['refresh']),
+                            'lasttime': time.time()
+                        })
+                    elif message['action'] == 'start':
+                        break
+        except asyncio.exceptions.TimeoutError:
+            # This is not an uncommon codepath.
+            # We should handle it better
+            pass
+
+        await ws.send_json({'subscribed': subscriptions})
+
+        await asyncio.sleep(0.5)
+        # This never gets called, since we return above
+        if ws.closed:
+            print("Socket closed")
+            return aiohttp.web.Response(text="This never makes it back....")
+
+    return aiohttp.web.Response(text="This should never happen....")
+
+
 def fetch_student_state(
         course_id, module_id,
         agg_module, roster,
