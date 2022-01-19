@@ -79,11 +79,12 @@ async def student_event_pipeline(metadata):
         '''
         f = analytics_module['reducer']
         # We're moving to this always being a co-routine. This is
-        # backwards-compatibility code which should be removed as soon
-        # as we no longer print ISE78
+        # backwards-compatibility code which should be remove,
+        # eventually. We started with a function, and had an interrim
+        # period where both functions and co-routines worked.
         if not inspect.iscoroutinefunction(f):
             print(analytics_module)
-            raise("The reducer should be a co-routine")
+            raise AttributeError("The above reducer should be a co-routine")
 
         analytics_module['reducer_partial'] = await analytics_module['reducer'](metadata)
         return analytics_module
