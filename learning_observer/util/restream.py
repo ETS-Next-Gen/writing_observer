@@ -90,6 +90,8 @@ async def restream(
                             json_line = json_line['client']
                         print(json.dumps(json_line, indent=2))
                         if rename:
+                            if 'auth' not in json_line:
+                                json_line['auth'] = {}
                             json_line['auth']['user_id'] = new_id
                         line = json.dumps(json_line)
 
