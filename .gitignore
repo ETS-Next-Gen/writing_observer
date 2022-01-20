@@ -5,8 +5,11 @@
 webapp/logs
 webapp/static_data/teachers.yaml
 creds.yaml
+CREDS.YAML
 uncommitted
-extension.*
+extension.crx
+extension.pem
+extension.zip
 *egg-info*
 public_key
 */dist
