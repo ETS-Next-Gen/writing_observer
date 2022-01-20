@@ -427,4 +427,4 @@ async def add_nocache(request, response):
 app.on_response_prepare.append(add_nocache)
 
 print("Running!")
-aiohttp.web.run_app(app, port=8888)
+aiohttp.web.run_app(app, port=int(settings.settings.get("server", {}).get("port", 8888)))

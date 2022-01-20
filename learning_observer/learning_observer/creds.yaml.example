@@ -64,3 +64,5 @@ event_auth:
         userfile: students.yaml
         allow_guest: true
 feature_flags: {}  # For enabling / disabling features in development
+server:
+    port: 8888     # Optional. Pick a different port.
