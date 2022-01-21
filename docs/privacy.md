@@ -5,10 +5,13 @@
 discussion. It should not be confused with a legal document (policy,
 contract, license, or otherwise). It has no legal weight. As of the
 time of this disclaimer, has not been reviewed by anyone other than
-Piotr Mitros, who is not an officer of ETS. I'm soliciting feedback
-fron collaborators (hence, it is here), but it shouldn't be confused
-with any sort of policy (yet). It's a working document to figure stuff
-out.
+Piotr Mitros, who does not speak for either ETS or anyone else. I'm
+soliciting feedback fron collaborators (hence, it is here), but it
+shouldn't be confused with any sort of policy (yet). It's a working
+document to figure stuff out.
+
+This was written when we were sprinting to respond to COVID19 remote
+learning in spring 2020.
 
 ## Introduction
 
@@ -23,9 +26,9 @@ pertains. Specifically, we would like to balance the demands of:
   and education; and
 * Scientific integrity and replicability
 
-This approach contrasts with the current trend of treating student
-data as a proprietary corporate resource for the maximization of
-profit.
+This approach contrasts with the current industry trend of treating
+student data as a proprietary corporate resource for the maximization
+of profit.
 
 These are fundamental tensions between the demands on any student data
 framework. For example, family rights and student privacy suggest that
@@ -35,8 +38,8 @@ into experiments so people can independently confirm research results.
 
 Building out both the technology and legal frameworks to do this will
 take more time than possible for a pilot project. Until we have built
-out such frameworks, student data will be governed by a standard
-research Privacy framework, outlined below.
+out such frameworks, student data should be governed by a standard
+research Privacy framework, along the lines of what's outlined below.
 
 If and when appropriate frameworks are available, we hope to
 transition and extended research privacy framework described
