@@ -1,4 +1,4 @@
-# Formative Process for Writing - INstallation Instructions
+# Formative Process for Writing - Installation Instructions
 Last updated: 16-JAN-2020
 
 ## Install Chrome Extension
