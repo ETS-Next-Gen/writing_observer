@@ -5,6 +5,7 @@ This generates dashboards from student data.
 import asyncio
 import json
 import time
+import queue
 
 import aiohttp
 
@@ -69,7 +70,7 @@ async def generic_dashboard(request):
     teacherkvs = kvs.KVS();
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    subscriptions = []
+    subscriptions = queue.PriorityQueue()
 
     try:
         async for msg in ws:
@@ -83,12 +84,14 @@ async def generic_dashboard(request):
                 message = json.loads(msg.data)
                 print(message)
                 if message['action'] == 'subscribe':
-                    subscriptions.append({
-                        'key': message['key'],
-                        'id': sa_helpers.make_key_from_json(message['key']),
-                        'refresh': timelist_to_seconds(message['refresh']),
-                        'lasttime': time.time()
-                    })
+                    subscriptions.put([
+                        time.time(),
+                        {
+                            'key': message['key'],
+                            'id': sa_helpers.make_key_from_json(message['key']),
+                            'refresh': timelist_to_seconds(message['refresh'])
+                        }
+                    ])
                 elif message['action'] == 'start':
                     break
     except asyncio.exceptions.TimeoutError:
@@ -96,7 +99,7 @@ async def generic_dashboard(request):
         # We should handle it better
         return aiohttp.web.Response(text="Timeout subscribing")
 
-    await ws.send_json({'subscribed': subscriptions})
+    await ws.send_json({'subscribed': [i[1] for i in subscriptions.queue]})
 
     while True:
         if ws.closed:
@@ -104,8 +107,9 @@ async def generic_dashboard(request):
             return aiohttp.web.Response(text="This never makes it back....")
         await asyncio.sleep(0.5)
         response = {}
-        for s in subscriptions:
-            response[s['id']] = await teacherkvs[s['id']]
+        t, s = subscriptions.get()
+        response[s['id']] = await teacherkvs[s['id']]
+        subscriptions.put([time.time(), s])
         await ws.send_json(response)
 
     return aiohttp.web.Response(text="This should never happen....")
