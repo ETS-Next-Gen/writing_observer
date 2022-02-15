@@ -65,6 +65,8 @@ async def generic_dashboard(request):
 
     GraphQL looks super-relevant. Implementing it is a big lift, and
     it might need to be slightly adapted to the context.
+
+    The test case for this is in `util/generic_websocket_dashboard.py`
     '''
     # We never send data more than twice per second, because performance.
     MIN_REFRESH = 0.5
@@ -83,6 +85,11 @@ async def generic_dashboard(request):
         else:
             Δt = subscriptions.queue[0][0] - time.time()
             return Δt
+
+    count = [0]
+    def counter():
+        count[0] += 1
+        return count[0]
 
     running = False          # Are we streaming data?
     next_subscription = None # What is the next item to send?
@@ -111,7 +118,7 @@ async def generic_dashboard(request):
                             'keys': message['keys'],
                             'ids': [sa_helpers.make_key_from_json(key) for key in message['keys']],
                             'refresh': timelist_to_seconds(message['refresh']),
-                            'client_id': message.get('id', None)
+                            'subscription_id': message.get('subscription_id', counter())
                         }
                     ])
                 elif message['action'] == 'start':
@@ -136,9 +143,10 @@ async def generic_dashboard(request):
                 response[key] = await teacherkvs[key]
             # The client can set an optional ID to know which response is associated with which
             # packet
-            if s['client_id'] is not None:
-                response['client_id'] = s['client_id']
-            subscriptions.put([time.time() + max(s['refresh'], MIN_REFRESH), s])
+            if s['subscription_id'] is not None:
+                response['subscription_id'] = s['subscription_id']
+                if 'refresh' in s and s['refresh'] is not None:
+                    subscriptions.put([time.time() + max(s['refresh'], MIN_REFRESH), s])
             await ws.send_json(response)
 
     return aiohttp.web.Response(text="This should never happen....")
