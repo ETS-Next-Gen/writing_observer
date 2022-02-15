@@ -39,6 +39,10 @@ import functools
 import learning_observer.kvs
 from learning_observer.stream_analytics.fields import KeyStateType, KeyField, EventField, Scope
 
+# Not a great place to have this import... things might get circular at
+# some point.
+import learning_observer.module_loader
+
 
 def fully_qualified_function_name(func):
     '''
@@ -57,6 +61,75 @@ def fully_qualified_function_name(func):
         function=func.__qualname__
     )
 
+
+def make_key_from_json(js):
+    '''
+    This will make a key from a json dictionary
+
+    Note that we ought to do auth / auth upstream of calling this
+    function.
+
+    E.g. we might pass in:
+       {
+           "source": "da_timeline.visualize.handle_event",
+           "KeyField.STUDENT": "guest-424d691e92afb0ac8aeze585b1d28a49"
+       }
+
+    And get out:
+
+    'Internal,da_timeline.visualize.handle_event,STUDENT:guest-424d691e92afb0ac8aeze585b1d28a49'
+
+    This does extensive sanitation, since the JSON typically comes
+    from a browser
+    '''
+    # We want to copy over KeyFields, converting them to `enum`s
+    #
+    # This sanitizes them in the process.
+    key_dict = {}
+    for key in KeyField:
+        if str(key) in js:
+            key_dict[key] = js[str(key)]
+            del js[str(key)]
+
+    # Next, we want to copy over EventFields.
+    # We have no way to sanitize these, since they're open-ended, except
+    # to make sure they don't contain magic characters
+    for key in list(js):
+        if key.startswith("EventField."):
+            event = js[key][len("EventField."):]
+            key_dict[EventField(event)] = js[event]
+            del js[key]
+
+    stream_module = js['source']
+
+    key_list = [
+        KeyStateType.EXTERNAL.name,
+    ]
+
+    if KeyField.STUDENT in js:
+        user_id = j[sKeyField.STUDENT]
+
+    aggregator_functions = sum(
+        [
+            a['sources']
+            for a in learning_observer.module_loader.course_aggregators().values()
+        ],
+        []
+    )
+
+    agg_function = None
+    for func in aggregator_functions:
+        if fully_qualified_function_name(func) == js['source']:
+            agg_function = func
+
+    if agg_function is None:
+        raise ArgumentError("Invalid function")
+
+    return make_key(
+        agg_function,
+        key_dict,
+        KeyStateType.INTERNAL
+    )
 
 def make_key(func, key_dict, state_type):
     '''
