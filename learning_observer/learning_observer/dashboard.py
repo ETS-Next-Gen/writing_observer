@@ -71,38 +71,42 @@ async def generic_dashboard(request):
     await ws.prepare(request)
     subscriptions = []
 
+    try:
+        async for msg in ws:
+            print("msg", msg)
+            if msg.type == aiohttp.WSMsgType.CLOSE:
+                print("Socket closed!")
+                # By this point, the client is long gone, but we want to
+                # return something to avoid confusing middlewares.
+                return aiohttp.web.Response(text="This never makes it back....")
+            elif msg.type == aiohttp.WSMsgType.TEXT:
+                message = json.loads(msg.data)
+                print(message)
+                if message['action'] == 'subscribe':
+                    subscriptions.append({
+                        'key': message['key'],
+                        'id': sa_helpers.make_key_from_json(message['key']),
+                        'refresh': timelist_to_seconds(message['refresh']),
+                        'lasttime': time.time()
+                    })
+                elif message['action'] == 'start':
+                    break
+    except asyncio.exceptions.TimeoutError:
+        # This is not an uncommon codepath.
+        # We should handle it better
+        return aiohttp.web.Response(text="Timeout subscribing")
+
+    await ws.send_json({'subscribed': subscriptions})
+
     while True:
-        try:
-            async for msg in ws:
-                print("msg", msg)
-                if msg.type == aiohttp.WSMsgType.CLOSE:
-                    print("Socket closed!")
-                    # By this point, the client is long gone, but we want to
-                    # return something to avoid confusing middlewares.
-                    return aiohttp.web.Response(text="This never makes it back....")
-                elif msg.type == aiohttp.WSMsgType.TEXT:
-                    message = json.loads(msg.data)
-                    print(message)
-                    if message['action'] == 'subscribe':
-                        subscriptions.append({
-                            'key': message['key'],
-                            'refresh': timelist_to_seconds(message['refresh']),
-                            'lasttime': time.time()
-                        })
-                    elif message['action'] == 'start':
-                        break
-        except asyncio.exceptions.TimeoutError:
-            # This is not an uncommon codepath.
-            # We should handle it better
-            pass
-
-        await ws.send_json({'subscribed': subscriptions})
-
-        await asyncio.sleep(0.5)
-        # This never gets called, since we return above
         if ws.closed:
             print("Socket closed")
             return aiohttp.web.Response(text="This never makes it back....")
+        await asyncio.sleep(0.5)
+        response = {}
+        for s in subscriptions:
+            response[s['id']] = await teacherkvs[s['id']]
+        await ws.send_json(response)
 
     return aiohttp.web.Response(text="This should never happen....")
 
