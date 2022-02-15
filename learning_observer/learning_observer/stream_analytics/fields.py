@@ -7,6 +7,15 @@ class EventField:
     This is a field type used for extracting a particular element from an event.
     '''
     def __init__(self, event):
+        if not event.replace(".","").replace("-","").replace("_","").isalnum():
+            # Suspicious operation. We'd like a better exception.
+            # This happens when either:
+            # * There is a bug in our code
+            # * Someone tries a SQL injection or similar attack
+            print(event)
+            raise AttributeError(
+                "Events should be alphanumeric, dashes, and underscores"
+            )
         self.event = event
         self.name = "EventField."+self.event
 
