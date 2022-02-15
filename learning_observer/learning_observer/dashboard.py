@@ -76,14 +76,13 @@ async def generic_dashboard(request):
 
     def timeout():
         '''
-        Time until we need to send the next message.
+        Calculate the time until we need to send the next message.
         '''
         if subscriptions.empty():
             return None
         else:
             Δt = subscriptions.queue[0][0] - time.time()
             return Δt
-
 
     running = False          # Are we streaming data?
     next_subscription = None # What is the next item to send?
@@ -109,9 +108,10 @@ async def generic_dashboard(request):
                     subscriptions.put([
                         time.time(),
                         {
-                            'key': message['key'],
-                            'id': sa_helpers.make_key_from_json(message['key']),
-                            'refresh': timelist_to_seconds(message['refresh'])
+                            'keys': message['keys'],
+                            'ids': [sa_helpers.make_key_from_json(key) for key in message['keys']],
+                            'refresh': timelist_to_seconds(message['refresh']),
+                            'client_id': message.get('id', None)
                         }
                     ])
                 elif message['action'] == 'start':
@@ -132,7 +132,12 @@ async def generic_dashboard(request):
         while timeout() is not None and timeout() < 0:
             response = {}
             t, s = subscriptions.get()
-            response[s['id']] = await teacherkvs[s['id']]
+            for key in s['ids']:
+                response[key] = await teacherkvs[key]
+            # The client can set an optional ID to know which response is associated with which
+            # packet
+            if s['client_id'] is not None:
+                response['client_id'] = s['client_id']
             subscriptions.put([time.time() + max(s['refresh'], MIN_REFRESH), s])
             await ws.send_json(response)
 
