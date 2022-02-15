@@ -105,11 +105,12 @@ async def generic_dashboard(request):
         if ws.closed:
             print("Socket closed")
             return aiohttp.web.Response(text="This never makes it back....")
-        await asyncio.sleep(0.5)
         response = {}
         t, s = subscriptions.get()
+        Δt = t - time.time()
+        await asyncio.sleep(Δt)
         response[s['id']] = await teacherkvs[s['id']]
-        subscriptions.put([time.time(), s])
+        subscriptions.put([time.time() + s['refresh'], s])
         await ws.send_json(response)
 
     return aiohttp.web.Response(text="This should never happen....")
