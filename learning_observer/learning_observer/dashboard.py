@@ -65,15 +65,37 @@ async def generic_dashboard(request):
 
     GraphQL looks super-relevant. Implementing it is a big lift, and
     it might need to be slightly adapted to the context.
-
     '''
+    # We never send data more than twice per second, because performance.
+    MIN_REFRESH = 0.5
+
     teacherkvs = kvs.KVS();
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
     subscriptions = queue.PriorityQueue()
 
-    try:
-        async for msg in ws:
+    def timeout():
+        '''
+        Time until we need to send the next message.
+        '''
+        if subscriptions.empty():
+            return None
+        else:
+            Δt = subscriptions.queue[0][0] - time.time()
+            return Δt
+
+
+    running = False          # Are we streaming data?
+    next_subscription = None # What is the next item to send?
+
+    while True:
+        # Wait for the next message, with an upper bound of when we
+        # need to get back to the client.
+        try:
+            if subscriptions.empty() or not running:
+                msg = await ws.receive()
+            else:
+                msg = await ws.receive(timeout = timeout())
             print("msg", msg)
             if msg.type == aiohttp.WSMsgType.CLOSE:
                 print("Socket closed!")
@@ -93,25 +115,26 @@ async def generic_dashboard(request):
                         }
                     ])
                 elif message['action'] == 'start':
+                    await ws.send_json(
+                        {'subscribed': [i[1] for i in subscriptions.queue]}
+                    )
+                    running = True
+                elif message['action'] == 'hangup':
                     break
-    except asyncio.exceptions.TimeoutError:
-        # This is not an uncommon codepath.
-        # We should handle it better
-        return aiohttp.web.Response(text="Timeout subscribing")
-
-    await ws.send_json({'subscribed': [i[1] for i in subscriptions.queue]})
-
-    while True:
+        # If we didn't get a message before we need to send one,
+        # just keep going.
+        except asyncio.exceptions.TimeoutError:
+            pass
         if ws.closed:
             print("Socket closed")
-            return aiohttp.web.Response(text="This never makes it back....")
-        response = {}
-        t, s = subscriptions.get()
-        Δt = t - time.time()
-        await asyncio.sleep(Δt)
-        response[s['id']] = await teacherkvs[s['id']]
-        subscriptions.put([time.time() + s['refresh'], s])
-        await ws.send_json(response)
+            return aiohttp.web.Response(text="This never makes it back to the client....")
+        # Now, we send any messages we need to
+        while timeout() is not None and timeout() < 0:
+            response = {}
+            t, s = subscriptions.get()
+            response[s['id']] = await teacherkvs[s['id']]
+            subscriptions.put([time.time() + max(s['refresh'], MIN_REFRESH), s])
+            await ws.send_json(response)
 
     return aiohttp.web.Response(text="This should never happen....")
 
