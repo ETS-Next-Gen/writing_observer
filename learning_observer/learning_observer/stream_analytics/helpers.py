@@ -82,6 +82,7 @@ def make_key_from_json(js):
     This does extensive sanitation, since the JSON typically comes
     from a browser
     '''
+    js = copy.deepcopy(js)
     # We want to copy over KeyFields, converting them to `enum`s
     #
     # This sanitizes them in the process.

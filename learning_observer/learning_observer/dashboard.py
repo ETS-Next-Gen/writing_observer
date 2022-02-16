@@ -139,14 +139,13 @@ async def generic_dashboard(request):
         while timeout() is not None and timeout() < 0:
             response = {}
             t, s = subscriptions.get()
-            for key in s['ids']:
+            for key, json_key in zip(s['ids'], s['keys']):
                 response[key] = await teacherkvs[key]
-            # The client can set an optional ID to know which response is associated with which
-            # packet
-            if s['subscription_id'] is not None:
-                response['subscription_id'] = s['subscription_id']
-                if 'refresh' in s and s['refresh'] is not None:
-                    subscriptions.put([time.time() + max(s['refresh'], MIN_REFRESH), s])
+                if isinstance(response[key], dict):
+                    response[key]['key'] = json_key
+            response['subscription_id'] = s['subscription_id']
+            if 'refresh' in s and s['refresh'] is not None:
+                subscriptions.put([time.time() + max(s['refresh'], MIN_REFRESH), s])
             await ws.send_json(response)
 
     return aiohttp.web.Response(text="This should never happen....")
