@@ -13,6 +13,7 @@ import aiohttp_session
 
 import learning_observer.auth.utils
 import learning_observer.auth.http_basic
+import learning_observer.settings
 
 
 async def logout_handler(request):
@@ -63,9 +64,21 @@ async def auth_middleware(request, handler):
         }
     elif (learning_observer.auth.http_basic.http_auth_middleware_enabled()
           and learning_observer.auth.http_basic.has_http_auth_headers(request)):
+        # This is a TODO
         userinfo = None
     else:
         userinfo = None
+
+    # Short circuit for test cases without logging in.
+    # THIS SHOULD NEVER BE ENABLED ON A LIVE SERVER
+    if userinfo is None and learning_observer.settings.settings['auth'].get("test-case-insecure", False):
+        userinfo = {
+            "name": "Test Case",
+            "picture": "testcase.jpg",
+            "authorized": True,
+            "google_id": 12345,
+            "email": "testcase@localhost"
+        }
 
     # This is a dumb way to sanitize data and pass it to the front-end.
     #

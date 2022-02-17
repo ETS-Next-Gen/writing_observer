@@ -4,8 +4,9 @@ This generates dashboards from student data.
 
 import asyncio
 import json
-import time
+import numbers
 import queue
+import time
 
 import aiohttp
 
@@ -28,7 +29,8 @@ def timelist_to_seconds(l):
     [5, "minutes"] ==> 300
     etc.
     '''
-    import numbers
+    if l is None:
+        return None
     if len(l) != 2:
         raise Exception("Time lists should have number and units")
     if not isinstance(l[0], numbers.Number):

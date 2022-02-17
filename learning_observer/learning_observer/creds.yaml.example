@@ -33,6 +33,7 @@ auth:
                           # The former requires nginx to be correctly set up.
     mode: remove-this         # Can be 'nginx,' or 'password-file'
     password-file: passwd.lo  # Set this to 'null' if authentication is done by nginx
+  test-case-insecure: false  # For testing -- no log-in required. NEVER enable on a live server.
 pubsub:
     type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
 kvs:
