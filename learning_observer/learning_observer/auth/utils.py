@@ -146,6 +146,8 @@ def admin(func):
     '''
     @functools.wraps(func)
     def wrapper(request):
+        if learning_observer.settings.settings['auth'].get("test-case-insecure", False):
+            return func(request)
         if 'user' in request and \
            request['user'] is not None and \
            'authorized' in request['user'] and \

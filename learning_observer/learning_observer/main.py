@@ -154,12 +154,11 @@ def add_routes():
             ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
     ])
 
-    if 'DEBUG_VIEW' in settings.settings['feature_flags']:
-        app.add_routes([
-            aiohttp.web.get(
-                '/wsapi/generic_dashboard',
-                learning_observer.dashboard.generic_dashboard)
-        ])
+    app.add_routes([
+        aiohttp.web.get(
+            '/wsapi/generic_dashboard',
+            learning_observer.dashboard.generic_dashboard)
+    ])
 
     # Serve static files
     app.add_routes([

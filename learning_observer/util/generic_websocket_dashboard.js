@@ -1,3 +1,15 @@
+/*
+  This is test code for our new generic dashboard framework.
+
+  It runs with node.js. We're developing it in node so that we can use
+  this as a starting point for thinking about a front-end framework, and
+  perhaps share test code.
+
+  We don't have a clean plan for where we'll go (e.g. reuse code versus
+  prototypes). It's starting as a clone of the Python code with the same
+  filename.
+*/
+
 // var d3 = require('d3');
 // d3.text("https://www.google.com", function(d) {console.log(d);});
 const WebSocket = require('ws');
@@ -36,6 +48,6 @@ socket.onopen = function() {
     }
 };
 
-// We can comment in `d` if we want a giant amount of debug data
-socket.onerror = function(d) { console.log("Error"); /* console.log(d); */ };
+// We can comment in/out console.log(`d`) based on whether we want a giant amount of debug data
+socket.onerror = function(d) { console.log("Error"); console.log(d); };
 socket.onclose = function(d) { console.log("Close"); /* console.log(d); */ };

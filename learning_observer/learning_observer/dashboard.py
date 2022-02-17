@@ -47,6 +47,7 @@ def timelist_to_seconds(l):
     return l[0] * units[l[1]]
 
 
+@learning_observer.auth.teacher
 async def generic_dashboard(request):
     '''
     We would like to be able to support pretty arbitrary dashboards,
