@@ -1,7 +1,11 @@
 '''
 Import analytics modules
 
-This should run _after_ paths and settings
+This runs _after_ `paths` and `settings`, since `settings` calls
+`learning_observer.paths.register_repo`, which we use here.
+
+Ideally, this would be more modular and run without a settings file
+too. We'd like to use this from utility scripts.
 '''
 
 
