@@ -7,6 +7,7 @@ import asyncio_redis
 
 redis_connection = None
 
+
 async def connect():
     '''
     Connect to redis

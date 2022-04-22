@@ -243,10 +243,10 @@ def add_routes():
             print("python util/lo_passwd.py "
                   "--username {username} --password {password} "
                   "--filename {fn}".format(
-                username=getpass.getuser(),
-                password=secrets.token_urlsafe(16),
-                fn=settings.settings['auth']['password-file']
-            ))
+                      username=getpass.getuser(),
+                      password=secrets.token_urlsafe(16),
+                      fn=settings.settings['auth']['password-file']
+                  ))
             sys.exit(-1)
         app.add_routes([
             aiohttp.web.post(
@@ -329,7 +329,7 @@ def add_routes():
 
     # Allow AJAX calls.  Right now, the function receives a `request`
     # object. This should be cleaned in some way.
-    ajax = learning_observer.module_loader.ajax();
+    ajax = learning_observer.module_loader.ajax()
     for module in ajax:
         for call in ajax[module]:
             path = "/ajax/{module}/{call}".format(module=module, call=call)

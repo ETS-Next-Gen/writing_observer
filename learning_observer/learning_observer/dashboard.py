@@ -23,28 +23,28 @@ import learning_observer.auth
 import learning_observer.rosters as rosters
 
 
-def timelist_to_seconds(l):
+def timelist_to_seconds(timelist):
     '''
     [5, "seconds"] ==> 5
     [5, "minutes"] ==> 300
     etc.
     '''
-    if l is None:
+    if timelist is None:
         return None
-    if len(l) != 2:
+    if len(timelist) != 2:
         raise Exception("Time lists should have number and units")
-    if not isinstance(l[0], numbers.Number):
+    if not isinstance(timelist[0], numbers.Number):
         raise Exception("First element should be a number")
-    if not isinstance(l[1], str):
+    if not isinstance(timelist[1], str):
         raise Exception("Second element should be a string")
     units = {
         "seconds": 1,
         "minutes": 60,
         "hours": 3600
     }
-    if l[1] not in units:
+    if timelist[1] not in units:
         raise Exception("Second element should be a time unit")
-    return l[0] * units[l[1]]
+    return timelist[0] * units[timelist[1]]
 
 
 @learning_observer.auth.teacher
@@ -74,7 +74,7 @@ async def generic_dashboard(request):
     # We never send data more than twice per second, because performance.
     MIN_REFRESH = 0.5
 
-    teacherkvs = kvs.KVS();
+    teacherkvs = kvs.KVS()
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
     subscriptions = queue.PriorityQueue()
@@ -90,12 +90,13 @@ async def generic_dashboard(request):
             return Δt
 
     count = [0]
+
     def counter():
         count[0] += 1
         return count[0]
 
-    running = False          # Are we streaming data?
-    next_subscription = None # What is the next item to send?
+    running = False           # Are we streaming data?
+    next_subscription = None  # What is the next item to send?
 
     while True:
         # Wait for the next message, with an upper bound of when we
@@ -104,7 +105,7 @@ async def generic_dashboard(request):
             if subscriptions.empty() or not running:
                 msg = await ws.receive()
             else:
-                msg = await ws.receive(timeout = timeout())
+                msg = await ws.receive(timeout=timeout())
             print("msg", msg)
             if msg.type == aiohttp.WSMsgType.CLOSE:
                 print("Socket closed!")

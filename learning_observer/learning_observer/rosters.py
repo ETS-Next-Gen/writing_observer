@@ -319,3 +319,19 @@ async def courseroster_api(request):
     '''
     course_id = int(request.match_info['course_id'])
     return aiohttp.web.json_response(await courseroster(request, course_id))
+
+
+# We'd like to be able to fetch classwork from Google. We don't know how to do this yet.
+# the following is a placeholder for the future. The code is commented out and probably
+# completely incorrect. It's never been tried.
+#
+# CLASSWORK_URL = "https://www.googleapis.com/auth/classroom.coursework.students.readonly"
+# async def fetch_classwork(request, course_id):
+#    '''
+#    Fetch the classwork associated with a course
+#    '''
+#    async with aiohttp.ClientSession(loop=request.app.loop) as client:
+#        async with client.get(CLASSWORK_URL, headers=request["auth_headers"]) as resp:
+#            resp_json = await resp.json()
+#            log_event.log_ajax(CLASSWORK_URL, resp_json, request)
+#            return resp_json

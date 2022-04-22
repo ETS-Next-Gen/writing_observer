@@ -29,6 +29,7 @@ if not __name__.startswith("learning_observer."):
     raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
 
+
 def parse_and_validate_arguments():
     '''
     Parse and validate command line arguments; for now, just the
@@ -59,8 +60,10 @@ def parse_and_validate_arguments():
         sys.exit(-1)
     return args
 
+
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY')
 RUN_MODE = None
+
 
 def load_settings(config_file):
     '''
@@ -102,6 +105,7 @@ def load_settings(config_file):
                 sys.exit(-1)
 
     return settings
+
 
 args = parse_and_validate_arguments()
 settings = load_settings(args.config_file)
