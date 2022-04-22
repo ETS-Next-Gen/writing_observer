@@ -29,6 +29,7 @@ directories = {
     '3rd party': {'path': paths.third_party()}
 }
 
+
 def make_blank_dirs(directories):
     '''
     Create any directories that don't exist for e.g. log files and
@@ -39,9 +40,10 @@ def make_blank_dirs(directories):
         if not os.path.exists(dirpath):
             os.mkdir(dirpath)
             print("Made {dirname} directory in {dirpath}".format(
-            dirname=d,
-            dirpath=dirpath
-        ))
+                dirname=d,
+                dirpath=dirpath
+            ))
+
 
 def validate_teacher_list():
     '''
@@ -50,11 +52,12 @@ def validate_teacher_list():
     '''
     if not os.path.exists(paths.data("teachers.yaml")):
         shutil.copyfile(
-        paths.data("teachers.yaml.template"),
-        paths.data("teachers.yaml")
-    )
+            paths.data("teachers.yaml.template"),
+            paths.data("teachers.yaml")
+        )
         print("Created a blank teachers file: static_data/teachers.yaml\n"
-          "Populate it with teacher accounts.")
+              "Populate it with teacher accounts.")
+
 
 def validate_config_file():
     '''
@@ -69,6 +72,7 @@ def validate_config_file():
     """)
         sys.exit(-1)
 
+
 def download_3rd_party_static(libs):
     '''
     Download any missing third-party files, and confirm their integrity.
@@ -82,9 +86,9 @@ def download_3rd_party_static(libs):
         filename = paths.third_party(name)
         if not os.path.exists(filename):
             os.system("wget {url} -O {filename} 2> /dev/null".format(
-            url=url,
-            filename=filename
-        ))
+                url=url,
+                filename=filename
+            ))
             print("Downloaded {name}".format(name=name))
     # Pylint wants upper-case. I want this in a function and lower-case.
     # pylint: disable=C0103
@@ -110,6 +114,7 @@ def download_3rd_party_static(libs):
         # Probably just terminate, so we can debug.
             sys.exit(-1)
             print()
+
 
 def startup_checks():
     '''
