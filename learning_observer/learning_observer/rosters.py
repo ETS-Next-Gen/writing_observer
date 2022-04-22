@@ -36,7 +36,6 @@ we may:
 * Have a less Googley format
 '''
 
-import asyncio
 import json
 import os.path
 import sys
@@ -115,6 +114,11 @@ async def all_students():
 async def all_ajax(
         request, url,
         parameters=None, key=None, sort_key=None, default=None):
+    '''
+    Stub in information normally requested through Google's API,
+    using a dummy course and all students in the system as the
+    roster for that course.
+    '''
     if url == COURSE_URL:
         return [{
             "id": "12345678901",
@@ -130,7 +134,7 @@ async def all_ajax(
             },
             "calendarId": "NA"
         }]
-    elif url == ROSTER_URL:
+    if url == ROSTER_URL:
         students = await all_students()
 
         def profile(student, index):
@@ -151,6 +155,8 @@ async def all_ajax(
             }
 
         return [profile(s, i) for (s, i) in zip(students, range(len(students)))]
+    # Otherwise, we need to code up the other URLs
+    raise AttributeError("Unknown Google URL: " + url)
 
 
 async def synthetic_ajax(
@@ -189,8 +195,8 @@ async def synthetic_ajax(
         sys.exit(-1)
     try:
         data = json.load(open(synthetic_data[url]))
-    except FileNotFoundError as e:
-        print(e)
+    except FileNotFoundError as exc:
+        print(exc)
         raise aiohttp.web.HTTPInternalServerError(
             text="Server configuration error. "
             "No course roster file for your account. "
@@ -267,8 +273,8 @@ if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
             print("\t", "\n\t".join(r_paths))
             print()
             print("Run :")
-            for p in r_paths:
-                print("mkdir {path}".format(path=p))
+            for path in r_paths:
+                print("mkdir {path}".format(path=path))
             print()
             print(
                 "(And ideally, they'll be populated with "

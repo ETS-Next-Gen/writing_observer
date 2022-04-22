@@ -75,8 +75,7 @@ class _RedisKVS():
         asyncio_redis auto-reconnects. We can't do async in __init__. So
         we connect on the first get / set.
         '''
-        if learning_observer.redis.redis_connection is None:
-            await learning_observer.redis.connect()
+        await learning_observer.redis.connect()
 
     async def __getitem__(self, key):
         '''
@@ -85,7 +84,8 @@ class _RedisKVS():
         >> await kvs['item']
         '''
         await self.connect()
-        item = await learning_observer.redis.redis_connection.get(key)
+        connection = await learning_observer.redis.connection()
+        item = await connection.get(key)
         if item is not None:
             return json.loads(item)
         return None
@@ -106,7 +106,8 @@ class _RedisKVS():
         await self.connect()
         json.dumps(value)  # Fail early if we're not JSON
         assert isinstance(key, str), "KVS keys must be strings"
-        await learning_observer.redis.redis_connection.set(key, json.dumps(value), expire=self.expire)
+        connection = await learning_observer.redis.connection()
+        await connection.set(key, json.dumps(value), expire=self.expire)
         return
 
     async def keys(self):
@@ -116,7 +117,8 @@ class _RedisKVS():
         This is obviously not very performant for large-scale dpeloys.
         '''
         await self.connect()
-        return [await k for k in await learning_observer.redis.redis_connection.keys("*")]
+        connection = await learning_observer.redis.connection()
+        return [await k for k in await connection.keys("*")]
 
 
 class EphemeralRedisKVS(_RedisKVS):

@@ -5,18 +5,17 @@ redis connection.
 
 import asyncio_redis
 
-redis_connection = None
+REDIS_CONNECTION = None
 
 
 async def connect():
     '''
     Connect to redis
     '''
-    global redis_connection
-    print(redis_connection)
-    if redis_connection is None:
-        redis_connection = await asyncio_redis.Connection.create()
-        print(redis_connection)
+    global REDIS_CONNECTION
+    if REDIS_CONNECTION is None:
+        REDIS_CONNECTION = await asyncio_redis.Connection.create()
+        print(REDIS_CONNECTION)
 
 
 async def connection():
@@ -26,5 +25,5 @@ async def connection():
     This is shorthand. It's not clear if this is the right abstraction,
     since it makes for a mess of awaits.
     '''
-    connect()
-    return redis_connection()
+    await connect()
+    return REDIS_CONNECTION
