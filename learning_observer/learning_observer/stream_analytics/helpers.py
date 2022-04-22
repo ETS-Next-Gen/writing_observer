@@ -132,6 +132,7 @@ def make_key_from_json(js):
         KeyStateType.INTERNAL
     )
 
+
 def make_key(func, key_dict, state_type):
     '''
     Create a KVS key.
@@ -147,7 +148,7 @@ def make_key(func, key_dict, state_type):
     For example:
     >>> make_key(
           some_module.reducer,
-          {h.KeyField.STUDENT: 123}, 
+          {h.KeyField.STUDENT: 123},
           h.KeyStateType.INTERNAL
     )
     'Internal,some_module.reducer,STUDENT:123'
@@ -176,7 +177,7 @@ def make_key(func, key_dict, state_type):
     # might be to use postgres to organize things (which changes
     # rarely), but to keep actual key/value pairs in redis (which
     # changes a lot).
-    for key in sorted(key_dict.keys(), key = lambda x: x.name):
+    for key in sorted(key_dict.keys(), key=lambda x: x.name):
         key_list.append("{key}:{value}".format(key=key.name, value=key_dict[key]))
 
     # And we return this as comma-seperated values
@@ -199,7 +200,7 @@ def kvs_pipeline(
       happened. This can be important for the aggregator. We're documenting the
       code before we've written it, so please make sure this works before using.
     '''
-    if scope==None:
+    if scope is None:
         print("TODO: explicitly specify a scope")
         print("Defaulting to student scope")
         scope = Scope([KeyField.STUDENT])
@@ -315,6 +316,7 @@ def kvs_pipeline(
             return process_event
         return wrapper_closure
     return decorator
+
 
 # `kvs_pipeline`, in it's current incarnation, is obsolete.
 #

@@ -56,15 +56,15 @@ async def restream(
     old_ts = None
     if isinstance(skip, str):
         skip = set(",".split(skip))
-    elif skip == None:
+    elif skip is None:
         skip = set()
     else:
         raise Exception("Bug in skip. Debug please.")
 
     if rename is not None:
         new_id = "rst-{name}-{number}".format(
-            name = names.get_first_name(),
-            number = random.randint(1,1000)
+            name=names.get_first_name(),
+            number=random.randint(1, 1000)
         )
 
     async with aiohttp.ClientSession() as session:
@@ -112,13 +112,13 @@ async def run():
         filelist = [args['<filename>']]
     coroutines = [
         restream(
-            url = args["--url"],
-            filename = filename,
-            rate = float(args["--rate"]),
-            max_wait = args["--max-wait"],
-            extract_client = args['--extract-client'],
-            rename = args['--rename'],
-            skip = args.get('--skip', None)
+            url=args["--url"],
+            filename=filename,
+            rate=float(args["--rate"]),
+            max_wait=args["--max-wait"],
+            extract_client=args['--extract-client'],
+            rename=args['--rename'],
+            skip=args.get('--skip', None)
         ) for filename in filelist]
     await asyncio.gather(*coroutines)
 

@@ -1,13 +1,14 @@
 import enum
 import functools
 
+
 @functools.total_ordering
 class EventField:
     '''
     This is a field type used for extracting a particular element from an event.
     '''
     def __init__(self, event):
-        if not event.replace(".","").replace("-","").replace("_","").isalnum():
+        if not event.replace(".", "").replace("-", "").replace("_", "").isalnum():
             # Suspicious operation. We'd like a better exception.
             # This happens when either:
             # * There is a bug in our code
@@ -17,7 +18,7 @@ class EventField:
                 "Events should be alphanumeric, dashes, and underscores"
             )
         self.event = event
-        self.name = "EventField."+self.event
+        self.name = "EventField." + self.event
 
     def __hash__(self):
         return hash(self.event)
@@ -40,6 +41,7 @@ class EventField:
 
         return self.event < other.event
 
+
 KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 
 # This is a set of fields which we use to index reducers. For example,
@@ -53,15 +55,16 @@ KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 #
 # We'd also like a better way to think of the hierarchy of assignments than ITEM/ASSIGNMENT
 KeyFields = [
-    "STUDENT",    # A single student
-    "CLASS",      # A group of students. Typically, one class roster in Google Classroom
-    "RESOURCE"    # E.g. One Google Doc
-#   "ASSIGNMENT"  # E.g. A collection of Google Docs (e.g. notes, outline, draft)
-#   "TEACHER"     #
-#    ...          # ... and so on.
+    "STUDENT",      # A single student
+    "CLASS",        # A group of students. Typically, one class roster in Google Classroom
+    "RESOURCE"      # E.g. One Google Doc
+    # "ASSIGNMENT"  # E.g. A collection of Google Docs (e.g. notes, outline, draft)
+    # "TEACHER"     #
+    #  ...          # ... and so on.
 ]
 
 KeyField = enum.Enum("KeyField", " ".join(KeyFields))
+
 
 class Scope(frozenset):
     pass

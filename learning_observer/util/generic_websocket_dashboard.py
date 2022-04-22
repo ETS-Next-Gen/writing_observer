@@ -9,15 +9,15 @@ messages = [
     {
         "action": "subscribe",
         "keys": [{
-            "source" : "da_timeline.visualize.handle_event",
+            "source": "da_timeline.visualize.handle_event",
             "KeyField.STUDENT": "guest-225d890e93a6b04c0aefe515b9d2dac9"
         }],
         "refresh": [0.5, "seconds"]
     },
     {
         "action": "subscribe",
-        "keys":  [{
-            "source" : "da_timeline.visualize.handle_event",
+        "keys": [{
+            "source": "da_timeline.visualize.handle_event",
             "KeyField.STUDENT": "INVALID-STUDENT"
         }],
         "refresh": [2, "seconds"]

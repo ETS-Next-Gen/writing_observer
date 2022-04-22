@@ -25,9 +25,9 @@ else:
     PREFIX = ""
 
 if "--working" in sys.argv:
-    working=True
+    working = True
 else:
-    working=False
+    working = False
 
 loop = asyncio.get_event_loop()
 app = aiohttp.web.Application(loop=loop)

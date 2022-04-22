@@ -66,10 +66,10 @@ def validate_config_file():
     '''
     if not os.path.exists(paths.config_file()):
         print("""
-    Copy creds.yaml.sample into the top-level directory:
-    cp creds.yaml.sample ../creds.yaml
-    Fill in the missing fields.
-    """)
+            Copy creds.yaml.sample into the top-level directory:
+            cp creds.yaml.sample ../creds.yaml
+            Fill in the missing fields.
+        """)
         sys.exit(-1)
 
 

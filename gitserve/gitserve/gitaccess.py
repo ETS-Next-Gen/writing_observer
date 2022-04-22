@@ -27,6 +27,7 @@ import pathvalidate
 
 WORKING_DIR = enum.Enum("Special Branches", "Working").Working
 
+
 class FileExists(Exception):
     '''
     For now, raised when cloning a repo to a location which exists.
@@ -146,7 +147,7 @@ class GitRepo:
         '''
         Return the git hash of a branch.
         '''
-        if branch==WORKING_DIR:
+        if branch == WORKING_DIR:
             data = "[NO_HASH_WORKING_TREE]"
         else:
             sanitized_branch = sanitize(branch)
