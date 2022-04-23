@@ -5,6 +5,8 @@
 import argparse
 import os.path
 
+import json
+
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -99,6 +101,8 @@ def main():
     print(list_files(creds))
     print("Document:")
     print(document(creds))
+    with open("doc.json", "w") as fp:
+        fp.write(json.dumps(document(creds), indent=2))
     print("Document revisions:")
     print(document_revisions(creds))
     print("Document comments:")

@@ -1,3 +1,25 @@
+'''
+We would like to be able to aggregate data across many axes; for example,
+we might want to aggregate data across teachers, across schools, etc.
+
+We do this by having a list of fields we'd like to aggregate over. For example,
+if we wanted to aggregate data by problem by student (e.g. to see how much time
+each student spent on a problem), we'd have a list like this:
+
+`student, problem`
+
+This would allow us to make a key which, in pseudo-code, would look like this:
+
+`student="Bob", problem="Pythagorean Triples"`
+
+At that point, the reduced would reduce over that problem, student pair (and every
+other such pair).
+
+These are called fields. The concept is taken from XBlocks.
+
+https://edx.readthedocs.io/projects/xblock-tutorial/en/latest/concepts/fields.html
+'''
+
 import enum
 import functools
 

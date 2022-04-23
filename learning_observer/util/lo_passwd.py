@@ -9,7 +9,6 @@ import bcrypt
 import datetime
 import getpass
 import os.path
-import sys
 import yaml
 
 

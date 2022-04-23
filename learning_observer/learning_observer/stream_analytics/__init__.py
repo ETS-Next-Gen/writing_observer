@@ -51,7 +51,17 @@ def async_lambda(function):
 
 
 def init():
-    import learning_observer.module_loader
+    '''
+    Initialize the stream analytics module. For now, this just populates
+    `REDUCER_MODULES`, transformed into an appopriate dictionary format
+    for retrieving what we need.
+
+    We also add a loop-back module for testing.
+
+    Probably, we'd rather remove this redundancy, and do this in the
+    module loader.
+    '''
+    import learning_observer.stream_analytics.helpers as helpers
     srm = collections.defaultdict(lambda: list())
 
     # For debugging; this can go away at some point

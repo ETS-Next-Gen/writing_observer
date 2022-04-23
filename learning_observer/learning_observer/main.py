@@ -45,7 +45,7 @@ import learning_observer.settings as settings
 # will load startup code twice, and end up with double the global variables.
 # This is a test to avoid that bug.
 if not __name__.startswith("learning_observer."):
-    raise ImportErrror("Please use fully-qualified imports")
+    raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
 
 
@@ -106,40 +106,40 @@ def static_directory_handler(basepath):
     return handler
 
 
-def ajax_handler_wrapper(f):
+def ajax_handler_wrapper(handler_fund):
     '''
     Wrap a function which returns a JSON object to handle requests
     '''
     def handler(request):
-        return aiohttp.web.json_response(f())
+        return aiohttp.web.json_response(handler_fund())
     return handler
 
 
-# Allow debugging of memory leaks.  Helpful, but this is a massive
-# resource hog. Don't accidentally turn this on in prod :)
-if 'tracemalloc' in settings.settings['config'].get("debug", []):
-    import tracemalloc
-    tracemalloc.start(25)
-
-    def tracemalloc_handler(request):
-        '''
-        Handler to show tracemalloc stats.
-        '''
-        snapshot = tracemalloc.take_snapshot()
-        top_stats = snapshot.statistics('lineno')
-        top_hundred = "\n".join((str(t) for t in top_stats[:100]))
-        top_stats = snapshot.statistics('traceback')
-        top_one = "\n".join((str(t) for t in top_stats[0].traceback.format()))
-        return aiohttp.web.Response(text=top_one + "\n\n\n" + top_hundred)
-    app.add_routes([
-        aiohttp.web.get('/debug/tracemalloc/', tracemalloc_handler),
-    ])
-
-
-def add_routes():
+def add_routes(app):
     '''
     Massive routine to set up all static routes.
     '''
+    # Allow debugging of memory leaks.  Helpful, but this is a massive
+    # resource hog. Don't accidentally turn this on in prod :)
+    if 'tracemalloc' in settings.settings['config'].get("debug", []):
+        import tracemalloc
+        tracemalloc.start(25)
+
+        def tracemalloc_handler(request):
+            '''
+            Handler to show tracemalloc stats.
+            '''
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+            top_hundred = "\n".join((str(t) for t in top_stats[:100]))
+            top_stats = snapshot.statistics('traceback')
+            top_one = "\n".join((str(t) for t in top_stats[0].traceback.format()))
+            return aiohttp.web.Response(text=top_one + "\n\n\n" + top_hundred)
+
+        app.add_routes([
+            aiohttp.web.get('/debug/tracemalloc/', tracemalloc_handler),
+        ])
+
     # Dashboard API
     # This serves up data (currently usually dummy data) for the dashboard
     app.add_routes([
@@ -367,7 +367,7 @@ def add_routes():
 routes = aiohttp.web.RouteTableDef()
 app = aiohttp.web.Application()
 app.on_response_prepare.append(request_logger_middleware)
-add_routes()
+add_routes(app)
 
 cors = aiohttp_cors.setup(app, defaults={
     "*": aiohttp_cors.ResourceOptions(

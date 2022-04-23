@@ -30,8 +30,9 @@ query string.
 
 import argparse
 import json
-import redis
 import sys
+
+import redis
 
 parser = argparse.ArgumentParser(
     description=__doc__.strip(),

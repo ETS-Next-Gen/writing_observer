@@ -7,8 +7,8 @@ administering the system.
 '''
 import copy
 import numbers
-
 import psutil
+import sys
 
 import aiohttp
 import aiohttp.web
@@ -69,29 +69,28 @@ async def system_status(request):
                 resources.append(sinfo)
         return resources
 
-    def clean_json(js):
+    def clean_json(json_object):
         '''
         * Deep copy a JSON object
         * Convert list-like objects to lists
         * Convert dictionary-like objects to dicts
         * Convert functions to string representations
         '''
-        if isinstance(js, str):
-            return str(js)
-        elif isinstance(js, numbers.Number):
-            return js
-        elif isinstance(js, dict):
-            return {key: clean_json(value) for key, value in js.items()}
-        elif isinstance(js, list):
-            return [clean_json(i) for i in js]
-        elif callable(js):
-            return str(js)
-        elif js is None:
-            return js
-        else:
-            print(js)
-            print(type(js))
-            raise ValueError("We don't yet handle this type")
+        if isinstance(json_object, str):
+            return str(json_object)
+        if isinstance(json_object, numbers.Number):
+            return json_object
+        if isinstance(json_object, dict):
+            return {key: clean_json(value) for key, value in json_object.items()}
+        if isinstance(json_object, list):
+            return [clean_json(i) for i in json_object]
+        if callable(json_object):
+            return str(json_object)
+        if json_object is None:
+            return json_object
+        print(json_object)
+        print(type(json_object))
+        raise ValueError("We don't yet handle this type")
 
     status = {
         "status": "Alive!",

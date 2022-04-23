@@ -9,9 +9,8 @@ probably will change.
 '''
 
 import argparse
-import json
+
 import redis
-import sys
 
 parser = argparse.ArgumentParser(
     description=__doc__.strip(),
