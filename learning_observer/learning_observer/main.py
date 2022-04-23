@@ -106,12 +106,12 @@ def static_directory_handler(basepath):
     return handler
 
 
-def ajax_handler_wrapper(handler_fund):
+def ajax_handler_wrapper(handler_func):
     '''
     Wrap a function which returns a JSON object to handle requests
     '''
     def handler(request):
-        return aiohttp.web.json_response(handler_fund())
+        return aiohttp.web.json_response(handler_func())
     return handler
 
 
