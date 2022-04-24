@@ -19,6 +19,7 @@ import sys
 
 import asyncio_redis
 
+import learning_observer.prestartup
 import learning_observer.settings
 import learning_observer.redis
 
@@ -134,6 +135,7 @@ class EphemeralRedisKVS(_RedisKVS):
 
 class PersistentRedisKVS(_RedisKVS):
     '''
+
     For deployment: Data lives forever.
     '''
     def __init__(self):
@@ -144,28 +146,36 @@ class PersistentRedisKVS(_RedisKVS):
 
 
 #  This design pattern allows us to fail on import, rather than later
-try:
-    KVS_MAP = {
+@learning_observer.prestartup.register_additional_check
+def kvs_startup_check():
+    '''
+    This is a startup check. If confirms that the KVS is properly configured
+    in settings.py. It should happen after we've loaded settings.py, so we
+    register this to run in prestartup.
+    '''
+    try:
+        KVS_MAP = {
         'stub': InMemoryKVS,
         'redis-ephemeral': EphemeralRedisKVS,
         'redis': PersistentRedisKVS
     }
-    KVS = KVS_MAP[learning_observer.settings.settings['kvs']['type']]
-except KeyError:
-    if 'kvs' not in learning_observer.settings.settings:
-        print("KVS not configured in settings file")
-        print("Look at example settings file to set up KVS config")
-    elif learning_observer.settings.settings['kvs']['type'] not in KVS_MAP:
-        print("Invalid setting kvs/type.")
-        print("KVS config is currently ", end='')
-        print(learning_observer.settings.settings["kvs"])
-        print("Should have a 'type' field set to one of: ", end='')
-        print(",".join(KVS_MAP.keys()))
-    else:
-        print("KVS incorrectly configured. Please fix the error, and")
-        print("then replace this with a more meaningful error message")
-    print()
-    sys.exit(-1)
+        KVS = KVS_MAP[learning_observer.settings.settings['kvs']['type']]
+    except KeyError:
+        if 'kvs' not in learning_observer.settings.settings:
+            print("KVS not configured in settings file")
+            print("Look at example settings file to set up KVS config")
+        elif learning_observer.settings.settings['kvs']['type'] not in KVS_MAP:
+            print("Invalid setting kvs/type.")
+            print("KVS config is currently ", end='')
+            print(learning_observer.settings.settings["kvs"])
+            print("Should have a 'type' field set to one of: ", end='')
+            print(",".join(KVS_MAP.keys()))
+        else:
+            print("KVS incorrectly configured. Please fix the error, and")
+            print("then replace this with a more meaningful error message")
+        print()
+        sys.exit(-1)
+    return True
 
 
 async def test():

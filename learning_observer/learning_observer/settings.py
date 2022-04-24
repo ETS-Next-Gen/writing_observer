@@ -64,6 +64,8 @@ def parse_and_validate_arguments():
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY')
 RUN_MODE = None
 
+settings = None
+
 
 def load_settings(config_file):
     '''
@@ -72,6 +74,7 @@ def load_settings(config_file):
     - Select the run mode
     - Set up location of module repositories, if overridden in the config
     '''
+    global settings
     with open(config_file, 'r') as f:
         settings = yaml.safe_load(f)
     # For testing and similar, we'd like to be able to have alternative data

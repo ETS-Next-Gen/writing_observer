@@ -116,6 +116,30 @@ def download_3rd_party_static(libs):
             print()
 
 
+ADDITIONAL_CHECKS = []
+
+
+def additional_checks():
+    '''
+    Allow modules to register additional checks beyond those defined here.
+
+    We should support asynchronous functions here, but that's a to do. Probably,
+    we'd introspect to see whether return values are promises, or have a
+    register_sync and a register_async.
+    '''
+    for check in ADDITIONAL_CHECKS:
+        check()
+
+
+def register_additional_check(check):
+    '''
+    Allow modules to register additional checks beyond those defined here. This
+    function takes a function that takes no arguments and returns nothing which
+    should run after settings are configured, but before the server starts.
+    '''
+    ADDITIONAL_CHECKS.append(check)
+
+
 def startup_checks():
     '''
     Run a series of checks to ensure that the system is ready to run
@@ -126,3 +150,4 @@ def startup_checks():
     validate_config_file()
     libs = module_loader.third_party()
     download_3rd_party_static(libs)
+    additional_checks()
