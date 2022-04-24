@@ -39,8 +39,6 @@ if not __name__.startswith("learning_observer."):
     raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
 
-
-
 # Right now, a lot of code is in top-level files
 # Our goal is to be explicit:
 # 0) learning_observer.[something].parse_and_validate_arguments()

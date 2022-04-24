@@ -145,20 +145,21 @@ class PersistentRedisKVS(_RedisKVS):
         super().__init__(expire=None)
 
 
-#  This design pattern allows us to fail on import, rather than later
 @learning_observer.prestartup.register_additional_check
 def kvs_startup_check():
     '''
     This is a startup check. If confirms that the KVS is properly configured
     in settings.py. It should happen after we've loaded settings.py, so we
     register this to run in prestartup.
+
+    Checks like this one allow us to fail on startup, rather than later
     '''
     try:
         KVS_MAP = {
-        'stub': InMemoryKVS,
-        'redis-ephemeral': EphemeralRedisKVS,
-        'redis': PersistentRedisKVS
-    }
+            'stub': InMemoryKVS,
+            'redis-ephemeral': EphemeralRedisKVS,
+            'redis': PersistentRedisKVS
+        }
         KVS = KVS_MAP[learning_observer.settings.settings['kvs']['type']]
     except KeyError:
         if 'kvs' not in learning_observer.settings.settings:

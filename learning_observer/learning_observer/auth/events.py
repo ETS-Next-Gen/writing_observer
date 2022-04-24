@@ -29,12 +29,8 @@ import aiohttp_session
 import aiohttp.web
 
 import learning_observer.paths
+import learning_observer.prestartup
 import learning_observer.settings
-
-
-if 'event_auth' not in learning_observer.settings.settings:
-    print("Please configure event authentication")
-    sys.exit(-1)
 
 
 AUTH_METHODS = {}
@@ -302,17 +298,26 @@ async def authenticate(request, headers, first_event, source):
                 )
             return auth_metadata
 
-    print("Unauthorized")
-    raise aiohttp.web.HTTPUnauthorized
+    raise aiohttp.web.HTTPUnauthorized("All authentication methods failed. Unauthorized.")
 
 
-for auth_method in learning_observer.settings.settings['event_auth']:
-    if auth_method not in AUTH_METHODS:
-        print("Unrecognized event authentication method in settings file:")
-        print(auth_method)
-        print("Valid methods:")
-        print(AUTH_METHODS.keys())
+@learning_observer.prestartup.register_additional_check
+def check_event_auth_config(AUTH_METHODS):
+    '''
+    Check that all event auth methods are correctly configured,
+    before events come in.
+    '''
+    if 'event_auth' not in learning_observer.settings.settings:
+        raise learning_observer.prestartup.StartupCheck("Please configure event authentication")
         sys.exit(-1)
+    for auth_method in learning_observer.settings.settings['event_auth']:
+        if auth_method not in AUTH_METHODS:
+            raise learning_observer.prestartup.StartupCheck(
+                "Please configure event authentication for {}\n(Methods: {})".format(
+                    auth_method,
+                    list(AUTH_METHODS.keys())
+                ))
+
 
 if __name__ == "__main__":
     import doctest

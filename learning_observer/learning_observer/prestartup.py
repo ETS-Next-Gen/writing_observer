@@ -20,6 +20,13 @@ import learning_observer.paths as paths
 import learning_observer.module_loader as module_loader
 
 
+class StartupCheck(Exception):
+    '''
+    Exception to be raised when a startup check fails.
+    '''
+    pass
+
+
 # These are directories we'd like created on startup. At the moment,
 # they're for different types of log files.
 directories = {
@@ -55,7 +62,7 @@ def validate_teacher_list():
             paths.data("teachers.yaml.template"),
             paths.data("teachers.yaml")
         )
-        print("Created a blank teachers file: static_data/teachers.yaml\n"
+        raise StartupCheck("Created a blank teachers file: static_data/teachers.yaml\n"
               "Populate it with teacher accounts.")
 
 
@@ -65,12 +72,11 @@ def validate_config_file():
     create a configuration file based on the example file.
     '''
     if not os.path.exists(paths.config_file()):
-        print("""
+        raise StartupCheck("""
             Copy creds.yaml.sample into the top-level directory:
             cp creds.yaml.sample ../creds.yaml
             Fill in the missing fields.
         """)
-        sys.exit(-1)
 
 
 def download_3rd_party_static(libs):
@@ -90,33 +96,30 @@ def download_3rd_party_static(libs):
                 filename=filename
             ))
             print("Downloaded {name}".format(name=name))
-    # Pylint wants upper-case. I want this in a function and lower-case.
-    # pylint: disable=C0103
         shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
         if shahash == sha:
             pass
         # print("File integrity of {name} confirmed!".format(name=filename))
         else:
-            print("Incorrect SHA hash. Something odd is going on. DO NOT IGNORE THIS ERROR/WARNING")
-            print()
-            print("Expected SHA: " + sha)
-            print("Actual SHA: " + shahash)
-            print()
-            print("We download 3rd party libraries from the Internet. This error means that ones of")
-            print("these files changed. This may indicate a man-in-the-middle attack, that a CDN has")
-            print("been compromised, or more prosaically, that one of the files had something like")
-            print("a security fix backported. In either way, VERIFY what happened before moving on.")
-            print("If unsure, please consult with a security expert.")
-            print()
-            print("This error should never happen unless someone is under attack (or there is a")
-            print("serious bug).")
-        # Do we want to os.unlink(filename) or just terminate?
-        # Probably just terminate, so we can debug.
-            sys.exit(-1)
-            print()
+            # Do we want to os.unlink(filename) or just terminate?
+            # Probably just terminate, so we can debug.
+            error = "File integrity of {name} failed!\n" \
+                    "Expected: {sha}\n" \
+                    "Got: {shahash}\n" \
+                    "We download 3rd party libraries from the Internet. This error means that ones of\n" \
+                    "these files changed. This may indicate a man-in-the-middle attack, that a CDN has\n" \
+                    "been compromised, or more prosaically, that one of the files had something like\n" \
+                    "a security fix backported. In either way, VERIFY what happened before moving on.\n\n" \
+                    "If unsure, please consult with a security expert.".format(
+                        name=filename,
+                        sha=sha,
+                        shahash=shahash
+                    )
+            raise StartupCheck(error)
 
 
 ADDITIONAL_CHECKS = []
+CHECKS_RUN = False
 
 
 def additional_checks():
@@ -129,6 +132,7 @@ def additional_checks():
     '''
     for check in ADDITIONAL_CHECKS:
         check()
+    CHECKS_RUN = True
 
 
 def register_additional_check(check):
@@ -137,6 +141,10 @@ def register_additional_check(check):
     function takes a function that takes no arguments and returns nothing which
     should run after settings are configured, but before the server starts.
     '''
+    if CHECKS_RUN:
+        raise StartupCheck(
+            "Cannot register additional checks after startup checks have been run."
+        )
     ADDITIONAL_CHECKS.append(check)
 
 
