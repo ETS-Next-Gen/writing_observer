@@ -163,19 +163,24 @@ def kvs_startup_check():
         KVS = KVS_MAP[learning_observer.settings.settings['kvs']['type']]
     except KeyError:
         if 'kvs' not in learning_observer.settings.settings:
-            print("KVS not configured in settings file")
-            print("Look at example settings file to set up KVS config")
+            raise learning_observer.prestartup.StartupCheck(
+                "No KVS configured. Please set kvs.type in settings.py\n" \
+                "Look at example settings file to see what's available."
+            )
         elif learning_observer.settings.settings['kvs']['type'] not in KVS_MAP:
-            print("Invalid setting kvs/type.")
-            print("KVS config is currently ", end='')
-            print(learning_observer.settings.settings["kvs"])
-            print("Should have a 'type' field set to one of: ", end='')
-            print(",".join(KVS_MAP.keys()))
+            raise learning_observer.prestartup.StartupCheck(
+                "Unknown KVS type: {}\n" \
+                "Look at example settings file to see what's available. \n"
+                "Suppported types: {}".format(
+                    learning_observer.settings.settings['kvs']['type'],
+                    list(KVS_MAP.keys())
+                )
+            )
         else:
-            print("KVS incorrectly configured. Please fix the error, and")
-            print("then replace this with a more meaningful error message")
-        print()
-        sys.exit(-1)
+            raise learning_observer.prestartup.StartupCheck(
+                "KVS incorrectly configured. Please fix the error, and\n" \
+                "then replace this with a more meaningful error message"
+            )
     return True
 
 
