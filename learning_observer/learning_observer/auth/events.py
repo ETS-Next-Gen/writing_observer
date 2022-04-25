@@ -302,7 +302,7 @@ async def authenticate(request, headers, first_event, source):
 
 
 @learning_observer.prestartup.register_additional_check
-def check_event_auth_config(AUTH_METHODS):
+def check_event_auth_config():
     '''
     Check that all event auth methods are correctly configured,
     before events come in.

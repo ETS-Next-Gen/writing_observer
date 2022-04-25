@@ -24,6 +24,7 @@ import bcrypt
 import aiohttp.web
 
 import learning_observer.settings
+import learning_observer.prestartup
 
 
 def http_basic_extract_username_password(request):
@@ -166,7 +167,7 @@ def http_basic_auth(filename=None, response=lambda: None):
 
 
 @learning_observer.prestartup.register_additional_check
-def http_basic_startup_check(http_auth_middleware_enabled, http_auth_page_enabled):
+def http_basic_startup_check():
     if http_auth_page_enabled() and http_auth_middleware_enabled():
         raise learning_observer.prestartup.StartupCheck(
             "Your HTTP Basic authentication is misconfigured.\n" +

@@ -18,9 +18,6 @@ import aiohttp_session
 import aiohttp_session.cookie_storage
 import aiohttp.web
 
-# Odd import which makes sure we're set up
-import learning_observer.init as init
-
 import learning_observer.auth
 import learning_observer.auth.http_basic
 import learning_observer.client_config
@@ -30,6 +27,7 @@ import learning_observer.module_loader
 
 import learning_observer.settings as settings
 import learning_observer.routes as routes
+import learning_observer.prestartup
 
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -38,6 +36,8 @@ import learning_observer.routes as routes
 if not __name__.startswith("learning_observer."):
     raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
+
+learning_observer.prestartup.startup_checks()
 
 # Right now, a lot of code is in top-level files
 # Our goal is to be explicit:
