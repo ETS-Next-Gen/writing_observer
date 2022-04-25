@@ -26,7 +26,7 @@ import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 
 import learning_observer.auth.utils as authutils               # Encoded / decode user IDs
-import learning_observer.pubsub as pubsub                      # Pluggable pubsub subsystem
+# import learning_observer.pubsub as pubsub                    # Pluggable pubsub subsystem
 import learning_observer.stream_analytics as stream_analytics  # Individual analytics modules
 
 import learning_observer.settings as settings
@@ -96,7 +96,7 @@ async def student_event_pipeline(metadata):
         And this is the pipeline itself. It takes messages, processes them,
         and informs consumers when there is new data.
         '''
-        debug_log("Processing PubSub message {event} from {source}".format(
+        debug_log("Processing message {event} from {source}".format(
             event=parsed_message["client"]["event"], source=client_source
         ))
 
@@ -265,8 +265,8 @@ def event_decoder_and_logger(request):
 async def incoming_websocket_handler(request):
     '''
     This handles incoming WebSockets requests. It does some minimal
-    processing on them, and then relays them on via PubSub to be
-    aggregated. It also logs them.
+    processing on them. It used to relays them on via PubSub to be
+    aggregated, but we've switched to polling. It also logs them.
     '''
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
