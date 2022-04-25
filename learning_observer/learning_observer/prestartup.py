@@ -16,8 +16,13 @@ import shutil
 import sys
 
 import learning_observer.paths as paths
-
+import learning_observer.settings as settings
 import learning_observer.module_loader as module_loader
+
+
+STARTUP_CHECKS = []
+INIT_FUNCTIONS = []
+STARTUP_RAN = False
 
 
 class StartupCheck(Exception):
@@ -27,9 +32,35 @@ class StartupCheck(Exception):
     pass
 
 
+def register_startup_check(check):
+    '''
+    Allow modules to register additional checks beyond those defined here. This
+    function takes a function that takes no arguments and returns nothing which
+    should run after settings are configured, but before the server starts.
+    '''
+    if STARTUP_RAN:
+        raise StartupCheck(
+            "Cannot register additional checks after startup checks have been run."
+        )
+    STARTUP_CHECKS.append(check)
+
+
+def register_init_function(init):
+    '''
+    Allow modules to initialize modules after settings are loaded and startup checks have 
+    run. This function takes a function that takes no arguments and returns nothing which
+    should run before the server starts.
+    '''
+    if STARTUP_RAN:
+        raise StartupCheck(
+            "Cannot register additional checks after startup checks have been run."
+        )
+    INIT_FUNCTIONS.append(init)
+
+
 # These are directories we'd like created on startup. At the moment,
 # they're for different types of log files.
-directories = {
+DIRECTORIES = {
     'logs': {'path': paths.logs()},
     'startup logs': {'path': paths.logs('startup')},
     'AJAX logs': {'path': paths.logs('ajax')},
@@ -37,13 +68,14 @@ directories = {
 }
 
 
-def make_blank_dirs(directories):
+@register_startup_check
+def make_blank_dirs():
     '''
     Create any directories that don't exist for e.g. log files and
     similar.
     '''
-    for d in directories:
-        dirpath = directories[d]['path']
+    for d in DIRECTORIES:
+        dirpath = DIRECTORIES[d]['path']
         if not os.path.exists(dirpath):
             os.mkdir(dirpath)
             print("Made {dirname} directory in {dirpath}".format(
@@ -52,6 +84,7 @@ def make_blank_dirs(directories):
             ))
 
 
+@register_startup_check
 def validate_teacher_list():
     '''
     Validate the teacher list file. This is a YAML file that contains
@@ -66,6 +99,7 @@ def validate_teacher_list():
               "Populate it with teacher accounts.")
 
 
+@register_startup_check
 def validate_config_file():
     '''
     Validate the configuration file exists. If not, explain how to
@@ -79,12 +113,15 @@ def validate_config_file():
         """)
 
 
-def download_3rd_party_static(libs):
+@register_startup_check
+def download_3rd_party_static():
     '''
     Download any missing third-party files, and confirm their integrity.
     We download only if the file doesn't exist, but confirm integrity
     in both cases.
     '''
+    libs = module_loader.third_party()
+
     for name in libs:
         url = libs[name]['urls'][0]
         sha = libs[name]['hash']
@@ -118,18 +155,21 @@ def download_3rd_party_static(libs):
             raise StartupCheck(error)
 
 
-STARTUP_CHECKS = []
-INIT_FUNCTIONS = []
-STARTUP_RAN = False
-
-
-def additional_checks():
+def startup_checks_and_init():
     '''
-    Allow modules to register additional checks beyond those defined here.
+    Run a series of checks to ensure that the system is ready to run
+    the Learning Observer and create any directories that don't exist.
 
     We should support asynchronous functions here, but that's a to do. Probably,
     we'd introspect to see whether return values are promises, or have a
     register_sync and a register_async.
+
+    This function should be called at the beginning of the server.
+
+    In the future, we'd like to have something where we can register with a
+    priority. The split between checks and intialization felt right, but
+    refactoring code, it's wrong. We just have things that need to run at
+    startup, and dependencies.
     '''
     for check in STARTUP_CHECKS:
         check()
@@ -138,40 +178,33 @@ def additional_checks():
     STARTUP_RAN = True
 
 
-def register_startup_check(check):
-    '''
-    Allow modules to register additional checks beyond those defined here. This
-    function takes a function that takes no arguments and returns nothing which
-    should run after settings are configured, but before the server starts.
-    '''
-    if STARTUP_RAN:
+@register_startup_check
+def check_aio_session_settings():
+    if 'aio' not in settings.settings or \
+    'session_secret' not in settings.settings['aio'] or \
+    isinstance(settings.settings['aio']['session_secret'], dict) or \
+    'session_max_age' not in settings.settings['aio']:
         raise StartupCheck(
-            "Cannot register additional checks after startup checks have been run."
+            "Settings file needs an `aio` section with a `session_secret`" +
+            "subsection containing a secret string. This is used for" +
+            "security, and should be set once for each deploy of the platform" +
+            "(e.g. if you're running 10 servers, they should all have the" +
+            "same secret" +
+            "" +
+            "Please set an AIO session secret in creds.yaml" +
+            "" +
+            "Please pick a good session secret. You only need to set it once, and" +
+            "the security of the platform relies on a strong, unique password there" +
+            "" +
+            "This sessions also needs a session_max_age, which sets the number of seconds\n" +
+            "of idle time after which a user needs to log back in. 4320 should set\n" +
+            "this to 12 hours.\n" +
+            "\n" +
+            "This should be a long string of random characters. If you can't think\n" +
+            "of one, here's one:\n" +
+            "" +
+            "aio:\n" +
+            "session_secret: " +
+            str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4()))) +
+            "session_max_age: 4320"
         )
-    STARTUP_CHECKS.append(check)
-
-
-def register_init_function(init):
-    '''
-    Allow modules to initialize modules after settings are loaded and startup checks have 
-    run. This function takes a function that takes no arguments and returns nothing which
-    should run before the server starts.
-    '''
-    if STARTUP_RAN:
-        raise StartupCheck(
-            "Cannot register additional checks after startup checks have been run."
-        )
-    INIT_FUNCTIONS.append(init)
-
-
-def startup_checks_and_init():
-    '''
-    Run a series of checks to ensure that the system is ready to run
-    the Learning Observer and create any directories that don't exist.
-    '''
-    make_blank_dirs(directories)
-    validate_teacher_list()
-    validate_config_file()
-    libs = module_loader.third_party()
-    download_3rd_party_static(libs)
-    additional_checks()
