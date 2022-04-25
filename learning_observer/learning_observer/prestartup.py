@@ -47,7 +47,7 @@ def register_startup_check(check):
 
 def register_init_function(init):
     '''
-    Allow modules to initialize modules after settings are loaded and startup checks have 
+    Allow modules to initialize modules after settings are loaded and startup checks have
     run. This function takes a function that takes no arguments and returns nothing which
     should run before the server starts.
     '''
@@ -95,8 +95,10 @@ def validate_teacher_list():
             paths.data("teachers.yaml.template"),
             paths.data("teachers.yaml")
         )
-        raise StartupCheck("Created a blank teachers file: static_data/teachers.yaml\n"
-              "Populate it with teacher accounts.")
+        raise StartupCheck(
+            "Created a blank teachers file: static_data/teachers.yaml\n"
+            "Populate it with teacher accounts."
+        )
 
 
 @register_startup_check
@@ -106,11 +108,12 @@ def validate_config_file():
     create a configuration file based on the example file.
     '''
     if not os.path.exists(paths.config_file()):
-        raise StartupCheck("""
-            Copy creds.yaml.sample into the top-level directory:
-            cp creds.yaml.sample ../creds.yaml
-            Fill in the missing fields.
-        """)
+        raise StartupCheck(
+            "No configuration file found.\n"
+            "Copy creds.yaml.sample into the top-level directory:\n"
+            "cp creds.yaml.sample ../creds.yaml\n"
+            "Fill in the missing fields."
+        )
 
 
 @register_startup_check
@@ -181,30 +184,26 @@ def startup_checks_and_init():
 @register_startup_check
 def check_aio_session_settings():
     if 'aio' not in settings.settings or \
-    'session_secret' not in settings.settings['aio'] or \
-    isinstance(settings.settings['aio']['session_secret'], dict) or \
-    'session_max_age' not in settings.settings['aio']:
+       'session_secret' not in settings.settings['aio'] or \
+       isinstance(settings.settings['aio']['session_secret'], dict) or \
+       'session_max_age' not in settings.settings['aio']:
         raise StartupCheck(
-            "Settings file needs an `aio` section with a `session_secret`" +
-            "subsection containing a secret string. This is used for" +
-            "security, and should be set once for each deploy of the platform" +
-            "(e.g. if you're running 10 servers, they should all have the" +
-            "same secret" +
-            "" +
-            "Please set an AIO session secret in creds.yaml" +
-            "" +
-            "Please pick a good session secret. You only need to set it once, and" +
-            "the security of the platform relies on a strong, unique password there" +
-            "" +
-            "This sessions also needs a session_max_age, which sets the number of seconds\n" +
-            "of idle time after which a user needs to log back in. 4320 should set\n" +
-            "this to 12 hours.\n" +
-            "\n" +
-            "This should be a long string of random characters. If you can't think\n" +
-            "of one, here's one:\n" +
-            "" +
-            "aio:\n" +
-            "session_secret: " +
-            str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4()))) +
-            "session_max_age: 4320"
+            "Settings file needs an `aio` section with a `session_secret`\n"
+            "subsection containing a secret string. This is used for\n"
+            "security, and should be set once for each deploy of the platform\n"
+            "(e.g. if you're running 10 servers, they should all have the\n"
+            "same secret\n\n"
+            "Please set an AIO session secret in creds.yaml\n\n"
+            "Please pick a good session secret. You only need to set it once, and\n"
+            "the security of the platform relies on a strong, unique password there\n\n"
+            "This sessions also needs a session_max_age, which sets the number of seconds\n"
+            "of idle time after which a user needs to log back in. 4320 should set\n"
+            "this to 12 hours.\n\n"
+            "This should be a long string of random characters. If you can't think\n"
+            "of one, here's one:\n\n"
+            "aio:\n"
+            "session_secret: {secret}\n"
+            "session_max_age: 4320".format(
+                secret=str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4())))
+            )
         )

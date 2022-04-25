@@ -70,6 +70,7 @@ files = {}
 # this to print debug messages even in systems otherwise configured for deploy)
 DEBUG = None
 
+
 @learning_observer.prestartup.register_init_function
 def init_http_auth():
     global DEBUG
