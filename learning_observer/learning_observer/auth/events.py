@@ -301,7 +301,7 @@ async def authenticate(request, headers, first_event, source):
     raise aiohttp.web.HTTPUnauthorized("All authentication methods failed. Unauthorized.")
 
 
-@learning_observer.prestartup.register_additional_check
+@learning_observer.prestartup.register_startup_check
 def check_event_auth_config():
     '''
     Check that all event auth methods are correctly configured,

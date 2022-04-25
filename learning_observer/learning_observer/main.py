@@ -37,7 +37,9 @@ if not __name__.startswith("learning_observer."):
     raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
 
-learning_observer.prestartup.startup_checks()
+args = settings.parse_and_validate_arguments()
+settings.load_settings(args.config_file)
+learning_observer.prestartup.startup_checks_and_init()
 
 # Right now, a lot of code is in top-level files
 # Our goal is to be explicit:

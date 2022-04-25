@@ -57,7 +57,7 @@ import learning_observer.filesystem_state
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
-
+import learning_observer.prestartup
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
@@ -65,7 +65,15 @@ files = {}
 # Do we make files for exceptions? Do we print extra stuff on the console?
 #
 # On deployed systems, this can make a mess. On dev systems, this is super-helpful
-DEBUG = settings.RUN_MODE == settings.RUN_MODES.DEV or 'logging' in settings.settings['config']['debug']
+#
+# This isn't global, since this is specific to logging (e.g. we might want to override
+# this to print debug messages even in systems otherwise configured for deploy)
+DEBUG = None
+
+@learning_observer.prestartup.register_init_function
+def init_http_auth():
+    global DEBUG
+    DEBUG = settings.RUN_MODE == settings.RUN_MODES.DEV or 'logging' in settings.settings['config']['debug']
 
 
 def encode_json_line(line):

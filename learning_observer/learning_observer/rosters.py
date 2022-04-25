@@ -51,6 +51,8 @@ import learning_observer.kvs
 import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 
+import learning_observer.prestartup
+
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
@@ -234,53 +236,69 @@ async def google_ajax(
                 resp_json, key, sort_key, default=default
             )
 
-if 'roster-data' not in settings.settings or \
-   'source' not in settings.settings['roster-data']:
-    print("Settings file needs a `roster-data` element with a `source` element")
-    sys.exit(-1)
-elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
-    ajax = synthetic_ajax
-elif settings.settings['roster-data']['source'] in ["google-api"]:
-    ajax = google_ajax
-elif settings.settings['roster-data']['source'] in ["all"]:
-    ajax = all_ajax
-else:
-    print("Settings file `roster-data` element should have `source` field")
-    print("set to either:")
-    print("  test        (retrieve from files courses.json and students.json)")
-    print("  google-api  (retrieve roster data from Google)")
-    print("  filesystem  (retrieve roster data from file system hierarchy")
-    print("Coming soon: all")
-    sys.exit(-1)
+ajax = None
 
-REQUIRED_PATHS = {
-    'test': [
-        paths.data("students.json"),
-        paths.data("courses.json")
-    ],
-    'filesystem': [
-        paths.data("course_lists/"),
-        paths.data("course_rosters/")
-    ]
-}
+@learning_observer.prestartup.register_startup_check
+def startup():
+    '''
+    * Set up the ajax function.
+    * Check that the settings are valid.
+    * Check that the roster data paths exist.
+    
+    TODO: It should be broken out into a separate check function and init function,
+    or smaller functions otherwise.
+    '''
+    global ajax
+    if 'roster-data' not in settings.settings or \
+       'source' not in settings.settings['roster-data']:
+        raise learning_observer.prestartup.StartupCheck(
+            "Settings file needs a `roster-data` element with a `source` element"
+            )
+    elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
+        ajax = synthetic_ajax
+    elif settings.settings['roster-data']['source'] in ["google-api"]:
+        ajax = google_ajax
+    elif settings.settings['roster-data']['source'] in ["all"]:
+        ajax = all_ajax
+    else:
+        raise learning_observer.prestartup.StartupCheck(
+            "Settings file `roster-data` element should have `source` field\n" +
+            "set to either:\n" +
+            "  test        (retrieve from files courses.json and students.json)\n" +
+            "  google-api  (retrieve roster data from Google)\n" +
+            "  filesystem  (retrieve roster data from file system hierarchy\n" +
+            "  all  (retrieve roster data as all students)"
+        )
+    REQUIRED_PATHS = {
+        'test': [
+            paths.data("students.json"),
+            paths.data("courses.json")
+        ],
+        'filesystem': [
+            paths.data("course_lists/"),
+            paths.data("course_rosters/")
+        ]
+    }
 
-if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
-    r_paths = REQUIRED_PATHS[settings.settings['roster-data']['source']]
-    for p in r_paths:
-        if not os.path.exists(p):
-            print("Missing course roster files!")
-            print("The following are required:")
-            print("\t", "\n\t".join(r_paths))
-            print()
-            print("Run :")
-            for path in r_paths:
-                print("mkdir {path}".format(path=path))
-            print()
-            print(
-                "(And ideally, they'll be populated with "
-                "a list of courses, and of students for "
-                "those courses)")
-            sys.exit(-1)
+    if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
+        r_paths = REQUIRED_PATHS[settings.settings['roster-data']['source']]
+        for p in r_paths:
+            if not os.path.exists(p):
+                raise learning_observer.prestartup.StartupCheck(
+                    "Missing course roster files!" +
+                    "The following are required:" +
+                    "\t" +
+                    "\n\t".join(r_paths) +
+                    "\n" +
+                    "Please run :" +
+                    "\n".join(["mkdir {path}".format(path=path) for path in r_paths]) +
+                    "\n" +
+                    "(And ideally, they'll be populated with\n" +
+                    "a list of courses, and of students for\n" +
+                    "those courses)"
+                )
+
+    return ajax
 
 
 async def courselist(request):

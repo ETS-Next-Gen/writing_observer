@@ -145,7 +145,7 @@ class PersistentRedisKVS(_RedisKVS):
         super().__init__(expire=None)
 
 
-@learning_observer.prestartup.register_additional_check
+@learning_observer.prestartup.register_startup_check
 def kvs_startup_check():
     '''
     This is a startup check. If confirms that the KVS is properly configured

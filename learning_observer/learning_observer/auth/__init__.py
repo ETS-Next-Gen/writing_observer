@@ -75,7 +75,7 @@ from learning_observer.auth.password import password_auth
 import learning_observer.prestartup
 import learning_observer.settings as settings
 
-@learning_observer.prestartup.register_additional_check
+@learning_observer.prestartup.register_startup_check
 def verify_auth_precheck():
    '''
    This is a pre-startup check to make sure that the auth system is configured

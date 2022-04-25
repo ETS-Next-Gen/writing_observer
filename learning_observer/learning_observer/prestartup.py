@@ -118,8 +118,9 @@ def download_3rd_party_static(libs):
             raise StartupCheck(error)
 
 
-ADDITIONAL_CHECKS = []
-CHECKS_RUN = False
+STARTUP_CHECKS = []
+INIT_FUNCTIONS = []
+STARTUP_RAN = False
 
 
 def additional_checks():
@@ -130,25 +131,40 @@ def additional_checks():
     we'd introspect to see whether return values are promises, or have a
     register_sync and a register_async.
     '''
-    for check in ADDITIONAL_CHECKS:
+    for check in STARTUP_CHECKS:
         check()
-    CHECKS_RUN = True
+    for init in INIT_FUNCTIONS:
+        init()
+    STARTUP_RAN = True
 
 
-def register_additional_check(check):
+def register_startup_check(check):
     '''
     Allow modules to register additional checks beyond those defined here. This
     function takes a function that takes no arguments and returns nothing which
     should run after settings are configured, but before the server starts.
     '''
-    if CHECKS_RUN:
+    if STARTUP_RAN:
         raise StartupCheck(
             "Cannot register additional checks after startup checks have been run."
         )
-    ADDITIONAL_CHECKS.append(check)
+    STARTUP_CHECKS.append(check)
 
 
-def startup_checks():
+def register_init_function(init):
+    '''
+    Allow modules to initialize modules after settings are loaded and startup checks have 
+    run. This function takes a function that takes no arguments and returns nothing which
+    should run before the server starts.
+    '''
+    if STARTUP_RAN:
+        raise StartupCheck(
+            "Cannot register additional checks after startup checks have been run."
+        )
+    INIT_FUNCTIONS.append(init)
+
+
+def startup_checks_and_init():
     '''
     Run a series of checks to ensure that the system is ready to run
     the Learning Observer and create any directories that don't exist.

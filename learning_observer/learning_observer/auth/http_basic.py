@@ -166,7 +166,7 @@ def http_basic_auth(filename=None, response=lambda: None):
     return password_auth_handler
 
 
-@learning_observer.prestartup.register_additional_check
+@learning_observer.prestartup.register_startup_check
 def http_basic_startup_check():
     if http_auth_page_enabled() and http_auth_middleware_enabled():
         raise learning_observer.prestartup.StartupCheck(

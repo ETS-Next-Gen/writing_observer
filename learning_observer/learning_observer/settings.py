@@ -108,7 +108,3 @@ def load_settings(config_file):
                 sys.exit(-1)
 
     return settings
-
-
-args = parse_and_validate_arguments()
-settings = load_settings(args.config_file)
