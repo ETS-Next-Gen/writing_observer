@@ -309,7 +309,6 @@ def check_event_auth_config(AUTH_METHODS):
     '''
     if 'event_auth' not in learning_observer.settings.settings:
         raise learning_observer.prestartup.StartupCheck("Please configure event authentication")
-        sys.exit(-1)
     for auth_method in learning_observer.settings.settings['event_auth']:
         if auth_method not in AUTH_METHODS:
             raise learning_observer.prestartup.StartupCheck(

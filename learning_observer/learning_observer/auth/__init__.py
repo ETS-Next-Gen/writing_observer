@@ -72,29 +72,37 @@ from learning_observer.auth.password import password_auth
 #
 # Importing settings isn't perfect, since this should not depend on learning_observer,
 # but it's better than the alternatives
+import learning_observer.prestartup
 import learning_observer.settings as settings
 
-# We need some auth
-if 'auth' not in settings.settings:
-    print("Please configure auth")
+@learning_observer.prestartup.register_additional_check
+def verify_auth_precheck():
+   '''
+   This is a pre-startup check to make sure that the auth system is configured
+   correctly.
+   '''
+   # We need some auth
+   if 'auth' not in settings.settings:
+      raise learning_observer.prestartup.StartupCheck("Please configure auth")
 
-# If we have Google oauth, we need it properly configured.
-# TODO: Confirm everything works with Google Oauth missing
-if 'google-oauth' in settings.settings['auth']:
-    if 'web' not in settings.settings['auth']['google-oauth'] or \
-       'client_secret' not in settings.settings['auth']['google-oauth']['web'] or \
-       'project_id' not in settings.settings['auth']['google-oauth']['web'] or \
-       'client_id' not in settings.settings['auth']['google-oauth']['web'] or \
-       isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
-       isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
-       isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
-        print("Please configure Google oauth")
-        print("")
-        print("Go to:")
-        print("  https://console.developers.google.com/")
-        print("And set up an OAuth client for a web application. Make sure that configuration")
-        print("mirrors the one here.")
-        print("")
-        print("If you are not planning to use Google auth (which is the case for most dev")
-        print("settings), please disable Google authentication in creds.yaml")
-        sys.exit(-1)
+   # If we have Google oauth, we need it properly configured.
+   # TODO: Confirm everything works with Google Oauth missing
+   if 'google-oauth' in settings.settings['auth']:
+      if 'web' not in settings.settings['auth']['google-oauth'] or \
+         'client_secret' not in settings.settings['auth']['google-oauth']['web'] or \
+         'project_id' not in settings.settings['auth']['google-oauth']['web'] or \
+         'client_id' not in settings.settings['auth']['google-oauth']['web'] or \
+         isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
+         isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
+         isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
+          error = \
+            "Please configure Google oauth\n" + \
+            "" + \
+            "Go to:" + \
+            "  https://console.developers.google.com/" + \
+            "And set up an OAuth client for a web application. Make sure that configuration" + \
+            "mirrors the one here." + \
+            "" + \
+            "If you are not planning to use Google auth (which is the case for most dev" + \
+            "settings), please disable Google authentication in creds.yaml"
+          raise learning_observer.prestartup.StartupCheck()

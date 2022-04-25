@@ -92,23 +92,6 @@ def http_auth_page_enabled():
     return True
 
 
-if http_auth_page_enabled() and http_auth_middleware_enabled():
-    print("Your HTTP Basic authentication is misconfigured.")
-    print()
-    print("You want EITHER auth on every page, OR a login page,")
-    print("not both. Having both setting may be a security risk.")
-    sys.exit(-1)
-
-
-if ('http-basic' in learning_observer.settings.settings['auth']
-    and learning_observer.settings.settings['auth']['http-basic'].get("delegate-nginx-auth", False)
-    and learning_observer.settings.settings['auth']['http-basic'].get("password-file", False)
-):
-    print("You should EITHER rely on nginx for password authentication OR Learning Observer,")
-    print("not both.")
-    sys.exit(-1)
-
-
 def http_basic_auth_verify_password(request, filename):
     '''
     Checks if a user is authorized, based on the filename of a
@@ -180,3 +163,26 @@ def http_basic_auth(filename=None, response=lambda: None):
         # This is usually ignored, but just in case...
         return response()
     return password_auth_handler
+
+
+@learning_observer.prestartup.register_additional_check
+def http_basic_startup_check(http_auth_middleware_enabled, http_auth_page_enabled):
+    if http_auth_page_enabled() and http_auth_middleware_enabled():
+        raise learning_observer.prestartup.StartupCheck(
+            "Your HTTP Basic authentication is misconfigured.\n" +
+            "\n" +
+            "You want EITHER auth on every page, OR a login page,\n" +
+            "not both. Having both setting may be a security risk.\n" +
+            "Please fix this."
+        )
+
+    if ('http-basic' in learning_observer.settings.settings['auth']
+        and learning_observer.settings.settings['auth']['http-basic'].get("delegate-nginx-auth", False)
+        and learning_observer.settings.settings['auth']['http-basic'].get("password-file", False)
+     ):
+        raise learning_observer.prestartup.StartupCheck(
+            "Your HTTP Basic authentication is misconfigured.\n" +
+            "\n" +
+            "You should EITHER rely on nginx for password authentication OR Learning Observer," +
+            "not both."
+        )
