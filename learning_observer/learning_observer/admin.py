@@ -14,6 +14,7 @@ import aiohttp
 import aiohttp.web
 
 import learning_observer.module_loader
+from learning_observer.log_event import debug_log
 
 from learning_observer.auth.utils import admin
 
@@ -88,9 +89,7 @@ async def system_status(request):
             return str(json_object)
         if json_object is None:
             return json_object
-        print(json_object)
-        print(type(json_object))
-        raise ValueError("We don't yet handle this type")
+        raise ValueError("We don't yet handle this type: {} (object: {})".format(type(json_object), json_object))
 
     status = {
         "status": "Alive!",
@@ -103,7 +102,7 @@ async def system_status(request):
         "routes": routes(request.app)
     }
 
-    print(status)
+    debug_log(status)
 
     return aiohttp.web.json_response(status)
 

@@ -140,7 +140,6 @@ class GitRepo:
             ).read()
         else:
             raise ValueError("No such branch")
-        print(filename)
         return data
 
     def rev_hash(self, branch):

@@ -5,6 +5,8 @@ This creates a roster with all students in Redis
 import asyncio
 import asyncio_redis
 
+from learning_observer.log_event import debug_log
+
 
 async def all_students():
     '''
@@ -17,7 +19,8 @@ async def all_students():
     split_keys = [k.split(":") for k in internal_keys]
     valid_keys = [k for k in split_keys if len(k) > 2]
     user_ids = sorted(set([k[2] for k in valid_keys]))
-    print(user_ids)
+    debug_log(user_ids)
+    return user_ids
 
 
 async def all_students_course_list():

@@ -23,6 +23,9 @@ import gitserve.gitaccess
 import learning_observer.paths
 import learning_observer.settings
 
+from learning_observer.log_event import debug_log
+
+
 # This is set to true after we've scanned and loaded modules
 LOADED = False
 
@@ -168,12 +171,12 @@ def load_modules():
     for entrypoint in pkg_resources.iter_entry_points("lo_modules"):
         module = entrypoint.load()
         if not hasattr(module, "NAME"):
-            print("Module missing required NAME attribute: " + repr(module))
-            print("Please give your module a short, human-friendly name")
-            print("Spaces, etc. are okay")
-            sys.exit(-1)
+            raise ValueError(
+                "Module {} does not have a NAME attribute"
+                "Please give your module a short, human-friendly name"
+                "Spaces, etc. are okay".format(entrypoint.name))
 
-        print("Loading module: {pypackage} ({name})".format(
+        debug_log("Loading module: {pypackage} ({name})".format(
             name=module.NAME,
             pypackage=str(entrypoint),
             module=entrypoint.name
@@ -212,21 +215,21 @@ def load_modules():
             #         ),
             #         "function": module.COURSE_AGGREGATORS[aggregator]['function']
             #     }
-            #     print(aggregator)
+            #     debug_log(aggregator)
         else:
-            print("Module has no course aggregators")
+            debug_log("Module {} has no course aggregators".format(entrypoint.name))
 
         # Load any state reducers / event processors
         if hasattr(module, "REDUCERS"):
             for reducer in module.REDUCERS:
-                print("Reducer: ", reducer)
+                debug_log("Reducer: ", reducer)
                 function = reducer['function']
                 context = reducer['context']
                 scope = reducer.get('scope', None)
                 if scope is None:
-                    print("SCOPE REQUIRED! Fix your code")
-                    print("This error will be removed and changed to an exception")
-                    print("once everything is migrated")
+                    debug_log("SCOPE REQUIRED! Fix your code")
+                    debug_log("This error will be removed and changed to an exception")
+                    debug_log("once everything is migrated")
                     import learning_observer.stream_analytics.helpers as helpers
                     scope = helpers.Scope([helpers.KeyField.STUDENT])
                 # reducer_id = "{module}.{name}".format(
@@ -239,7 +242,7 @@ def load_modules():
                     "scope": scope
                 })
         else:
-            print("Module has no reducers")
+            debug_log("Module has no reducers")
 
         # Load additional AJAX calls
         if hasattr(module, "AJAX"):
@@ -256,11 +259,17 @@ def load_modules():
                 if library_filename in THIRD_PARTY:
                     if THIRD_PARTY[library_filename]['hash'] != \
                        module.THIRD_PARTY[library_filename]['hash']:
-                        print("Version conflict in 3rd party libs:")
-                        print(library_filename)
-                        print(module.THIRD_PARTY[library_filename])
-                        print(THIRD_PARTY[library_filename])
-                        sys.exit(-1)
+                        raise RuntimeError(
+                            "Version Conflict in 3rd party libs\n"
+                            "Module {} has a different hash for {}"
+                            "than previous module.\n"
+                            "{} vs {}".format(
+                                entrypoint.name,
+                                library_filename,
+                                THIRD_PARTY[library_filename]['module'],
+                                module.THIRD_PARTY[library_filename]
+                            )
+                        )
                 else:
                     THIRD_PARTY[library_filename] = {
                         'urls': [],
@@ -284,12 +293,13 @@ def load_modules():
         if hasattr(module, "STATIC_FILE_GIT_REPOS"):
             for repo in module.STATIC_FILE_GIT_REPOS:
                 if repo in STATIC_REPOS:
-                    print("{repo} appears twice".format(repo=repo))
-                    print("This isn't bad, but isn't implemented yet.")
-                    print("We want code to either make sure both versions")
-                    print("are the same, or place them in different locations,")
-                    print("or something. Please code that up and make a PR!")
-                    sys.exit(-1)
+                    raise NotImplementedError(
+                        "Multiple modules want to clone {repo}\n"
+                        "This isn't bad, but isn't implemented yet.\n"
+                        "We want code to either make sure both versions\n"
+                        "are the same, or place them in different locations,\n"
+                        "or something. Please code that up and make a PR!".format(repo)
+                    )
                 STATIC_REPOS[repo] = copy.deepcopy(module.STATIC_FILE_GIT_REPOS[repo])
                 # TODO: This is a bit awkward.... The URL and key structure won't work well
                 # if we use the same repo twice.
@@ -316,5 +326,5 @@ def load_modules():
                 # working repos e.g. `/home/ubuntu/repo.git` which we need to later manage.
                 if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
                     STATIC_REPOS[repo]['bare'] = True
-        print(STATIC_REPOS)
+        debug_log(STATIC_REPOS)
     LOADED = True

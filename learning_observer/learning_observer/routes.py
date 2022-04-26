@@ -24,6 +24,7 @@ import learning_observer.module_loader
 import learning_observer.paths as paths
 import learning_observer.settings as settings
 
+from learning_observer.log_event import debug_log
 
 from learning_observer.utility_handlers import *
 
@@ -137,7 +138,7 @@ def add_routes(app):
     ])
 
     if 'google-oauth' in settings.settings['auth']:
-        print("Running with Google authentication")
+        debug_log("Running with Google authentication")
         app.add_routes([
             aiohttp.web.get(
                 '/auth/login/{provider:google}',
@@ -145,7 +146,7 @@ def add_routes(app):
         ])
 
     if 'password-file' in settings.settings['auth']:
-        print("Running with password authentication")
+        debug_log("Running with password authentication")
         if not os.path.exists(settings.settings['auth']['password-file']):
             print("Configured to run with password file,"
                   "but no password file exists")
@@ -179,7 +180,7 @@ def add_routes(app):
         # If we don't have a password file, we shouldn't have an auth page.
         # At the very least, the user should explicitly set it to `null`
         # if they are planning on using nginx for auth
-        print("Enabling http basic auth page")
+        debug_log("Enabling http basic auth page")
         auth_file = settings.settings['auth']['http-basic']["password-file"]
         app.add_routes([
             aiohttp.web.get(
@@ -249,7 +250,7 @@ def add_routes(app):
     for module in ajax:
         for call in ajax[module]:
             path = "/ajax/{module}/{call}".format(module=module, call=call)
-            print(path)
+            debug_log("Adding AJAX path", path)
             app.add_routes([
                 aiohttp.web.get(
                     path,

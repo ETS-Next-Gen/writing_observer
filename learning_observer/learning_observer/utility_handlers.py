@@ -3,6 +3,7 @@ Helpful extra handlers
 '''
 
 import os
+import os.path
 
 import aiohttp
 import aiohttp.web
@@ -11,7 +12,7 @@ import pathvalidate
 
 
 # This should be cleaned up. Imports generally. We're mid-refactor...
-from learning_observer.utility_handlers import *
+from learning_observer.log_event import debug_log
 
 
 def static_file_handler(filename):
@@ -19,7 +20,7 @@ def static_file_handler(filename):
     Serve a single static file
     '''
     async def handler(request):
-        print(request.headers)
+        debug_log(request.headers)
         return aiohttp.web.FileResponse(filename)
     return handler
 

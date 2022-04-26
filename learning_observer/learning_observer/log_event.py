@@ -80,10 +80,11 @@ DEBUG = LOG_TYPE.SIMPLE
 DEBUG_DESTINATION = Enum("debug_destination", "CONSOLE FILE")
 DEBUG_DESTINATIONS = (DEBUG_DESTINATION.CONSOLE, DEBUG_DESTINATION.FILE)
 
-@learning_observer.prestartup.register_init_function
-def init_http_auth():
-    global DEBUG
-    DEBUG = settings.RUN_MODE == settings.RUN_MODES.DEV or 'logging' in settings.settings['config']['debug']
+# FIXME: This needs to be fixed and re-enabled
+#@learning_observer.prestartup.register_init_function
+#def init_http_auth():
+#    global DEBUG
+#    DEBUG = settings.RUN_MODE == settings.RUN_MODES.DEV or 'logging' in settings.settings['config']['debug']
 
 
 def encode_json_line(line):
@@ -207,7 +208,7 @@ def debug_log(*args):
     example, on narrower terminals, a `\n\t` can help)
     '''
     if DEBUG not in (LOG_TYPE.NONE, LOG_TYPE.SIMPLE, LOG_TYPE.EXTENDED):
-        raise ValueError("Invalid debug log type")
+        raise ValueError("Invalid debug log type: {}".format(DEBUG))
     if DEBUG == LOG_TYPE.NONE:
         return
     text = print_to_string(*args)
@@ -228,12 +229,12 @@ def debug_log(*args):
 
     # Flip here to print / not print debug messages
     if DEBUG_DESTINATION.CONSOLE in DEBUG_DESTINATIONS:
-        print(message)
+        print(message.strip())
 
     # Print to file. Only helpful for development.
     if DEBUG_DESTINATION.FILE in DEBUG_DESTINATIONS:
         with open(paths.logs("debug.log"), "a") as fp:
-            fp.write(message + "\n")
+            fp.write(message.strip() + "\n")
 
     # Ideally, we'd like to be able to log these somewhere which won't cause cascading failures.
     # If we e.g. have errors every 100ms, we don't want to create millions of debug files.

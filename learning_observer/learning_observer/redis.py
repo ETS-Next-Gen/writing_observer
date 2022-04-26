@@ -5,6 +5,9 @@ redis connection.
 
 import asyncio_redis
 
+from learning_observer.log_event import debug_log
+
+
 REDIS_CONNECTION = None
 
 
@@ -15,7 +18,7 @@ async def connect():
     global REDIS_CONNECTION
     if REDIS_CONNECTION is None:
         REDIS_CONNECTION = await asyncio_redis.Connection.create()
-        print(REDIS_CONNECTION)
+        debug_log(REDIS_CONNECTION)
 
 
 async def connection():

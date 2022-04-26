@@ -145,6 +145,9 @@ class PersistentRedisKVS(_RedisKVS):
         super().__init__(expire=None)
 
 
+KVS = None
+
+
 @learning_observer.prestartup.register_startup_check
 def kvs_startup_check():
     '''
@@ -154,6 +157,7 @@ def kvs_startup_check():
 
     Checks like this one allow us to fail on startup, rather than later
     '''
+    global KVS
     try:
         KVS_MAP = {
             'stub': InMemoryKVS,

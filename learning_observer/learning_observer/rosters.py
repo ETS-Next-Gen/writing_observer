@@ -51,6 +51,8 @@ import learning_observer.kvs
 import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 
+from learning_observer.log_event import debug_log
+
 import learning_observer.prestartup
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
@@ -177,7 +179,7 @@ async def synthetic_ajax(
             ROSTER_URL: paths.data("students.json")
         }
     elif settings.settings['roster-data']['source'] == 'filesystem':
-        print(request['user'])
+        debug_log(request['user'])
         safe_userid = pathvalidate.sanitize_filename(request['user']['user_id'])
         courselist_file = "courselist-" + safe_userid
         if parameters is not None and 'courseid' in parameters:
@@ -192,13 +194,13 @@ async def synthetic_ajax(
                 courselist_file=courselist_file))
         }
     else:
-        print("PANIC!!! ROSTER!")
-        print(settings.settings['roster-data']['source'])
-        sys.exit(-1)
+        debug_log("Roster data source is not recognized:", settings.settings['roster-data']['source'])
+        raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster-data']['source'])
+                            + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
     except FileNotFoundError as exc:
-        print(exc)
+        debug_log(exc)
         raise aiohttp.web.HTTPInternalServerError(
             text="Server configuration error. "
             "No course roster file for your account. "

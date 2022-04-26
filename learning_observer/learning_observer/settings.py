@@ -45,17 +45,19 @@ def parse_and_validate_arguments():
     args = parser.parse_args()
 
     if not os.path.exists(args.config_file):
-        print("Missing settings file")
-        print("Copy the example file into:")
-        print(args.config_file)
-        print("And then continue setup")
-        print()
-        print("The command is probably:")
-        print("cp {sourcedir}/creds.yaml.example {dest}".format(
-            sourcedir=os.path.dirname(os.path.abspath(__file__)),
-            dest=args.config_file
-        ))
-        sys.exit(-1)
+        raise FileNotFoundError(
+            "Configuration file not found: {config_file}\n"
+            "\n"
+            "Copy the example file into:\n"
+            "{config_file}\n"
+            "And then continue setup\n"
+            "The command is probably:\n"
+            "cp {sourcedir}/creds.yaml.example {dest}".format(
+                sourcedir=os.path.dirname(os.path.abspath(__file__)),
+                dest=args.config_file,
+                config_file=args.config_file
+            )
+        )
     return args
 
 
@@ -83,7 +85,6 @@ def load_settings(config):
     we don't need a full config.
     '''
     global settings
-    print("Startup: Loading settings file")
 
     if isinstance(config, str):
         with open(config, 'r') as f:
@@ -106,8 +107,7 @@ def load_settings(config):
     elif settings['config']['run_mode'] == 'deploy':
         RUN_MODE = RUN_MODES.DEPLOY
     else:
-        print("Configuration setting for run_mode must be either 'dev' or 'deploy'")
-        sys.exit(-1)
+        raise ValueError("Configuration setting for run_mode must be either 'dev' or 'deploy'")
 
     if 'repos' in settings:
         for repo in settings['repos']:
@@ -120,7 +120,6 @@ def load_settings(config):
 
                 learning_observer.paths.register_repo(repo, settings['repos'][repo]['path'], debug_working=debug_working)
             else:
-                print("settings.repos.{repo} should be a string or a dict. Please fix the settings file.")
-                sys.exit(-1)
+                raise ValueError("settings.repos.{repo} should be a string or a dict. Please fix the settings file.".format(repo=repo))
 
     return settings
