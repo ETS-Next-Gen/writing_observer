@@ -26,6 +26,7 @@ import aiohttp.web
 import learning_observer.settings
 import learning_observer.prestartup
 
+from learning_observer.log_event import debug_log
 
 def http_basic_extract_username_password(request):
     '''
@@ -140,7 +141,7 @@ def http_basic_auth(filename=None, response=lambda: None):
     or similar.
     '''
     async def password_auth_handler(request):
-        print("Handler")
+        debug_log("Password Auth Handler")
         if filename is not None:
             # We should check this codepath before we run it....
             raise aiohttp.web.HTTPNotImplemented(body="Password file http basic unverified.")
@@ -150,7 +151,7 @@ def http_basic_auth(filename=None, response=lambda: None):
 
         # TODO: We should sanitize the username.
         # That's a bit of paranoia, but just in case something goes very wrong elsewhere...
-        print("Authorizing")
+        debug_log("Authorizing")
         await learning_observer.auth.utils.update_session_user_info(
             request, {
                 'user_id': "httpauth-" + username,

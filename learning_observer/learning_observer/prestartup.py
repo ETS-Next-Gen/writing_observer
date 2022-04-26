@@ -17,7 +17,6 @@ import sys
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
-import learning_observer.module_loader as module_loader
 
 
 STARTUP_CHECKS = []
@@ -123,6 +122,8 @@ def download_3rd_party_static():
     We download only if the file doesn't exist, but confirm integrity
     in both cases.
     '''
+    # We do this import inside to prevent circular imports
+    import learning_observer.module_loader as module_loader
     libs = module_loader.third_party()
 
     for name in libs:

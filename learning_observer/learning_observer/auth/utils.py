@@ -23,6 +23,7 @@ import aiohttp_session
 
 import learning_observer.paths
 
+from learning_observer.log_event import debug_log
 
 def google_id_to_user_id(google_id):
     '''
@@ -34,7 +35,7 @@ def google_id_to_user_id(google_id):
     try:
         return "gc-" + str(int(google_id))
     except ValueError:
-        print("Error handling:", google_id)
+        debug_log("Error handling:", google_id)
         raise
 
 
@@ -60,12 +61,14 @@ async def verify_teacher_account(user_id, email):
     '''
     teachers = yaml.safe_load(open(learning_observer.paths.data("teachers.yaml")))
     if email not in teachers:
-        print("Email not found in teachers")
+        # email is untrusted; repr prevents injection of newlines
+        debug_log("Email not found in teachers", repr(email))
         return False
     if teachers[email]["google_id"] != user_id:
-        print("Non-matching Google ID")
+        # user_id is untrusted; repr prevents injection of newlines
+        debug_log("Non-matching Google ID", teachers[email]["google_id"], repr(user_id))
         return False
-    print("Teacher account verified")
+    debug_log("Teacher account verified")
     return True
 
 

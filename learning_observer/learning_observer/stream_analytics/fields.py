@@ -35,9 +35,12 @@ class EventField:
             # This happens when either:
             # * There is a bug in our code
             # * Someone tries a SQL injection or similar attack
-            print(event)
+            #
+            # We use repr to prevent things like newlines from being
+            # included in the text verbatim.
             raise AttributeError(
-                "Events should be alphanumeric, dashes, and underscores"
+                "Events should be alphanumeric, dashes, and underscores:"
+                "{}".format(event = repr(event))
             )
         self.event = event
         self.name = "EventField." + self.event

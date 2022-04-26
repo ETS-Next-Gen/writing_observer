@@ -39,6 +39,8 @@ import functools
 import learning_observer.kvs
 from learning_observer.stream_analytics.fields import KeyStateType, KeyField, EventField, Scope
 
+from learning_observer.log_event import debug_log
+
 # Not a great place to have this import... things might get circular at
 # some point.
 import learning_observer.module_loader
@@ -201,8 +203,8 @@ def kvs_pipeline(
       code before we've written it, so please make sure this works before using.
     '''
     if scope is None:
-        print("TODO: explicitly specify a scope")
-        print("Defaulting to student scope")
+        debug_log("TODO: explicitly specify a scope")
+        debug_log("Defaulting to student scope")
         scope = Scope([KeyField.STUDENT])
 
     def decorator(func):

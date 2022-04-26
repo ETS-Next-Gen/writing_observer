@@ -10,6 +10,7 @@ import aiohttp.web
 import learning_observer.auth.handlers
 import learning_observer.auth.utils
 
+from learning_observer.log_event import debug_log
 
 def password_auth(filename):
     '''
@@ -54,7 +55,7 @@ def password_auth(filename):
                 data['password'].encode('utf-8'),
                 password_data['users'][data['username']]['password'].encode('utf-8')
         )):
-            print("Authorized")
+            debug_log("Authorized")
             await learning_observer.auth.utils.update_session_user_info(
                 request, {
                     'user_id': "pwd-" + data['username'],
@@ -67,7 +68,7 @@ def password_auth(filename):
             )
             return aiohttp.web.json_response({"status": "authorized"})
 
-        print("Unauthorized")
+        debug_log("Unauthorized")
         await learning_observer.auth.utils.logout(request)
         return aiohttp.web.json_response({"status": "unauthorized"})
     return password_auth_handler

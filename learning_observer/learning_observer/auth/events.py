@@ -32,6 +32,7 @@ import learning_observer.paths
 import learning_observer.prestartup
 import learning_observer.settings
 
+from learning_observer.log_event import debug_log
 
 AUTH_METHODS = {}
 
@@ -195,7 +196,7 @@ async def chromebook_auth(request, headers, first_event, source):
         auth = 'unauthenticated'
 
     untrusted_google_id = authdata.get('chrome_identity', {}).get('id', None)
-    print(untrusted_google_id)
+    debug_log("untrusted_google_id", untrusted_google_id)
 
     if untrusted_google_id is None:
         return False
@@ -228,7 +229,7 @@ async def hash_identify(request, headers, first_event, source):
     list. Then, it'd be okay for the math team example
     '''
     authdata = find_event('hash_auth', headers + [first_event])
-    print(authdata)
+    debug_log("authdata", authdata)
 
     if authdata is None or 'hash' not in authdata:
         return False
