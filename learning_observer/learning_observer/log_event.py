@@ -49,7 +49,9 @@ redo those analyses).
 '''
 
 import datetime
+from enum import Enum
 import inspect
+import io
 import json
 import hashlib
 
@@ -66,10 +68,17 @@ files = {}
 #
 # On deployed systems, this can make a mess. On dev systems, this is super-helpful
 #
-# This isn't global, since this is specific to logging (e.g. we might want to override
-# this to print debug messages even in systems otherwise configured for deploy)
-DEBUG = None
-
+# We should probably move this to the settings file instead of hardcoding it. There
+# was a reason for not placing this in the settings file, but it's no longer relevant
+# after a refactor.
+#
+# NONE: Don't print anything
+# SIMPLE: Print a simple message
+# EXTENDED: Print a message with a stack trace and timestamp
+LOG_TYPE = Enum("log_type", "NONE SIMPLE EXTENDED")
+DEBUG = LOG_TYPE.SIMPLE
+DEBUG_DESTINATION = Enum("debug_destination", "CONSOLE FILE")
+DEBUG_DESTINATIONS = (DEBUG_DESTINATION.CONSOLE, DEBUG_DESTINATION.FILE)
 
 @learning_observer.prestartup.register_init_function
 def init_http_auth():
@@ -170,7 +179,23 @@ def log_event(event, filename=None, preencoded=False, timestamp=False):
     log_file_fp.flush()
 
 
-def debug_log(text):
+def print_to_string(*args, **kwargs):
+    '''
+    This is a wrapper around print, which returns a string instead of
+    printing it.
+
+    :param args: The arguments to print
+    :param kwargs: The keyword arguments to print
+    :return: A string
+    '''
+    output = io.StringIO()
+    print(*args, file=output, **kwargs)
+    contents = output.getvalue()
+    output.close()
+    return contents
+
+
+def debug_log(*args):
     '''
     Helper function to help us trace our code.
 
@@ -181,32 +206,38 @@ def debug_log(text):
     format regularly (and you should feel free to do so too -- for
     example, on narrower terminals, a `\n\t` can help)
     '''
-    stack = inspect.stack()
-    stack_trace = "{s1}/{s2}/{s3}".format(
-        s1=stack[1].function,
-        s2=stack[2].function,
-        s3=stack[3].function,
-    )
-
-    message = "{time}: {st:60}\t{body}".format(
-        time=datetime.datetime.utcnow().isoformat(),
-        st=stack_trace,
-        body=text
-    )
+    if DEBUG not in (LOG_TYPE.NONE, LOG_TYPE.SIMPLE, LOG_TYPE.EXTENDED):
+        raise ValueError("Invalid debug log type")
+    if DEBUG == LOG_TYPE.NONE:
+        return
+    text = print_to_string(*args)
+    if DEBUG == LOG_TYPE.SIMPLE:
+        message = text
+    elif DEBUG == LOG_TYPE.EXTENDED:
+        stack = inspect.stack()
+        stack_trace = "{s1}/{s2}/{s3}".format(
+            s1=stack[1].function,
+            s2=stack[2].function,
+            s3=stack[3].function,
+        )
+        message = "{time}: {st:60}\t{body}".format(
+            time=datetime.datetime.utcnow().isoformat(),
+            st=stack_trace,
+            body=text
+        )
 
     # Flip here to print / not print debug messages
-    if DEBUG:
+    if DEBUG_DESTINATION.CONSOLE in DEBUG_DESTINATIONS:
         print(message)
 
-    # Flip here to save / not save debug messages
-    # Ideally, we'd like to log these somewhere which won't cause cascading failures.
+    # Print to file. Only helpful for development.
+    if DEBUG_DESTINATION.FILE in DEBUG_DESTINATIONS:
+        with open(paths.logs("debug.log"), "a") as fp:
+            fp.write(message + "\n")
+
+    # Ideally, we'd like to be able to log these somewhere which won't cause cascading failures.
     # If we e.g. have errors every 100ms, we don't want to create millions of debug files.
     # There are services which handle this pretty well, I believe
-    if DEBUG:
-        debug_fp = open(paths.logs("debug.log"), "a")
-        debug_fp.write(message)
-        debug_fp.write("\n")
-        debug_fp.close()
 
 
 AJAX_FILENAME_TEMPLATE = "{directory}/{time}-{payload_hash}.json"
