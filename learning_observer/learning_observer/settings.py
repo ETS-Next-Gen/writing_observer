@@ -20,8 +20,6 @@ import yaml
 import learning_observer.paths
 
 
-print("Startup: Loading settings file")
-
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
 # This is a test to avoid that bug.
@@ -67,16 +65,34 @@ RUN_MODE = None
 settings = None
 
 
-def load_settings(config_file):
+def load_settings(config):
     '''
     Load the settings file and return a dictionary of settings. Also:
     - Allow a stub data path
     - Select the run mode
     - Set up location of module repositories, if overridden in the config
+
+    This is a wrapper around `yaml.safe_load()` so we can do some validation,
+    error handling, and postprocessing.
+
+    :param config: The configuration file to load, or a dictionary of settings
+    :return: A dictionary of settings
+
+    We can work from a dictionary rather than config file because we want to
+    be able to use pieces of the Learning Observer in scripts and tests, where
+    we don't need a full config.
     '''
     global settings
-    with open(config_file, 'r') as f:
-        settings = yaml.safe_load(f)
+    print("Startup: Loading settings file")
+
+    if isinstance(config, str):
+        with open(config, 'r') as f:
+            settings = yaml.safe_load(f)
+    elif isinstance(config, dict):
+        settings = config
+    else:
+        raise AttributeError("Invalid settings file")
+
     # For testing and similar, we'd like to be able to have alternative data
     # paths
     if 'data_path' in settings:
