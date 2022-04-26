@@ -55,7 +55,11 @@ aio:  # User session; used for log-ins.
 config:
     run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?
     debug: []  # add "tracemalloc" to the list to enable memory leak debugging
-               # add "logging" to have extra stuff on the console AND log exceptions
+logging:
+    debug-log-level: EXTENDED   # NONE, SIMPLE, or EXTENDED
+    debug-log-destinations:     # List of where they go. CONSOLE or FILE
+        - CONSOLE
+        - FILE
 theme:
     server-name: Learning Observer
     front-page-pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!

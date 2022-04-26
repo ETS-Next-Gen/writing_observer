@@ -72,19 +72,56 @@ files = {}
 # was a reason for not placing this in the settings file, but it's no longer relevant
 # after a refactor.
 #
-# NONE: Don't print anything
-# SIMPLE: Print a simple message
-# EXTENDED: Print a message with a stack trace and timestamp
-LOG_TYPE = Enum("log_type", "NONE SIMPLE EXTENDED")
-DEBUG = LOG_TYPE.SIMPLE
-DEBUG_DESTINATION = Enum("debug_destination", "CONSOLE FILE")
-DEBUG_DESTINATIONS = (DEBUG_DESTINATION.CONSOLE, DEBUG_DESTINATION.FILE)
+class LogLevel(Enum):
+    '''
+    What level of logging do we want?
+
+    NONE: Don't print anything
+    SIMPLE: Print a simple message
+    EXTENDED: Print a message with a stack trace and timestamp
+    '''
+    NONE = 'NONE'
+    SIMPLE = 'SIMPLE'
+    EXTENDED = 'EXTENDED'
+
+
+class LogDestination(Enum):
+    '''
+    Where we log events? We can log to a file, or to the console.
+    '''
+    CONSOLE = 'CONSOLE'
+    FILE = 'FILE'
+
+# Before we've read the settings file, we'll log basic messages to the
+# console and to the log file.
+DEBUG_LOG_LEVEL = LogLevel.SIMPLE
+DEBUG_LOG_DESTINATIONS = (LogDestination.CONSOLE, LogDestination.FILE)
+
 
 # FIXME: This needs to be fixed and re-enabled
-#@learning_observer.prestartup.register_init_function
-#def init_http_auth():
-#    global DEBUG
-#    DEBUG = settings.RUN_MODE == settings.RUN_MODES.DEV or 'logging' in settings.settings['config']['debug']
+@learning_observer.prestartup.register_init_function
+def log_source():
+    global DEBUG_LOG_LEVEL
+    global DEBUG_LOG_DESTINATIONS
+
+    # If we're in deployment, we don't want to print anything.
+    DEBUG_LOG_LEVEL = LogLevel.NONE
+    DEBUG_LOG_DESTINATIONS = []
+
+    # If we're in development, we want to print to the console and to a file.
+    if settings.RUN_MODE == settings.RUN_MODES.DEV:
+        DEBUG_LOG_LEVEL = LogLevel.SIMPLE
+        DEBUG_LOG_DESTINATIONS = [LogDestination.CONSOLE, LogDestination.FILE]
+
+    # In either case, we want to override from the settings file.
+    if "logging" in settings.settings:
+        if "debug-log-level" in settings.settings["logging"]:
+            DEBUG_LOG_LEVEL = LogLevel(settings.settings["logging"]["debug-log-level"])
+        if "debug-log-destinations" in settings.settings["logging"]:
+            DEBUG_LOG_DESTINATIONS = list(map(LogDestination, settings.settings["logging"]["debug-log-destinations"]))
+
+    debug_log("DEBUG_LOG_LEVEL:", DEBUG_LOG_LEVEL)
+    debug_log("DEBUG_DESTINATIONS:", DEBUG_LOG_DESTINATIONS)
 
 
 def encode_json_line(line):
@@ -207,14 +244,14 @@ def debug_log(*args):
     format regularly (and you should feel free to do so too -- for
     example, on narrower terminals, a `\n\t` can help)
     '''
-    if DEBUG not in (LOG_TYPE.NONE, LOG_TYPE.SIMPLE, LOG_TYPE.EXTENDED):
-        raise ValueError("Invalid debug log type: {}".format(DEBUG))
-    if DEBUG == LOG_TYPE.NONE:
+    if DEBUG_LOG_LEVEL not in (LogLevel.NONE, LogLevel.SIMPLE, LogLevel.EXTENDED):
+        raise ValueError("Invalid debug log type: {}".format(DEBUG_LOG_LEVEL))
+    if DEBUG_LOG_LEVEL == LogLevel.NONE:
         return
     text = print_to_string(*args)
-    if DEBUG == LOG_TYPE.SIMPLE:
+    if DEBUG_LOG_LEVEL == LogLevel.SIMPLE:
         message = text
-    elif DEBUG == LOG_TYPE.EXTENDED:
+    elif DEBUG_LOG_LEVEL == LogLevel.EXTENDED:
         stack = inspect.stack()
         stack_trace = "{s1}/{s2}/{s3}".format(
             s1=stack[1].function,
@@ -228,11 +265,11 @@ def debug_log(*args):
         )
 
     # Flip here to print / not print debug messages
-    if DEBUG_DESTINATION.CONSOLE in DEBUG_DESTINATIONS:
+    if LogDestination.CONSOLE in DEBUG_LOG_DESTINATIONS:
         print(message.strip())
 
     # Print to file. Only helpful for development.
-    if DEBUG_DESTINATION.FILE in DEBUG_DESTINATIONS:
+    if LogDestination.FILE in DEBUG_LOG_DESTINATIONS:
         with open(paths.logs("debug.log"), "a") as fp:
             fp.write(message.strip() + "\n")
 
