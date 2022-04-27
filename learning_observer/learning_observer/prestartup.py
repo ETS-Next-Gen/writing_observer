@@ -14,6 +14,7 @@ import os
 import os.path
 import shutil
 import sys
+import uuid
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
@@ -175,8 +176,19 @@ def startup_checks_and_init():
     refactoring code, it's wrong. We just have things that need to run at
     startup, and dependencies.
     '''
+    exceptions = []
     for check in STARTUP_CHECKS:
-        check()
+        try:
+            check()
+        except StartupCheck as e:
+            exceptions.append(e)
+    if exceptions:
+        print("Could not start the Learning Observer")
+        for e in exceptions:
+            print("-------------------")
+            print(e.args[0])
+        sys.exit(1)
+
     for init in INIT_FUNCTIONS:
         init()
     STARTUP_RAN = True
@@ -203,8 +215,8 @@ def check_aio_session_settings():
             "This should be a long string of random characters. If you can't think\n"
             "of one, here's one:\n\n"
             "aio:\n"
-            "session_secret: {secret}\n"
-            "session_max_age: 4320".format(
+            "    session_secret: {secret}\n"
+            "    session_max_age: 4320".format(
                 secret=str(uuid.uuid5(uuid.uuid1(), str(uuid.uuid4())))
             )
         )
