@@ -43,6 +43,7 @@ def register_startup_check(check):
             "Cannot register additional checks after startup checks have been run."
         )
     STARTUP_CHECKS.append(check)
+    return check
 
 
 def register_init_function(init):
@@ -56,6 +57,7 @@ def register_init_function(init):
             "Cannot register additional checks after startup checks have been run."
         )
     INIT_FUNCTIONS.append(init)
+    return init
 
 
 # These are directories we'd like created on startup. At the moment,

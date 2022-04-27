@@ -17,6 +17,8 @@ import functools
 import learning_observer.exceptions
 import learning_observer.module_loader
 
+from learning_observer.log_event import debug_log
+
 REDUCER_MODULES = None
 
 
@@ -29,8 +31,8 @@ def reducer_modules(source):
     global REDUCER_MODULES
     modules = copy.deepcopy(REDUCER_MODULES.get(source, None))
     if modules is None:
-        debug_log("Unknown event source: " + str(client_source))
-        debug_log("Known sources: " + repr(stream_analytics.reducer_modules().keys()))
+        debug_log("Unknown event source: " + str(source))
+        debug_log("Known sources: " + repr(REDUCER_MODULES.keys()))
         raise learning_observer.exceptions.SuspiciousOperation("Unknown event source")
 
     return modules

@@ -39,8 +39,6 @@ import learning_observer.exceptions
 
 import learning_observer.auth.events
 
-stream_analytics.init()
-
 
 def compile_server_data(request):
     '''

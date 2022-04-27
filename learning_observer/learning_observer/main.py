@@ -29,6 +29,7 @@ import learning_observer.settings as settings
 import learning_observer.routes as routes
 import learning_observer.prestartup
 import learning_observer.middleware
+import learning_observer.stream_analytics
 
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -45,6 +46,8 @@ settings.load_settings(args.config_file)
 # Check that everything is configured correctly,
 # and initialize anything which needs initialization
 learning_observer.prestartup.startup_checks_and_init()
+# Initialize the streaming analytics framework
+learning_observer.stream_analytics.init()
 # Create the application
 app = aiohttp.web.Application()
 
