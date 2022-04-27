@@ -205,7 +205,7 @@ def check_aio_session_settings():
             "subsection containing a secret string. This is used for\n"
             "security, and should be set once for each deploy of the platform\n"
             "(e.g. if you're running 10 servers, they should all have the\n"
-            "same secret\n\n"
+            "same secret)\n\n"
             "Please set an AIO session secret in creds.yaml\n\n"
             "Please pick a good session secret. You only need to set it once, and\n"
             "the security of the platform relies on a strong, unique password there\n\n"
