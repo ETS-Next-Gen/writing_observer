@@ -1,5 +1,4 @@
-'''Key-
-value store
+'''Key-value store
 
 Manages JSON objects
 
@@ -186,6 +185,24 @@ def kvs_startup_check():
                 "then replace this with a more meaningful error message"
             )
     return True
+
+
+async def dump_kvs():
+    '''
+    Dumps the entire contents of the KVS to a JSON object.
+
+    It is intended to be used in development and for debugging. It is not
+    intended to be used in production, as it is not very performant. It can
+    be helpful for offline analytics too, at least at a small scale.
+
+    Helpers like this would be helpful to refactor into the KVS itself,
+    perhaps through a superclass.
+    '''
+    data = {}
+    kvs = learning_observer.kvs.KVS()
+    for key in await kvs.keys():
+        data[key] = await kvs[key]
+    return data
 
 
 async def test():

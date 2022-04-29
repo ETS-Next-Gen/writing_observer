@@ -91,14 +91,6 @@ async def process_files(files):
                     raise
 
 
-async def probe_kvs():
-    data = {}
-    kvs = learning_observer.kvs.KVS()
-    for key in await kvs.keys():
-        data[key] = await kvs[key]
-    return data
-
-
 asyncio.run(process_files(files))
-data = asyncio.run(probe_kvs())
+data = asyncio.run(learning_observer.kvs.dump_kvs())
 print(json.dumps(data, indent=2))
