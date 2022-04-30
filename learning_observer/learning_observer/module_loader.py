@@ -11,8 +11,6 @@ too. We'd like to use this from utility scripts.
 
 import collections
 import copy
-# import importlib
-# import pkgutil
 import os.path
 import sys
 
@@ -24,6 +22,8 @@ import learning_observer.paths
 import learning_observer.settings
 
 from learning_observer.log_event import debug_log
+
+import learning_observer.stream_analytics.helpers as helpers
 
 
 # This is set to true after we've scanned and loaded modules
@@ -147,6 +147,9 @@ def static_repos():
 
 
 def ajax():
+    '''
+    Return a dictionary of all AJAX handlers.
+    '''
     load_modules()
     return AJAX
 
@@ -169,162 +172,231 @@ def load_modules():
 
     # Iterate through Learning Observer modules
     for entrypoint in pkg_resources.iter_entry_points("lo_modules"):
-        module = entrypoint.load()
-        if not hasattr(module, "NAME"):
-            raise ValueError(
-                "Module {} does not have a NAME attribute"
+        load_module_from_entrypoint(entrypoint)
+    LOADED = True
+
+
+def validate_module(module):
+    '''
+    Check that a module has the required components.
+
+    We should eventually do more validation here, once we have
+    figured out what we want to validate.
+    '''
+    if not hasattr(module, "NAME"):
+        raise ValueError(
+                f"Module {module} does not have a NAME attribute"
                 "Please give your module a short, human-friendly name"
-                "Spaces, etc. are okay".format(entrypoint.name))
+                "Spaces, etc. are okay"
+        )
 
-        debug_log("Loading module: {pypackage} ({name})".format(
-            name=module.NAME,
-            pypackage=str(entrypoint),
-            module=entrypoint.name
-        ))
 
-        # Load any teacher course_aggregators
-        # TODO: These should be relabeled within modules.
-        # are now pages which call these.
-        if hasattr(module, "COURSE_AGGREGATORS"):
-            for aggregator in module.COURSE_AGGREGATORS:
-                aggregator_id = "{module}.{submodule}".format(
-                    module=entrypoint.name,
-                    submodule=aggregator
-                )
-                COURSE_AGGREGATORS[aggregator_id] = {}
-                COURSE_AGGREGATORS[aggregator_id].update(module.COURSE_AGGREGATORS[aggregator])
-                COURSE_AGGREGATORS[aggregator_id]['long_id'] = aggregator_id
-                COURSE_AGGREGATORS[aggregator_id]['short_id'] = aggregator
+DEFAULT_STUDENT_SCOPE = helpers.Scope([helpers.KeyField.STUDENT])
 
-            # for aggregator in module.COURSE_AGGREGATORS:
-            #     aggregator_id = "{module}.{submodule}".format(
-            #         module=entrypoint.name,
-            #         submodule=module.COURSE_AGGREGATORS[aggregator]['submodule'],
-            #     )
-            #     COURSE_AGGREGATORS[aggregator_id] = {
-            #         # Human-readable name
-            #         "name": "{module}: {aggregator}".format(
-            #             module=module.NAME,
-            #             aggregator=aggregator
-            #         ),
-            #         # Root URL
-            #         "url": "{module}/{submodule}/{url}".format(
-            #             module=entrypoint.name,
-            #             submodule=module.COURSE_AGGREGATORS[aggregator]['submodule'],
-            #             url=module.COURSE_AGGREGATORS[aggregator]['url']
-            #         ),
-            #         "function": module.COURSE_AGGREGATORS[aggregator]['function']
-            #     }
-            #     debug_log(aggregator)
-        else:
-            debug_log("Module {} has no course aggregators".format(entrypoint.name))
 
-        # Load any state reducers / event processors
-        if hasattr(module, "REDUCERS"):
-            for reducer in module.REDUCERS:
-                debug_log("Reducer: ", reducer)
-                function = reducer['function']
-                context = reducer['context']
-                scope = reducer.get('scope', None)
-                if scope is None:
-                    debug_log("SCOPE REQUIRED! Fix your code")
-                    debug_log("This error will be removed and changed to an exception")
-                    debug_log("once everything is migrated")
-                    import learning_observer.stream_analytics.helpers as helpers
-                    scope = helpers.Scope([helpers.KeyField.STUDENT])
-                # reducer_id = "{module}.{name}".format(
-                #     module=function.__module__,
-                #     name=function.__name__
-                # )
-                REDUCERS.append({
-                    "context": context,
-                    "function": function,
-                    "scope": scope
-                })
-        else:
-            debug_log("Module has no reducers")
+def load_reducers(component_name, module):
+    '''
+    Load reducers from a module.
 
-        # Load additional AJAX calls
-        if hasattr(module, "AJAX"):
-            AJAX[entrypoint.name] = module.AJAX
+    We clean up the reducer by removing any keys that we don't
+    need, adding defaults for any missing keys.
+    '''
+    # Load any state reducers / event processors
+    if hasattr(module, "REDUCERS"):
+        debug_log(f"Loading reducers from {component_name}")
+        for reducer in module.REDUCERS:
+            cleaned_reducer = {
+                "context": reducer['context'],
+                "function": reducer['function'],
+                "scope": reducer.get('scope', DEFAULT_STUDENT_SCOPE),
+                "module": module
+            }
+            debug_log(f"Loading reducer: {cleaned_reducer}")
+            REDUCERS.append(cleaned_reducer)
+    else:
+        debug_log(f"Component {component_name} has no reducers")
 
-        # Load a list of static files our server will serve
-        #
-        # There's a lot to think through in terms of absolute paths,
-        # conflicts, etc. perhaps another time.
-        if hasattr(module, "THIRD_PARTY"):
-            for library_filename in module.THIRD_PARTY:
-                # If another module already wants this library, confirm
-                # it's under the same hash
-                if library_filename in THIRD_PARTY:
-                    if THIRD_PARTY[library_filename]['hash'] != \
+
+def load_course_aggregators(component_name, module):
+    '''
+    Load course aggregators from a module.
+
+    We clean up the course aggregator by removing any keys that we
+    don't need, adding defaults for any missing keys.
+    '''
+    if hasattr(module, "COURSE_AGGREGATORS"):
+        debug_log(f"Loading course aggregators from {component_name}")
+        for course_aggregator in module.COURSE_AGGREGATORS:
+            aggregator_id = "{module}.{submodule}".format(
+                module=component_name,
+                submodule=course_aggregator
+            )
+
+            cleaned_aggregator = {
+                "long_id": aggregator_id,
+                "short_id": course_aggregator,
+                "module": module
+            }
+            cleaned_aggregator.update(module.COURSE_AGGREGATORS[course_aggregator])
+
+            COURSE_AGGREGATORS[aggregator_id] = cleaned_aggregator
+
+            debug_log(f"Loaded course aggregator: {cleaned_aggregator}")
+    else:
+        debug_log(f"Component {component_name} has no course aggregators")
+
+
+def load_ajax(component_name, module):
+    '''
+    Load AJAX handlers from a module. This is API is TBD.
+    '''
+    if hasattr(module, "AJAX"):
+        debug_log(f"Loading AJAX handlers from {component_name}")
+        AJAX[component_name] = module.AJAX
+    else:
+        debug_log(f"Component {component_name} has no extra AJAX handlers")
+
+
+def load_dashboards(component_name, module):
+    '''
+    Load dashboards from a module.
+
+    For now, these are just static URLs to the dashboards. These can
+    either be per-student or per-course. We might want to add more
+    types later, or somehow organize these better.
+
+    These should have more metadata at some point. Organization of this
+    is TBD.
+    '''
+    dashboards = False
+    if hasattr(module, "COURSE_DASHBOARDS"):
+        debug_log("Loading course dashboards from {component_name}")
+        COURSE_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
+        dashboards = True
+
+    if hasattr(module, "STUDENT_DASHBOARDS"):
+        debug_log("Loading student dashboards from {component_name}")
+        STUDENT_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
+        dashboards = True
+
+    if not dashboards:
+        debug_log(f"Component {component_name} has no dashboards")
+
+
+def register_3rd_party(component_name, module):
+    '''
+    Register 3rd party components the module needs.
+
+    These will be downloaded and installed onto the server,
+    and then the module will be able to use them.
+
+    These are verified by SHA hashes.
+
+    There's a lot to think through in terms of absolute paths,
+    conflicts, etc. perhaps another time.
+    '''
+    if hasattr(module, "THIRD_PARTY"):
+        debug_log(f"Loading third party components from {component_name}")
+        for library_filename in module.THIRD_PARTY:
+            # If another module already wants this library, confirm
+            # it's under the same hash
+            if library_filename in THIRD_PARTY:
+                if THIRD_PARTY[library_filename]['hash'] != \
                        module.THIRD_PARTY[library_filename]['hash']:
-                        raise RuntimeError(
+                    raise RuntimeError(
                             "Version Conflict in 3rd party libs\n"
-                            "Module {} has a different hash for {}"
-                            "than previous module.\n"
+                            "Component {} has a different hash for {}"
+                            "than previous component.\n"
                             "{} vs {}".format(
-                                entrypoint.name,
+                                component_name,
                                 library_filename,
                                 THIRD_PARTY[library_filename]['module'],
                                 module.THIRD_PARTY[library_filename]
                             )
                         )
-                else:
-                    THIRD_PARTY[library_filename] = {
+            else:
+                THIRD_PARTY[library_filename] = {
                         'urls': [],
                         'hash': module.THIRD_PARTY[library_filename]['hash'],
                         'users': []
                     }
-                THIRD_PARTY[library_filename]['users'].append(module.NAME)
-                THIRD_PARTY[library_filename]['urls'].append(
+            THIRD_PARTY[library_filename]['users'].append(module.NAME)
+            THIRD_PARTY[library_filename]['urls'].append(
                     module.THIRD_PARTY[library_filename]['url']
                 )
 
-        # These should have more metadata at some point (e.g. what
-        # module they came from), but this is fine for now.
-        if hasattr(module, "COURSE_DASHBOARDS"):
-            COURSE_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
 
-        if hasattr(module, "STUDENT_DASHBOARDS"):
-            STUDENT_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
+def register_git_repos(component_name, module):
+    '''
+    Register git repositories the module would like to serve
+    static files from.
 
-        # Clone module repos for serving static files, if we need to
-        if hasattr(module, "STATIC_FILE_GIT_REPOS"):
-            for repo in module.STATIC_FILE_GIT_REPOS:
-                if repo in STATIC_REPOS:
-                    raise NotImplementedError(
-                        "Multiple modules want to clone {repo}\n"
+    These can be downloaded and installed onto the server, but we
+    prompt the user to confirm before doing so, since we don't
+    want to accidentally conflict with devops tools.
+
+    We don't handle multiple components wanting the same repo
+    well. We should probably do something about that.
+    '''
+    if hasattr(module, "STATIC_FILE_GIT_REPOS"):
+        debug_log(f"Loading git repositories from {component_name}")
+        for repo in module.STATIC_FILE_GIT_REPOS:
+            debug_log(f"Validating and registering git repository: {repo}")
+            if repo in STATIC_REPOS:
+                raise NotImplementedError(
+                        f"Multiple modules want to clone {repo}\n"
                         "This isn't bad, but isn't implemented yet.\n"
                         "We want code to either make sure both versions\n"
                         "are the same, or place them in different locations,\n"
-                        "or something. Please code that up and make a PR!".format(repo)
+                        "or something. Please code that up and make a PR!"
                     )
-                STATIC_REPOS[repo] = copy.deepcopy(module.STATIC_FILE_GIT_REPOS[repo])
-                # TODO: This is a bit awkward.... The URL and key structure won't work well
-                # if we use the same repo twice.
-                STATIC_REPOS[repo]['module'] = entrypoint.name
-                if not os.path.exists(learning_observer.paths.repo(repo)):
-                    print("Repo {repo} does not exist.".format(repo=repo))
-                    print("It is requested by {module}".format(module=entrypoint.name))
-                    print("Should I clone it from {url} to {location}?".format(
+            STATIC_REPOS[repo] = copy.deepcopy(module.STATIC_FILE_GIT_REPOS[repo])
+            # TODO: This is a bit awkward.... The URL and key structure won't work well
+            # if we use the same repo twice.
+            STATIC_REPOS[repo]['module'] = component_name
+            if not os.path.exists(learning_observer.paths.repo(repo)):
+                print(f"Repo {repo} does not exist.")
+                print(f"It is requested by {component_name}")
+                print("Should I clone it from {url} to {location}?".format(
                         location=learning_observer.paths.repo(repo),
                         url=module.STATIC_FILE_GIT_REPOS[repo]['url']
                     ))
-                    yn = input("Yes/No> ")
-                    if yn.lower().strip() not in ["y", "tak", "yes", "yup", "好", "نعم"]:
-                        print("Fine. Get it yourself, and configure the location")
-                        print("in the setting file under repos. Run me again once it's")
-                        print("there.")
-                        sys.exit(-1)
-                    gitrepo = gitserve.gitaccess.GitRepo(learning_observer.paths.repo(repo))
-                    print(gitrepo.clone(
+                yesno = input("Yes/No> ")
+                if yesno.lower().strip() not in ["y", "tak", "yes", "yup", "好", "نعم"]:
+                    print("Fine. Get it yourself, and configure the location")
+                    print("in the setting file under repos. Run me again once it's")
+                    print("there.")
+                    sys.exit(-1)
+                gitrepo = gitserve.gitaccess.GitRepo(learning_observer.paths.repo(repo))
+                print(gitrepo.clone(
                         module.STATIC_FILE_GIT_REPOS[repo]['url'],
                         mirror=module.STATIC_FILE_GIT_REPOS[repo].get("mirror", True)
                     ))
                 # Paths are top-level for bare repos e.g. `/home/ubuntu/repo` and subdir for
                 # working repos e.g. `/home/ubuntu/repo.git` which we need to later manage.
-                if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
-                    STATIC_REPOS[repo]['bare'] = True
-        debug_log(STATIC_REPOS)
-    LOADED = True
+            if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
+                STATIC_REPOS[repo]['bare'] = True
+    else:
+        debug_log(f"Component {component_name} has no git repositories")
+    debug_log(STATIC_REPOS)
+
+
+def load_module_from_entrypoint(entrypoint):
+    '''
+    Load a module from an entrypoint.
+    '''
+    debug_log(
+        f"Loading entrypoint: {entrypoint.name} / {entrypoint.dist.version} / "
+        "{entrypoint.dist.location} / {entrypoint.dist.project_name}")
+    module = entrypoint.load()
+    component_name = entrypoint.name
+    validate_module(module)
+    debug_log(f"Corresponding to module: {module.__name__} ({module.NAME})")
+    load_reducers(component_name, module)
+    load_course_aggregators(component_name, module)
+    load_ajax(component_name, module)
+    load_dashboards(component_name, module)
+    register_3rd_party(component_name, module)
+    register_git_repos(component_name, module)
+
+    return module
