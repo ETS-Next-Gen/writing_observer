@@ -90,7 +90,7 @@ async def process_files(files):
                     print(line)
                     raise
 
-
+kvs = learning_observer.kvs.KVS()
 asyncio.run(process_files(files))
-data = asyncio.run(learning_observer.kvs.dump_kvs())
+data = asyncio.run(kvs.dump())
 print(json.dumps(data, indent=2))

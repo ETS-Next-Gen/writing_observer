@@ -25,7 +25,25 @@ import learning_observer.redis
 OBJECT_STORE = dict()
 
 
-class InMemoryKVS():
+class _KVS:
+    async def dump(self):
+        '''
+        Dumps the entire contents of the KVS to a JSON object.
+
+        It is intended to be used in development and for debugging. It is not
+        intended to be used in production, as it is not very performant. It can
+        be helpful for offline analytics too, at least at a small scale.
+
+        Helpers like this would be helpful to refactor into the KVS itself,
+        perhaps through a superclass.
+        '''
+        data = {}
+        for key in await self.keys():
+            data[key] = await self[key]
+        return data
+
+
+class InMemoryKVS(_KVS):
     '''
     Stores items in-memory. Items expire on system restart.
     '''
@@ -63,7 +81,18 @@ class InMemoryKVS():
         return list(OBJECT_STORE.keys())
 
 
-class _RedisKVS():
+    async def clear(self):
+        '''
+        Clear the KVS.
+
+        This is helpful for debugging and testing. We did not want to
+        implement this for the production KVS, since it would be
+        too easy to accidentally lose data.
+        '''
+        OBJECT_STORE = dict()
+
+
+class _RedisKVS(_KVS):
     '''
     Stores items in redis.
     '''
@@ -185,24 +214,6 @@ def kvs_startup_check():
                 "then replace this with a more meaningful error message"
             )
     return True
-
-
-async def dump_kvs():
-    '''
-    Dumps the entire contents of the KVS to a JSON object.
-
-    It is intended to be used in development and for debugging. It is not
-    intended to be used in production, as it is not very performant. It can
-    be helpful for offline analytics too, at least at a small scale.
-
-    Helpers like this would be helpful to refactor into the KVS itself,
-    perhaps through a superclass.
-    '''
-    data = {}
-    kvs = learning_observer.kvs.KVS()
-    for key in await kvs.keys():
-        data[key] = await kvs[key]
-    return data
 
 
 async def test():

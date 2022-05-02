@@ -94,6 +94,13 @@ async def student_event_pipeline(metadata):
         And this is the pipeline itself. It takes messages, processes them,
         and informs consumers when there is new data.
         '''
+        if type(parsed_message) is not dict:
+            raise ValueError(f"Expected a dict, got {type(parsed_message)}")
+        if 'client' not in parsed_message:
+            raise ValueError("Expected a dict with a 'client' field")
+        if 'event' not in parsed_message['client']:
+            raise ValueError("Expected a dict with a 'client' field with an 'event' field")
+
         debug_log("Processing message {event} from {source}".format(
             event=parsed_message["client"]["event"], source=client_source
         ))
