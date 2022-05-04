@@ -80,7 +80,6 @@ class InMemoryKVS(_KVS):
         '''
         return list(OBJECT_STORE.keys())
 
-
     async def clear(self):
         '''
         Clear the KVS.
@@ -89,6 +88,7 @@ class InMemoryKVS(_KVS):
         implement this for the production KVS, since it would be
         too easy to accidentally lose data.
         '''
+        global OBJECT_STORE
         OBJECT_STORE = dict()
 
 
