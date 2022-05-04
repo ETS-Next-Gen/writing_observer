@@ -6,6 +6,7 @@ other applications, and in Jupyter notebooks.
 '''
 import argparse
 import asyncio
+from cgi import print_arguments
 import json
 import sys
 import os
@@ -18,6 +19,8 @@ import learning_observer.module_loader
 import learning_observer.incoming_student_event
 import learning_observer.log_event
 import learning_observer.kvs
+import learning_observer.rosters
+import learning_observer.dashboard
 
 
 async def init():
@@ -41,6 +44,9 @@ async def init():
         },
         "config": {
             "run_mode": "dev"
+        },
+        "roster-data": {
+            "source": "all"
         }
     })
 
@@ -49,7 +55,7 @@ async def init():
     reducers = learning_observer.module_loader.reducers()
     learning_observer.kvs.kvs_startup_check()
     learning_observer.stream_analytics.init()
-
+    learning_observer.rosters.init()
 
 async def process_file(file_path, source=None, userid=None):
     '''
@@ -156,6 +162,40 @@ async def reset():
     '''
     Reset the Learning Observer library, clearing all processed events
     from the KVS.
+
+    In the future, this will also clear the modules, etc.
     '''
     kvs = learning_observer.kvs.KVS()
     await kvs.clear()
+
+
+async def aggregate(module_id):
+    '''
+    Aggregate the results of a module.
+
+    This has a lot of overlap with dashboard.py, and should be refactored.
+    '''
+    course_id = 12345
+    course_aggregator_module, default_data = learning_observer.dashboard.find_course_aggregator(module_id)
+
+    if course_aggregator_module is None:
+        print("Bad module: ", module_id)
+        available = learning_observer.module_loader.course_aggregators()
+        print("Available modules: ", [available[key]['short_id'] for key in available])
+        raise ValueError(text="Invalid module: {}".format(module_id))
+
+    roster = await learning_observer.rosters.courseroster("request", course_id)
+    student_state_fetcher = learning_observer.dashboard.fetch_student_state(
+        course_id,
+        module_id,
+        course_aggregator_module,
+        roster,
+        default_data
+    )
+    aggregator = course_aggregator_module.get('aggregator', lambda x: {})
+    sd = await student_state_fetcher()
+    data = {
+        "student-data": sd   # Per-student list
+    }
+    data.update(aggregator(sd))
+    return data

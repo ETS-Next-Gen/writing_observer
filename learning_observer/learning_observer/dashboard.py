@@ -278,7 +278,8 @@ async def websocket_dashboard_view(request):
 
     if course_aggregator_module is None:
         debug_log("Bad module: ", module_id)
-        debug_log("Available modules: ", learning_observer.module_loader.course_aggregators())
+        available = learning_observer.module_loader.course_aggregators()
+        debug_log("Available modules: ", [available[key]['short_id'] for key in available])
         raise aiohttp.web.HTTPBadRequest(text="Invalid module: {}".format(module_id))
 
     # We need to receive to detect web socket closures.

@@ -242,7 +242,7 @@ ajax = None
 
 
 @learning_observer.prestartup.register_startup_check
-def startup():
+def init():
     '''
     * Set up the ajax function.
     * Check that the settings are valid.
@@ -252,10 +252,14 @@ def startup():
     or smaller functions otherwise.
     '''
     global ajax
-    if 'roster-data' not in settings.settings or \
-       'source' not in settings.settings['roster-data']:
+    if 'roster-data' not in settings.settings:
+        print(settings.settings)
         raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster-data` element with a `source` element"
+            "Settings file needs a `roster-data` element with a `source` element. No `roster-data` element found."
+        )
+    elif 'source' not in settings.settings['roster-data']:
+        raise learning_observer.prestartup.StartupCheck(
+            "Settings file needs a `roster-data` element with a `source` element. No `source` element found."
         )
     elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
         ajax = synthetic_ajax
