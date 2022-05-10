@@ -116,7 +116,7 @@ def load_settings(config):
                 learning_observer.paths.register_repo(repo, settings['repos'][repo])
             elif isinstance(settings['repos'][repo], dict):
                 # HACK. We should figure out where to stick this. This does not belong in paths
-                debug_working = settings['repos'][repo].get("debug-working", False)
+                debug_working = settings['repos'][repo].get("debug-working", None)
 
                 learning_observer.paths.register_repo(repo, settings['repos'][repo]['path'], debug_working=debug_working)
             else:

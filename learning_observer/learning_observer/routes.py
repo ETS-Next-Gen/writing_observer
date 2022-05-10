@@ -57,65 +57,11 @@ def add_routes(app):
             aiohttp.web.get('/debug/tracemalloc/', tracemalloc_handler),
         ])
 
-    # Dashboard API
-    # This serves up data (currently usually dummy data) for the dashboard
-    app.add_routes([
-        aiohttp.web.get(
-            '/wsapi/dashboard',
-            learning_observer.dashboard.websocket_dashboard_view),
-        aiohttp.web.get(
-            '/webapi/course_dashboards',
-            ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
-        aiohttp.web.get(
-            '/webapi/student_dashboards',
-            ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
-    ])
+    register_dashboard_api(app)
+    register_static_routes(app)
+    register_incoming_event_views(app)
 
     app.add_routes([
-        aiohttp.web.get(
-            '/wsapi/generic_dashboard',
-            learning_observer.dashboard.generic_dashboard)
-    ])
-
-    # Serve static files
-    app.add_routes([
-        aiohttp.web.get(
-            '/static/{filename}',
-            static_directory_handler(paths.static())),
-        aiohttp.web.get(
-            '/static/modules/{filename}',
-            static_directory_handler(paths.static("modules"))),
-
-        # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
-        aiohttp.web.get(
-            r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
-            static_directory_handler(paths.static("3rd_party"))),
-        aiohttp.web.get(
-            '/static/3rd_party/{filename}',\
-            static_directory_handler(paths.static("3rd_party"))),
-        aiohttp.web.get(
-            '/static/media/{filename}',
-            static_directory_handler(paths.static("media"))),
-        aiohttp.web.get(
-            '/static/media/avatar/{filename}',
-            static_directory_handler(paths.static("media/hubspot_persona_images/"))),
-    ])
-
-    # Handle web sockets event requests, incoming and outgoing
-    app.add_routes([
-        aiohttp.web.get(
-            '/wsapi/in/',
-            incoming_student_event.incoming_websocket_handler)
-    ])
-
-    # Handle AJAX event requests, incoming
-    app.add_routes([
-        aiohttp.web.get(
-            '/webapi/event/',
-            incoming_student_event.ajax_event_request),
-        aiohttp.web.post(
-            '/webapi/event/',
-            incoming_student_event.ajax_event_request),
         aiohttp.web.get(
             '/webapi/courselist/',
             rosters.courselist_api),
@@ -124,53 +70,7 @@ def add_routes(app):
             rosters.courseroster_api),
     ])
 
-    # Generic web-appy things
-    app.add_routes([
-        aiohttp.web.get(
-            '/favicon.ico',
-            static_file_handler(paths.static("favicon.ico"))),
-        aiohttp.web.get(
-            '/auth/logout',
-            handler=learning_observer.auth.logout_handler),
-        aiohttp.web.get(
-            '/auth/userinfo',
-            handler=learning_observer.auth.user_info_handler)
-    ])
-
-    if 'google-oauth' in settings.settings['auth']:
-        debug_log("Running with Google authentication")
-        app.add_routes([
-            aiohttp.web.get(
-                '/auth/login/{provider:google}',
-                handler=learning_observer.auth.social_handler),
-        ])
-
-    if 'password-file' in settings.settings['auth']:
-        debug_log("Running with password authentication")
-        if not os.path.exists(settings.settings['auth']['password-file']):
-            print("Configured to run with password file,"
-                  "but no password file exists")
-            print()
-            print("Please either:")
-            print("* Remove auth/password-file from the settings file")
-            print("* Create a file {fn} with lo_passwd.py".format(
-                fn=settings.settings['auth']['password-file']
-            ))
-            print("Typically:")
-            print("python util/lo_passwd.py "
-                  "--username {username} --password {password} "
-                  "--filename {fn}".format(
-                      username=getpass.getuser(),
-                      password=secrets.token_urlsafe(16),
-                      fn=settings.settings['auth']['password-file']
-                  ))
-            sys.exit(-1)
-        app.add_routes([
-            aiohttp.web.post(
-                '/auth/login/password',
-                learning_observer.auth.password_auth(
-                    settings.settings['auth']['password-file'])
-            )])
+    register_auth_webapp_views(app)
 
     # If we want to support multiple modes of authentication, including
     # http-basic, we can configure a URL in nginx which will require
@@ -258,23 +158,221 @@ def add_routes(app):
                 )
             ])
 
-    # Repos
+    # We route the repos last, since we override some of the routes
+    # above (esp. 3rd party libraries and media)
     repos = learning_observer.module_loader.static_repos()
-    for gitrepo in repos:
-        giturl = r'/static/repos/' + repos[gitrepo]['module'] + '/' + gitrepo + '/{branch:[^{}/]+}/{filename:[^{}]+}'
+    register_repo_routes(app, repos)
 
-        working_tree = paths.repo_debug_working_hack(gitrepo)  # Ignore the branch; serve from working tree
-        bare = repos[gitrepo].get("bare", False)
+
+def register_incoming_event_views(app):
+    '''
+    Register views for incoming events. We have a websocket
+    connection for each incoming event. The websocket connection 
+    is a long-lived connection, and is used to receive events
+    from the client.
+
+    We supported AJAX calls before, but we've since moved to
+    websockets, and the AJAX may be disabled since it's not
+    tested. We'll keep the code around for now, since it's
+    useful for debugging and in the future, lower-velocity
+    events.
+    '''
+    # Handle web sockets event requests, incoming and outgoing
+    app.add_routes([
+        aiohttp.web.get(
+            '/wsapi/in/',
+            incoming_student_event.incoming_websocket_handler)
+    ])
+
+    # Handle AJAX event requests, incoming
+    app.add_routes([
+        aiohttp.web.get(
+            '/webapi/event/',
+            incoming_student_event.ajax_event_request),
+        aiohttp.web.post(
+            '/webapi/event/',
+            incoming_student_event.ajax_event_request)
+    ])
+
+
+def register_dashboard_api(app):
+    '''
+    Register the dashboard API views.
+
+    We are moving from per-student and per-course dashboard to a
+    more general-purpose API. This is TBD.
+    '''
+    app.add_routes([
+        aiohttp.web.get(
+            '/wsapi/dashboard',
+            learning_observer.dashboard.websocket_dashboard_view),
+        aiohttp.web.get(
+            '/webapi/course_dashboards',
+            ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
+        aiohttp.web.get(
+            '/webapi/student_dashboards',
+            ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
+    ])
+
+    app.add_routes([
+        aiohttp.web.get(
+            '/wsapi/generic_dashboard',
+            learning_observer.dashboard.generic_dashboard)
+    ])
+
+
+def register_auth_webapp_views(app):
+    '''
+    Register the views for the auth module and user info
+    '''
+    # Generic web-appy things
+    app.add_routes([
+        aiohttp.web.get(
+            '/auth/logout',
+            handler=learning_observer.auth.logout_handler),
+        aiohttp.web.get(
+            '/auth/userinfo',
+            handler=learning_observer.auth.user_info_handler)
+    ])
+
+    if 'google-oauth' in settings.settings['auth']:
+        debug_log("Running with Google authentication")
+        app.add_routes([
+            aiohttp.web.get(
+                '/auth/login/{provider:google}',
+                handler=learning_observer.auth.social_handler),
+        ])
+
+    if 'password-file' in settings.settings['auth']:
+        debug_log("Running with password authentication")
+        if not os.path.exists(settings.settings['auth']['password-file']):
+            print("Configured to run with password file,"
+                  "but no password file exists")
+            print()
+            print("Please either:")
+            print("* Remove auth/password-file from the settings file")
+            print("* Create a file {fn} with lo_passwd.py".format(
+                fn=settings.settings['auth']['password-file']
+            ))
+            print("Typically:")
+            print("python util/lo_passwd.py "
+                  "--username {username} --password {password} "
+                  "--filename {fn}".format(
+                      username=getpass.getuser(),
+                      password=secrets.token_urlsafe(16),
+                      fn=settings.settings['auth']['password-file']
+                  ))
+            sys.exit(-1)
+        app.add_routes([
+            aiohttp.web.post(
+                '/auth/login/password',
+                learning_observer.auth.password_auth(
+                    settings.settings['auth']['password-file'])
+            )])
+
+
+def register_static_routes(app):
+    '''
+    Register static routes routes for the webapp, especially 3rd party
+    libraries.
+
+    This serves static files from the static directories. It overrides the
+    paths in repos. Most of these files are downloaded from the internet,
+    rather than being kept in the codebase.
+    '''
+    # Serve static files
+    app.add_routes([
+        aiohttp.web.get(
+            '/favicon.ico',
+            static_file_handler(paths.static("favicon.ico"))),
+        aiohttp.web.get(
+            '/static/{filename}',
+            static_directory_handler(paths.static())),
+        aiohttp.web.get(
+            '/static/modules/{filename}',
+            static_directory_handler(paths.static("modules"))),
+        # TODO: Make consistent. 3rdparty versus 3rd_party and maybe clean up URLs.
+        aiohttp.web.get(
+            r'/static/repos/{module:[^{}/]+}/{repo:[^{}/]+}/{branch:[^{}/]+}/3rdparty/{filename:[^{}]+}',
+            static_directory_handler(paths.static("3rd_party"))),
+        aiohttp.web.get(
+            '/static/3rd_party/{filename}',\
+            static_directory_handler(paths.static("3rd_party"))),
+        aiohttp.web.get(
+            '/static/media/{filename}',
+            static_directory_handler(paths.static("media"))),
+        aiohttp.web.get(
+            '/static/media/avatar/{filename}',
+            static_directory_handler(paths.static("media/hubspot_persona_images/"))),
+    ])
+
+
+def register_repo_routes(app, repos):
+    '''
+    Register routes for all repos.
+
+    An example repo is:
+
+    {
+        'url': 'https://github.com/ETS-Next-Gen/writing_observer.git',  // URL to the repo; downloaded if not already here
+        'prefix': 'modules/writing_observer/writing_observer/static',   // Path in repo to serve static files from
+        'module': 'wobserver',                                          // Module name to use in the static path
+
+        'whitelist': ['master'],                                        // Optional: List of branches to serve static files from; currently ignored
+        'working_tree': True,                                           // Optional: Allow working branches to be served
+        'bare': False,                                                  // Optional: Serve from a bare repo
+        'path': '/home/ubuntu/writing_observer'                         // Optional: Path to the repo
+    }
+
+    Most of the optional parameters should *not* be used in production. They are here
+    for testing and development, especially of new dashboard modules. If needed in production,
+    paths can also be set in the settings file.
+    '''
+    for reponame in repos:
+        gitrepo = repos[reponame]
+        # Check the keys in the repo dictionary are valid
+        # We can add more keys in the future. E.g. we might want to have comments
+        # and similar human-friendly metadata.
+        for key in gitrepo:
+            if key not in ['url', 'prefix', 'module', 'whitelist', 'working_tree', 'bare', 'path']:
+                raise ValueError("Unknown key in gitrepo: {}".format(key))
+        for key in ['url', 'prefix', 'module']:
+            if key not in gitrepo:
+                raise ValueError("Missing key in gitrepo: {}".format(key))
+        # Check the URL is valid
+        # We might want to support a broader range of URLs in the future.
+        if not gitrepo['url'].startswith('http://') and not gitrepo['url'].startswith('https://') and not gitrepo['url'].startswith('git@'):
+            raise ValueError("Invalid URL: {}".format(gitrepo['url']))
+
+        giturl = r'/static/repos/' + gitrepo['module'] + '/' + reponame + '/{branch:[^{}/]+}/{filename:[^{}]+}'
+
+        debug_log(f"Module {reponame} is hosting {gitrepo} at {giturl}")
+        debug_log(f"""For testing: python learning_observer/jupyter.py "{reponame};{gitrepo['url']};{gitrepo['prefix']};False;True" """)
+
+        # If the working tree is set in the repo, we can serve from the working tree
+        # This can be overridden by the settings file, in either direction
+        working_tree = gitrepo.get('working_tree', False)
+        working_tree_in_settings = paths.repo_debug_working_hack(reponame)  # Ignore the branch; serve from working tree
+        if working_tree_in_settings is not None:
+            print("Using working tree:", working_tree_in_settings)
+            working_tree = working_tree_in_settings
+
+        bare = gitrepo.get("bare", True)
         if working_tree:
+            debug_log("Serving from working tree; overriding the bare repo setting")
+            debug_log(f"Settings are inconsistent: working_tree: {working_tree} and bare: {bare}")
             bare = False
+
+        print("Bare", bare)
+        print("working_tree", working_tree)
 
         app.add_routes([
             aiohttp.web.get(
                 giturl,
                 handler=gitserve.aio_gitserve.git_handler_wrapper(
-                    paths.repo(gitrepo),
-                    cookie_prefix="SHA_" + gitrepo,
-                    prefix=repos[gitrepo].get("prefix", None),
+                    paths.repo(reponame),
+                    cookie_prefix="SHA_" + reponame,
+                    prefix=repos[reponame].get("prefix", None),
                     bare=bare,
                     working_tree_dev=working_tree)
             )

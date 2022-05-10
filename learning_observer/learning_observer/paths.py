@@ -106,13 +106,20 @@ def repo_debug_working_hack(reponame):
 
     Just not like this.... We should do the merge in settings.py or
     module_loader, or somewhere else.
+
+    Right now, we allow us to override whether a repo can be served
+    from the working dir in the settings file. This is set by
+    settings.py, which needs to be loaded after paths.py.
+
+    `True` and `False` are overrides. `None` is the default if not
+    set.
     '''
     if reponame in GIT_REPO_ARCHIVE and 'DEBUG_WORKING' in GIT_REPO_ARCHIVE[reponame]:
         return GIT_REPO_ARCHIVE[reponame]['DEBUG_WORKING']
-    return False
+    return None
 
 
-def register_repo(reponame, path, debug_working):
+def register_repo(reponame, path, debug_working=None):
     '''
     Let the system know the location of a repo on the local drive
 
