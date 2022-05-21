@@ -151,7 +151,7 @@ def prompt_for_user_data():
             user_data[field] = bcrypt.hashpw(
                 user_data[field].encode('utf-8'),
                 bcrypt.gensalt()
-            )
+            ).decode('utf-8')
 
     return user_data
 
