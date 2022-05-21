@@ -72,26 +72,6 @@ def add_routes(app):
 
     register_auth_webapp_views(app)
 
-    # If we want to support multiple modes of authentication, including
-    # http-basic, we can configure a URL in nginx which will require
-    # http basic auth, which is used to log in, and then redirects back
-    # home.
-    if learning_observer.auth.http_basic.http_auth_page_enabled():
-        # If we don't have a password file, we shouldn't have an auth page.
-        # At the very least, the user should explicitly set it to `null`
-        # if they are planning on using nginx for auth
-        debug_log("Enabling http basic auth page")
-        auth_file = settings.settings['auth']['http-basic']["password-file"]
-        app.add_routes([
-            aiohttp.web.get(
-                '/auth/login/http-basic',
-                learning_observer.auth.http_basic.http_basic_auth(
-                    filename=auth_file,
-                    response=lambda:aiohttp.web.HTTPFound(location="/")
-                )
-            )
-        ])
-
     # General purpose status page:
     # - List URLs
     # - Show system resources
@@ -270,6 +250,31 @@ def register_auth_webapp_views(app):
                     settings.settings['auth']['password-file'])
             )])
 
+    # If we want to support multiple modes of authentication, including
+    # http-basic, we can configure a URL in nginx which will require
+    # http basic auth, which is used to log in, and then redirects back
+    # home.
+    if learning_observer.auth.http_basic.http_auth_page_enabled():
+        # If we don't have a password file, we shouldn't have an auth page.
+        # At the very least, the user should explicitly set it to `null`
+        # if they are planning on using nginx for auth
+        debug_log("Enabling http basic auth page")
+        auth_file = settings.settings['auth']['http-basic']["password-file"]
+        app.add_routes([
+            aiohttp.web.get(
+                '/auth/login/http-basic',
+                learning_observer.auth.http_basic.http_basic_auth(
+                    filename=auth_file,
+                    response=lambda:aiohttp.web.HTTPFound(location="/")
+                )
+            )
+        ])
+    app.add_routes([
+        aiohttp.web.get(
+            '/auth/default-avatar.svg',
+            learning_observer.auth.handlers.serve_user_icon)
+    ])
+
 
 def register_static_routes(app):
     '''
@@ -305,6 +310,18 @@ def register_static_routes(app):
             '/static/media/avatar/{filename}',
             static_directory_handler(paths.static("media/hubspot_persona_images/"))),
     ])
+
+
+def repo_url(module, repo, branch="master", path="index.html"):
+    '''
+    Return a URL for a file in a repo.
+    '''
+    return "/static/repos/{module}/{repo}/{branch}/{path}".format(
+        module=module,
+        repo=repo,
+        branch=branch,
+        path=path
+    )
 
 
 def register_repo_routes(app, repos):

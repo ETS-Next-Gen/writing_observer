@@ -30,6 +30,7 @@ redis
 scipy
 slixmpp
 sphinx
+svgwrite
 uvloop
 -e gitserve
 -e learning_observer

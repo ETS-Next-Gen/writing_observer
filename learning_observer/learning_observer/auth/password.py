@@ -1,6 +1,7 @@
 '''
 Password log-in handler
 '''
+from distutils.log import debug
 import bcrypt
 import json
 import yaml
@@ -11,6 +12,7 @@ import learning_observer.auth.handlers
 import learning_observer.auth.utils
 
 from learning_observer.log_event import debug_log
+
 
 def password_auth(filename):
     '''
@@ -37,7 +39,8 @@ def password_auth(filename):
         body = await request.text()  # AJAX
         if 'username' not in data:
             data = json.loads(body)
-        password_data = yaml.safe_load(open(filename))
+        with open(filename) as f:
+            password_data = yaml.safe_load(f)
 
         # If you run into errors on the line below, you *probably*
         # have a dependency issue. Errors:
@@ -50,25 +53,35 @@ def password_auth(filename):
         #
         # It reliably either works or doesn't, but it doesn't change. If your
         # environment has a happy `bcrypt`, it will keep on working.
-        if (data['username'] in password_data['users']
-            and bcrypt.checkpw(
+        if data['username'] not in password_data['users']:
+            debug_log("User not found")
+            return aiohttp.web.json_response({"status": "unauthorized"})
+        user_data = password_data['users'][data['username']]
+        try:
+            password_check = bcrypt.checkpw(
                 data['password'].encode('utf-8'),
-                password_data['users'][data['username']]['password'].encode('utf-8')
-        )):
-            debug_log("Authorized")
-            await learning_observer.auth.utils.update_session_user_info(
-                request, {
-                    'user_id': "pwd-" + data['username'],
-                    'email': "",
-                    'name': "",
-                    'family_name': "",
-                    'picture': "",
-                    'authorized': True
-                }
+                user_data['password'].encode('utf-8')
             )
-            return aiohttp.web.json_response({"status": "authorized"})
+        except:
+            debug_log("Error verifying password hash")
+            debug_log("Hint: Try reinstalling / upgrading bcrypt")
+            debug_log("For some reason, bcrypt tends to sometimes install incorrectly")
+            debug_log("or get into an inconsistent state with ffi.")
+            raise
+        if not password_check:
+            debug_log("Password check failed")
+            return aiohttp.web.json_response({"status": "unauthorized"})
+        debug_log("Password check authorized")
+        await learning_observer.auth.utils.update_session_user_info(
+            request, {
+                'user_id': "pwd-" + user_data['username'],  # Perhaps data['username']?
+                'email': user_data.get('email', ''),
+                'name': user_data.get('name', ''),
+                'family_name': user_data.get('family_name', ''),
+                'picture': user_data.get('picture', '/auth/default-avatar.svg'),
+                'authorized': True
+            }
+        )
+        return aiohttp.web.json_response({"status": "authorized"})
 
-        debug_log("Unauthorized")
-        await learning_observer.auth.utils.logout(request)
-        return aiohttp.web.json_response({"status": "unauthorized"})
     return password_auth_handler

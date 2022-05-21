@@ -15,6 +15,10 @@ import learning_observer.auth.utils
 import learning_observer.auth.http_basic
 import learning_observer.settings
 
+import learning_observer.graphics_helpers
+
+import names
+
 
 async def logout_handler(request):
     """
@@ -80,6 +84,38 @@ async def auth_middleware(request, handler):
             "email": "testcase@localhost"
         }
 
+    # Short circuit for demos, cog-labs, development, etc.
+    # This should not be enabled on long-running live server, beyond spinning one up
+    # for a demo or something.
+    #
+    # In contrast to the above, this assigns a dummy name and similar. That's bad for
+    # testing, where we want determinism, but it's good for demos.
+    def name_to_email(name):
+        '''
+        Convert a name to an email address.
+
+        Args:
+            name (str): The name to convert.
+
+        Returns:
+            str: The email address.
+
+        Example: "John Doe" -> "jdoe@localhost"
+        '''
+        name = name.split()
+        return name[0][0].lower() + name[-1].lower() + "@localhost"
+
+    if userinfo is None and learning_observer.settings.settings['auth'].get("demo-insecure", False):
+        name = names.get_full_name()
+
+        userinfo = {
+            "name": full_name,
+            "picture": "demo.jpg",
+            "authorized": True,
+            "google_id": random.randint(10000, 99999),
+            "email": name_to_email(full_name)
+        }
+
     # This is a dumb way to sanitize data and pass it to the front-end.
     #
     # Cookies tend to get encoded and decoded in ad-hoc strings a lot, often
@@ -95,3 +131,44 @@ async def auth_middleware(request, handler):
         base64.b64encode(json.dumps(userinfo).encode('utf-8')).decode('utf-8')
     )
     return resp
+
+
+def serve_user_icon(request):
+    '''
+    Serve a user's default icon:
+    * A user's icon if available.
+    * An SVG of initials if no other icon is available.
+    * A default icon if no other icon is available.
+
+    Args:
+        request (aiohttp.web.Request): The request object.
+
+    Returns:
+        aiohttp.web.Response: The response object.
+    '''
+
+    # Good idea once we have a good icon
+    # if request['user'] is None:
+    #    return aiohttp.web.FileResponse(
+    #        learning_observer.settings.settings['auth']['default-icon']
+    #    )
+
+    # In the future, we might want something along the lines of:
+    # if 'picture' in request['user']:
+    #    return aiohttp.web.FileResponse(
+    #        request['user']['picture']
+    #    )
+    # We don't do this now -- we encode the URL and don't call this function
+    # if we have a picture -- since we often serve avatars from Google.
+    print(request)
+    print(request['user'])
+
+    user = request.get('user', {})
+    if user is None:
+        user = {}
+    name = user.get('name', None)
+
+    return aiohttp.web.Response(
+        body=learning_observer.graphics_helpers.default_user_icon(name),
+        content_type="image/svg+xml"
+    )
