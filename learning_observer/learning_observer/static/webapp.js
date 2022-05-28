@@ -1,35 +1,3 @@
-function decode_string_dict(stringdict) {
-    /*
-      Decode a string dictionary of the form:
-        `key1=value1; key2=value2;key3=value3`
-      This is used both to encode document hashes and for cookies.
-
-      This is inspired by a (buggy) cookie decoder from w3cschools. We
-      wrote out own since that one starts out with decodeURIComponent,
-      potentially allowing for injections.
-     */
-    var decoded = {};
-    var splitstring = stringdict.split(';');
-    for(var i = 0; i<splitstring.length; i++) {
-	var pair = splitstring[i];
-	while (pair.charAt(0) == ' ') {
-	    pair = pair.substring(1);
-	}
-	pair = pair.split('=');
-	let key = decodeURIComponent(pair[0]);
-	let value = decodeURIComponent(pair[1]);
-	decoded[key] = value;
-    }
-    return decoded;
-}
-
-function getCookie(cookie_name) {
-    /*
-      Shortcut to grab a cookie. Return null if no cookie exists.
-     */
-    return decode_string_dict(document.cookie)[cookie_name];
-}
-
 function go_home() {
     /*
       Load the homepage.
@@ -79,16 +47,33 @@ requirejs(
      "/static/3rd_party/text.js!/static/modules/tool.html",
      "/static/3rd_party/text.js!/static/modules/navbar_loggedin.html",
      "/static/3rd_party/text.js!/static/modules/informational.html",
+	 "/static/3rd_party/text.js!/auth/userinfo"
     ],
-    function(config, tool_list, d3, mustache, showdown, fontawesome, unauth, login, courses, course, tool, navbar_li, info) {
+    function(config, tool_list, d3, mustache, showdown, fontawesome, unauth, login, courses, course, tool, navbar_li, info, auth_info) {
 	// Parse client configuration.
 	config = JSON.parse(config);
 	console.log(tool_list);
 	tool_list = JSON.parse(tool_list);
 	console.log(tool_list);
+	console.log(auth_info);
+	console.log(JSON.stringify(auth_info));
 	// Add libraries
 	config.d3 = d3;
 	config.ajax = ajax(config);
+	auth_info = JSON.parse(auth_info);
+
+	// Reload user info
+	function reload_user_info() {
+		config.ajax("/auth/userinfo")
+		.then(function(data) {
+		    auth_info = data;
+		    console.log(auth_info);
+		    console.log(JSON.stringify(auth_info));
+		    console.log("reloaded user info");
+		});
+		console.log(auth_info);
+	}
+
 
 	function password_authorize() {
 	    d3.json("/auth/login/password", {
@@ -101,15 +86,16 @@ requirejs(
 		    password: d3.select(".lo-login-password").property("value")
 		})
 	    }).then(function(data) {
-		if (data['status'] === 'authorized') {
-		    load_courses_page();
-		} else if (data['status'] === 'unauthorized') {
-		    // TODO: Flash a nice subtle message
-		    alert("Invalid username or password!");
-		}
-		else {
-		    console.log(data);
-		}
+			reload_user_info();
+			if (data['status'] === 'authorized') {
+			    load_courses_page();
+			} else if (data['status'] === 'unauthorized') {
+		    	// TODO: Flash a nice subtle message
+			    alert("Invalid username or password!");
+			}
+			else {
+		    	console.log(data);
+			}
 	    });
 	}
 
@@ -137,36 +123,37 @@ requirejs(
 		*/
 		if(data["error"]!=null) {
 		    if(data["error"]["status"]==="UNAUTHENTICATED") {
-			load_login_page();
+				load_login_page();
 		    }
 		    else {
-			error("Unknown error!");
+				error("Unknown error!");
 		    }
 		} else {
 		    let cdg = d3.select(".awd-course-list");
 		    cdg.selectAll("div.awd-course-card")
-			.data(data)
-			.enter()
-			.append("div")
-			.html(function(course_json) {
-			    console.log(course_json);
-			    let tools = "";
-			    for(var i=0; i<tool_list.length; i++) {
-				// Computer icon CSS class
-				tool_list[i]["icon_class"] = tool_list[i].icon.type +
-				    " " +
-				    tool_list[i].icon.icon;
-				// This does a union.
-				// * tool_list[i] are the tool properties
-				// * course_json are the course properties
-				// Merged, we can render tools for courses!
-				joined = Object.assign({}, course_json, tool_list[i]);
-				console.log(joined);
-				tools += mustache.render(tool, joined);
+				.data(data)
+				.enter()
+				.append("div")
+				.html(function(course_json) {
+			    	console.log(course_json);
+			    	let tools = "";
+			    	for(var i=0; i<tool_list.length; i++) {
+					// Computer icon CSS class
+						tool_list[i]["icon_class"] = tool_list[i].icon.type +
+				    		" " +
+				    		tool_list[i].icon.icon;
+						// This does a union.
+						// * tool_list[i] are the tool properties
+						// * course_json are the course properties
+						// Merged, we can render tools for courses!
+						joined = Object.assign({}, course_json, tool_list[i]);
+					console.log(joined);
+					tools += mustache.render(tool, joined);
 			    }
 			    course_json['tools'] = tools;
 			    return mustache.render(course, course_json);
 			});
+			loggedin_navbar_menu();
 		}
 	    });
 	}
@@ -194,20 +181,31 @@ requirejs(
 	}
 
 	function user_info() {
-	    let userinfo = JSON.parse(atob(getCookie("userinfo").replace('"', '').replace('"', '')));
-	    //console.log(userinfo);
-	    return userinfo;
+		return auth_info;
+		/*try {
+		    let userinfo = JSON.parse(atob(getCookie("userinfo").replace('"', '').replace('"', '')));
+		    //console.log(userinfo);
+	    	return userinfo;
+		}
+		catch(err) {
+		    return {};
+		}*/
 	}
 
 	function authenticated() {
 	    // Decode user info.
 	    // I hate web browsers. There seems to be a more-or-less random addition of quotes
 	    // around cookies. Really.
-	    return user_info() !== null;
+		const ui = user_info();
+		if(ui == null || Object.keys(ui).length == 0) {
+			return false;
+		}
+		console.log(ui);
+	    return true;
 	}
 
 	function authorized() {
-	    return user_info()['authorized'];
+	    return user_info()['authorized'] == true;
 	}
 
 	function decode_hash() {
@@ -231,15 +229,14 @@ requirejs(
 	function setup_page() {
 	    const hash_dict = decode_hash();
 	    if(!authenticated()) {
-		//console.log("Login page");
+			//console.log("Login page");
 		load_login_page();
 	    } else if(!authorized()) {
-		load_unauthorized_page();
+			load_unauthorized_page();
 	    }
 	    else if(!hash_dict) {
 		//console.log("Courses page");
-		load_courses_page();
-		loggedin_navbar_menu()
+			load_courses_page();
 	    } else {
 		error("Invalid URL");
 	    }

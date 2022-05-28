@@ -65,7 +65,7 @@ def default_user_icon(name):
         intials = name
     else:
         initials = name.split()[0][0].upper() + name.split()[-1][0].upper()
-    d = svgwrite.Drawing()
+    d = svgwrite.Drawing(height=200, width=200)
     fill = ColorWheel()
     fill.color_from_hash(name)
     d.add(
@@ -90,7 +90,15 @@ def default_user_icon(name):
         )
     )
 
-    return d.tostring()
+    # Workaround for svgwrite bug. It ignores the height and width attributes
+    # when rendering the SVG, and sets them to 100% instead.
+    buggy_image = d.tostring()
+    if "200px" in buggy_image:
+        print("Huzza! svgwrite bug fixed!")
+        print("Please remove the bug fix")
+    else:
+        fixed_image = buggy_image.replace('100%"', '200px"')
+    return fixed_image
 
 
 if __name__ == '__main__':

@@ -25,6 +25,7 @@ import learning_observer.paths
 
 from learning_observer.log_event import debug_log
 
+
 def google_id_to_user_id(google_id):
     '''
     Convert a Google ID like:
@@ -93,6 +94,7 @@ async def logout(request):
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
     session.pop("auth_headers", None)
+    request['user'] = None
 
 
 class InvalidUsername(aiohttp.web.HTTPUnauthorized):
