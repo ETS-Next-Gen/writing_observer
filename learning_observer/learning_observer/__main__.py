@@ -4,4 +4,4 @@ Thin wrapper around main, so we can run this by writing:
 '''
 
 # pylint: disable=W0611
-import learning_observer.main as main
+import learning_observer.main

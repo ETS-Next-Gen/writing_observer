@@ -9,6 +9,7 @@ This is at the edge of dev-ops and operations. We would like to:
 - Create any directories that don't exist.
 '''
 
+from distutils.log import debug
 import hashlib
 import os
 import os.path
@@ -162,6 +163,50 @@ def download_3rd_party_static():
             raise StartupCheck(error)
 
 
+def preimport():
+    '''
+    This will import all of the files which use the register_init_function
+    or register_startup_check decorators.
+    '''
+    path = os.path.dirname(os.path.realpath(__file__))
+    # Walk the directory tree
+    for root, dirs, files in os.walk(path):
+        # For each file, if it's a .py file, import it
+        for f in files:
+            # Only handle Python files
+            if not f.endswith(".py"):
+                continue
+            if f.startswith("__"):
+                continue
+
+            # Skip directories which aren't part of the system
+            SKIP = ["static_data", "prototypes"]
+            if any(s in root for s in SKIP):
+                continue
+
+            # Skip files which don't use the decorator
+            DECORATORS = ["register_init_function", "register_startup_check"]
+            with open(os.path.join(root, f)) as fp:
+                code = fp.read()
+                if not any(d in code for d in DECORATORS):
+                    continue
+
+            # Strip the .py extension
+            f = f[:-3]
+            # Import the file
+            relpath = os.path.relpath(root, path).replace(os.sep, ".")
+            module_name = ".".join(["learning_observer", relpath, f])
+            while ".." in module_name:
+                module_name = module_name.replace("..", ".")
+
+            try:
+                print(f"Importing {module_name}")
+                __import__(module_name)
+            except ImportError as e:
+                print("Error importing {f}".format(f=f))
+                print(e)
+
+
 def startup_checks_and_init():
     '''
     Run a series of checks to ensure that the system is ready to run
@@ -178,6 +223,7 @@ def startup_checks_and_init():
     refactoring code, it's wrong. We just have things that need to run at
     startup, and dependencies.
     '''
+    preimport()
     exceptions = []
     for check in STARTUP_CHECKS:
         try:
