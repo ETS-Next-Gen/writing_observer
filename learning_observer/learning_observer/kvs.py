@@ -189,7 +189,7 @@ def kvs_startup_check():
     try:
         KVS_MAP = {
             'stub': InMemoryKVS,
-            'redis-ephemeral': EphemeralRedisKVS,
+            'redis_ephemeral': EphemeralRedisKVS,
             'redis': PersistentRedisKVS
         }
         KVS = KVS_MAP[learning_observer.settings.settings['kvs']['type']]

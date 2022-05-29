@@ -36,8 +36,8 @@ async def init():
     # Run from memory
     learning_observer.settings.load_settings({
         "logging": {
-            "debug-log-level": "NONE",
-            "debug-log-destination": ["console"]
+            "debug_log_level": "NONE",
+            "debug_log_destination": ["console"]
         },
         "kvs": {
             "type": "stub",
@@ -45,7 +45,7 @@ async def init():
         "config": {
             "run_mode": "dev"
         },
-        "roster-data": {
+        "roster_data": {
             "source": "all"
         }
     })
@@ -57,13 +57,14 @@ async def init():
     learning_observer.stream_analytics.init()
     learning_observer.rosters.init()
 
+
 async def process_file(file_path, source=None, userid=None):
     '''
     Process a single log file.
 
     Args:
         file_path (str): The path to the log file to process.
-        source (str): The source of events (e.g. org.mitros.dynamic-assessment)
+        source (str): The source of events (e.g. org.mitros.dynamic_assessment)
                       If not specified, the source will be inferred from the
                       events.
         userid (str): The userid of the user that generated the events. If not
@@ -80,7 +81,7 @@ async def process_file(file_path, source=None, userid=None):
     accidentally use a real name. This minimizes the risk of exposing
     PII. It'd be easy to infer the real name from the log file, but
     that should be done with care, and a parameter would be needed to
-    enable this.    
+    enable this.
     '''
     if file_path.endswith('.log'):
         opener = open
@@ -105,7 +106,7 @@ async def process_file(file_path, source=None, userid=None):
         }
     })
 
-    n = 0 # Number of events processed
+    n = 0  # Number of events processed
     with opener(file_path) as fp:
         for line in fp.readlines():
             try:
@@ -140,7 +141,7 @@ async def process_files(files):
     return total
 
 
-async def process_dir(path = os.getcwd()):
+async def process_dir(path=os.getcwd()):
     '''
     Process all log files in a directory.
 
@@ -195,7 +196,7 @@ async def aggregate(module_id):
     aggregator = course_aggregator_module.get('aggregator', lambda x: {})
     sd = await student_state_fetcher()
     data = {
-        "student-data": sd   # Per-student list
+        "student_data": sd   # Per-student list
     }
     data.update(aggregator(sd))
     return data

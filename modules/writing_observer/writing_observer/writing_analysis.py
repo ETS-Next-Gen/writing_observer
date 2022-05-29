@@ -28,8 +28,24 @@ from learning_observer.stream_analytics.helpers import student_event_reducer, kv
 TIME_ON_TASK_THRESHOLD = 5
 
 
-gdoc_scope = Scope([KeyField.STUDENT, EventField('doc_id')])
+# Here's the basic deal:
+#
+# - Our prototype didn't deal with multiple documents
+# - We're still refactoring to do this fully
+#
+# For most development, it's still convenient to pretend there's only
+# one document. For prototyping new writing dashboards, we need to get
+# rid of this illusion. This is a toggle. We should move it to the
+# config file, or we should refactor to fully eliminate the need.
+
+NEW = False
+
 student_scope = Scope([KeyField.STUDENT])
+
+if NEW:
+    gdoc_scope = Scope([KeyField.STUDENT, EventField('doc_id')])
+else:
+    gdoc_scope = student_scope  # HACK for backwards-compatibility
 
 
 @kvs_pipeline(scope=student_scope)
@@ -43,7 +59,7 @@ async def time_on_task(event, internal_state):
     if internal_state is None:
         internal_state = {
             'saved_ts': None,
-            'total-time-on-task': 0
+            'total_time_on_task': 0
         }
     last_ts = internal_state['saved_ts']
     internal_state['saved_ts'] = event['server']['time']
@@ -56,7 +72,7 @@ async def time_on_task(event, internal_state):
             TIME_ON_TASK_THRESHOLD,               # Maximum time step
             internal_state['saved_ts'] - last_ts  # Time step
         )
-        internal_state['total-time-on-task'] += delta_t
+        internal_state['total_time_on_task'] += delta_t
     return internal_state, internal_state
 
 

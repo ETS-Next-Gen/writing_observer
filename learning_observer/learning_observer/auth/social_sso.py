@@ -71,9 +71,9 @@ async def _google(request):
         return {}
 
     common_params = {
-        'client_id': settings.settings['auth']['google-oauth']['web']['client_id'],
+        'client_id': settings.settings['auth']['google_oauth']['web']['client_id'],
         'redirect_uri': "https://{hostname}/auth/login/google".format(
-            hostname = settings.settings['hostname']
+            hostname=settings.settings['hostname']
         )
     }
 
@@ -101,7 +101,7 @@ async def _google(request):
     url = 'https://accounts.google.com/o/oauth2/token'
     params = common_params.copy()
     params.update({
-        'client_secret': settings.settings['auth']['google-oauth']['web']['client_secret'],
+        'client_secret': settings.settings['auth']['google_oauth']['web']['client_secret'],
         'code': request.query['code'],
         'grant_type': 'authorization_code',
     })

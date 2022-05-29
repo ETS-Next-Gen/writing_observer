@@ -81,9 +81,9 @@ def insert(index, text, doc_id):
     return {
         "bundles": [{'commands': [{"ibi": index, "s": text, "ty": "is"}]}],
         "event": "google_docs_save",
-        "source": "org.mitros.writing-analytics",
+        "source": "org.mitros.writing_analytics",
         "doc_id": doc_id,
-        "origin": "stream-test-script"
+        "origin": "stream_test_script"
     }
 
 
@@ -98,13 +98,13 @@ def identify(user):
     return [
         {
             "event": "test_framework_fake_identity",
-            "source": "org.mitros.writing-analytics",
+            "source": "org.mitros.writing_analytics",
             "user_id": user,
-            "origin": "stream-test-script"
+            "origin": "stream_test_script"
         }, {
             "event": "metadata_finished",
-            "source": "org.mitros.writing-analytics",
-            "origin": "stream-test-script"
+            "source": "org.mitros.writing_analytics",
+            "origin": "stream_test_script"
         }
     ]
 

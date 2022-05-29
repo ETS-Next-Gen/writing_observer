@@ -15,7 +15,7 @@ xmpp:
     jid: stream@localhost
     password: {xmpp-stream-password}
 auth:
-  google-oauth:  # Remove if you're not using Google auth
+  google_oauth:  # Remove if you're not using Google auth
     web:
       client_id: {google-oauth-client-id}
       project_id: {google-oauth-project-id}
@@ -24,31 +24,31 @@ auth:
       auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
       client_secret: {google-client-secret}
       javascript_origins: ["{url}"]
-  password-file: passwd.lo  # Remove if you're not using a password file
+  password_file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
-  http-basic-auth:        # HTTP auth. You probably want to remove this.
+  http_basic_auth:        # HTTP auth. You probably want to remove this.
                           # Your server WILL be insecure if you configure
                           # this incorrectly. Either nginx can verify passwords,
                           # or we can. The latter isn't fully implemented/tested.
                           # The former requires nginx to be correctly set up.
     mode: remove-this         # Can be 'nginx,' or 'password-file'
-    password-file: passwd.lo  # Set this to 'null' if authentication is done by nginx
-#  test-case-insecure: false  # For testing -- no log-in required. NEVER enable on a live server.
-#  demo-insecure: false # Similar to test-case, but stochastically give name, etc.
+    password_file: passwd.lo  # Set this to 'null' if authentication is done by nginx
+#  test_case_insecure: false  # For testing -- no log-in required. NEVER enable on a live server.
+#  demo_insecure: false # Similar to test-case, but stochastically give name, etc.
 pubsub:
     type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
 kvs:
     # stub for in-memory debugging
-    # redis-ephemeral for redis / debugging (object disappear)
+    # redis_ephemeral for redis / debugging (object disappear)
     # redis for deploy
     type: stub
-    # If using redis-ephemeral, persist objects for 60s = 1 minute
+    # If using redis_ephemeral, persist objects for 60s = 1 minute
     # I typically use:
     # * 1-10s for test cases
     # * 1-5 minutes for interactive debugging
     # * 6-24 hours for development
     expiry: 60
-roster-data:
+roster_data:
     source: filesystem  # Can be set to google-api, all, test, or filesystem
 aio:  # User session; used for log-ins.
     session_secret: {unique-aio-session-key}  # This should be a unique secret key for YOUR deployment
@@ -57,14 +57,14 @@ config:
     run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?
     debug: []  # add "tracemalloc" to the list to enable memory leak debugging
 logging:
-    debug-log-level: EXTENDED   # NONE, SIMPLE, or EXTENDED
-    debug-log-destinations:     # List of where they go. CONSOLE or FILE
+    debug_log_level: EXTENDED   # NONE, SIMPLE, or EXTENDED
+    debug_log_destinations:     # List of where they go. CONSOLE or FILE
         - CONSOLE
         - FILE
 theme:
-    server-name: Learning Observer
-    front-page-pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
-    logo-big: /static/media/logo-clean.jpg
+    server_name: Learning Observer
+    front_page_pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
+    logo_big: /static/media/logo-clean.jpg
 event_auth:
     local_storage:
         userfile: students.yaml

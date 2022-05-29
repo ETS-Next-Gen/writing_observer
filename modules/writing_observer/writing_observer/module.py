@@ -3,7 +3,6 @@ Module definition file
 
 This may be an examplar for building new modules too.
 '''
-NAME = "The Writing Observer"
 
 # Outgoing APIs
 #
@@ -17,8 +16,10 @@ import writing_observer.aggregator
 import writing_observer.writing_analysis
 
 
+NAME = "The Writing Observer"
+
 COURSE_AGGREGATORS = {
-    "writing-observer": {
+    "writing_observer": {
         "sources": [  # These are the reducers whose outputs we aggregate
             writing_observer.writing_analysis.time_on_task,
             writing_observer.writing_analysis.reconstruct
@@ -31,7 +32,7 @@ COURSE_AGGREGATORS = {
         "name": "This is the main Writing Observer dashboard.",
         # This is what we return for a student for whom we have no data
         # (or if we have data, don't have these fields)
-        "default-data": {
+        "default_data": {
             'writing_observer.writing_analysis.reconstruct': {
                 'text': None,
                 'position': 0,
@@ -39,7 +40,7 @@ COURSE_AGGREGATORS = {
             },
             'writing_observer.writing_analysis.time_on_task': {
                 'saved_ts': -1,
-                'total-time-on-task': 0
+                'total_time_on_task': 0
             }
         }
     }
@@ -51,23 +52,23 @@ STUDENT_AGGREGATORS = {
 # Incoming event APIs
 REDUCERS = [
     {
-        'context': "org.mitros.writing-analytics",
-        'scope': helpers.Scope([helpers.KeyField.STUDENT]),
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.student_scope,
         'function': writing_observer.writing_analysis.time_on_task
     },
     {
-        'context': "org.mitros.writing-analytics",
-        'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.gdoc_scope,
         'function': writing_observer.writing_analysis.reconstruct
     },
     {
-        'context': "org.mitros.writing-analytics",
-        'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.gdoc_scope,
         'function': writing_observer.writing_analysis.event_count
     },
     {
-        'context': "org.mitros.writing-analytics",
-        'scope': helpers.Scope([helpers.KeyField.STUDENT, helpers.EventField('doc_id')]),
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.student_scope,
         'function': writing_observer.writing_analysis.document_list
     }
 ]

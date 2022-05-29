@@ -115,10 +115,10 @@ def log_source():
 
     # In either case, we want to override from the settings file.
     if "logging" in settings.settings:
-        if "debug-log-level" in settings.settings["logging"]:
-            DEBUG_LOG_LEVEL = LogLevel(settings.settings["logging"]["debug-log-level"])
-        if "debug-log-destinations" in settings.settings["logging"]:
-            DEBUG_LOG_DESTINATIONS = list(map(LogDestination, settings.settings["logging"]["debug-log-destinations"]))
+        if "debug_log_level" in settings.settings["logging"]:
+            DEBUG_LOG_LEVEL = LogLevel(settings.settings["logging"]["debug_log_level"])
+        if "debug_log_destinations" in settings.settings["logging"]:
+            DEBUG_LOG_DESTINATIONS = list(map(LogDestination, settings.settings["logging"]["debug_log_destinations"]))
 
     debug_log("DEBUG_LOG_LEVEL:", DEBUG_LOG_LEVEL)
     debug_log("DEBUG_DESTINATIONS:", DEBUG_LOG_DESTINATIONS)

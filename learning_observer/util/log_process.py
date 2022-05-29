@@ -27,8 +27,8 @@ learning_observer.log_event.DEBUG_LOG_LEVEL = learning_observer.log_event.LogLev
 # Run from memory
 learning_observer.settings.load_settings({
     "logging": {
-        "debug-log-level": "NONE",
-        "debug-log-destination": ["console"]
+        "debug_log_level": "NONE",
+        "debug_log_destination": ["console"]
     },
     "kvs": {
         "type": "stub",
@@ -76,7 +76,7 @@ async def process_files(files):
         # (1) It is easier to test this way
         # (2) We want to protect ourselves from accidentally seeing PII
         pipeline = await learning_observer.incoming_student_event.student_event_pipeline({
-            "source": "org.mitros.dynamic-assessment",
+            "source": "org.mitros.dynamic_assessment",
             "auth": {
                 "user_id": names.get_first_name(),
                 "safe_user_id": names.get_first_name()

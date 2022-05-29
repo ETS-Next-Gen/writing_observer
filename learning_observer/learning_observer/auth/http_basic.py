@@ -28,6 +28,7 @@ import learning_observer.prestartup
 
 from learning_observer.log_event import debug_log
 
+
 def http_basic_extract_username_password(request):
     '''
     Based on an HTTP request, return a username / password tuple
@@ -70,10 +71,10 @@ def http_auth_middleware_enabled():
     to accidentally receive requests with auth headers on pages which
     nginx has not secured.
     '''
-    if 'http-basic' not in learning_observer.settings.settings['auth']:
+    if 'http_basic' not in learning_observer.settings.settings['auth']:
         return False
-    auth_basic_settings = learning_observer.settings.settings['auth']['http-basic']
-    return auth_basic_settings.get("full-site-auth", False)
+    auth_basic_settings = learning_observer.settings.settings['auth']['http_basic']
+    return auth_basic_settings.get("full_site_auth", False)
 
 
 def http_auth_page_enabled():
@@ -85,11 +86,11 @@ def http_auth_page_enabled():
     this.
     '''
     # Is http basic auth enabled?
-    if 'http-basic' not in learning_observer.settings.settings['auth']:
+    if 'http_basic' not in learning_observer.settings.settings['auth']:
         return False
-    auth_basic_settings = learning_observer.settings.settings['auth']['http-basic']
+    auth_basic_settings = learning_observer.settings.settings['auth']['http_basic']
     # And is it configured with a dedicated login page?
-    if not auth_basic_settings.get("login-page-enabled", False):
+    if not auth_basic_settings.get("login_page_enabled", False):
         return False
     return True
 
@@ -178,10 +179,10 @@ def http_basic_startup_check():
             "Please fix this."
         )
 
-    if ('http-basic' in learning_observer.settings.settings['auth']
-        and learning_observer.settings.settings['auth']['http-basic'].get("delegate-nginx-auth", False)
-        and learning_observer.settings.settings['auth']['http-basic'].get("password-file", False)
-     ):
+    if ('http_basic' in learning_observer.settings.settings['auth']
+        and learning_observer.settings.settings['auth']['http_basic'].get("delegate_nginx_auth", False)
+        and learning_observer.settings.settings['auth']['http_basic'].get("password_file", False)
+        ):
         raise learning_observer.prestartup.StartupCheck(
             "Your HTTP Basic authentication is misconfigured.\n" +
             "\n" +

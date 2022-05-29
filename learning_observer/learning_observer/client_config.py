@@ -31,12 +31,12 @@ async def client_config_handler(request):
         "mode": "server",
         "modules": {  # Per-module config
             'wobserver': {
-                'hide-labels': False  # TODO: Should be loaded from config file
+                'hide_labels': False  # TODO: Should be loaded from config file
             }
         },
-        "google-oauth": "google-oauth" in learning_observer.settings.settings['auth'],
-        "password-auth": "password-file" in learning_observer.settings.settings['auth'],
-        "http-basic-auth": learning_observer.auth.http_basic.http_auth_page_enabled(),
+        "google_oauth": "google_oauth" in learning_observer.settings.settings['auth'],
+        "password_auth": "password_file" in learning_observer.settings.settings['auth'],
+        "http_basic_auth": learning_observer.auth.http_basic.http_auth_page_enabled(),
         "theme": learning_observer.settings.settings['theme']
     }
 

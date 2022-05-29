@@ -87,14 +87,14 @@ def verify_auth_precheck():
 
    # If we have Google oauth, we need it properly configured.
    # TODO: Confirm everything works with Google Oauth missing
-   if 'google-oauth' in settings.settings['auth']:
-      if 'web' not in settings.settings['auth']['google-oauth'] or \
-         'client_secret' not in settings.settings['auth']['google-oauth']['web'] or \
-         'project_id' not in settings.settings['auth']['google-oauth']['web'] or \
-         'client_id' not in settings.settings['auth']['google-oauth']['web'] or \
-         isinstance(settings.settings['auth']['google-oauth']['web']['client_secret'], dict) or \
-         isinstance(settings.settings['auth']['google-oauth']['web']['project_id'], dict) or \
-         isinstance(settings.settings['auth']['google-oauth']['web']['client_id'], dict):
+   if 'google_oauth' in settings.settings['auth']:
+      if 'web' not in settings.settings['auth']['google_oauth'] or \
+         'client_secret' not in settings.settings['auth']['google_oauth']['web'] or \
+         'project_id' not in settings.settings['auth']['google_oauth']['web'] or \
+         'client_id' not in settings.settings['auth']['google_oauth']['web'] or \
+         isinstance(settings.settings['auth']['google_oauth']['web']['client_secret'], dict) or \
+         isinstance(settings.settings['auth']['google_oauth']['web']['project_id'], dict) or \
+         isinstance(settings.settings['auth']['google_oauth']['web']['client_id'], dict):
           error = \
             "Please configure Google oauth\n" + \
             "" + \

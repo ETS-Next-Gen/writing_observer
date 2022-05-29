@@ -173,12 +173,12 @@ async def synthetic_ajax(
     Google is an amazingly unreliable B2B company, and this lets us
     develop without relying on them.
     '''
-    if settings.settings['roster-data']['source'] == 'test':
+    if settings.settings['roster_data']['source'] == 'test':
         synthetic_data = {
             COURSE_URL: paths.data("courses.json"),
             ROSTER_URL: paths.data("students.json")
         }
-    elif settings.settings['roster-data']['source'] == 'filesystem':
+    elif settings.settings['roster_data']['source'] == 'filesystem':
         debug_log(request['user'])
         safe_userid = pathvalidate.sanitize_filename(request['user']['user_id'])
         courselist_file = "courselist-" + safe_userid
@@ -194,8 +194,8 @@ async def synthetic_ajax(
                 courselist_file=courselist_file))
         }
     else:
-        debug_log("Roster data source is not recognized:", settings.settings['roster-data']['source'])
-        raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster-data']['source'])
+        debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
+        raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
                             + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
@@ -252,27 +252,27 @@ def init():
     or smaller functions otherwise.
     '''
     global ajax
-    if 'roster-data' not in settings.settings:
+    if 'roster_data' not in settings.settings:
         print(settings.settings)
         raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster-data` element with a `source` element. No `roster-data` element found."
+            "Settings file needs a `roster_data` element with a `source` element. No `roster_data` element found."
         )
-    elif 'source' not in settings.settings['roster-data']:
+    elif 'source' not in settings.settings['roster_data']:
         raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster-data` element with a `source` element. No `source` element found."
+            "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
         )
-    elif settings.settings['roster-data']['source'] in ['test', 'filesystem']:
+    elif settings.settings['roster_data']['source'] in ['test', 'filesystem']:
         ajax = synthetic_ajax
-    elif settings.settings['roster-data']['source'] in ["google-api"]:
+    elif settings.settings['roster_data']['source'] in ["google_api"]:
         ajax = google_ajax
-    elif settings.settings['roster-data']['source'] in ["all"]:
+    elif settings.settings['roster_data']['source'] in ["all"]:
         ajax = all_ajax
     else:
         raise learning_observer.prestartup.StartupCheck(
-            "Settings file `roster-data` element should have `source` field\n"
+            "Settings file `roster_data` element should have `source` field\n"
             "set to either:\n"
             "  test        (retrieve from files courses.json and students.json)\n"
-            "  google-api  (retrieve roster data from Google)\n"
+            "  google_api  (retrieve roster data from Google)\n"
             "  filesystem  (retrieve roster data from file system hierarchy\n"
             "  all  (retrieve roster data as all students)"
         )
@@ -287,8 +287,8 @@ def init():
         ]
     }
 
-    if settings.settings['roster-data']['source'] in REQUIRED_PATHS:
-        r_paths = REQUIRED_PATHS[settings.settings['roster-data']['source']]
+    if settings.settings['roster_data']['source'] in REQUIRED_PATHS:
+        r_paths = REQUIRED_PATHS[settings.settings['roster_data']['source']]
         for p in r_paths:
             if not os.path.exists(p):
                 raise learning_observer.prestartup.StartupCheck(

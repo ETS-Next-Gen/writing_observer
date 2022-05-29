@@ -64,7 +64,7 @@ async def test_case_user(request):
     This is a short circuit for test cases without logging in.
     THIS SHOULD NEVER BE ENABLED ON A LIVE SERVER
     '''
-    tci = learning_observer.settings.settings['auth'].get("test-case-insecure", False)
+    tci = learning_observer.settings.settings['auth'].get("test_case_insecure", False)
     if not tci:
         return None
     if not isinstance(tci, dict):
@@ -93,7 +93,7 @@ async def demo_user(request):
     In contrast to the test case user, this assigns a dummy name and similar. That's
     bad for testing, where we want determinism, but it's good for demos.
     '''
-    if not learning_observer.settings.settings['auth'].get("demo-insecure", False):
+    if not learning_observer.settings.settings['auth'].get("demo_insecure", False):
         return None
 
     def name_to_email(name):
@@ -112,7 +112,7 @@ async def demo_user(request):
         name = name.split()
         return name[0][0].lower() + name[-1].lower() + "@localhost"
 
-    demo_auth_setting = learning_observer.settings.settings['auth']["demo-insecure"]
+    demo_auth_setting = learning_observer.settings.settings['auth']["demo_insecure"]
     if isinstance(demo_auth_setting, dict) and 'name' in demo_auth_setting:
         name = demo_auth_setting['name']
     else:
@@ -244,7 +244,7 @@ def serve_user_icon(request):
     # Good idea once we have a good icon
     # if request['user'] is None:
     #    return aiohttp.web.FileResponse(
-    #        learning_observer.settings.settings['auth']['default-icon']
+    #        learning_observer.settings.settings['auth']['default_icon']
     #    )
 
     # In the future, we might want something along the lines of:

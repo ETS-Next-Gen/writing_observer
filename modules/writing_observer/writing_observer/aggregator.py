@@ -13,9 +13,9 @@ def sanitize_and_shrink_per_student_data(student_data):
     '''
     text = student_data['writing_observer.writing_analysis.reconstruct'].get('text', None)
     if text is None:
-        student_data['writing-observer-compiled'] = {
+        student_data['writing_observer_compiled'] = {
             "text": "[None]",
-            "character-count": 0
+            "character_count": 0
         }
         return student_data
 
@@ -44,9 +44,9 @@ def sanitize_and_shrink_per_student_data(student_data):
     clipped_text = text[start:cursor_position - 1] + "❙" + text[max(cursor_position - 1, 0):end]
     # Yes, this does mutate the input. No, we should. No, it doesn't matter, since the
     # code needs to move out of here. Shoo, shoo.
-    student_data['writing-observer-compiled'] = {
+    student_data['writing_observer_compiled'] = {
         "text": clipped_text,
-        "character-count": character_count
+        "character_count": character_count
     }
     # Remove things which are too big to send back. Note: Not benchmarked, so perhaps not too big
     del student_data['writing_observer.writing_analysis.reconstruct']['text']
@@ -76,20 +76,20 @@ def aggregate_course_summary_stats(student_data):
     for student in student_data:
         max_character_count = max(
             max_character_count,
-            student['writing-observer-compiled']['character-count']
+            student['writing_observer_compiled']['character_count']
         )
         max_time_on_task = max(
             max_time_on_task,
-            student['writing_observer.writing_analysis.time_on_task']["total-time-on-task"]
+            student['writing_observer.writing_analysis.time_on_task']["total_time_on_task"]
         )
     return {
-        "summary-stats": {
-            'max-character-count': max_character_count,
-            'max-time-on-task': max_time_on_task,
+        "summary_stats": {
+            'max_character_count': max_character_count,
+            'max_time_on_task': max_time_on_task,
             # TODO: Should we aggregate this in some way? If we run on multiple servers,
             # this is susceptible to drift. That could be jarring; even a few seconds
             # error could be an issue in some contexts.
-            'current-time': time.time()
+            'current_time': time.time()
         },
-        "student-data": learning_observer.util.paginate(student_data, 4)
+        "student_data": learning_observer.util.paginate(student_data, 4)
     }
