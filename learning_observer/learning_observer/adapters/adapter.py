@@ -11,6 +11,9 @@ in the right place.
 import learning_observer.adapters.helpers
 
 
+# In the original code, we had dashes. We want underscores. This is a mapping
+# from the old to the new, not just in events, but also in the KVS (but not
+# in the config file).
 FIELD_RENAMES = {
     "event-type": "event_type",
     "org.mitros.writing-analytics": "org.mitros.writing_analytics",

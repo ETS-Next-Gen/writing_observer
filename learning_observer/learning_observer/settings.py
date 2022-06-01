@@ -28,11 +28,16 @@ if not __name__.startswith("learning_observer."):
     sys.exit(-1)
 
 
+args = None
+parser = None
+
+
 def parse_and_validate_arguments():
     '''
     Parse and validate command line arguments; for now, just the
     configuration file location.
     '''
+    global args, parser
     parser = argparse.ArgumentParser(
         description='The Learning Observer',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -41,6 +46,11 @@ def parse_and_validate_arguments():
         '--config-file',
         help='Specify an alternative configuration file',
         default=learning_observer.paths.config_file())
+
+    parser.add_argument(
+        '--watchdog',
+        help='Run in watchdog mode. This will restart on file changes.',
+        default=None)
 
     args = parser.parse_args()
 
