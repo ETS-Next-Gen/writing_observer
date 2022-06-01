@@ -38,6 +38,7 @@ from learning_observer.log_event import debug_log
 import learning_observer.exceptions
 
 import learning_observer.auth.events
+import learning_observer.adapters.adapter
 
 
 def compile_server_data(request):
@@ -200,8 +201,13 @@ async def handle_incoming_client_event(metadata):
         debug_log("Connected")
 
     pipeline = await student_event_pipeline(metadata=metadata)
+    adapter = learning_observer.adapters.adapter.EventAdapter()
 
     async def handler(request, client_event):
+        '''
+        This is the handler for incoming client events.
+        '''
+        client_event = adapter.canonicalize_event(client_event)
         debug_log("Compiling event for reducer: " + client_event["event"])
         event = {
             "client": client_event,
