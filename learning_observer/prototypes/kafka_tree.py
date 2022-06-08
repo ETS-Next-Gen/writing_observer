@@ -1,14 +1,67 @@
 '''
 This is a prototype for our log storage system.
 
-It is only a prototype. To make this not a prototype, we would need to:
+1.  We'd like the logical design to scale to millions of users, each generating
+    millions of events.
+    - Merkle trees are nice, since the only logical operation is writing a
+      key/value pair under its hash
+    - However, we don't quite use this as a back-end representation, since we'd
+      like to be able to get at streams of events efficiently. That's why we
+      don't quite use a key-value store -- walking a linked list in a KVS is
+      slow.
+2.  We'd like to be able to provide users with their complete data (e.g. it's
+    not in a million different places).
+        - "Users" can mean students, schools, etc.
+        - Requests may come in for complete data, or for a subset of data.
+3.  We'd like to be able to have users remove or correct their data
+    -  "Users" can have multiple definitions, as per above
+    -  "Data" can mean for a particular document, all data, etc.
+    -  Such a removal should leave a trace that data was removed, but remove
+       data completely.
+4.  We'd like to have an archival record of everything that happened, except
+    for data lost to such removals
+    -  This should be auditable -- e.g. we can't fake data
+    -  The cryptographic properties of the hash tree allow us to audit all
+       data that was retained.
+5.  In the future, we'd like an archival record of all processing on top of
+    data
+    - Families should be able to audit how their data was processed
+    - Researchers should be able to review a modern-day equivalent to a
+      lab notebook
+    - This should be auditable -- e.g. we can't do a p-value hunt without
+      leaving a record
+
+There is a lot of nuance -- which we may not have gotten right yet -- around:
+
+- What level to expose how much PII at. Removal requests ought to remove
+  PII, but maintain hashes pointing to the removed data
+- Whether and how to break up the data into chunks. Right now, each stream
+  is a single chunk. We might want to e.g. break up on hourly, daily, or
+  other boundaries. This doesn't change the logical Merkle tree, but it
+  change the way we map it to storage.
+- Whether and what kind of metadata we want to include in the tree. We can
+  include events which are in the streams, but not in the Merkle tree itself
+  (e.g. headers, etc.)
+- How to handle logs of computation on data.
+- How often to compute a top-level hash to expose to the world. We'd like to
+  publish a daily hash. From there, anyone who requests data should receive
+  a chain of hashes which allows them to verify that data is correct,
+  complete, and not modified.
+
+Note that this is *not* designed to serve data directly to dashboards. However,
+we do want to be able to use the same reducers to do batched processing of
+this data for research as we do for dashboards (which process streams in
+realtime, and only maintain features).
+
+It is very much a prototype. To make this not a prototype, we would need to:
 
 - Make it work with Kafka
 - Make it work with asyncio
 - Make the file system operations not slow
 - Use full-length hashes
 - Confirm it's robust
-- Escape the file names properly or compute interrim session IDs more intelligently
+- Escape the file names properly or compute interrim session IDs more
+  intelligently
 - Etc.
 '''
 
@@ -24,7 +77,7 @@ import matplotlib
 import networkx
 import pydot
 
-from confluent_kafka import Producer
+from confluent_kafka import Producer, Consumer
 
 
 def json_dump(obj):
@@ -191,7 +244,7 @@ class Merkle:
         print(item['hash'])
         return item
 
-    def start(self, session, metadata=None):
+    def start(self, session, metadata=None, continue_session=False):
         '''
         Start a new session.
 
@@ -202,12 +255,15 @@ class Merkle:
         Returns:
             dict: The session envelope
         '''
-        event = {
-                'type': 'start',
-                'session': session
-                # Perhaps we want to add a category here? E.g. 'session_event_stream' for the raw streams
-                # and something else to indicate parents?
-        }
+        if not continue_session:
+            event = {
+                    'type': 'start',
+                    'session': session
+                    # Perhaps we want to add a category here? E.g. 'session_event_stream' for the raw streams
+                    # and something else to indicate parents?
+            }
+        else:
+            raise NotImplementedError('Continuing sessions not implemented')
         if metadata is not None:
             event['metadata'] = metadata
         return self.event_to_session(
@@ -216,7 +272,7 @@ class Merkle:
             label='start'
         )
 
-    def close_session(self, session):
+    def close_session(self, session, logical_break=False):
         '''
         Close the session. We update up-stream nodes with the session's
         merkle leaf. and if necessary, we update the session's key /
@@ -235,20 +291,46 @@ class Merkle:
             print("Parent session")
             print("These sessions shouldn't be closed")
             return
-        for key in session:
-            if key not in self.categories:
-                print("Something is wrong. Session has unexpected key: {}".format(key))
-            for item in session[key]:
-                parent_session = {key: item}
-                self.event_to_session(
-                    {
-                        'type': 'child_session_finished',
-                        'session': session_hash  # This should go into children, maybe?,
-                    },
-                    parent_session,
-                    children=[session_hash],
-                    label=f'{key}'
-                )
+
+        # We need to update the parents to point to this session.
+        # We don't do this if we're only introducing a logical break,
+        # since the session continues on.
+        if not logical_break:
+            for key in session:
+                if key not in self.categories:
+                    print("Something is wrong. Session has unexpected key: {}".format(key))
+                for item in session[key]:
+                    parent_session = {key: item}
+                    self.event_to_session(
+                        {
+                            'type': 'child_session_finished',
+                            'session': session_hash  # This should go into children, maybe?,
+                        },
+                        parent_session,
+                        children=[session_hash],
+                        label=f'{key}'
+                    )
+        return session_hash
+
+    def break_session(self, session):
+        '''
+        Split a session into two parts. This has no logical effect on the data structure,
+        but creates a split so that a portion of the data can be accessed under it's own
+        key. Logically, keys can either be part of the event envelope, or they can be the
+        key / topic / filename of the session.
+
+        It may make sense to do this e.g. daily to break up long-running sessions. This
+        stub is a proof of concept.
+
+        Note that we do not create ANY new keys here, since we should be able to break
+        a session into multiple parts, or recombine them, without breaking the logical
+        structure.
+        '''
+        session_hash = self.close_session(session, logical_break=True)
+        self.start(session, continue_session={
+            'type': 'continue',
+            'session': session_hash
+        })
         return session_hash
 
 
@@ -327,7 +409,7 @@ class StreamStorage:
         This is used for testing, experimentation, and demonstration. It
         would never scale with real data.
         '''
-        G = pydot.Dot(graph_type='graph')
+        G = pydot.Dot(graph_type='digraph')
         for item in self._walk():
             node = pydot.Node(item['hash'], label=self._make_label(item))
             G.add_node(node)
@@ -342,10 +424,43 @@ class StreamStorage:
 class KafkaStorage(StreamStorage):
     """
     A Merkle DAG implementation that uses Kafka as a backing store.
+
+    Very little of this is built.
     """
     def __init__(self):
         super().__init__()
+        raise NotImplementedError
         self.producer = Producer()
+        self.consumer = Consumer()
+
+    def _append_to_stream(self, stream, item):
+        raise NotImplementedError
+        self.producer.produce(stream, json_dump(item))
+
+    def _rename_or_alias_stream(self, stream, alias):
+        '''
+        Rename a stream. We can't do this directly, so we create a new stream under the name `alias`
+        and then delete the old stream.
+        '''
+        raise NotImplementedError
+        for item in self._get_stream_data(stream):
+            self._append_to_stream(alias, item)
+        self._delete_stream(stream)
+
+    def _get_stream_data(self, stream):
+        raise NotImplementedError
+
+    def _delete_stream(self, sha_key):
+        '''
+        Delete the Kafka topic for the stream.
+        '''
+        self.producer.delete_topic(sha_key)
+
+    def _most_recent_item(self, stream):
+        raise NotImplementedError
+
+    def _walk(self):
+        raise NotImplementedError
 
 
 class FSStorage(StreamStorage):
