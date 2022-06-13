@@ -32,5 +32,6 @@ slixmpp
 sphinx
 svgwrite
 uvloop
+watchdog
 -e gitserve
 -e learning_observer
