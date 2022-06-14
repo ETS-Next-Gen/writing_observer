@@ -2,7 +2,7 @@ You do not have an account on this system.
 
 Your Google email is: **{{ email }}**.
 
-Your Google ID is **{{ google_id }}**.
+Your user ID is **{{ user_id }}**.
 
 If you believe you should have an account, please email the text above
 (Google ID and email) to me (Piotr Mitros), and I'll set you up with
