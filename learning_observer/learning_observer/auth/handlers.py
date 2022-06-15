@@ -54,6 +54,8 @@ async def user_from_session(request):
     '''
     session = await aiohttp_session.get_session(request)
     session_user = session.get('user', None)
+    if 'auth_headers' in session:
+        request['auth_headers'] = session['auth_headers']
     return session_user
 
 

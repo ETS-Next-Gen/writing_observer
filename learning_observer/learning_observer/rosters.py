@@ -231,6 +231,11 @@ async def google_ajax(
     if parameters is None:  # Should NOT be a default param. See W0102.
         parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
+        # We would like better error handling for what to do if auth_headers
+        # is not set. However, we haven't figured out a better thing to do.
+        # We saw this happen due to a bug, but similar bugs might come up
+        # in the future (we forgot to propagate the headers from the
+        # session).
         async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
             resp_json = await resp.json()
             log_event.log_ajax(url, resp_json, request)
