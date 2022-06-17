@@ -78,6 +78,7 @@ import networkx
 import pydot
 
 from confluent_kafka import Producer, Consumer
+from confluent_kafka.admin import AdminClient
 
 
 def json_dump(obj):
@@ -427,15 +428,22 @@ class KafkaStorage(StreamStorage):
 
     Very little of this is built.
     """
-    def __init__(self):
+    DEFAULT_KAFKA_SERVERS = ['localhost:9092']
+
+    def __init__(self, bootstrap_servers=DEFAULT_KAFKA_SERVERS):
         super().__init__()
-        raise NotImplementedError
-        self.producer = Producer()
-        self.consumer = Consumer()
+
+        self.bootstrap_servers = ','.join(bootstrap_servers)
+        self.AdminClient = AdminClient({
+            'bootstrap.servers': self.bootstrap_servers
+        })
+        self.producer = Producer({
+            'bootstrap.servers': self.bootstrap_servers,
+        })
 
     def _append_to_stream(self, stream, item):
-        raise NotImplementedError
-        self.producer.produce(stream, json_dump(item))
+        self.producer.produce(stream, json_dump(item), callback=self._producer_ack)
+        self.producer.poll(1)
 
     def _rename_or_alias_stream(self, stream, alias):
         '''
@@ -461,6 +469,12 @@ class KafkaStorage(StreamStorage):
 
     def _walk(self):
         raise NotImplementedError
+
+    def _producer_ack(err, msg):
+        if err is not None:
+            print(f'Failed to deliver message: {str(msg)}: {str(err)}')
+        else:
+            print(f'Message produces: {str(msg)}')
 
 
 class FSStorage(StreamStorage):
