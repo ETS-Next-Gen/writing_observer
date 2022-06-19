@@ -270,12 +270,12 @@ def load_dashboards(component_name, module):
     '''
     dashboards = False
     if hasattr(module, "COURSE_DASHBOARDS"):
-        debug_log("Loading course dashboards from {component_name}")
+        debug_log(f"Loading course dashboards from {component_name}")
         COURSE_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
         dashboards = True
 
     if hasattr(module, "STUDENT_DASHBOARDS"):
-        debug_log("Loading student dashboards from {component_name}")
+        debug_log(f"Loading student dashboards from {component_name}")
         STUDENT_DASHBOARDS.extend(module.COURSE_DASHBOARDS)
         dashboards = True
 
