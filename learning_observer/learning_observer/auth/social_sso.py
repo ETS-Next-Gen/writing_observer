@@ -91,7 +91,13 @@ async def _google(request):
                 ' https://www.googleapis.com/auth/classroom.profile.emails'
                 ' https://www.googleapis.com/auth/classroom.profile.photos'
                 ' https://www.googleapis.com/auth/classroom.coursework.students.readonly'
-                ' https://www.googleapis.com/auth/classroom.classwork.students.readonly'
+                ' https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly'
+                ' https://www.googleapis.com/auth/classroom.guardianlinks.students.readonly'
+                ' https://www.googleapis.com/auth/classroom.student-submissions.students.readonly'
+                ' https://www.googleapis.com/auth/classroom.topics.readonly'
+                ' https://www.googleapis.com/auth/drive.metadata.readonly'
+                ' https://www.googleapis.com/auth/drive.readonly'
+                ' https://www.googleapis.com/auth/documents.readonly'
             ),
         })
         if 'back_to' in request.query:
