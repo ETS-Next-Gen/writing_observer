@@ -89,8 +89,8 @@ async def _google(request):
                 ' https://www.googleapis.com/auth/classroom.courses.readonly'
                 ' https://www.googleapis.com/auth/classroom.rosters.readonly'
                 ' https://www.googleapis.com/auth/classroom.profile.emails'
-                ' https://www.googleapis.com/auth/classroom.profile.photos',
-                ' https://www.googleapis.com/auth/classroom.coursework.students.readonly',
+                ' https://www.googleapis.com/auth/classroom.profile.photos'
+                ' https://www.googleapis.com/auth/classroom.coursework.students.readonly'
                 ' https://www.googleapis.com/auth/classroom.classwork.students.readonly'
             ),
         })
@@ -151,7 +151,38 @@ async def show_me_my_auth_headers(request):
     risk, as the user can only access the information they have access to,
     but a user's patterns might look suspicious to Google's (often broken)
     algorithms, and we don't want to get flagged.
+
+    There is a setting, `allow_override`, which allows setting auth headers
+    in a development environment.
     """
+    flag = settings.settings['auth']['show_me_my_auth_headers']
+
+    if not flag:
+        # The route should not have been added...
+        raise aiohttp.web.HTTPForbidden(
+            "This feature is disabled. We should never get here. Please debug this."
+        )
+
+    # This is so that we can use the headers from the Google-approved server in
+    # my local development environment. Google has all sorts of validation that
+    # make it hard to retrieve the headers from the server directly to protect
+    # users from phishing, so we can't just implement oauth locally.
+    if request.method == 'POST':
+        if not (isinstance(flag, dict) or isinstance(flag, list)) or 'allow_override' not in flag:
+            raise aiohttp.web.HTTPForbidden("Overriding headers is disabled")
+        if not request.can_read_form:
+            raise aiohttp.web.HTTPForbidden("Cannot read form")
+
+        auth_headers = request.form.get('auth_headers')
+        if not auth_headers:
+            raise aiohttp.web.HTTPBadRequest(
+                text="Missing auth_headers"
+            )
+        session = await aiohttp_session.get_session(request)
+        session["auth_headers"] = auth_headers
+        request["auth_headers"] = auth_headers
+        session.save()
+
     return aiohttp.web.json_response({
         "auth_headers": request.get("auth_headers", None),
         "headers": dict(request.headers)
