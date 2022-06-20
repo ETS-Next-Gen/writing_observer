@@ -89,7 +89,9 @@ async def _google(request):
                 ' https://www.googleapis.com/auth/classroom.courses.readonly'
                 ' https://www.googleapis.com/auth/classroom.rosters.readonly'
                 ' https://www.googleapis.com/auth/classroom.profile.emails'
-                ' https://www.googleapis.com/auth/classroom.profile.photos'
+                ' https://www.googleapis.com/auth/classroom.profile.photos',
+                ' https://www.googleapis.com/auth/classroom.coursework.students.readonly',
+                ' https://www.googleapis.com/auth/classroom.classwork.students.readonly'
             ),
         })
         if 'back_to' in request.query:
@@ -131,3 +133,26 @@ async def _google(request):
         # TODO: Should this be immediate?
         'authorized': await learning_observer.auth.utils.verify_teacher_account(profile['id'], profile['email'])
     }
+
+
+async def show_me_my_auth_headers(request):
+    """
+    Show the auth headers that are set in the session. For convenience, we also
+    show other headers that were sent to the server and might add other
+    information.
+
+    This is handy for debugging and development. I'd often like to use the
+    server registered with Google to log in, but then use this information
+    in a development environment or a script.
+
+    This is behind a feature flag. On a live server, it should be disabled
+    as set right now. In the future, we might want to make this a feature
+    that can be enabled for specific users. This is not a huge security
+    risk, as the user can only access the information they have access to,
+    but a user's patterns might look suspicious to Google's (often broken)
+    algorithms, and we don't want to get flagged.
+    """
+    return aiohttp.web.json_response({
+        "auth_headers": request.get("auth_headers", None),
+        "headers": dict(request.headers)
+    })

@@ -60,6 +60,7 @@ def add_routes(app):
     register_dashboard_api(app)
     register_static_routes(app)
     register_incoming_event_views(app)
+    register_debug_routes(app)
 
     app.add_routes([
         aiohttp.web.get(
@@ -142,6 +143,19 @@ def add_routes(app):
     # above (esp. 3rd party libraries and media)
     repos = learning_observer.module_loader.static_repos()
     register_repo_routes(app, repos)
+
+
+def register_debug_routes(app):
+    '''
+    Handy-dandy information views, useful for debugging and development.
+    '''
+    if settings.feature_flag("auth_headers_page"):
+        app.add_routes([
+            aiohttp.web.get(
+                '/debug/headers',
+                learning_observer.auth.social_sso.show_me_my_auth_headers
+            )
+        ])
 
 
 def register_incoming_event_views(app):

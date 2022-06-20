@@ -133,3 +133,30 @@ def load_settings(config):
                 raise ValueError("settings.repos.{repo} should be a string or a dict. Please fix the settings file.".format(repo=repo))
 
     return settings
+
+
+# Not all of these are guaranteed to work on every branch of the codebase.
+AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page']
+
+
+def feature_flag(flag):
+    '''
+    Return `None` if the given feature flag is disabled.
+
+    Returns the value of the feature flag if it is enabled.
+    '''
+    if flag not in AVAILABLE_FEATURE_FLAGS:
+        raise ValueError(
+            f"Unknown feature flag: {flag}"
+            f"Available feature flags: {AVAILABLE_FEATURE_FLAGS}"
+        )
+
+    flag = settings.get(
+        'feature_flags', {}
+    ).get(flag, None)
+
+    # The feature flag is disabled if it is False, None, or omitted
+    if flag is False:
+        return None
+
+    return flag
