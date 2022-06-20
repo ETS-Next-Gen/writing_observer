@@ -440,9 +440,16 @@ class KafkaStorage(StreamStorage):
         self.producer = Producer({
             'bootstrap.servers': self.bootstrap_servers,
         })
+        # We want to close consumers when we are done with them,
+        # so we handle each one individually when needed,
+        # instead of an overall consumer.
 
     def _append_to_stream(self, stream, item):
-        self.producer.produce(stream, json_dump(item), callback=self._producer_ack)
+        if isinstance(item, bytes):
+            data = item
+        else:
+            data = json_dump(item)
+        self.producer.produce(stream, data, callback=self._producer_ack)
         self.producer.poll(1)
 
     def _rename_or_alias_stream(self, stream, alias):
@@ -450,31 +457,60 @@ class KafkaStorage(StreamStorage):
         Rename a stream. We can't do this directly, so we create a new stream under the name `alias`
         and then delete the old stream.
         '''
-        raise NotImplementedError
         for item in self._get_stream_data(stream):
-            self._append_to_stream(alias, item)
+            self._append_to_stream(alias, item.value())
         self._delete_stream(stream)
 
     def _get_stream_data(self, stream):
-        raise NotImplementedError
+        config = {
+            'bootstrap.servers': self.bootstrap_servers,
+            'group.id': 'foo',
+            'enable.auto.commit': False,
+            'auto.offset.reset': 'earliest'
+        }
+        consumer = Consumer(config)
+        consumer.subscribe([stream])
+        # not 100% sure how to handle a lot of messages
+        # consume will throw ValueError if num_messages > 1M
+        # depending on the size of the messages, we might have to do some batching here
+        msgs = consumer.consume(500, timeout=10)
+        consumer.close()
+        return msgs
 
     def _delete_stream(self, sha_key):
         '''
         Delete the Kafka topic for the stream.
         '''
-        self.producer.delete_topic(sha_key)
+        self.AdminClient.delete_topics([sha_key])
 
     def _most_recent_item(self, stream):
-        raise NotImplementedError
+        config = {
+            'bootstrap.servers': self.bootstrap_servers,
+            'group.id': 'foo',
+            'enable.auto.commit': False,
+            'auto.offset.reset': 'earliest'
+        }
+        consumer = Consumer(config)
+        consumer.subscribe([stream], on_assign=self._consumer_on_assign)
+        msg = consumer.poll(1)
+        return msg
 
     def _walk(self):
         raise NotImplementedError
 
-    def _producer_ack(err, msg):
+    def _producer_ack(self, err, msg):
         if err is not None:
             print(f'Failed to deliver message: {str(msg)}: {str(err)}')
         else:
             print(f'Message produces: {str(msg)}')
+
+    def _consumer_on_assign(self, consumer, partitions):
+        # Relevant posts for this
+        # https://stackoverflow.com/a/67020093/9115551
+        # https://github.com/confluentinc/confluent-kafka-python/issues/586
+        last_offset = consumer.get_watermark_offsets(partitions[0])
+        partitions[0].offset = last_offset[1] - 1
+        consumer.assign(partitions)
 
 
 class FSStorage(StreamStorage):
