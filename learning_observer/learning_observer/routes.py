@@ -152,7 +152,7 @@ def register_debug_routes(app):
     if settings.feature_flag("auth_headers_page"):
         app.add_routes([
             aiohttp.web.get(
-                '/debug/headers',
+                '/admin/headers',
                 learning_observer.auth.social_sso.show_me_my_auth_headers
             )
         ])

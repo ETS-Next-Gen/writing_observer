@@ -161,7 +161,7 @@ async def show_me_my_auth_headers(request):
     There is a setting, `allow_override`, which allows setting auth headers
     in a development environment.
     """
-    flag = settings.settings['auth']['show_me_my_auth_headers']
+    flag = settings.feature_flag('auth_headers_page')
 
     if not flag:
         # The route should not have been added...
