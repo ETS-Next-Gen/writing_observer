@@ -98,6 +98,7 @@ async def _google(request):
                 ' https://www.googleapis.com/auth/drive.metadata.readonly'
                 ' https://www.googleapis.com/auth/drive.readonly'
                 ' https://www.googleapis.com/auth/documents.readonly'
+                ' https://www.googleapis.com/auth/classroom.announcements.readonly'
             ),
         })
         if 'back_to' in request.query:
