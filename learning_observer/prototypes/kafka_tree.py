@@ -65,19 +65,21 @@ It is very much a prototype. To make this not a prototype, we would need to:
 - Etc.
 '''
 
+import asyncio
+import datetime
 import hashlib
 import json
-import datetime
 from modulefinder import STORE_GLOBAL
 import os
 from pickle import STOP
+from threading import Thread
 
 # These should be abstracted out into a visualization library.
 import matplotlib
 import networkx
 import pydot
 
-from confluent_kafka import Producer, Consumer
+from confluent_kafka import Producer, Consumer, KafkaException
 from confluent_kafka.admin import AdminClient
 
 
@@ -128,7 +130,12 @@ def session_ID(session):
     The session ID is currently a JSON dump. We'll do something cleaner later,
     perhaps, but this is good enough for now
     """
-    return json_dump(session)
+    id = json_dump(session)
+    # the following is really messy since Kafka has some pretty strict character requirements for topic names
+    # this will need to be cleaner, but is good enough for testing
+    # https://medium.com/@kiranprabhu/kafka-topic-naming-conventions-best-practices-6b6b332769a3
+    id = id.replace('{', '').replace('}', '').replace('"', '').replace(':', '').replace('[', '').replace(']', '').replace(', ', '_').replace(' ', '_')
+    return id
 
 
 def timestamp():
@@ -170,7 +177,7 @@ class Merkle:
         self.categories = categories
 
     # These are generic to interact with the Merkle DAG
-    def event_to_session(self, event, session, children=None, label=None):
+    async def event_to_session(self, event, session, children=None, label=None):
         '''
         Append an event to the merkle tree.
 
@@ -241,11 +248,10 @@ class Merkle:
         }
         if label is not None:
             item['label'] = label
-        storage._append_to_stream(session_id, item)
-        print(item['hash'])
+        await storage._append_to_stream(session_id, item)
         return item
 
-    def start(self, session, metadata=None, continue_session=False):
+    async def start(self, session, metadata=None, continue_session=False):
         '''
         Start a new session.
 
@@ -267,25 +273,25 @@ class Merkle:
             raise NotImplementedError('Continuing sessions not implemented')
         if metadata is not None:
             event['metadata'] = metadata
-        return self.event_to_session(
+        return await self.event_to_session(
             event,
             session,
             label='start'
         )
 
-    def close_session(self, session, logical_break=False):
+    async def close_session(self, session, logical_break=False):
         '''
         Close the session. We update up-stream nodes with the session's
         merkle leaf. and if necessary, we update the session's key /
         topic / alias with the hash of the full chain.
         '''
-        final_item = self.event_to_session(
+        final_item = await self.event_to_session(
             {'type': 'close', 'session': session},
             session,
             label='close'
         )
         session_hash = final_item['hash']
-        self.storage._rename_or_alias_stream(session_ID(session), session_hash)
+        await self.storage._rename_or_alias_stream(session_ID(session), session_hash)
         if len(session) < 1:
             raise Exception('Session is empty')
         if len(session) == 1:
@@ -302,7 +308,7 @@ class Merkle:
                     print("Something is wrong. Session has unexpected key: {}".format(key))
                 for item in session[key]:
                     parent_session = {key: item}
-                    self.event_to_session(
+                    await self.event_to_session(
                         {
                             'type': 'child_session_finished',
                             'session': session_hash  # This should go into children, maybe?,
@@ -311,6 +317,7 @@ class Merkle:
                         children=[session_hash],
                         label=f'{key}'
                     )
+        self.storage._close()
         return session_hash
 
     def break_session(self, session):
@@ -374,6 +381,12 @@ class StreamStorage:
         '''
         raise NotImplementedError
 
+    def _close(self):
+        '''
+        Close whatever storage stream we are using
+        '''
+        raise NotImplementedError
+
     def _make_label(self, item):
         '''
         Make a label for an item.
@@ -422,6 +435,38 @@ class StreamStorage:
         return G
 
 
+class AIOProducer:
+    '''Async producer
+    Blog post describing how to use:
+    https://www.confluent.io/blog/kafka-python-asyncio-integration/
+    '''
+    def __init__(self, configs, loop=None):
+        self._loop = loop or asyncio.get_event_loop()
+        self._producer = Producer(configs)
+        self._cancelled = False
+        self._poll_thread = Thread(target=self._poll_loop)
+        self._poll_thread.start()
+
+    def _poll_loop(self):
+        while not self._cancelled:
+            self._producer.poll(0.1)
+
+    def close(self):
+        self._cancelled = True
+        self._poll_thread.join()
+
+    def produce(self, topic, value):
+        result = self._loop.create_future()
+        def ack(err, msg):
+            if err:
+                print(f'Failed to deliver message: {str(msg)}: {str(err)}')
+                self._loop.call_soon_threadsafe(result.set_exception, KafkaException(err))
+            else:
+                print(f'Message produced: {str(msg)}')
+                self._loop.call_soon_threadsafe(result.set_result, msg)
+        self._producer.produce(topic, value, on_delivery=ack)
+        return result
+
 class KafkaStorage(StreamStorage):
     """
     A Merkle DAG implementation that uses Kafka as a backing store.
@@ -437,28 +482,31 @@ class KafkaStorage(StreamStorage):
         self.AdminClient = AdminClient({
             'bootstrap.servers': self.bootstrap_servers
         })
-        self.producer = Producer({
+        self.producer = AIOProducer({
             'bootstrap.servers': self.bootstrap_servers,
         })
         # We want to close consumers when we are done with them,
         # so we handle each one individually when needed,
         # instead of an overall consumer.
 
-    def _append_to_stream(self, stream, item):
+    async def _append_to_stream(self, stream, item):
         if isinstance(item, bytes):
             data = item
         else:
             data = json_dump(item)
-        self.producer.produce(stream, data, callback=self._producer_ack)
-        self.producer.poll(1)
+        try:
+            result = await self.producer.produce(stream, data)
+            return {'timestamp': result.timestamp()}
+        except KafkaException as err:
+            return {'error': err}
 
-    def _rename_or_alias_stream(self, stream, alias):
+    async def _rename_or_alias_stream(self, stream, alias):
         '''
         Rename a stream. We can't do this directly, so we create a new stream under the name `alias`
         and then delete the old stream.
         '''
         for item in self._get_stream_data(stream):
-            self._append_to_stream(alias, item.value())
+            await self._append_to_stream(alias, item.value())
         self._delete_stream(stream)
 
     def _get_stream_data(self, stream):
@@ -493,16 +541,18 @@ class KafkaStorage(StreamStorage):
         consumer = Consumer(config)
         consumer.subscribe([stream], on_assign=self._consumer_on_assign)
         msg = consumer.poll(1)
-        return msg
+        consumer.close()
+        if msg:
+            if msg.error():
+                val = None
+            else:
+                val = json.loads(msg.value().decode())
+        else:
+            val = None
+        return val
 
     def _walk(self):
         raise NotImplementedError
-
-    def _producer_ack(self, err, msg):
-        if err is not None:
-            print(f'Failed to deliver message: {str(msg)}: {str(err)}')
-        else:
-            print(f'Message produces: {str(msg)}')
 
     def _consumer_on_assign(self, consumer, partitions):
         # Relevant posts for this
@@ -511,6 +561,9 @@ class KafkaStorage(StreamStorage):
         last_offset = consumer.get_watermark_offsets(partitions[0])
         partitions[0].offset = last_offset[1] - 1
         consumer.assign(partitions)
+
+    def _close(self):
+        self.producer.close()
 
 
 class FSStorage(StreamStorage):
@@ -631,7 +684,7 @@ CATEGORIES = set(
 )
 
 
-def test_case():
+async def test_case():
     """
     A test case, mostly used to demo the Merkle DAG. It doesn't check for
     correctness yet, but does show a simple visualization of the DAG.
@@ -649,7 +702,7 @@ def test_case():
     }
     session = small_session
 
-    STORAGE = 'FS'
+    STORAGE = 'KAFKA'
 
     if STORAGE == 'MEMORY':
         storage = InMemoryStorage()
@@ -657,20 +710,27 @@ def test_case():
         if not os.path.exists('/tmp/merkle_dag'):
             os.mkdir('/tmp/merkle_dag')
         storage = FSStorage('/tmp/merkle_dag')
+    elif STORAGE == 'KAFKA':
+        storage = KafkaStorage()
     else:
         raise NotImplementedError(STORAGE)
 
     merkle = Merkle(storage, CATEGORIES)
-    merkle.start(session)
-    merkle.event_to_session({"type": "event", "event": "A", "name": "1st"}, session, label="A")
-    merkle.event_to_session({"type": "event", "event": {"B": "c"}, "name": "2nd"}, session, label="B")
-    merkle.event_to_session({"type": "event", "event": {"B": "c"}}, session, label="C")
-    merkle.close_session(session)
-    G = storage.to_graphviz()
-    import PIL.Image as Image
-    import io
-    Image.open(io.BytesIO(G.create_png())).show()
+    print('Starting')
+    await merkle.start(session)
+    print('Label A')
+    await merkle.event_to_session({"type": "event", "event": "A", "name": "1st"}, session, label="A")
+    print('Label B')
+    await merkle.event_to_session({"type": "event", "event": {"B": "c"}, "name": "2nd"}, session, label="B")
+    print('Label C')
+    await merkle.event_to_session({"type": "event", "event": {"B": "c"}}, session, label="C")
+    print('Closing')
+    await merkle.close_session(session)
+    # G = storage.to_graphviz()
+    # import PIL.Image as Image
+    # import io
+    # Image.open(io.BytesIO(G.create_png())).show()
 
 
 if __name__ == "__main__":
-    test_case()
+    asyncio.run(test_case())
