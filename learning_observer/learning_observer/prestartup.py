@@ -234,7 +234,9 @@ def startup_checks_and_init():
         print("Could not start the Learning Observer")
         for e in exceptions:
             print("-------------------")
-            print(e.args[0])
+            print(e)
+            if len(e.args) > 0:
+                print(e.args[0])
         sys.exit(1)
 
     for init in INIT_FUNCTIONS:

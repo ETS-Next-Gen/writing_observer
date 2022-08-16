@@ -96,13 +96,13 @@ def verify_auth_precheck():
          isinstance(settings.settings['auth']['google_oauth']['web']['project_id'], dict) or \
          isinstance(settings.settings['auth']['google_oauth']['web']['client_id'], dict):
           error = \
-            "Please configure Google oauth\n" + \
-            "" + \
-            "Go to:" + \
-            "  https://console.developers.google.com/" + \
-            "And set up an OAuth client for a web application. Make sure that configuration" + \
-            "mirrors the one here." + \
-            "" + \
-            "If you are not planning to use Google auth (which is the case for most dev" + \
+            "Please configure (or disable) Google oauth\n" + \
+            "\n" + \
+            "Go to:\n" + \
+            "  https://console.developers.google.com/ \n" + \
+            "And set up an OAuth client for a web application. Make sure that configuration\n" + \
+            "mirrors the one here.\n" + \
+            "\n" + \
+            "If you are not planning to use Google auth (which is the case for most dev\n" + \
             "settings), please disable Google authentication in creds.yaml"
-          raise learning_observer.prestartup.StartupCheck()
+          raise learning_observer.prestartup.StartupCheck(error)

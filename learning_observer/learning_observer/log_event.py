@@ -54,12 +54,22 @@ import inspect
 import io
 import json
 import hashlib
+import os
+import os.path
 
 import learning_observer.filesystem_state
 
 import learning_observer.paths as paths
 import learning_observer.settings as settings
 import learning_observer.prestartup
+
+
+if not os.path.exists(paths.logs()):
+    print("Creating path for log files...")
+    os.mkdir(paths.logs())
+if not os.path.exists(paths.logs("startup")):
+    print("Creating path for startup logs...")
+    os.mkdir(paths.logs("startup"))
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
