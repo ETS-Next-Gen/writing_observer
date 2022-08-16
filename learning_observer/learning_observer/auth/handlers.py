@@ -225,7 +225,7 @@ async def auth_middleware(request, handler):
     # This retrieves the user info from the session, since the user info
     # might have changed in the request (in particular, if the user logged
     # out)
-    set_user_info_cookie(request, resp)
+    await set_user_info_cookie(request, resp)
     return resp
 
 
