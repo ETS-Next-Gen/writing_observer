@@ -70,7 +70,7 @@ def create_instance(name):
     # point.
     response = ec2.create_instances(
         ImageId=UBUNTU_20_04,
-        InstanceType='t2.nano',
+        InstanceType='t2.small',
         BlockDeviceMappings=blockDeviceMappings,
         KeyName=orchlib.config.creds['aws_keyname'],
         MinCount=1,
