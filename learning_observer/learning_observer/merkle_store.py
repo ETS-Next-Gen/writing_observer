@@ -75,6 +75,7 @@ from pickle import STOP
 # These should be abstracted out into a visualization library.
 import matplotlib
 import networkx
+from learning_observer.incoming_student_event import COUNT
 import pydot
 
 from confluent_kafka import Producer, Consumer
@@ -111,7 +112,9 @@ def json_load(string):
     return json.loads(string)
 
 
-def session_ID(session):
+COUNT = 0
+
+def session_key(session):
     """
     Return an ID associated with a session.
 
@@ -122,12 +125,25 @@ def session_ID(session):
         session (dict): The session.
 
     Returns:
-        str: The session ID.
+        str: The session ID. This is not guaranteed to be a string in the
+            future.
 
-    The session ID is currently a JSON dump. We'll do something cleaner later,
-    perhaps, but this is good enough for now
+    The session ID is currently a JSON dump, with some extra info to prevent
+    collisions.
     """
+    global COUNT
+    COUNT += 1
+
+    base = {
+        'timestamp': timestamp(),
+        'count': COUNT
+    }
     return json_dump(session)
+
+
+# This might turn into a class in the future. For now, we just use the
+# session_key
+Session = session_key
 
 
 def timestamp():
@@ -214,7 +230,7 @@ class Merkle:
             children = list()
         children.reverse()
         storage = self.storage
-        session_id = session_ID(session)
+        session_id = session_key(session)
         ts = timestamp()
 
         event_hash = hash(json_dump(event))
@@ -284,7 +300,7 @@ class Merkle:
             label='close'
         )
         session_hash = final_item['hash']
-        self.storage._rename_or_alias_stream(session_ID(session), session_hash)
+        self.storage._rename_or_alias_stream(session_key(session), session_hash)
         if len(session) < 1:
             raise Exception('Session is empty')
         if len(session) == 1:
@@ -579,6 +595,13 @@ CATEGORIES = set(
         "assignment"
     ]
 )
+
+
+STORES = {
+    "kafka": KafkaStorage,
+    "fs": FSStorage,
+    "inmemory": InMemoryStorage
+}
 
 
 def test_case():
