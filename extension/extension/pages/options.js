@@ -4,7 +4,7 @@
   TODO: Add logging of when options change
  */
 
-const option_keys = ["teacher-tag", "user-tag", "process-server", "unique-id"];
+const option_keys = ["teacher_tag", "user_tag", "process_server", "unique_id"];
 
 function saveOptions(key) {
     /*

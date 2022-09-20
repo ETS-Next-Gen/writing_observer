@@ -10,12 +10,12 @@ xmpp:
     jid: stream@localhost
     password: {{RANDOM1}}
 auth:
-  password-file: passwd.lo
+  password_file: passwd.lo
 pubsub:
     type: redis
 kvs:
     type: redis
-roster-data:
+roster_data:
     source: all
 aio:
     session_secret: {{RANDOM2}}
@@ -24,9 +24,9 @@ config:
     run_mode: dev
     debug: []
 theme:
-    server-name: Learning Observer
-    front-page-pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
-    logo-big: /static/media/logo-clean.jpg
+    server_name: Learning Observer
+    front_page_pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
+    logo_big: /static/media/logo-clean.jpg
 event_auth:
     local_storage:
         userfile: students.yaml
