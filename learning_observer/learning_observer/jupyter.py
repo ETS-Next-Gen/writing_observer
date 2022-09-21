@@ -18,6 +18,10 @@ The notebook architecture will allow us to capture the
 analyses run in the notebook, for open science.
 
 Much of this code is untested and still in flux.
+
+For the most part, we're trying to minimize the amount of
+code that needs to be written in the notebook and instead
+inject the code and data directly into the iframe.
 '''
 
 import argparse
@@ -35,25 +39,59 @@ import gitserve.aio_gitserve
 from IPython.core.display import display, HTML
 
 
-def make_iframe(url, width, height):
+DEFAULT_PORT = 8008
+
+
+def show_dashboard(
+    module,
+    repo,
+    branch="master",
+    path="index.html",
+    width=1280,
+    height=720,
+    port=DEFAULT_PORT
+):
+    '''
+    Show a dashboard in an iframe.
+    '''
+    url = f"http://localhost:{port}/{repo}/{branch}/{path}"
+
+
+def make_iframe(url = "", width=1280, height=720):
     '''
     Make an iframe for a given URL.
 
     Args:
-        url (str): The URL to load in the iframe.
+        url (str): The URL to load in the iframe. Should be blank if you want
+            to load the iframe from a string.
         width (int): The width of the iframe.
         height (int): The height of the iframe.
 
     Returns:
         str: The iframe ID.
+
+    There is a race condition if we try to `load_frame_text` in the
+    same Jupyter cell as this.
     '''
     frameid = str(uuid.uuid1())
 
     display(HTML(f"""
-    <iframe src="{url}" width="{width}" height="{height}"
-    allowfullscreen></iframe>
+    <iframe src="{url}" width="{width}" height="{height}" id="{frameid}" allowfullscreen></iframe>
     """))
     return frameid
+
+
+def load_frame_text(frameid, text):
+    '''
+    Load text into an iframe.
+
+    Args:
+        frameid (str): The ID of the iframe to inject into.
+        text (str): The text to inject.
+    '''
+    inject_script(frameid, f"""
+        document.body.innerHTML = atob("{base64.b64encode(text.encode()).decode()}");
+    """)
 
 
 def inject_script(frameid, script):
@@ -90,19 +128,50 @@ def inject_data(frameid, data):
     Returns:
         None
     '''
-    data_loader = "lo_data="+json.dumps(data);
-    display(HTML(f"""
-    <script>
-    var frame = document.getElementById("{frameid}");
-    var doc = frame.contentDocument || frame.contentWindow.document;
-    var script = doc.createElement("script");
-    script.innerHTML = atob("{data_loader}");
-    doc.body.appendChild(script);
-    </script>
-    """))
+    for key in data:
+        inject_script(frameid, f"window.{key} = {json.dumps(data[key])};")
 
 
-def run_server(repos, port=8008):
+def refresh_dashboard(frameid, data):
+    '''
+    Rerender the dashboard from the data in the iframe.
+
+    Args:
+        frameid (str): The ID of the iframe to inject into.
+
+    Returns:
+        None
+    '''
+    inject_script(frameid, f"""
+        refresh_dashboard({json.dumps(data)});
+    """);
+
+
+#def refresh_dashboard(frameid, data):
+#    '''
+#    Refresh the dashboard with new data.
+
+#    Args:
+#        frameid (str): The ID of the iframe to inject into.
+#        data (dict): The data to inject.
+
+#    Returns:
+#        None
+#    '''
+#    #inject_data(frameid, data)
+    #rerender_dashboard_from_data(frameid)
+#    inject_script(frameid, """
+#        window.sendMessage({
+#            type: "lo_inject_data",
+#            data: """ + json.dumps(data) + """
+#            },
+#            window.location
+#        );
+#    """);
+#    )
+
+
+def run_server(repos, port=DEFAULT_PORT):
     '''
     Run a server to serve the given repos.
 
@@ -114,7 +183,11 @@ def run_server(repos, port=8008):
         Never :)
 '''
     app = aiohttp.web.Application()
+    # Override the dashboard route
+
+    # Override static paths for libraries and similar
     learning_observer.routes.register_static_routes(app)
+    # Add routes for repos
     learning_observer.routes.register_repo_routes(app, repos)
     aiohttp.web.run_app(app, port=port)
 
@@ -123,7 +196,7 @@ if __name__ == "__main__":
     def to_bool(s):
         '''
         Convert a string to a boolean.
-        
+
         Args:
             s (str): The string to convert.
 
@@ -140,7 +213,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run a server to serve the given repos.")
     parser.add_argument("repos", type=str, nargs="+", help="The repos to serve.")
-    parser.add_argument("--port", type=int, default=8008, help="The port to serve on.")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="The port to serve on.")
     args = parser.parse_args()
     repos = {}
     for repo in args.repos:
