@@ -67,6 +67,7 @@ import learning_observer.prestartup
 if not os.path.exists(paths.logs()):
     print("Creating path for log files...")
     os.mkdir(paths.logs())
+
 if not os.path.exists(paths.logs("startup")):
     print("Creating path for startup logs...")
     os.mkdir(paths.logs("startup"))
