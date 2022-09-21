@@ -19,6 +19,7 @@ import time
 import traceback
 import urllib.parse
 import uuid
+import socket
 
 import aiohttp
 
@@ -215,7 +216,9 @@ async def handle_incoming_client_event(metadata):
             "metadata": metadata
         }
 
+        # Log to the main event log file
         log_event.log_event(event)
+        # Log the same thing with a time stamp. We really don't want this second log. We had these both for debugging....
         log_event.log_event(
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
@@ -242,12 +245,64 @@ async def handle_incoming_client_event(metadata):
 COUNT = 0
 
 
-def event_decoder_and_logger(request):
+def event_decoder_and_logger(
+    request,
+    headers=None,
+    metadata=None,
+    session={}):
     '''
+    This is the main event decoder. It is called by the
+    websocket handler to log events.
+
+    Parameters:
+        request: The request object.
+        headers: The header events, which e.g. contain auth
+        metadata: Metadata about the request, such as IP. This is
+            extracted from the request, which will go away soon.
+
+    Returns:
+        A coroutine that decodes and logs events.
+
+    We call this after the header events, with the header events in the
+    `headers` parameter. This is because we want to log the header events
+    before the body events, so they can be dropped from the Merkle tree
+    for privacy. Although in most cases, students can be reidentified
+    from the body events, the header events contain explicit identification
+    tokens. It is helpful to be able to analyze data with these dropped,
+    obfuscated, or otherwise anonymized.
+
+    At present, many body events contain auth as well. We'll want to minimize
+    this and tag those events appropriately.
+
     HACK: We would like clean log files for the first classroom pilot.
 
     This puts events in per-session files.
+
+    The feature flag has the non-hack implementation.
     '''
+    if merkle_config:=settings.feature_flag("merkle"):
+        import merkle_store
+
+        storage_class = merkle_store.STORES[merkle_config['store']]
+        params=merkle_config.get("params", {})
+        if not isinstance(params, dict):
+            raise ValueError("Merkle tree params must be a dict (even an empty one)")
+        storage = storage_class(**params)
+        merkle_store.Merkle(storage)
+        session = {
+            "student": request.student,
+            "tool": request.tool
+        }
+        merkle_store.start(session)
+        def decode_and_log_event(msg):
+            '''
+            Decode and store the event in the Merkle tree
+            '''
+            event = json.loads(msg)
+            merkle_store.event_to_session(event)
+            return event
+
+
     global COUNT
     # Count + PID should guarantee uniqueness.
     # With multi-server installations, we might want to add
@@ -267,7 +322,10 @@ def event_decoder_and_logger(request):
         Take an aiohttp web sockets message, log it, and return
         a clean event.
         '''
-        json_event = json.loads(msg.data)
+        if isinstance(msg, dict):
+            json_event = msg
+        else:
+            json_event = json.loads(msg.data)
         log_event.log_event(json_event, filename=filename)
         return json_event
     return decode_and_log_event
@@ -282,7 +340,6 @@ async def incoming_websocket_handler(request):
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    decoder_and_logger = event_decoder_and_logger(request)
 
     # For now, we receive two packets to initialize:
     # * Chrome's identity information
@@ -313,15 +370,67 @@ async def incoming_websocket_handler(request):
     if INIT_PIPELINE:
         async for msg in ws:
             debug_log("Auth", msg)
-            json_msg = decoder_and_logger(msg)
+            json_msg = json.loads(msg)
             header_events.append(json_msg)
             if json_msg["event"] == "metadata_finished":
                 break
-        # print(event_metadata)
+    else:
+        # This is a path for the old way of doing auth, which was to
+        # send the auth data in the first message.
+        #
+        # It is untested, so we raise an error if it is used.
+        raise NotImplementedError("We have not tested auth backwards compatibility.")
+        json_msg = await ws.receive()
+        header_events.append(json.loads(json_msg.data))
+
+    first_event = header_events[0]
+    event_metadata['source'] = first_event['source']
+
+    # We authenticate the student
+    event_metadata['auth'] = await learning_observer.auth.events.authenticate(
+        request=request,
+        headers=header_events,
+        first_event=client_event,  # This is obsolete
+        source=json_msg['source']
+    )
+
+    # We're now ready to make the pipeline.
+    hostname = socket.gethostname();
+    decoder_and_logger = event_decoder_and_logger(
+        request,
+        headers=header_events,
+        metadata={
+            'ip': request.remote,
+            'host': request.headers.get('Host', ''),
+            'user_agent': request.headers.get('User-Agent', ''),
+            'x_real_ip': request.headers.get('X-Real-IP', ''),
+            'timestamp': datetime.datetime.utcnow().isoformat(),
+            'session_count': COUNT,
+            'pid': os.getpid(),
+            'hostname': hostname,
+            'hostip': socket.gethostbyname(hostname),
+            'referer': request.headers.get('Referer', ''),
+            'host': request.headers.get('Host', ''),
+            'x-forwarded-for': request.headers.get('X-Forwarded-For', ''),
+            'x-forwarded-host': request.headers.get('X-Forwarded-Host', '')
+        },
+        session={
+            'student': event_metadata['auth']['student'],
+            'source': event_metadata['source']
+        }
+    )
 
     event_handler = None
-    AUTHENTICATED = False
+    event_handler = await handle_incoming_client_event(metadata=event_metadata)
 
+    # Handle events which we already received, if we needed to peak
+    # ahead to authenticate user
+    if not INIT_PIPELINE:
+        for event in header_events:
+            decoder_and_logger(event)
+            await event_handler(event)
+
+    # And continue to receive events
     async for msg in ws:
         # If web socket closed, we're done.
         if msg.type == aiohttp.WSMsgType.ERROR:
@@ -336,31 +445,7 @@ async def incoming_websocket_handler(request):
         if msg.type != aiohttp.WSMsgType.TEXT:
             debug_log("Unknown event type: " + msg.type)
 
-        debug_log("Web socket message received")
         client_event = decoder_and_logger(msg)
-
-        # We set up metadata based on the first event, plus any headers
-        if not AUTHENTICATED:
-            # If INIT_PIPELINE == False
-            if json_msg is None:
-                json_msg = client_event
-            # E.g. is this from Writing Observer? Some math assessment? Etc. We dispatch on this
-            if 'source' in json_msg:
-                event_metadata['source'] = json_msg['source']
-            event_metadata['auth'] = await learning_observer.auth.events.authenticate(
-                request=request,
-                headers=header_events,
-                first_event=client_event,
-                source=json_msg['source']
-            )
-            AUTHENTICATED = True
-
-        if not event_handler:
-            event_handler = await handle_incoming_client_event(metadata=event_metadata)
-
-        debug_log(
-            "Dispatch incoming ws event: " + client_event['event']
-        )
         await event_handler(request, client_event)
 
     debug_log('Websocket connection closed')

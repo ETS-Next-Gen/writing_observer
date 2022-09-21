@@ -136,7 +136,7 @@ def load_settings(config):
 
 
 # Not all of these are guaranteed to work on every branch of the codebase.
-AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page']
+AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page', 'merkle']
 
 
 def feature_flag(flag):
