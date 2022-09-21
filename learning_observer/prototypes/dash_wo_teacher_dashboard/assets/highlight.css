@@ -1,0 +1,56 @@
+/* main highlights */
+.main {
+    --bs-bg-opacity: 0.5;
+    background-color: rgba(var(--bs-success-rgb), var(--bs-bg-opacity)) !important;
+}
+
+.support {
+    --bs-bg-opacity: 0.5;
+    background-color: rgba(var(--bs-danger-rgb), var(--bs-bg-opacity)) !important;
+}
+
+.detail {
+    --bs-bg-opacity: 0.5;
+    background-color: rgba(var(--bs-warning-rgb), var(--bs-bg-opacity)) !important;
+}
+
+/* highlight without any text */
+.highlight-no-text {
+    color: transparent;
+    line-height: 1.25;
+}
+.highlight-no-text>.main {
+    --bs-bg-opacity: 1;
+}
+.highlight-no-text>.support {
+    --bs-bg-opacity: 1;
+}
+.highlight-no-text>.detail {
+    --bs-bg-opacity: 1;
+}
+
+/* thin text with highlighting */
+.highlight-thin-text>.main {
+    color: transparent;
+    font-size: 5px;
+}
+
+.highlight-thin-text>.detail {
+    color: transparent;
+    font-size: 5px;
+}
+
+/* thin text without highlighting */
+.thin-text-no-highlight>.main {
+    color: transparent;
+    font-size: 5px;
+}
+
+.thin-text-no-highlight>.support {
+    background-color: transparent !important;
+}
+
+.thin-text-no-highlight>.detail {
+    color: transparent;
+    font-size: 5px;
+}
