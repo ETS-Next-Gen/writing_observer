@@ -16,8 +16,6 @@ import copy
 import json
 import sys
 
-import asyncio_redis
-
 import learning_observer.prestartup
 import learning_observer.settings
 import learning_observer.redis
@@ -26,7 +24,7 @@ OBJECT_STORE = dict()
 
 
 class _KVS:
-    async def dump(self):
+    async def dump(self, filename=None):
         '''
         Dumps the entire contents of the KVS to a JSON object.
 
@@ -34,13 +32,39 @@ class _KVS:
         intended to be used in production, as it is not very performant. It can
         be helpful for offline analytics too, at least at a small scale.
 
-        Helpers like this would be helpful to refactor into the KVS itself,
-        perhaps through a superclass.
+        If `filename` is not `None`, the contents of the KVS are written to the
+        file. In either case, the contents are returned as a JSON object.
+
+        In the future, we might want to add filters, so that this is scalable
+        for extracting specific data from production systems (e.g. dump data
+        for one user).
+
+        args:
+            filename: The filename to write to. If `None`, don't write to a file.
+
+        returns:
+            A JSON object containing the contents of the KVS.
         '''
         data = {}
         for key in await self.keys():
             data[key] = await self[key]
+        if filename:
+            with open(filename, 'w') as f:
+                json.dump(data, f, indent=4)
         return data
+
+    async def load(self, filename):
+        '''
+        Loads the contents of a JSON object into the KVS.
+
+        It is intended to be used in development and for debugging. It is not
+        intended to be used in production, as it is not very performant. It can
+        be helpful for offline analytics too, at least at a small scale.
+        '''
+        with open(filename) as f:
+            data = json.load(f)
+        for key, value in data.items():
+            await self.set(key, value)
 
 
 class InMemoryKVS(_KVS):
