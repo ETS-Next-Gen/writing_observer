@@ -24,4 +24,4 @@ learning_observer/learning_observer/static_data/students.json
 learning_observer/passwd.lo
 --*
 .venv/
-learning_observer/prototypes/dash_wo_teacher_dashboard/data/
+.vscode/

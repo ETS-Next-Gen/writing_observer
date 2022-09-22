@@ -1,3 +1,6 @@
+'''
+Example serving the Dash app through aiohttp server
+'''
 from aiohttp import web
 from aiohttp_wsgi import WSGIHandler
 from app import app

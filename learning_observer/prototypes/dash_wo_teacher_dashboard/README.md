@@ -3,7 +3,7 @@
 Required packages
 ```bash
 cd learning_observer/prototypes/dash-testing
-pip install requirements.txt
+pip install -r requirements.txt
 # this will fail on the learning-observer-components, remove that part of the file and try again
 pip install git+https://github.com/ArgLab/learning_observer_dash_components # these components are not published anywhere so manual install is necessary
 mkdir data  # create a directory for the data (not shared through Git)

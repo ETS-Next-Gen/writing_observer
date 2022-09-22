@@ -1,13 +1,13 @@
+'''
+Used for handling assignment information within the UI
+This might not be the best way to handle it.
+We'll revisit this piece of the codebase once we hook up assignment information
+'''
 # package imports
-from dash import html
-import dash_bootstrap_components as dbc
 import datetime
-import platform
 import random
 
-date_format = '%B %#d, %G' if platform.system() == 'Windows' else '%B %-d, %G'
-# as long as we don't have callbacks involve the
-# functions could easily be turned into class methods
+
 class Assignment:
     def __init__(self, id, name, description):
         self.id = id

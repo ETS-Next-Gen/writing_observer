@@ -1,3 +1,6 @@
+'''
+Process data output from the AWE workbench into UI friendly data
+'''
 # package imports
 import json
 import os
@@ -5,37 +8,38 @@ import random
 import re
 from scipy import stats
 
+
 def normalize(text):
-    text = text.replace('&nbsp;',' ')
-    text = text.replace('  ',' ')
-    text = text.replace(' .','.')
-    text = text.replace(' ,',',')
-    text = text.replace(' ;',';')
-    text = text.replace(' :',':')
-    text = text.replace(' !','!')
-    text = text.replace(' ?','?')
-    text = text.replace(' \'s','\'s')
-    text = text.replace(' \'d','\'d')
-    text = text.replace(' \'ve','\'ve')
-    text = text.replace(' \'ll','\'ll')
-    text = text.replace(' n\'t','n\'t')
-    text = text.replace(' ’s','\'s')
-    text = text.replace(' ’d','\'d')
-    text = text.replace(' ’ve','\'ve')
-    text = text.replace(' ’ll','\'ll')
-    text = text.replace(' n’t','n\'t')
-    text = text.replace(' - ','-')
-    text = text.replace('"','" ')
-    text = text.replace(' ”','”')
-    text = text.replace('“ ','“')
-    text = text.replace(' "','"')
-    text = text.replace('  ',' ')
-    text = re.sub(r'" (.*?)" ', r' "\1" ',text)
-     
+    text = text.replace('&nbsp;', ' ')
+    text = text.replace('  ', ' ')
+    text = text.replace(' .', '.')
+    text = text.replace(' ,', ',')
+    text = text.replace(' ;', ';')
+    text = text.replace(' :', ':')
+    text = text.replace(' !', '!')
+    text = text.replace(' ?', '?')
+    text = text.replace(' \'s', '\'s')
+    text = text.replace(' \'d', '\'d')
+    text = text.replace(' \'ve', '\'ve')
+    text = text.replace(' \'ll', '\'ll')
+    text = text.replace(' n\'t', 'n\'t')
+    text = text.replace(' ’s', '\'s')
+    text = text.replace(' ’d', '\'d')
+    text = text.replace(' ’ve', '\'ve')
+    text = text.replace(' ’ll', '\'ll')
+    text = text.replace(' n’t', 'n\'t')
+    text = text.replace(' - ', '-')
+    text = text.replace('"', '" ')
+    text = text.replace(' ”', '”')
+    text = text.replace('“ ', '“')
+    text = text.replace(' "', '"')
+    text = text.replace('  ', ' ')
+    text = re.sub(r'" (.*?)" ', r' "\1" ', text)
     return text
 
+
 cwd = os.getcwd()
-data_path = os.path.join(cwd, 'data', 'kaggle_processed')
+data_path = os.path.join(cwd, 'uncommitted', 'kaggle_processed')
 
 overall_jsons = [f for f in os.listdir(data_path) if f.endswith('.masked')]
 essays = []
@@ -64,7 +68,7 @@ for f in sample_jsons:
     with open(f_path, 'r') as f_obj:
         f_data = json.load(f_obj)
     text = normalize(' '.join(f_data['doctokens']))
-    
+
     highlight_info = {
         'coresentences': [],
         'extendedcoresentences': [],
@@ -96,7 +100,7 @@ for f in sample_jsons:
             },
             'transitionwords': {
                 'id': 'transitionwords',
-                'value':  list(f_data['transitionprofile'][2].keys()),
+                'value': list(f_data['transitionprofile'][2].keys()),
                 'label': 'Transitions used'
             },
             'studenttext': {
@@ -137,7 +141,7 @@ for f in sample_jsons:
     # this will ignore the blanks and periods/commas
     # TODO fix this, not good to rely on the academics attribtue
     total_words = len([x for x in f_data['academics'] if x == 1 or x == 0])
-    
+
     academic_counts.append(len([x for x in f_data['academics'] if x == 1]) / total_words)
     argument_counts.append(len(f_data['argumentwords']) / total_words)
     attribution_counts.append(len(f_data['attributions']))
@@ -184,5 +188,5 @@ for i, s in enumerate(students):
         'help': 'Percentile based on total sources'
     }
 
-with open(os.path.join(cwd, 'data', 'sample.json'), 'w') as f:
+with open(os.path.join(cwd, 'uncommitted', 'sample.json'), 'w') as f:
     json.dump(students, f, indent=4)

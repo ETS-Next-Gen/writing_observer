@@ -1,1 +1,1 @@
-from .navbar import navbar
+from .layout import serve_layout
