@@ -1,0 +1,74 @@
+
+/* 
+    Customize the scrollbar (Chrome only, but its okay cause they use Chromebooks)
+    Set size of scrollbar
+    Set track (slider track)
+    Set thumb (slider on track)
+    Set hover/active styles
+ */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: rgb(179, 177, 177);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgb(136, 136, 136);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgb(100, 100, 100);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:active {
+    background: rgb(68, 68, 68);
+    border-radius: 5px;
+}
+
+/*
+    Provides a shift and a shadow to student cards
+    I think it helps to focus in on one student, but the shadow itself could be improved upon
+    Try hovering over a student's card
+*/
+.shadow-card:hover {
+    transition: all 0.2s ease-out;
+    box-shadow: 0px 2px 8px var(--bs-gray-500);
+    top: -4px;
+    border: 1px solid #cccccc;
+    background-color: white;
+}
+.shadow-card:hover:before {
+    transform: scale(2.15);
+}
+
+/* Style the text element (the box of text) on student cards */
+.student-card-text {
+    max-height: 250px;
+    overflow: auto;
+    border: var(--bs-gray-100) solid 1px;
+    border-radius: 0.4rem;
+    margin: 1px;
+}
+
+/* Larger font size helper class  */
+.font-size-lg { font-size: 1.2rem; }
+
+/*
+    Add some background so you can see which option of a checklist you are hovering
+    Add darker background for nested-forms
+    Try hovering over an option in the Settings menu
+*/
+.form-check:hover {
+    transition: all 0.2s ease-out;
+    background-color: var(--bs-gray-100);
+    box-shadow: 0px 0px 5px var(--bs-gray-100);
+    border-radius: 0.4rem;
+}
+.nested-form:hover {
+    transition: all 0.2s ease-out;
+    background-color: var(--bs-gray-300);
+    box-shadow: 0px 0px 5px var(--bs-gray-300);
+    border-radius: 0.4rem;
+}
