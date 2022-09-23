@@ -178,6 +178,10 @@ def preimport():
                 continue
             if f.startswith("__"):
                 continue
+            if f.startswith("."):
+                continue
+            if "#" in f:
+                continue
 
             # Skip directories which aren't part of the system
             SKIP = ["static_data", "prototypes"]

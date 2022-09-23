@@ -3,6 +3,10 @@ Module definition file
 
 This may be an examplar for building new modules too.
 '''
+
+import learning_observer.dash_integration
+
+
 NAME = "Learning Observer Base"
 
 # Outgoing APIs
@@ -133,3 +137,24 @@ COURSE_DASHBOARDS = [
 
 STUDENT_DASHBOARDS = {
 }
+
+WSGI = [
+    {
+        "APP": learning_observer.dash_integration.app,
+        "URL_PATTERNS": [
+            "/{path_info:dash/test}",  # <-- Test case (to be removed)
+            "/{path_info:_dash.*}",    # <-- All the infrastructure dash wants
+            "/{path_info:.*/dash/.*}"   # <-- All the other modules. We can be more specific later
+        ]
+    }
+]
+
+DASH_PAGES = [
+    {
+        "MODULE": learning_observer.dash_integration,
+        "LAYOUT": learning_observer.dash_integration.test_layout,
+        "TITLE": "Test Page for Dash.",
+        "DESCRIPTION": "We're just testing. Nothing to see here.",
+        "SUBPATH": "test"
+    }
+]
