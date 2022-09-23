@@ -2,8 +2,8 @@
 Define overall UI layout
 '''
 # package imports
-import dash
-from dash import html
+import learning_observer.dash_wrapper as dash
+from learning_observer.dash_wrapper import html
 import dash_bootstrap_components as dbc
 
 # local imports

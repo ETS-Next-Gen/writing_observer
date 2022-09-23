@@ -1,8 +1,10 @@
 '''
 Creates the grid of student cards
 '''
+import pathlib
+
 # package imports
-from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
+from learning_observer.dash_wrapper import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
 # from dash_extensions import WebSocket
 import learning_observer_components as loc  # student cards
@@ -14,9 +16,8 @@ from . import settings
 
 # read in raw data (no websocket connection)
 # used for demo, sample.json is output from the data_preprocessing.py script
-cwd = os.getcwd()
-data_in = os.path.join(cwd, 'uncommitted', 'sample.json')
-with open(data_in, 'r') as f_obj:
+data_path = pathlib.Path(__file__).parent.parent.parent.joinpath('uncommitted', 'sample.json')
+with open(data_path, 'r') as f_obj:
     data = json.load(f_obj)
 
 # define ids for the dashboard

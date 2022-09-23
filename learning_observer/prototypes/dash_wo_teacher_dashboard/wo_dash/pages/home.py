@@ -2,8 +2,8 @@
 Register Home page of dash application
 '''
 # package imports
-import dash
-from dash import html
+import learning_observer.dash_wrapper as dash
+from learning_observer.dash_wrapper import html
 
 dash.register_page(
     __name__,

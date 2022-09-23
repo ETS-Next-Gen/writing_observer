@@ -430,7 +430,7 @@ def register_dash_pages(component_name, module):
     '''
     if hasattr(module, "DASH_PAGES"):
         DASH_PAGES[component_name] = module.DASH_PAGES
-
+        print(DASH_PAGES)
 
 
 def load_module_from_entrypoint(entrypoint):
@@ -439,9 +439,12 @@ def load_module_from_entrypoint(entrypoint):
     '''
     debug_log(
         f"Loading entrypoint: {entrypoint.name} / {entrypoint.dist.version} / "
-        "{entrypoint.dist.location} / {entrypoint.dist.project_name}")
+        f"{entrypoint.dist.location} / {entrypoint.dist.project_name}")
     module = entrypoint.load()
-    component_name = entrypoint.name
+    module_name = module.__name__
+    if not module_name.endswith(".module"):
+        raise AttributeError("Module should be defined in a file called module.py")
+    component_name = module_name[:-len(".module")]
     validate_module(module)
     debug_log(f"Corresponding to module: {module.__name__} ({module.NAME})")
     load_reducers(component_name, module)

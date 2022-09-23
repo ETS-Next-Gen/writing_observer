@@ -2,12 +2,12 @@
 Define layout for student dashboard view
 '''
 # package imports
-import dash
+import learning_observer.dash_wrapper as dash
 import dash_bootstrap_components as dbc
 
 # local imports
 from .students import student_dashboard_view
-from components.course import Course
+from wo_dash.components.course import Course
 
 dash.register_page(
     __name__,
