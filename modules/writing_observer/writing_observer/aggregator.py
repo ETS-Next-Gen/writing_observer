@@ -11,7 +11,7 @@ def sanitize_and_shrink_per_student_data(student_data):
     * Cut down the text to just what the client needs to receive (we
       don't want to send 30 full essays)
     '''
-    text = student_data['writing_observer.writing_analysis.reconstruct'].get('text', None)
+    text = student_data.get('writing_observer.writing_analysis.reconstruct', {}).get('text', None)
     if text is None:
         student_data['writing_observer_compiled'] = {
             "text": "[None]",
@@ -76,11 +76,11 @@ def aggregate_course_summary_stats(student_data):
     for student in student_data:
         max_character_count = max(
             max_character_count,
-            student['writing_observer_compiled']['character_count']
+            student.get('writing_observer_compiled', {}).get('character_count', 0)
         )
         max_time_on_task = max(
             max_time_on_task,
-            student['writing_observer.writing_analysis.time_on_task']["total_time_on_task"]
+            student.get('writing_observer.writing_analysis.time_on_task', {}).get("total_time_on_task", 0)
         )
     return {
         "summary_stats": {
