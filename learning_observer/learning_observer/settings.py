@@ -126,9 +126,13 @@ def load_settings(config):
                 learning_observer.paths.register_repo(repo, settings['repos'][repo])
             elif isinstance(settings['repos'][repo], dict):
                 # HACK. We should figure out where to stick this. This does not belong in paths
-                debug_working = settings['repos'][repo].get("debug-working", None)
+                debug_working = settings['repos'][repo].get("debug_working", None)
 
-                learning_observer.paths.register_repo(repo, settings['repos'][repo]['path'], debug_working=debug_working)
+                learning_observer.paths.register_repo(
+                    repo,
+                    settings['repos'][repo]['path'],
+                    debug_working=debug_working
+                )
             else:
                 raise ValueError("settings.repos.{repo} should be a string or a dict. Please fix the settings file.".format(repo=repo))
 

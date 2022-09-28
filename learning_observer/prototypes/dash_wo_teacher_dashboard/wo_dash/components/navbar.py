@@ -2,7 +2,7 @@
 Navbar UI element
 '''
 # package imports
-from dash import html
+from learning_observer.dash_wrapper import html
 import dash_bootstrap_components as dbc
 
 navbar = html.Div(

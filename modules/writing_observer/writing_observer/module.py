@@ -157,7 +157,7 @@ STATIC_FILE_GIT_REPOS = {
 # will register the actual dashboards.
 COURSE_DASHBOARDS = [{
     'name': "Writing Observer",
-    'url': "/static/repos/wobserver/writing_observer/master/wobserver.html",
+    'url': "/static/repos/writing_observer/writing_observer/master/wobserver.html",
     "icon": {
         "type": "fas",
         "icon": "fa-pen-nib"
