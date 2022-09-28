@@ -4,7 +4,9 @@ integration here.
 '''
 
 import dash
-from dash import Dash, html
+from dash import Dash, html, clientside_callback, Output, Input
+
+from dash_extensions import WebSocket
 
 import learning_observer.prestartup
 
@@ -42,8 +44,24 @@ def local_register_page(
 
 
 test_layout = html.Div(children=[
-    html.H1(children='Test Case for Dash')
+    html.H1(children='Test Case for Dash'),
+    WebSocket(
+        id='ws',
+        url='ws://127.0.0.1:8892/wsapi/dashboard?module=writing_observer&course=12345678901'
+    ),
+    html.Div(id='output')
 ])
+
+clientside_callback(
+    """function(msg) {
+        if(!msg) {
+            return "No Data"
+        }
+        return msg.data;
+    } """,
+    Output('output', 'children'),
+    Input('ws', 'message')
+) 
 
 dash.register_page(
     __name__,
