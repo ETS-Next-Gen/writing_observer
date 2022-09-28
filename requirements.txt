@@ -3,6 +3,7 @@ aiofiles
 aiohttp
 aiohttp_cors
 aiohttp_session
+aiohttp_wsgi
 asyncio_redis
 asyncpg
 cryptography

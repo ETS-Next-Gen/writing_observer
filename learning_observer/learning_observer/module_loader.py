@@ -39,6 +39,9 @@ COURSE_DASHBOARDS = []
 # Additional calls, primarily for metadata
 AJAX = {}
 
+WSGI = []
+DASH_PAGES = {}
+
 
 def extra_views():
     '''
@@ -154,6 +157,16 @@ def ajax():
     return AJAX
 
 
+def wsgi():
+    load_modules()
+    return WSGI
+
+
+def dash_pages():
+    load_modules()
+    return DASH_PAGES
+
+
 def load_modules():
     '''
     Iterate through entry points to:
@@ -185,8 +198,8 @@ def validate_module(module):
     '''
     if not hasattr(module, "NAME"):
         raise ValueError(
-                f"Module {module} does not have a NAME attribute"
-                "Please give your module a short, human-friendly name"
+                f"Module {module} does not have a NAME attribute "
+                "Please give your module a short, human-friendly name "
                 "Spaces, etc. are okay"
         )
 
@@ -381,15 +394,57 @@ def register_git_repos(component_name, module):
     debug_log(STATIC_REPOS)
 
 
+def register_wsgi_modules(component_name, module):
+    '''
+    We *don't* support pluggable `wsgi` modules. If you'd like to register
+    an unsupported one, this will do it, though!
+
+    `wsgi` is a way of plugging in additional servers. We use it for
+    `dash` support, and it made sense to do this generically. It's
+    nice for _prototyping_ too. However, it's far too general for
+    modules to just plug in this way, and far too easy to screw up. At
+    some point, we might:
+
+    * Yank this out
+    * Restrict it (e.g. require a URL scheme)
+    * Change the API
+
+    It definitely should not stay like this forever.
+
+    This should be called *before* we register `dash` modules, though,
+    since this is where we load `dash`.
+    '''
+    if hasattr(module, "WSGI"):
+        for item in module.WSGI:
+            item['COMPONENT_NAME'] = component_name
+            # item['MODULE'] is for debugging; we should pull out
+            # anything we use directly
+            item['MODULE'] = module
+        WSGI.extend(module.WSGI)
+
+
+def register_dash_pages(component_name, module):
+    '''
+    Load the set of `dash` pages. We might want to change to a flat
+    list later. We might also want to include URLs once available.
+    '''
+    if hasattr(module, "DASH_PAGES"):
+        DASH_PAGES[component_name] = module.DASH_PAGES
+        print(DASH_PAGES)
+
+
 def load_module_from_entrypoint(entrypoint):
     '''
     Load a module from an entrypoint.
     '''
     debug_log(
         f"Loading entrypoint: {entrypoint.name} / {entrypoint.dist.version} / "
-        "{entrypoint.dist.location} / {entrypoint.dist.project_name}")
+        f"{entrypoint.dist.location} / {entrypoint.dist.project_name}")
     module = entrypoint.load()
-    component_name = entrypoint.name
+    module_name = module.__name__
+    if not module_name.endswith(".module"):
+        raise AttributeError("Module should be defined in a file called module.py")
+    component_name = module_name[:-len(".module")]
     validate_module(module)
     debug_log(f"Corresponding to module: {module.__name__} ({module.NAME})")
     load_reducers(component_name, module)
@@ -398,5 +453,8 @@ def load_module_from_entrypoint(entrypoint):
     load_dashboards(component_name, module)
     register_3rd_party(component_name, module)
     register_git_repos(component_name, module)
+
+    register_wsgi_modules(component_name, module)
+    register_dash_pages(component_name, module)
 
     return module

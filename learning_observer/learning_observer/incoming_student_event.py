@@ -379,9 +379,12 @@ async def incoming_websocket_handler(request):
         # send the auth data in the first message.
         #
         # It is untested, so we raise an error if it is used.
-        raise NotImplementedError("We have not tested auth backwards compatibility.")
-        json_msg = await ws.receive()
-        header_events.append(json.loads(json_msg.data))
+        #raise NotImplementedError("We have not tested auth backwards compatibility.")
+        print("Running without an initialization pipeline / events. This is for")
+        print("development purposes, and may not continue to be supported")
+        msg = await ws.receive()
+        json_msg = json.loads(msg.data)
+        header_events.append(json_msg)
 
     first_event = header_events[0]
     event_metadata['source'] = first_event['source']
@@ -390,9 +393,11 @@ async def incoming_websocket_handler(request):
     event_metadata['auth'] = await learning_observer.auth.events.authenticate(
         request=request,
         headers=header_events,
-        first_event=client_event,  # This is obsolete
+        first_event=first_event,  # This is obsolete
         source=json_msg['source']
     )
+
+    print(event_metadata['auth'])
 
     # We're now ready to make the pipeline.
     hostname = socket.gethostname();
@@ -415,7 +420,7 @@ async def incoming_websocket_handler(request):
             'x-forwarded-host': request.headers.get('X-Forwarded-Host', '')
         },
         session={
-            'student': event_metadata['auth']['student'],
+            'student': event_metadata['auth']['safe_user_id'],
             'source': event_metadata['source']
         }
     )
@@ -428,7 +433,7 @@ async def incoming_websocket_handler(request):
     if not INIT_PIPELINE:
         for event in header_events:
             decoder_and_logger(event)
-            await event_handler(event)
+            await event_handler(request, event)
 
     # And continue to receive events
     async for msg in ws:

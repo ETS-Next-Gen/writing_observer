@@ -109,9 +109,17 @@ class GitRepo:
         command = "git --git-dir={gitdir} branch".format(
             gitdir=self.gitdir
         )
-        branch_list = subprocess.check_output(
-            command, shell=True
-        ).decode('utf-8').split('\n')
+        try:
+            branch_list = subprocess.check_output(
+                command, shell=True
+            ).decode('utf-8').split('\n')
+        except subprocess.CalledProcessError:
+            # This is a bit redundant, since most of this is in the exception,
+            # but it's helpful for quickly fixing config issues.
+            print("Failed to git branch. Command:")
+            print(command)
+            print("in gitaccess.py")
+            raise
         branch_list = [b.replace('*', '').strip() for b in branch_list]
         branch_list = [b for b in branch_list if b != '']
         return branch_list

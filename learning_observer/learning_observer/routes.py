@@ -12,6 +12,8 @@ import aiohttp.web
 
 import gitserve.aio_gitserve
 
+import aiohttp_wsgi
+
 import learning_observer.admin as admin
 import learning_observer.auth
 import learning_observer.auth.http_basic
@@ -144,6 +146,11 @@ def add_routes(app):
     repos = learning_observer.module_loader.static_repos()
     register_repo_routes(app, repos)
 
+    # This is called last since we don't want wsgi routes overriding
+    # our normal routes. We may change this design decision if we do
+    # want to provide that option in the future, but as we're prototyping
+    # and figuring stuff out, this feels safest to put last.
+    register_wsgi_routes(app)
 
 def register_debug_routes(app):
     '''
@@ -408,3 +415,34 @@ def register_repo_routes(app, repos):
                     working_tree_dev=working_tree)
             )
         ])
+
+
+def register_wsgi_routes(app):
+    '''
+    This is primarily for `dash` integration, and is unsupported for
+    other uses.
+    '''
+    for plugin in learning_observer.module_loader.wsgi():
+        wsgi_app = plugin['APP']
+        wsgi_url_patterns = plugin.get("URL_PATTERNS", None)
+
+        # We want to support patterns being a string, a list,
+        # or a function. This is (relatively untested) code to
+        # do that.
+        if wsgi_url_patterns is None:
+            print("Warning! No WSGI URL patterns. This should")
+            print("only be used for prototyping on dev machines")
+            wsgi_url_patterns = "/{path_info:.*}"
+        if callable(wsgi_url_patterns):
+            wsgi_url_patterns = wsgi_url_patterns()
+        # We would like to support async, but for now, the whole
+        # routing setup isn't async, so that's for later.
+        #
+        #if inspect.isawaitable(wsgi_url_patterns):
+        #    wsgi_url_patterns = await wsgi_url_patterns
+        if isinstance(wsgi_url_patterns, str):
+            wsgi_url_patterns = [wsgi_url_patterns]
+
+        wsgi_handler = aiohttp_wsgi.WSGIHandler(wsgi_app.server)
+        for pattern in wsgi_url_patterns:
+            app.router.add_route("*", pattern, wsgi_handler)

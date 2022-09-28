@@ -13,11 +13,12 @@ import sys
 import aiohttp
 import aiohttp.web
 
+import dash.development.base_component
+
 import learning_observer.module_loader
 from learning_observer.log_event import debug_log
 
 from learning_observer.auth.utils import admin
-
 
 def machine_resources():
     '''
@@ -85,11 +86,18 @@ async def system_status(request):
             return {key: clean_json(value) for key, value in json_object.items()}
         if isinstance(json_object, list):
             return [clean_json(i) for i in json_object]
+        if isinstance(json_object, learning_observer.stream_analytics.fields.Scope):
+            # We could make a nicer representation....
+            return str(json_object)
         if callable(json_object):
             return str(json_object)
         if json_object is None:
             return json_object
-        raise ValueError("We don't yet handle this type: {} (object: {})".format(type(json_object), json_object))
+        if str(type(json_object)) == "<class 'module'>":
+            return str(json_object)
+        if isinstance(json_object, dash.development.base_component.Component):
+            return f"Dash Component {json_object}"
+        raise ValueError("We don't yet handle this type in clean_json: {} (object: {})".format(type(json_object), json_object))
 
     status = {
         "status": "Alive!",
@@ -97,7 +105,8 @@ async def system_status(request):
         "modules": {
             "course_aggregators": clean_json(learning_observer.module_loader.course_aggregators()),
             "reducers": clean_json(learning_observer.module_loader.reducers()),
-            "static_repos": learning_observer.module_loader.static_repos()
+            "static_repos": learning_observer.module_loader.static_repos(),
+            "dash_pages": clean_json(learning_observer.module_loader.dash_pages())
         },
         "routes": routes(request.app)
     }

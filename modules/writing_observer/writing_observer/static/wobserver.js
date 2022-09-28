@@ -149,7 +149,7 @@ function initialize(D3, div, course, config) {
     div.html(dashboard_template);
     dashboard_connection(
 	{
-	    module: "writing-observer",
+	    module: "writing_observer",
 	    course: course
 	},
 	function(data) {
