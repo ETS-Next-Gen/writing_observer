@@ -144,7 +144,8 @@ WSGI = [
         "URL_PATTERNS": [
             "/{path_info:dash/test}",  # <-- Test case (to be removed)
             "/{path_info:_dash.*}",    # <-- All the infrastructure dash wants
-            "/{path_info:.*/dash/.*}"   # <-- All the other modules. We can be more specific later
+            "/{path_info:.*/dash/.*}",   # <-- All the other modules. We can be more specific later
+            "/{path_info:dash/assets/.*}"
         ]
     }
 ]

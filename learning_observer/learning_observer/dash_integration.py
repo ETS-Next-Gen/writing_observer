@@ -4,15 +4,25 @@ integration here.
 '''
 
 import dash
-from dash import Dash, html
+from dash import Dash, html, clientside_callback, Output, Input
+import learning_observer_components as loc
+from dash_extensions import WebSocket
+import dash_bootstrap_components as dbc
 
 import learning_observer.prestartup
+import os
 
-
+# We may want to use a separate Dash application per module
 app = Dash(
     __name__,
     use_pages=True,
-    pages_folder=""
+    pages_folder="",
+    external_stylesheets=[
+        dbc.themes.MINTY,  # bootstrap styling
+        dbc.icons.FONT_AWESOME,  # font awesome icons
+    ],
+    assets_folder=os.path.join(os.getcwd(), 'prototypes/dash_wo_teacher_dashboard/wo_dash/assets/'),
+    assets_url_path='dash/assets'
 )
 
 # Should we have a namespace for dash than module, or vice-versa?
@@ -42,8 +52,25 @@ def local_register_page(
 
 
 test_layout = html.Div(children=[
-    html.H1(children='Test Case for Dash')
+    html.H1(children='Test Case for Dash'),
+    loc.WebSocket(
+        id='ws',
+        url='ws://10.1.0.224:8888/wsapi/dashboard?module=writing_observer&course=12345678901'
+    ),
+    html.Div(id='output')
 ])
+
+clientside_callback(
+    """function(msg) {
+        if(!msg) {
+            return "No Data"
+        }
+        return msg.data;
+    } """,
+    Output('output', 'children'),
+    Input('ws', 'message')
+)
+
 
 dash.register_page(
     __name__,
