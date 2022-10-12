@@ -67,7 +67,8 @@ DIRECTORIES = {
     'logs': {'path': paths.logs()},
     'startup logs': {'path': paths.logs('startup')},
     'AJAX logs': {'path': paths.logs('ajax')},
-    '3rd party': {'path': paths.third_party()}
+    '3rd party': {'path': paths.third_party()},
+    'dash assets': {'path': paths.dash_assets()}
 }
 
 
@@ -135,6 +136,9 @@ def download_3rd_party_static():
         sha = libs[name]['hash']
 
         filename = paths.third_party(name)
+
+        # For subdirectories, make them
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         if not os.path.exists(filename):
             os.system("wget {url} -O {filename} 2> /dev/null".format(
                 url=url,
@@ -142,7 +146,13 @@ def download_3rd_party_static():
             ))
             print("Downloaded {name}".format(name=name))
         shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
-        if shahash == sha:
+        if sha is None:
+            error = "No SHA hash set in module for {name}. It should probably be:\n\t{hash}".format(
+                name=filename,
+                hash=shahash
+            )
+            raise StartupCheck(error)
+        elif shahash == sha:
             pass
         # print("File integrity of {name} confirmed!".format(name=filename))
         else:

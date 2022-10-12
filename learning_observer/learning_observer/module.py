@@ -3,6 +3,9 @@ Module definition file
 
 This may be an examplar for building new modules too.
 '''
+import os.path
+
+import dash_bootstrap_components as dbc
 
 import learning_observer.dash_integration
 
@@ -140,11 +143,12 @@ STUDENT_DASHBOARDS = {
 
 WSGI = [
     {
-        "APP": learning_observer.dash_integration.app,
+        "APP": learning_observer.dash_integration.get_app,
         "URL_PATTERNS": [
             "/{path_info:dash/test}",  # <-- Test case (to be removed)
             "/{path_info:_dash.*}",    # <-- All the infrastructure dash wants
-            "/{path_info:.*/dash/.*}"   # <-- All the other modules. We can be more specific later
+            "/{path_info:.*/dash/.*}",   # <-- All the other modules. We can be more specific later
+            "/{path_info:dash/assets/.*}"   # <-- Again, we should be more specific later
         ]
     }
 ]

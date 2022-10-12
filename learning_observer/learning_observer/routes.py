@@ -152,6 +152,7 @@ def add_routes(app):
     # and figuring stuff out, this feels safest to put last.
     register_wsgi_routes(app)
 
+
 def register_debug_routes(app):
     '''
     Handy-dandy information views, useful for debugging and development.
@@ -325,6 +326,12 @@ def register_static_routes(app):
             '/static/3rd_party/{filename}',\
             static_directory_handler(paths.static("3rd_party"))),
         aiohttp.web.get(
+            '/static/3rd_party/css/{filename}',\
+            static_directory_handler(paths.static("3rd_party/css"))),
+        aiohttp.web.get(
+            '/static/3rd_party/webfonts/{filename}',\
+            static_directory_handler(paths.static("3rd_party/webfonts"))),
+        aiohttp.web.get(
             '/static/media/{filename}',
             static_directory_handler(paths.static("media"))),
         aiohttp.web.get(
@@ -424,6 +431,9 @@ def register_wsgi_routes(app):
     '''
     for plugin in learning_observer.module_loader.wsgi():
         wsgi_app = plugin['APP']
+        # This is a nice design pattern to adopt more broadly
+        if callable(wsgi_app):
+            wsgi_app = wsgi_app()
         wsgi_url_patterns = plugin.get("URL_PATTERNS", None)
 
         # We want to support patterns being a string, a list,
@@ -438,7 +448,7 @@ def register_wsgi_routes(app):
         # We would like to support async, but for now, the whole
         # routing setup isn't async, so that's for later.
         #
-        #if inspect.isawaitable(wsgi_url_patterns):
+        # if inspect.isawaitable(wsgi_url_patterns):
         #    wsgi_url_patterns = await wsgi_url_patterns
         if isinstance(wsgi_url_patterns, str):
             wsgi_url_patterns = [wsgi_url_patterns]

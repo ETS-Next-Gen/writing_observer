@@ -330,7 +330,7 @@ def register_3rd_party(component_name, module):
             else:
                 THIRD_PARTY[library_filename] = {
                         'urls': [],
-                        'hash': module.THIRD_PARTY[library_filename]['hash'],
+                        'hash': module.THIRD_PARTY[library_filename].get('hash', None),
                         'users': []
                     }
             THIRD_PARTY[library_filename]['users'].append(module.NAME)
@@ -429,8 +429,9 @@ def register_dash_pages(component_name, module):
     list later. We might also want to include URLs once available.
     '''
     if hasattr(module, "DASH_PAGES"):
+        for page in module.DASH_PAGES:
+            page['_BASE_PATH'] = os.path.dirname(module.__file__)
         DASH_PAGES[component_name] = module.DASH_PAGES
-        print(DASH_PAGES)
 
 
 def load_module_from_entrypoint(entrypoint):

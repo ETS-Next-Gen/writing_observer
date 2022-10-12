@@ -40,18 +40,20 @@ if not __name__.startswith("learning_observer."):
     sys.exit(-1)
 
 
-def base_path():
+def base_path(filename=None):
     '''
     Should NOT be used, except by filesystem_state. Use one of the helpers below.
     '''
-    return BASE_PATH
+    if filename is None:
+        return BASE_PATH
+    return os.path.join(BASE_PATH, filename)
 
 
 def config_file():
     '''
     Main configuration file
     '''
-    pathname = os.path.join(os.path.dirname(BASE_PATH), 'creds.yaml')
+    pathname = os.path.join(os.path.dirname(base_path()), 'creds.yaml')
     return pathname
 
 
@@ -65,7 +67,7 @@ def override_data_path(new_path):
     '''
     global DATA_PATH_OVERRIDE
     if not new_path.startswith("/"):
-        DATA_PATH_OVERRIDE = os.path.join(base_path(), new_path)
+        DATA_PATH_OVERRIDE = base_path(new_path)
     else:
         DATA_PATH_OVERRIDE = new_path
 
@@ -74,7 +76,7 @@ def data(filename=None):
     '''
     File from the static data directory. No parameters: data directory.
     '''
-    pathname = os.path.join(BASE_PATH, 'static_data')
+    pathname = base_path('static_data')
     if DATA_PATH_OVERRIDE is not None:
         pathname = DATA_PATH_OVERRIDE
     if filename is not None:
@@ -136,7 +138,7 @@ def logs(filename=None):
     '''
     Log file. No parameters: log directory.
     '''
-    pathname = os.path.join(BASE_PATH, 'logs')
+    pathname = base_path('logs')
     if filename is not None:
         pathname = os.path.join(pathname, filename)
     return pathname
@@ -149,7 +151,7 @@ def static(filename=None):
     development and small-scale deploys, it's convenient to be able to
     do it ourselves too.
     '''
-    pathname = os.path.join(BASE_PATH, 'static')
+    pathname = base_path('static')
     if filename is not None:
         pathname = os.path.join(pathname, filename)
     return pathname
@@ -161,6 +163,19 @@ def third_party(filename=None):
     files to (e.g., D3, Bulma, etc.)
     '''
     pathname = static('3rd_party')
+    if filename is not None:
+        pathname = os.path.join(pathname, filename)
+    return pathname
+
+
+def dash_assets(filename=None):
+    '''
+    We are standardizing on `dash` for serving dashboards.
+
+    Perhaps, though, extensions should have data directories, and
+    this should be made into one for dash?
+    '''
+    pathname = data('dash_assets')
     if filename is not None:
         pathname = os.path.join(pathname, filename)
     return pathname
