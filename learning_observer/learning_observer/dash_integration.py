@@ -18,6 +18,7 @@ from dash import Dash, html, clientside_callback, Output, Input
 
 from dash_extensions import WebSocket
 import dash_bootstrap_components as dbc
+from learning_observer_components import LOConnection
 
 import learning_observer.prestartup
 import learning_observer.paths
@@ -62,9 +63,16 @@ def thirdparty_url(filename):
 
 test_layout = html.Div(children=[
     html.H1(children='Test Case for Dash'),
-    WebSocket(
+    # WebSocket(
+    #     id='ws',
+    #     url='ws://127.0.0.1:8892/wsapi/dashboard?module=writing_observer&course=12345678901'
+    # ),
+    LOConnection(
         id='ws',
-        url='ws://127.0.0.1:8892/wsapi/dashboard?module=writing_observer&course=12345678901'
+        data_scope={
+	    "module": "writing_observer",
+	    "course": 12345
+	},
     ),
     html.Div(id='output')
 ])
