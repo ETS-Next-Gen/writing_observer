@@ -28,4 +28,3 @@ learning_observer/passwd.lo
 .vscode/
 build/
 dist/
-modules/writing_observer/writing_observer/module.py
