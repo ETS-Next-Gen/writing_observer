@@ -6,7 +6,7 @@ import pathlib
 # package imports
 from learning_observer.dash_wrapper import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
-# from dash_extensions import WebSocket
+from learning_observer_components import LOConnection
 import learning_observer_components as loc  # student cards
 import json
 import os
@@ -16,7 +16,7 @@ from . import settings
 
 # read in raw data (no websocket connection)
 # used for demo, sample.json is output from the data_preprocessing.py script
-data_path = pathlib.Path(__file__).parent.parent.parent.joinpath('uncommitted', 'sample.json')
+data_path = pathlib.Path(__file__).parent.parent.parent.joinpath('uncommitted', 'sample1.json')
 with open(data_path, 'r') as f_obj:
     data = json.load(f_obj)
 
@@ -29,6 +29,7 @@ student_grid = f'{prefix}-student-grid'  # overall student grid wrapper id
 websocket = f'{prefix}-websocket'  # websocket to connect to the server (eventually)
 student_counter = f'{prefix}-student-counter'  # store item for quick access to the number of students
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
+last_updated = f'{prefix}-last-updated'
 
 
 def student_dashboard_view(assignment, students):
@@ -86,34 +87,48 @@ def student_dashboard_view(assignment, students):
                     ),
                     # overall student grid wrapp
                     dbc.Col(
-                        dbc.Row(
-                            [
-                                # for each student, create a new card
-                                # pass in sample data
-                                # student card wrapper
-                                dbc.Col(
-                                    loc.StudentOverviewCard(
+                        [
+                            dbc.Row(
+                                [
+                                    # for each student, create a new card
+                                    # pass in sample data
+                                    # student card wrapper
+                                    dbc.Col(
+                                        loc.StudentOverviewCard(
+                                            # pattern matching callback
+                                            id={
+                                                'type': student_card,
+                                                'index': s['id']
+                                            },
+                                            name=s['name'],
+                                            data={
+                                                'id': s['id'],
+                                                'text': {},
+                                                'highlight': {},
+                                                'metrics': {},
+                                                'indicators': {}
+                                            },
+                                            shown=[],
+                                            # adds shadow on hover
+                                            class_name='shadow-card'
+                                        ),
                                         # pattern matching callback
                                         id={
-                                            'type': student_card,
+                                            'type': student_col,
                                             'index': s['id']
                                         },
-                                        name=s['name'],
-                                        data=data[i],
-                                        shown=[],
-                                        # adds shadow on hover
-                                        class_name='shadow-card'
-                                    ),
-                                    # pattern matching callback
-                                    id={
-                                        'type': student_col,
-                                        'index': s['id']
-                                    },
-                                ) for i, s in enumerate(students)
-                            ],
-                            # bootstrap gutters-2 (little bit of space between cards) and w(idth)-100(%)
-                            class_name='g-2 w-100'
-                        ),
+                                    ) for i, s in enumerate(students)
+                                ],
+                                # bootstrap gutters-2 (little bit of space between cards) and w(idth)-100(%)
+                                class_name='g-2 w-100'
+                            ),
+                            html.Div(
+                                [
+                                    'Last Updated: ',
+                                    html.Span(id=last_updated)
+                                ]
+                            )
+                        ],
                         id=student_grid,
                         # classname set in callback, default classname should go in the callback
                     )
@@ -123,10 +138,13 @@ def student_dashboard_view(assignment, students):
                 class_name='g-0'
             ),
             # TODO uncomment this out for the websocket connection
-            # WebSocket(
-            #     id=websocket,
-            #     url=f'ws://127.0.0.1:5000/courses/students/{len(students)}'
-            # ),
+            LOConnection(
+                id=websocket,
+                data_scope={
+                    'module': 'writing_observer',
+                    'course': 12345678901
+                },
+            ),
             # store for the number of students
             dcc.Store(
                 id=student_counter,
@@ -152,13 +170,14 @@ clientside_callback(
 
 # Update data from websocket
 # TODO uncomment this out for the connection
-# clientside_callback(
-#     ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
-#     Output({'type': student_card, 'index': ALL}, 'data'),
-#     Input(websocket, 'message'),
-#     State({'type': student_card, 'index': ALL}, 'data'),
-#     State(student_counter, 'data')
-# )
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
+    Output({'type': student_card, 'index': ALL}, 'data'),
+    Output(last_updated, 'children'),
+    Input(websocket, 'message'),
+    State({'type': student_card, 'index': ALL}, 'data'),
+    State(student_counter, 'data')
+)
 
 # Sort students by indicator values
 clientside_callback(

@@ -32,5 +32,5 @@ class Course:
             {
                 'id': i,
                 'name': fake.name()
-            } for i in range(24)
+            } for i in range(5)
         ]

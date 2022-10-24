@@ -96,16 +96,33 @@ window.dash_clientside.clientside = {
         // State(student_counter, 'data')
 
         if (!msg) {
-            return old_data;
+            return [old_data, 'Never'];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
-        const data = JSON.parse(msg.data);
-        for (const up of data) {
-            let index = up.id;
-            updates[index] = {...old_data[index], ...up};
-            updates[index] = _.merge(old_data[index], up);
+        const data = JSON.parse(msg.data)['student-data'];
+        console.log(msg)
+        for (let i = 0; i < students; i++) {
+            updates[i] = {
+                'id': data[i].userId,
+                'text': {
+                    "studenttext": {
+                        "id": "studenttext",
+                        "value": data[i].writing_observer_compiled.text,
+                        "label": "Student text"
+                    }
+                },
+                'highlight': {},
+                'metrics': {
+                    "timeontask": {
+                        "id": "timeontask",
+                        "value": rendertime2(data[i]['writing_observer.writing_analysis.time_on_task'].total_time_on_task),
+                        "label": " on task"
+                    },
+                },
+                'indicators': {}
+            }
         }
-        return updates;
+        return [updates, msg.timeStamp];
     },
 
     open_settings: function(clicks, close, is_open, students) {

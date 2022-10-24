@@ -245,6 +245,7 @@ async def test():
     Simple test case: Spin up a few KVSes, write data to them, make
     sure it's persisted globally.
     '''
+    learning_observer.settings.load_settings('creds.yaml')
     mk1 = InMemoryKVS()
     mk2 = InMemoryKVS()
     ek1 = EphemeralRedisKVS()

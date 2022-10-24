@@ -3,7 +3,7 @@ import sys
 
 import dash_bootstrap_components as dbc
 
-from learning_observer.dash_integration import thirdparty_url
+from learning_observer.dash_integration import thirdparty_url, static_url
 
 import wo_dash.pages.assignment_page.layout
 
@@ -20,6 +20,9 @@ DASH_PAGES = [
         "CSS": [
             thirdparty_url("css/bootstrap.min.css"),
             thirdparty_url("css/fontawesome_all.css")
+        ],
+        "SCRIPTS": [
+            static_url("liblo.js")
         ]
     }
 ]

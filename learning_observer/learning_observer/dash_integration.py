@@ -61,6 +61,10 @@ def thirdparty_url(filename):
     return "/static/3rd_party/{filename}".format(filename=filename)
 
 
+def static_url(filename):
+    return f"/static/{filename}"
+
+
 test_layout = html.Div(children=[
     html.H1(children='Test Case for Dash'),
     # WebSocket(
@@ -70,9 +74,9 @@ test_layout = html.Div(children=[
     LOConnection(
         id='ws',
         data_scope={
-	    "module": "writing_observer",
-	    "course": 12345
-	},
+            "module": "writing_observer",
+            "course": 12345
+        },
     ),
     html.Div(id='output')
 ])
@@ -89,20 +93,22 @@ clientside_callback(
 )
 
 
-def all_dash_style_sheets():
+def all_dash_resources(resource_type):
     """
-    First, we want to compile together CSS style sheets from modules.
+    First, we want to compile together CSS/Scripts sheets from modules.
     HACK: These are compiled for all dash pages together, and can
-    fight. We will want per-module CSS later. This is good enough
+    fight. We will want per-module resources later. This is good enough
     as scaffolding, though.
+
+    `resource_type` should be: 'CSS' or 'SCRIPTS'
     """
     modules = learning_observer.module_loader.dash_pages()
-    style_sheets = []
+    resources = []
     for module in modules:
         # Pull the CSS out of the modules
-        css = sum([m.get('CSS', []) for m in modules[module]], [])
-        style_sheets.extend(css)
-    return style_sheets
+        resource = sum([m.get(resource_type, []) for m in modules[module]], [])
+        resources.extend(resource)
+    return resources
 
 
 def compile_dash_assets():
@@ -182,7 +188,8 @@ def load_dash_pages():
         __name__,
         use_pages=True,
         pages_folder="",
-        external_stylesheets=all_dash_style_sheets(),
+        external_stylesheets=all_dash_resources('CSS'),
+        external_scripts=all_dash_resources('SCRIPTS'),
         assets_folder=compile_dash_assets(),
         assets_url_path='dash/assets'
     )
