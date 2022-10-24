@@ -2,19 +2,17 @@
 This creates a roster with all students in Redis
 '''
 
-import asyncio
-import asyncio_redis
+import learning_observer.kvs
 
 from learning_observer.log_event import debug_log
 
 
 async def all_students():
     '''
-    This crawls the keys of redis, and creates a list of all
-    student IDs in redis.
+    This crawls the keys of the KVS, and creates a list of all
+    student IDs in the KVS.
     '''
-    connection = await asyncio_redis.Connection.create()
-    keys = [await k for k in await connection.keys("*")]
+    keys = await learning_observer.kvs.KVS.keys()
     internal_keys = [k for k in keys if k.startswith("Internal:")]
     split_keys = [k.split(":") for k in internal_keys]
     valid_keys = [k for k in split_keys if len(k) > 2]
