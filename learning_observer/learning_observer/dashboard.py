@@ -221,7 +221,7 @@ def fetch_student_state(
                     sa_helpers.KeyStateType.EXTERNAL)
                 debug_log(key)
                 data = await teacherkvs[key]
-                debug_log(data)
+                # debug_log(data) <-- Useful, but a lot of stuff is spit out.
                 if data is not None:
                     student_state[sa_helpers.fully_qualified_function_name(sa_module)] = data
             cleaner = agg_module.get("cleaner", lambda x: x)
@@ -310,7 +310,7 @@ async def websocket_dashboard_view(request):
     while True:
         sd = await student_state_fetcher()
         data = {
-            "student-data": sd   # Per-student list
+            "student_data": sd   # Per-student list
         }
         data.update(aggregator(sd))
         await ws.send_json(data)
