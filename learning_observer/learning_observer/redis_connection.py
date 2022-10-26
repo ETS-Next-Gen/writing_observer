@@ -1,6 +1,10 @@
 '''
-Little helper for per-thread connection pooling. We want just one
-redis connection.
+This was designed as a helper for per-thread connection pooling (we want
+just one redis connection). This was necessary with asyncio_redis. We ported
+to redis.asyncio, and right now, a lot of this design and code is obsolete.
+Right now, it's easy to switch around, but this should be modernized once we're
+confident using redis.asyncio. It handles a lot of what we do manually inside
+the library.
 '''
 
 import redis.asyncio
