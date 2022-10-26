@@ -3,10 +3,10 @@ Stream fake writing data
 
 Usage:
     stream_writing.py [--url=url] [--streams=n]
-                      [--ici=sec,s,s,...]
-                      [--users=user_id,uid,uid,...]
-                      [--source=filename,fn,fn,...]
-                      [--gdids=googledoc_id,gdi,gdi,...]
+                      [--ici=sec,s,s]
+                      [--users=user_id,uid,uid]
+                      [--source=filename,fn,fn]
+                      [--gdids=googledoc_id,gdi,gdi]
                       [--text-length=5]
                       [--fake-name]
 
@@ -40,37 +40,64 @@ print(ARGS)
 
 STREAMS = int(ARGS["--streams"])
 
-if ARGS['--source'] == []:
+
+def argument_list(argument, default):
+    '''
+    Parse a list argument, with defaults. Allow one global setting, or per-stream
+    settings. IF `STREAMS` is 3:
+
+    None       ==> default()
+    "file.txt" ==> ["file.txt", "file.txt", "file.txt"]
+    "a,b,c"    ==> ["a", "b", "c"]
+    "a,b"      ==> exit
+    '''
+    list_string = ARGS[argument]
+    if list_string is None:
+        list_string = default
+    if callable(list_string):
+        list_string = list_string()
+    if list_string is None:
+        return list_string
+    if "," in list_string:
+        list_string = list_string.split(",")
+    if isinstance(list_string, str):
+        list_string = [list_string] * STREAMS
+    if len(list_string) != STREAMS:
+        print(f"Failure: {list_string}\nfrom {argument} should make {STREAMS} items")
+        sys.exit(-1)
+    return list_string
+
+ICI = argument_list(
+    '--ici',
+    "0.1"
+)
+
+DOC_IDS = argument_list(
+    "--gdids",
+    lambda: [f"fake-google-doc-id-{i}" for i in range(STREAMS)]
+)
+
+source_files = argument_list(
+    '--source',
+    None
+)
+
+if source_files is None:
     TEXT = ["\n".join(loremipsum.get_paragraphs(int(ARGS.get("--text-length", 5)))) for i in range(STREAMS)]
-    print(TEXT)
 else:
-    filenames = ARGS['--source']
-    if len(filenames) == 1:
-        filenames = filenames * STREAMS
-    TEXT = [open(filename).read() for filename in filenames]
+    TEXT = [open(filename).read() for filename in source_files]
 
-if len(ARGS['--ici']) == 1:
-    ICI = ARGS['--ici'] * STREAMS
-else:
-    ICI = ARGS['--ici']
-
-if ARGS['--users'] != []:
-    USERS = ARGS['--users']
+if ARGS['--users'] is not None:
+    USERS = argument_list('--users', None)
 elif ARGS['--fake-name']:
     USERS = [names.get_first_name() for i in range(STREAMS)]
 else:
     USERS = ["test-user-{n}".format(n=i) for i in range(STREAMS)]
 
-if ARGS["--gdids"] == []:
-    DOC_IDS = ["fake-google-doc-id-{n}".format(n=i) for i in range(STREAMS)]
-else:
-    DOC_IDS = ARGS["--gdids"]
-
 assert len(TEXT) == STREAMS, "len(filenames) != STREAMS."
 assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
 assert len(USERS) == STREAMS, "len(users) != STREAMS."
 assert len(DOC_IDS) == STREAMS, "len(document IDs) != STREAMS."
-
 
 def insert(index, text, doc_id):
     '''
