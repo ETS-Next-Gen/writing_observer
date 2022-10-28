@@ -88,9 +88,11 @@ window.dash_clientside.clientside = {
 
     populate_student_data: function(msg, old_data, students) {
         // Populates and updates students data from the websocket
-        // for each update, merge in new data
-
+        // for each update, parse the data into the proper format
+        // Also return the current time
+        //
         // Output({'type': student_card, 'index': ALL}, 'data'),
+        // Output(last_updated, 'children'),
         // Input(websocket, 'message'),
         // State({'type': student_card, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
@@ -99,9 +101,9 @@ window.dash_clientside.clientside = {
             return [old_data, 'Never'];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
-        const data = JSON.parse(msg.data)['student-data'];
-        console.log(msg)
+        const data = JSON.parse(msg.data)['student-data'];  // TODO change this to student_data when ready
         for (let i = 0; i < students; i++) {
+            // TODO whatever data is included in the message should be parsed into it's appropriate spot
             updates[i] = {
                 'id': data[i].userId,
                 'text': {
@@ -122,7 +124,8 @@ window.dash_clientside.clientside = {
                 'indicators': {}
             }
         }
-        return [updates, msg.timeStamp];
+        const timestamp = new Date();
+        return [updates, timestamp.toLocaleTimeString()];
     },
 
     open_settings: function(clicks, close, is_open, students) {
@@ -206,4 +209,26 @@ window.dash_clientside.clientside = {
         const l = values.concat(metrics).concat(text).concat(highlights).concat(indicators);
         return Array(students).fill(l);
     },
+
+    update_students: async function(course_id) {
+        // Fetch the student information based on course id
+
+        // Output(student_counter, 'data'),
+        // Output(student_store, 'data'),
+        // Input(course_store, 'data')
+        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:${window.location.port}/webapi/courseroster/${course_id}`);
+        const data = await response.json();
+        return [data.length, data];
+    },
+
+    fetch_assignment_info: async function(course_id, assignment_id) {
+        // Fetch assignment information from server based on course and assignment id
+        // Not yet implemented, TODO
+        //
+        // Output(assignment_name, 'children'),
+        // Output(assignment_desc, 'children'),
+        // Input(course_store, 'data'),
+        // Input(assignment_store, 'data')
+        return [`Assignment ${assignment_id}`, `This is assignment ${assignment_id} from course ${course_id}`]
+    }
 }

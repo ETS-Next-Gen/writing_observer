@@ -1,50 +1,40 @@
 '''
 Creates the grid of student cards
 '''
-import pathlib
-
 # package imports
-from learning_observer.dash_wrapper import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
+from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
 from learning_observer_components import LOConnection
 import learning_observer_components as loc  # student cards
-import json
-import os
 
 # local imports
 from . import settings
-
-# read in raw data (no websocket connection)
-# used for demo, sample.json is output from the data_preprocessing.py script
-data_path = pathlib.Path(__file__).parent.parent.parent.joinpath('uncommitted', 'sample1.json')
-with open(data_path, 'r') as f_obj:
-    data = json.load(f_obj)
 
 # define ids for the dashboard
 # use a prefix to help ensure we don't double up on IDs (guess what happens if you double up? it breaks)
 prefix = 'teacher-dashboard'
 student_card = f'{prefix}-student-card'  # individual student card id
-student_col = f'{prefix}-student_col'  # individual student card wrapper id
+student_row = f'{prefix}-student-row'  # overall student row 
+student_col = f'{prefix}-student-col'  # individual student card wrapper id
 student_grid = f'{prefix}-student-grid'  # overall student grid wrapper id
 websocket = f'{prefix}-websocket'  # websocket to connect to the server (eventually)
 student_counter = f'{prefix}-student-counter'  # store item for quick access to the number of students
+student_store = f'{prefix}-student-store'  # store item for student information
+course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
-last_updated = f'{prefix}-last-updated'
+last_updated = f'{prefix}-last-updated'  # data last updated id
+
+assignment_store = f'{prefix}-assignment-info_store'
+assignment_name = f'{prefix}-assignment-name'
+assignment_desc = f'{prefix}-assignment-description'
 
 
-def student_dashboard_view(assignment, students):
+def student_dashboard_view(course_id, assignment_id):
     '''Create student dashboard view,
 
-    assignment: assignment object
-    students: list of student objects
+    course_id: id of given course
+    assignment_id: id of assignment
     '''
-    # prep assignment description
-    description = []
-    for e in assignment.description.split('\n'):
-        description.append(e)
-        description.append(html.Br())
-    description.pop()
-
     container = dbc.Container(
         [
             html.Div(
@@ -54,7 +44,7 @@ def student_dashboard_view(assignment, students):
                         [
                             # document icon with a right bootstrap margin
                             html.I(className='fas fa-file-lines me-2'),
-                            assignment.name
+                            html.Span(id=assignment_name),
                         ],
                         className='d-inline'
                     ),
@@ -67,7 +57,7 @@ def student_dashboard_view(assignment, students):
                     ),
                     html.Br(),
                     # assignment description
-                    html.P(description)
+                    html.P(id=assignment_desc)
                 ]
             ),
             dbc.Row(
@@ -89,40 +79,11 @@ def student_dashboard_view(assignment, students):
                     dbc.Col(
                         [
                             dbc.Row(
-                                [
-                                    # for each student, create a new card
-                                    # pass in sample data
-                                    # student card wrapper
-                                    dbc.Col(
-                                        loc.StudentOverviewCard(
-                                            # pattern matching callback
-                                            id={
-                                                'type': student_card,
-                                                'index': s['id']
-                                            },
-                                            name=s['name'],
-                                            data={
-                                                'id': s['id'],
-                                                'text': {},
-                                                'highlight': {},
-                                                'metrics': {},
-                                                'indicators': {}
-                                            },
-                                            shown=[],
-                                            # adds shadow on hover
-                                            class_name='shadow-card'
-                                        ),
-                                        # pattern matching callback
-                                        id={
-                                            'type': student_col,
-                                            'index': s['id']
-                                        },
-                                    ) for i, s in enumerate(students)
-                                ],
+                                id=student_row,
                                 # bootstrap gutters-2 (little bit of space between cards) and w(idth)-100(%)
                                 class_name='g-2 w-100'
                             ),
-                            html.Div(
+                            html.Small(
                                 [
                                     'Last Updated: ',
                                     html.Span(id=last_updated)
@@ -137,24 +98,55 @@ def student_dashboard_view(assignment, students):
                 # students already have some space on the sides
                 class_name='g-0'
             ),
-            # TODO uncomment this out for the websocket connection
+            # TODO this will likely need the assignment id as well
+            # also will eventually need to be updated
             LOConnection(
                 id=websocket,
                 data_scope={
                     'module': 'writing_observer',
-                    'course': 12345678901
+                    'course': course_id,
+                    # 'assignment': assignment_id
                 },
             ),
-            # store for the number of students
+            # stores for course and student info + student counter
+            dcc.Store(
+                id=course_store,
+                data=course_id
+            ),
+            dcc.Store(
+                id=assignment_store,
+                data=assignment_id
+            ),
+            dcc.Store(
+                id=student_store,
+                data=[]
+            ),
             dcc.Store(
                 id=student_counter,
-                data=len(students)
+                data=0
             )
         ],
         fluid=True
     )
     return container
 
+
+# fetch student info for course
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_students'),
+    Output(student_counter, 'data'),
+    Output(student_store, 'data'),
+    Input(course_store, 'data')
+)
+
+# fetch assignment information from server
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='fetch_assignment_info'),
+    Output(assignment_name, 'children'),
+    Output(assignment_desc, 'children'),
+    Input(course_store, 'data'),
+    Input(assignment_store, 'data')
+)
 
 # open the settings menu
 clientside_callback(
@@ -169,7 +161,6 @@ clientside_callback(
 )
 
 # Update data from websocket
-# TODO uncomment this out for the connection
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
     Output({'type': student_card, 'index': ALL}, 'data'),
@@ -201,3 +192,39 @@ clientside_callback(
     Input(settings.show_hide_settings_indicator_checklist, 'value'),
     State(student_counter, 'data')
 )
+
+
+@callback(
+    Output(student_row, 'children'),
+    Input(student_store, 'data')
+)
+def create_cards(students):
+    # create student cards based on student info
+    cards = [
+        dbc.Col(
+            loc.StudentOverviewCard(
+                # pattern matching callback
+                id={
+                    'type': student_card,
+                    'index': s['userId']
+                },
+                name=s['profile']['name']['fullName'],
+                data={
+                    'id': s['userId'],
+                    'text': {},
+                    'highlight': {},
+                    'metrics': {},
+                    'indicators': {}
+                },
+                shown=[],
+                # adds shadow on hover
+                class_name='shadow-card'
+            ),
+            # pattern matching callback
+            id={
+                'type': student_col,
+                'index': s['userId']
+            },
+        ) for s in students
+    ]
+    return cards

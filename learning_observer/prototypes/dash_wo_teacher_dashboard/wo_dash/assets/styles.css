@@ -35,7 +35,6 @@
 .shadow-card:hover {
     transition: all 0.2s ease-out;
     box-shadow: 0px 2px 8px var(--bs-gray-500);
-    top: -4px;
     border: 1px solid #cccccc;
     background-color: white;
 }

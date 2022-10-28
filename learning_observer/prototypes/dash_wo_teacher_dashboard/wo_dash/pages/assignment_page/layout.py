@@ -7,7 +7,6 @@ import dash_bootstrap_components as dbc
 
 # local imports
 from .students import student_dashboard_view
-from wo_dash.components.course import Course
 
 dash.register_page(
     __name__,
@@ -16,13 +15,11 @@ dash.register_page(
 )
 
 
-def layout():
-    # create a fake class
-    course_id = 1
-    course = Course(course_id)
-
+# passing empty parameters will automatigically be used as query strings
+# see: https://dash.plotly.com/urls#query-strings
+def layout(course_id=None, assignment_id=None):
     layout = dbc.Spinner(
-        student_dashboard_view(course.assignments[0], course.students),
+        student_dashboard_view(course_id, assignment_id),
         color='primary'
     )
     return layout
