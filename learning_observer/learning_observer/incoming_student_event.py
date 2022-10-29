@@ -94,7 +94,8 @@ async def student_event_pipeline(metadata):
     async def pipeline(parsed_message):
         '''
         And this is the pipeline itself. It takes messages, processes them,
-        and informs consumers when there is new data.
+        and, optionally, will inform consumers when there is new data (disabled
+        in the current code, since we use polling).
         '''
         if type(parsed_message) is not dict:
             raise ValueError(f"Expected a dict, got {type(parsed_message)}")
@@ -113,7 +114,9 @@ async def student_event_pipeline(metadata):
         # through remaining processors.
         try:
             processed_analytics = []
+            # Go through all the analytics modules
             for am in analytics_modules:
+
                 debug_log("Scope", am['scope'])
                 args = {}
                 skip = False
@@ -190,18 +193,9 @@ async def handle_incoming_client_event(metadata):
     We do a reduce through the event pipeline, and forward on to
     for aggregation on the dashboard side.
     '''
-    # We used to do a pubsub model, where we'd update teacher
-    # dashboards with new data. With typing, period aggregated
-    # updates are more efficient, since we have many keystrokes
-    # per second
-    PUBSUB = False
-
-    if PUBSUB:
-        debug_log("Connecting to pubsub source")
-        pubsub_client = await pubsub.pubsub_send()
-        debug_log("Connected")
-
     pipeline = await student_event_pipeline(metadata=metadata)
+
+    # The adapter allows us to handle old event formats
     adapter = learning_observer.adapters.adapter.EventAdapter()
 
     async def handler(request, client_event):
@@ -222,23 +216,8 @@ async def handle_incoming_client_event(metadata):
         log_event.log_event(
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
-        if PUBSUB:
-            debug_log("Pubsub client", pubsub_client)
         outgoing = await pipeline(event)
 
-        # We're currently polling on the other side.
-        #
-        # Leaving this code in without a receiver gives us a massive
-        # memory leak, so we've commented it out until we do plan to
-        # subscribe again.
-        if PUBSUB:
-            for item in outgoing:
-                await pubsub_client.send_event(
-                    mbody=json.dumps(item, sort_keys=True)
-                )
-                debug_log(
-                    "Sent item to PubSub triggered by: " + client_event["event"]
-                )
     return handler
 
 
@@ -425,7 +404,6 @@ async def incoming_websocket_handler(request):
         }
     )
 
-    event_handler = None
     event_handler = await handle_incoming_client_event(metadata=event_metadata)
 
     # Handle events which we already received, if we needed to peak
