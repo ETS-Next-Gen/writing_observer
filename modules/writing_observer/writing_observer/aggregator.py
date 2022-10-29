@@ -90,6 +90,5 @@ def aggregate_course_summary_stats(student_data):
             # this is susceptible to drift. That could be jarring; even a few seconds
             # error could be an issue in some contexts.
             'current_time': time.time()
-        },
-        "student_data": student_data
+        }
     }

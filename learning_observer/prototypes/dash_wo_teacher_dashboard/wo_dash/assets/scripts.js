@@ -101,7 +101,7 @@ window.dash_clientside.clientside = {
             return [old_data, 'Never'];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
-        const data = JSON.parse(msg.data)['student-data'];  // TODO change this to student_data when ready
+        const data = JSON.parse(msg.data)['student_data'];  // TODO change this to student_data when ready
         for (let i = 0; i < students; i++) {
             // TODO whatever data is included in the message should be parsed into it's appropriate spot
             updates[i] = {
