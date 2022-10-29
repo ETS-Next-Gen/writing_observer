@@ -57,7 +57,14 @@ config:
     run_mode: dev   # "dev" versus "deploy". E.g. Do we crash on errors? Or log them and keep going?
     debug: []  # add "tracemalloc" to the list to enable memory leak debugging
 logging:
-    debug_log_level: EXTENDED   # NONE, SIMPLE, or EXTENDED
+    # Note that EXTENDED logging includes a bit of the stack trace. This
+    # is super-valuable for debugging, but also super-slow. As of this writing,
+    # with EXTENDED logging, on a fast computer, you'll probably cap out
+    # at e.g.  maybe 3 students using the Writing Observer. All of this time
+    # will be spent inside of inspect (which is slow enough I'm almost inclined
+    # to consider this a bug in inspect, so perhaps in newer Python versions,
+    # this will be faster).
+    debug_log_level: SIMPLE     # NONE, SIMPLE, or EXTENDED
     debug_log_destinations:     # List of where they go. CONSOLE or FILE
         - CONSOLE
         - FILE
