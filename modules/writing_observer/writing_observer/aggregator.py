@@ -91,5 +91,5 @@ def aggregate_course_summary_stats(student_data):
             # error could be an issue in some contexts.
             'current_time': time.time()
         },
-        "student_data": learning_observer.util.paginate(student_data, 4)
+        "student_data": student_data
     }
