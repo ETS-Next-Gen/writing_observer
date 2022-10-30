@@ -333,36 +333,6 @@ async def websocket_dashboard_view(request):
             return aiohttp.web.Response(text="This never makes it back....")
 
 
-# Obsolete code, but may be repurposed for student dashboards.
-#
-# aiohttp.web.get('/wsapi/out/', incoming_student_event.outgoing_websocket_handler)
-
-# async def outgoing_websocket_handler(request):
-#     '''
-#     This pipes analytics back to the browser. It:
-#     1. Handles incoming PubSub connections
-#     2. Sends it back to the browser
-
-#     TODO: Cleanly handle disconnects
-#     '''
-#     debug_log('Outgoing analytics web socket connection')
-#     ws = aiohttp.web.WebSocketResponse()
-#     await ws.prepare(request)
-#     pubsub_client = await pubsub.pubsub_receive()
-#     debug_log("Awaiting PubSub messages")
-#     while True:
-#         message = await pubsub_client.receive()
-#         debug_log("PubSub event received")
-#         log_event.log_event(
-#             message, "incoming_pubsub", preencoded=True, timestamp=True
-#         )
-#         log_event.log_event(
-#             message,
-#             "outgoing_analytics", preencoded=True, timestamp=True)
-#         await ws.send_str(message)
-#     await ws.send_str("Done")
-
-
 # Obsolete code -- we should put this back in after our refactor. Allows us to use
 # dummy data
 # @learning_observer.auth.teacher

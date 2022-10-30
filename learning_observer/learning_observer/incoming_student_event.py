@@ -7,7 +7,6 @@ nice for debugging. This should never be used in production.
 We:
 * Authenticate (minimally, for now, see docs)
 * Run these through a set of reducers
-* Optionally, notify via a pubsub of new data
 '''
 
 import asyncio
@@ -27,7 +26,6 @@ import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 
 import learning_observer.auth.utils as authutils               # Encoded / decode user IDs
-# import learning_observer.pubsub as pubsub                    # Pluggable pubsub subsystem
 import learning_observer.stream_analytics as stream_analytics  # Individual analytics modules
 
 import learning_observer.settings as settings
@@ -165,27 +163,6 @@ async def student_event_pipeline(metadata):
     return pipeline
 
 
-async def ajax_event_request(request):
-    '''
-    This is the original HTTP AJAX logging API. It is deprecated in
-    favor of WebSockets.
-
-    Using AJAX opens a new connection to pubsub every time, and so
-    would be too slow for production use. We could have a global
-    shared connection connection, but we anticipate this might run
-    into scalability issues with some pubsub systems (depending on
-    whether different users can share a connection, or whether
-    each user has their own sender account).
-
-    In either case, this is handler is helpful for small-scale debugging.
-    '''
-    debug_log("AJAX Request received")
-    client_event = await request.json()
-    handler = await handle_incoming_client_event()
-    await handler(request, client_event)
-    return aiohttp.web.Response(text="Acknowledged!")
-
-
 async def handle_incoming_client_event(metadata):
     '''
     Common handler for both Websockets and AJAX events.
@@ -313,7 +290,7 @@ def event_decoder_and_logger(
 async def incoming_websocket_handler(request):
     '''
     This handles incoming WebSockets requests. It does some minimal
-    processing on them. It used to relays them on via PubSub to be
+    processing on them. It used to rely them on via PubSub to be
     aggregated, but we've switched to polling. It also logs them.
     '''
     debug_log("Incoming web socket connected")

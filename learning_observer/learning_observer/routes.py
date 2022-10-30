@@ -186,16 +186,6 @@ def register_incoming_event_views(app):
             incoming_student_event.incoming_websocket_handler)
     ])
 
-    # Handle AJAX event requests, incoming
-    app.add_routes([
-        aiohttp.web.get(
-            '/webapi/event/',
-            incoming_student_event.ajax_event_request),
-        aiohttp.web.post(
-            '/webapi/event/',
-            incoming_student_event.ajax_event_request)
-    ])
-
 
 def register_dashboard_api(app):
     '''
