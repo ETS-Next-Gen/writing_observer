@@ -8,6 +8,7 @@ It just routes to smaller pipelines. Currently that's:
 import writing_observer.reconstruct_doc
 
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
+import learning_observer.settings
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -38,9 +39,11 @@ TIME_ON_TASK_THRESHOLD = 5
 # rid of this illusion. This is a toggle. We should move it to the
 # config file, or we should refactor to fully eliminate the need.
 
-NEW = False
-
 student_scope = Scope([KeyField.STUDENT])
+
+# This is a hack so we can flip for debugging to NOT managing documents
+# correctly. That was for the original dashboard.
+NEW = True
 
 if NEW:
     gdoc_scope = Scope([KeyField.STUDENT, EventField('doc_id')])
@@ -48,7 +51,7 @@ else:
     gdoc_scope = student_scope  # HACK for backwards-compatibility
 
 
-@kvs_pipeline(scope=student_scope)
+@kvs_pipeline(scope=gdoc_scope)
 async def time_on_task(event, internal_state):
     '''
     This adds up time intervals between successive timestamps. If the interval
@@ -103,36 +106,67 @@ async def reconstruct(event, internal_state):
             writing_observer.reconstruct_doc.google_text(), change_list
         )
     state = internal_state.json
-    print(state)
+    if learning_observer.settings.module_setting(
+            "writing_observer",
+            "verbose",
+            False):
+        print(state)
     return state, state
 
 
-@kvs_pipeline(scope=gdoc_scope)
+@kvs_pipeline(scope=gdoc_scope, null_state={"count": 0})
 async def event_count(event, internal_state):
     '''
     An example of a per-document pipeline
     '''
-    print("I'm getting called!")
-    print(event)
+    if learning_observer.settings.module_setting(
+            "writing_observer",
+            "verbose",
+            False):
+        print(event)
 
-    state = {"status": "called"}
+    state = {"count": internal_state.get('count', 0) + 1}
 
     return state, state
 
 
-@kvs_pipeline(scope=student_scope, null_state={})
+@kvs_pipeline(scope=student_scope, null_state={"docs": {}})
 async def document_list(event, internal_state):
     '''
     We would like to gather a list of all Google Docs a student
-    has visited / edited. This can then be used to decide which
-    ones to show.
+    has visited / edited. In the future, we plan to add more metadata. This can 
+    then be used to decide which ones to show.
     '''
     document_id = event.get('client', {}).get('doc_id', None)
 
     if document_id is not None:
-        if document_id not in internal_state:
+        if "docs" not in internal_state:
+            internal_state["docs"] = {}
+        if document_id not in internal_state["docs"]:
             # In the future, we might include things like e.g. document title.
-            internal_state[document_id] = {}
-            return internal_state, internal_state
+            internal_state["docs"][document_id] = {
+            }
+        if 'server' in event and 'time' in event['server']:
+            internal_state["docs"][document_id]["last_access"] = event['server']['time']
+        else:
+            print("TODO: We got a bad event, and we should log this in some")
+            print("way, or do similar recovery.")
+        return internal_state, internal_state
+
+    return False, False
+
+
+@kvs_pipeline(scope=student_scope)
+async def last_document(event, internal_state):
+    '''
+    Small bit of data -- the last document accessed. This can be extracted from
+    `document_list`, but we don't need that level of complexity for the 1.0
+    dashboard.
+    '''
+    document_id = event.get('client', {}).get('doc_id', None)
+
+    if document_id is not None:
+        state = {"document_id": document_id}
+        return state, state
 
     return False, False
