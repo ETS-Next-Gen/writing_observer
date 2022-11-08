@@ -164,3 +164,21 @@ def feature_flag(flag):
         return None
 
     return flag
+
+
+def module_setting(module_name, setting=None, default=None):
+    '''
+    Return the settings for a specific module.
+
+    Optionally, can be passed a specific setting.
+
+    Returns `default` if no setting (or `None` if not set)
+    '''
+    module_settings = settings.get(
+        'modules', {}
+    ).get(module_name, None)
+    if setting is None:
+        return module_settings
+    if module_settings is not None:
+        return module_settings.get(setting, default)
+    return default
