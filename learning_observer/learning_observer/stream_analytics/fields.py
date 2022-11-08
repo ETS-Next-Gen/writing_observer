@@ -92,4 +92,16 @@ KeyField = enum.Enum("KeyField", " ".join(KeyFields))
 
 
 class Scope(frozenset):
+    '''
+    A scope is a set of KeyFields and EventFields.
+    '''
+    pass
+
+
+class ScopeFieldError(Exception):
+    '''
+    Exception used if we e.g. try to add an incorrect type to a scope, have
+    a mismatched key to a scope, etc. Perhaps this might be a few exceptions
+    in the future.
+    '''
     pass
