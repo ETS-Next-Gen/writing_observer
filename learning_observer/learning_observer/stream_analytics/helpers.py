@@ -201,6 +201,7 @@ def kvs_pipeline(
     * `null_state` tells us the empty state, before any reduce operations have
       happened. This can be important for the aggregator. We're documenting the
       code before we've written it, so please make sure this works before using.
+    * `scope` tells us the scope we reduce over. See `fields.Scope`
     '''
     if scope is None:
         debug_log("TODO: explicitly specify a scope")
@@ -209,7 +210,14 @@ def kvs_pipeline(
 
     def decorator(func):
         '''
-        The decorator itself
+        The decorator itself.
+
+        It takes a function which expects an event and an (internal) state from
+        the KVS, and outputs an internal and an external state. We should
+        consider removing the concept of an external state. The idea was that
+        we could make modules with just reducers (where all aggregation, etc.
+        was handled automatically). This isn't as central to the current
+        design.
         '''
         @functools.wraps(func)
         async def wrapper_closure(metadata):
@@ -222,16 +230,8 @@ def kvs_pipeline(
             will have their own data store connection.
             '''
             taskkvs = learning_observer.kvs.KVS()
-            keydict = {}
 
-            if KeyField.STUDENT in scope:
-                if metadata is not None and 'auth' in metadata:
-                    safe_user_id = metadata['auth']['safe_user_id']
-                else:
-                    safe_user_id = '[guest]'
-                keydict[KeyField.STUDENT] = safe_user_id
-
-            async def process_event(event, **additional_metadata):
+            async def process_event(event, event_fields):
                 '''
                 This is the function which processes events. It calls the event
                 processor, passes in the event(s) and state. It takes
@@ -278,15 +278,28 @@ def kvs_pipeline(
                 #   enough and probably the right long-term solution
                 # * We could have modules explicitly indicate where they need
                 #   thread safety and transactions. That'd be easy enough.
+
+                keydict = {}
+                # Step 1: Handle auth metadata.
+                if KeyField.STUDENT in scope:
+                    if metadata is not None and 'auth' in metadata:
+                        safe_user_id = metadata['auth']['safe_user_id']
+                    else:
+                        # In general, this path should NOT be followed. If we
+                        # want guest accounts, each user ought to have a unique
+                        # identifier or cookie assigned on first access.
+                        safe_user_id = '[guest]'
+                    keydict[KeyField.STUDENT] = safe_user_id
+
+                # Step 2: Handle all other metadata.
                 for field in scope:
-                    # Skip out-of-scope events. E.g. if we have an event stream
-                    # where we're scoped to a document ID, we want to skip global events,
-                    # which don't have that document ID
-                    if field not in keydict and isinstance(field, EventField):
-                        AMG = additional_metadata.get(field.event, None)
-                        if AMG is None:
-                            return None
-                        keydict[field] = AMG
+                    # We don't want to override auth fields
+                    if field in keydict:
+                        pass
+                    elif isinstance(field, EventField):
+                        keydict[field] = event_fields.get(field.event, None)
+                    else:
+                        raise Exception("Unknown field", field)
 
                 internal_key = make_key(
                     func,
