@@ -1,6 +1,43 @@
 import time
 import learning_observer.util
 
+def excerpt_active_text(
+    text, cursor_position,
+    desired_length=103, cursor_target=2/3, max_overflow=10,
+    cursor_character = "❙"
+    ):
+    '''
+    This function returns a short segment of student text, cutting in a
+    sensible way around word boundaries. This can be used for real-time
+    typing views.
+
+    `desired_length` is how much text we want.
+    `cursor_target` is what fraction of the text should be before the cursor.
+    `max_overflow` is how much longer we're willing to go in order to land on
+       a word boundary.
+    `cursor_character` is what we insert at the boundary. Can be an empty
+       string, a nice bit of markup, etc.
+    '''
+    character_count = len(text)
+    before = int(desired_length * 2 / 3)
+    # We step backwards and forwards from the cursor by the desired number of characters
+    start = max(0, int(cursor_position - before))
+    end = min(character_count - 1, start + desired_length)
+    # And, if we don't have much text after the cursor, we adjust the beginning
+    # print(start, cursor_position, end)
+    start = max(0, end - desired_length)
+    # Split on a word boundary, if there's one close by
+    # print(start, cursor_position, end)
+    while end < character_count and end - start < desired_length + 10 and not text[end].isspace():
+        end += 1
+
+    # print(start, cursor_position, end)
+    while start > 0 and end - start < desired_length + 10 and not text[start].isspace():
+        start -= 1
+
+    clipped_text = text[start:max(cursor_position - 1, 0)] + cursor_character + text[max(cursor_position - 1, 0):end]
+    return clipped_text
+
 
 def sanitize_and_shrink_per_student_data(student_data):
     '''
@@ -22,30 +59,10 @@ def sanitize_and_shrink_per_student_data(student_data):
     character_count = len(text)
     cursor_position = student_data['writing_observer.writing_analysis.reconstruct']['position']
 
-    # Compute the portion of the text we want to return.
-    length = 103
-    before = int(length * 2 / 3)
-    # We step backwards and forwards from the cursor by the desired number of characters
-    start = max(0, int(cursor_position - before))
-    end = min(character_count - 1, start + length)
-    # And, if we don't have much text after the cursor, we adjust the beginning
-    # print(start, cursor_position, end)
-    start = max(0, end - length)
-    # Split on a word boundary, if there's one close by
-    # print(start, cursor_position, end)
-    while end < character_count and end - start < length + 10 and not text[end].isspace():
-        end += 1
-
-    # print(start, cursor_position, end)
-    while start > 0 and end - start < length + 10 and not text[start].isspace():
-        start -= 1
-
-    # print(start, cursor_position, end)
-    clipped_text = text[start:cursor_position - 1] + "❙" + text[max(cursor_position - 1, 0):end]
     # Yes, this does mutate the input. No, we should. No, it doesn't matter, since the
     # code needs to move out of here. Shoo, shoo.
     student_data['writing_observer_compiled'] = {
-        "text": clipped_text,
+        "text": excerpt_active_text(text, cursor_position),
         "character_count": character_count
     }
     # Remove things which are too big to send back. Note: Not benchmarked, so perhaps not too big
