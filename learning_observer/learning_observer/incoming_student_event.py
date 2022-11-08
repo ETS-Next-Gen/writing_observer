@@ -108,15 +108,14 @@ async def student_event_pipeline(metadata):
 
         # Try to run a message through all event processors.
         #
-        # To do: Finer-grained exception handling. Right now, if we break, we don't run
-        # through remaining processors.
+        # To do: Finer-grained exception handling. Right now, if we break, we 
+        # don't even run through the remaining processors.
         try:
             processed_analytics = []
             # Go through all the analytics modules
             for am in analytics_modules:
-
                 debug_log("Scope", am['scope'])
-                args = {}
+                event_fields = {}
                 skip = False
                 for field in am['scope']:
                     if isinstance(field, learning_observer.stream_analytics.helpers.EventField):
@@ -126,10 +125,10 @@ async def student_event_pipeline(metadata):
                         if field.event not in client_event:
                             debug_log(field.event, "not found")
                             skip = True
-                        args[field.event] = client_event.get(field.event)
+                        event_fields[field.event] = client_event.get(field.event)
                 if not skip:
-                    debug_log("args", args)
-                    processed_analytics.append(await am['reducer_partial'](parsed_message, **args))
+                    debug_log("args", event_fields)
+                    processed_analytics.append(await am['reducer_partial'](parsed_message, event_fields))
         except Exception as e:
             traceback.print_exc()
             filename = paths.logs("critical-error-{ts}-{rnd}.tb".format(
@@ -143,22 +142,6 @@ async def student_event_pipeline(metadata):
             fp.close()
             if settings.RUN_MODE == settings.RUN_MODES.DEV:
                 raise
-        if processed_analytics is None:
-            debug_log("No updates")
-            return []
-        # Transitional code.
-        #
-        # We'd eventually like to return only lists of outgoing
-        # events. No event means we send back [] For now, our
-        # modules return `None` to do nothing, events, or lists of
-        # events.
-        #
-        # That's a major refactor away. We'd like to pass in lists /
-        # iterators of incoming events so we can handle microbatches,
-        # and generate lists of outgoing events too.
-        if not isinstance(processed_analytics, list):
-            debug_log("FIXME: Should return list")
-            processed_analytics = [processed_analytics]
         return processed_analytics
     return pipeline
 
@@ -193,7 +176,7 @@ async def handle_incoming_client_event(metadata):
         log_event.log_event(
             json.dumps(event, sort_keys=True),
             "incoming_websocket", preencoded=True, timestamp=True)
-        outgoing = await pipeline(event)
+        await pipeline(event)
 
     return handler
 
