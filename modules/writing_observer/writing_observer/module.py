@@ -53,7 +53,7 @@ STUDENT_AGGREGATORS = {
 REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
-        'scope': writing_observer.writing_analysis.student_scope,
+        'scope': writing_observer.writing_analysis.gdoc_scope,
         'function': writing_observer.writing_analysis.time_on_task
     },
     {
@@ -63,13 +63,18 @@ REDUCERS = [
     },
     {
         'context': "org.mitros.writing_analytics",
-        'scope': writing_observer.writing_analysis.gdoc_scope,
+        'scope': writing_observer.writing_analysis.student_scope,
         'function': writing_observer.writing_analysis.event_count
     },
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.student_scope,
         'function': writing_observer.writing_analysis.document_list
+    },
+    {
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.student_scope,
+        'function': writing_observer.writing_analysis.last_document
     }
 ]
 
