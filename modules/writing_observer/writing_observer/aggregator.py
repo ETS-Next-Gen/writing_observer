@@ -110,17 +110,27 @@ def aggregate_course_summary_stats(student_data):
         }
     }
 
+
+
+######
+#
+#  Everything from here on is a hack.
+#  We need to figure out proper abstractions.
+#
+######
+
+
 import learning_observer.stream_analytics.helpers
 
-async def latest_data(student_data):
+async def get_latest_student_documents(student_data):
     '''
-    HACK HACK HACK
+    This will retrieve the latest student documents from the database. It breaks
+    abstractions.
+    '''
+    import learning_observer.kvs
 
-    I just hardcoded this, breaking abstractions, repeating code, etc.
-    '''
     import writing_observer.writing_analysis
     from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
-    import learning_observer.kvs
 
     kvs = learning_observer.kvs.KVS()
 
@@ -132,16 +142,47 @@ async def latest_data(student_data):
                 EventField('doc_id'): s['writing_observer.writing_analysis.last_document']['document_id'] 
             },
             KeyStateType.INTERNAL
-        ) for s in student_data])
+        ) for ys in student_data])
 
     writing_data = await kvs.multiget(keys=document_keys)
 
+    # Return blank entries if no data, rather than None. This makes it possible
+    # to use item.get with defaults sanely.
+    writing_data = [{} if item is None else item for item in writing_data]
+    return writing_data
+
+
+async def remove_extra_data(writing_data):
+    '''
+    We don't want Deane graph data going to the client. We just do a bit of
+    a cleanup. This is in-place.
+    '''
+    for item in writing_data:
+        if 'edit_metadata' in item:
+            del item['edit_metadata']
+    return writing_data
+
+
+async def merge_with_student_data(writing_data, student_data):
+    '''
+    Add the student metadata to each text
+    '''
     for item, student in zip(writing_data, student_data):
-        if item is None:
-            continue
         if 'edit_metadata' in item:
             del item['edit_metadata']
         item['student'] = student
+    return writing_data
 
+
+async def latest_data(student_data):
+    '''
+    HACK HACK HACK
+
+    I just hardcoded this, breaking abstractions, repeating code, etc.
+    '''
+    writing_data = await get_latest_student_documents(student_data)
+    writing_data = await remove_extra_data(writing_data)
+    writing_data = await merge_with_student_data(writing_data, student_data)
+    # Call Paul's code to add stuff to it
     print(writing_data)
-    return {}
+    return {'latest_writing_data': writing_data}
