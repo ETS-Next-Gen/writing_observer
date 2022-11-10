@@ -53,6 +53,13 @@ class _KVS:
                 json.dump(data, f, indent=4)
         return data
 
+    async def multiget(self, keys):
+        '''
+        Multiget. It's not fast, but it means we can use appropriate
+        abstractions and make it fast later.
+        '''
+        return [await self[key] for key in keys]
+
     async def load(self, filename):
         '''
         Loads the contents of a JSON object into the KVS.
