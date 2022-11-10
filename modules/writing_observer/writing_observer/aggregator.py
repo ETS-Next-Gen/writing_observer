@@ -109,3 +109,39 @@ def aggregate_course_summary_stats(student_data):
             'current_time': time.time()
         }
     }
+
+import learning_observer.stream_analytics.helpers
+
+async def latest_data(student_data):
+    '''
+    HACK HACK HACK
+
+    I just hardcoded this, breaking abstractions, repeating code, etc.
+    '''
+    import writing_observer.writing_analysis
+    from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
+    import learning_observer.kvs
+
+    kvs = learning_observer.kvs.KVS()
+
+    document_keys = ([
+        learning_observer.stream_analytics.helpers.make_key(
+            writing_observer.writing_analysis.reconstruct,
+            {
+                KeyField.STUDENT: s['userId'],
+                EventField('doc_id'): s['writing_observer.writing_analysis.last_document']['document_id'] 
+            },
+            KeyStateType.INTERNAL
+        ) for s in student_data])
+
+    writing_data = await kvs.multiget(keys=document_keys)
+
+    for item, student in zip(writing_data, student_data):
+        if item is None:
+            continue
+        if 'edit_metadata' in item:
+            del item['edit_metadata']
+        item['student'] = student
+
+    print(writing_data)
+    return {}

@@ -43,6 +43,13 @@ COURSE_AGGREGATORS = {
                 'total_time_on_task': 0
             }
         }
+    },
+    "latest_data": {
+        "sources": [
+            writing_observer.writing_analysis.last_document
+        ],
+        "name": "Show the latest student writing",
+        "aggregator": writing_observer.aggregator.latest_data
     }
 }
 
