@@ -104,17 +104,7 @@ def shutdown(app):
 
 def start():
     '''
-    Refresh the application.
-
-    This is used when we are running in watchdog mode, and we want to
-    restart the server when a file changes.
-
-    This does not do a full restart. See:
-    https://docs.python.org/3/library/importlib.html#importlib.reload
-
-    We should probably be doing a full restart, but we wrote this before
-    we had a full restart option. Perhaps we should remove this? We'll
-    decide once we see how useful both options are.
+    Start the application.
     '''
     global app
     # Reload all imports
@@ -127,7 +117,7 @@ print("Arguments:", args)
 
 if args.watchdog is not None:
     print("Watchdog mode")
-    # Parse argument to determine handler
+    # Parse argument to determine watchdog handler
     restart = {
         'restart': learning_observer.watchdog_observer.restart,
         'reimport': learning_observer.watchdog_observer.reimport_child_modules,
@@ -145,3 +135,21 @@ if args.watchdog is not None:
     learning_observer.watchdog_observer.watchdog(fs_event_handler)
 
 app = start()
+
+# Port printing:
+#
+# This is kind of ugly. If we want to log the startup port, we can either
+# do our own app runner as per:
+#   https://stackoverflow.com/questions/44610441/how-to-determine-which-port-aiohttp-selects-when-given-port-0
+#
+# Or we can introspect:
+#   import gc
+#   sites = gc.get_referrers(aiohttp.web.TCPSite)
+# And find the right object and introspect its port.
+#
+# To make a dummy test TCPSite:
+#    runner = aiohttp.web.AppRunner(aiohttp.web.Application())
+#    await runner.setup()
+#    foo = aiohttp.web.TCPSite(runner)
+#
+# Or we can manually find the first open port ourselves.

@@ -38,6 +38,16 @@ def reimport_child_modules(paths=[LOCAL_PATH]):
     '''
     Reload all modules which are in the given paths.
 
+    This is used when we are running in watchdog mode, and we want to
+    restart parts of the server when a file changes.
+
+    This does not do a full restart. See:
+    https://docs.python.org/3/library/importlib.html#importlib.reload
+
+    We should probably be doing a full restart, but we wrote this before
+    we had a full restart option. Perhaps we should remove this? We'll
+    decide once we see how useful both options are.
+
     Args:
         paths: A list of paths to search for modules.
 
