@@ -3,6 +3,7 @@ This generates dashboards from student data.
 '''
 
 import asyncio
+import inspect
 import json
 import numbers
 import queue
@@ -307,12 +308,17 @@ async def websocket_dashboard_view(request):
         default_data
     )
     aggregator = course_aggregator_module.get('aggregator', lambda x: {})
+    async_aggregator = inspect.iscoroutinefunction(aggregator)
+
     while True:
         sd = await student_state_fetcher()
         data = {
             "student_data": sd   # Per-student list
         }
-        data.update(aggregator(sd))
+        if async_aggregator:
+            data.update(await aggregator(sd))
+        else:
+            data.update(aggregator(sd))
         await ws.send_json(data)
         # This is kind of an awkward block, but aiohttp doesn't detect
         # when sockets close unless they receive data. We try to receive,
