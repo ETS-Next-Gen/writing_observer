@@ -184,15 +184,17 @@ async def process_texts_parallel(texts):
 
 if  __name__ == '__main__':
     import time
+    import writing_observer.sample_essays
     # Run over a sample text
+    example_texts = writing_observer.sample_essays.SHORT_STORIES
     t1 = time.time()
-    results = process_text(nlp_indicators.EXAMPLE_TEXTS[1])
+    results = process_text(example_texts[0])
     t2 = time.time()
     print(json.dumps(results, indent=2))
     print("==============")
-    results2 = asyncio.run(process_texts_parallel(nlp_indicators.EXAMPLE_TEXTS[0:8]))
+    results2 = asyncio.run(process_texts_parallel(example_texts[0:8]))
     t3 = time.time()
-    results3 = asyncio.run(process_texts_serial(nlp_indicators.EXAMPLE_TEXTS[0:8]))
+    results3 = asyncio.run(process_texts_serial(example_texts[0:8]))
     t4 = time.time()
     print(results2)
     print("Single time", t2-t1)
