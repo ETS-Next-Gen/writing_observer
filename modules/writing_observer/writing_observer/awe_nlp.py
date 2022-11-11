@@ -2,6 +2,14 @@
 This is an interface to AWE_Workbench.
 '''
 
+import asyncio
+import time
+import functools
+import os
+import multiprocessing
+
+from concurrent.futures import ProcessPoolExecutor
+
 import spacy
 import coreferee
 import spacytextblob.spacytextblob
@@ -86,7 +94,7 @@ def outputIndicator(doc, indicatorName, itype, stype=None, text=None, added_filt
     return indicator
 
 
-def process_text(nlp, text):
+def process_text(text):
     '''
     This will extract a dictionary of metadata using Paul's AWE Workbench code.
     '''
@@ -105,7 +113,91 @@ def process_text(nlp, text):
     return results
 
 
+async def process_texts_serial(texts):
+    '''
+    Process a list of texts, in serial.
+
+    For testing / debugging, this will process a single essay. Note that while
+    labeled async, it's not. If run on the server, it will lock up the main
+    Python process.
+    '''
+    annotated = []
+    for text in texts:
+        print(text)
+        annotations = process_text(text)
+        annotations['text'] = text
+        annotated.append(annotations)
+
+    return annotated
+
+
+executor = None
+
+def run_in_fork(func):
+    '''
+    This will run a function in a forked subproces, for isolation.
+
+    I wanted to check if this would solve a bug. It didn't.
+    '''
+    q = multiprocessing.Queue()
+    thread = os.fork()
+    if thread != 0:
+        print("Awaiting queue")
+        return q.get(block=True)
+        print("Awaited")
+    else:
+        print("Queuing")
+        q.put(func())
+        print("Queued")
+        os._exit(0)
+
+
+async def process_texts_parallel(texts):
+    '''
+    This will spin up as many processes as we have cores, and process texts
+    in parallel. Note that we should confirm issues of thread safety. If
+    Python does this right, this should run in forked environments, and we
+    won't run into issues. Otherwise, we'd want to either fork ourselves, or
+    understand how well spacy, etc. do with parallelism.
+    '''
+    global executor
+    if executor is None:
+        executor = ProcessPoolExecutor()
+
+    loop = asyncio.get_running_loop()
+    result_futures = []
+    for text in texts:
+        processor = functools.partial(process_text, text)
+        # forked_processor = functools.partial(run_in_fork, processor)
+        result_futures.append(loop.run_in_executor(executor, processor))
+
+    annotated = []
+    for text, result_future in zip(texts, result_futures):
+        try:
+            annotations = await result_future
+            annotations['text'] = text
+        except: # awe_components.errors.AWE_Workbench_Error and nltk.corpus.reader.wordnet.WordNetError
+            annotations = "Error"
+        annotated.append(annotations)
+
+    return annotated
+
 if  __name__ == '__main__':
+    import time
     # Run over a sample text
-    results = process_text(nlp, nlp_indicators.EXAMPLE_TEXT_1)
+    t1 = time.time()
+    results = process_text(nlp_indicators.EXAMPLE_TEXTS[1])
+    t2 = time.time()
     print(json.dumps(results, indent=2))
+    print("==============")
+    results2 = asyncio.run(process_texts_parallel(nlp_indicators.EXAMPLE_TEXTS[0:8]))
+    t3 = time.time()
+    results3 = asyncio.run(process_texts_serial(nlp_indicators.EXAMPLE_TEXTS[0:8]))
+    t4 = time.time()
+    print(results2)
+    print("Single time", t2-t1)
+    print("Parallel time", t3-t2)
+    print("Serial time", t4-t3)
+    print("Note that these results are imperfect -- ")
+    print("Errors", len([r for r in results2 if r=="Error"]))
+    print("Errors", [r if r=="Error" else "--" for r in results2])

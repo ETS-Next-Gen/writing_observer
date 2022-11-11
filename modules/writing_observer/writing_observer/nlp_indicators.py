@@ -47,16 +47,15 @@ SPAN_INDICATORS = [
     ('Supporting Detail Sentences', 'Doc', 'supporting_details', None, 'total')
 ]
 
-# Two short stories, from GPT-3
+# Short stories, from GPT-3
 
-EXAMPLE_TEXT_1 = """The snail had always dreamed of going to space. It was a lifelong dream, and finally, the day had arrived. The snail was strapped into a rocket, and prepared for takeoff.
+EXAMPLE_TEXTS =["""The snail had always dreamed of going to space. It was a lifelong dream, and finally, the day had arrived. The snail was strapped into a rocket, and prepared for takeoff.
 
 As the rocket blasted off, the snail felt a sense of exhilaration. It was finally achieving its dream! The snail looked out the window as the Earth got smaller and smaller. Soon, it was in the vastness of space, floating weightlessly.
 
 The snail was content, knowing that it had finally accomplished its dream. It would never forget this moment, floating in space, looking at the stars.
-"""
-
-EXAMPLE_TEXT_2 = """One day, an old man was sitting on his porch, telling jokes to his grandson. The grandson was laughing hysterically at every joke.
+""",
+"""One day, an old man was sitting on his porch, telling jokes to his grandson. The grandson was laughing hysterically at every joke.
 
 Suddenly, a spaceship landed in front of them. A alien got out and said, "I come in peace! I come from a planet of intelligent beings, and we have heard that humans are the most intelligent beings in the universe. We would like to test your intelligence."
 
@@ -65,4 +64,46 @@ The old man thought for a moment, then said, "Okay, I'll go first. What has two 
 The alien thought for a moment, then said, "I don't know."
 
 The old man chuckled and said, "A chair."
+""",
+"""The boy loved dolls. He loved their soft skin, their pretty clothes, and the way they always smelled like roses. He wanted to be a doll himself, so he could be pretty and perfect like them.
+
+One day, he found a doll maker who promised to make him into a doll. The boy was so excited, and couldn't wait to become a doll.
+
+The doll maker kept her promise, and the boy became a doll. He was perfect in every way, and he loved it. He loved being pretty and perfect, and he loved the way everyone fussed over him and treated him like a delicate little thing.
+
+The only problem was that the boy's soul was now trapped inside the doll's body, and he could never be human again.
+""",
+"""The mouse had been hunting the cat for days. It was a big cat, twice her size, with sharp claws and teeth. But the mouse was determined to catch it.
+
+Finally, she corner the cat in an alley. The cat hissed and slashed at the mouse, but the mouse was quick. She dart to the side and bit the cat's tail.
+
+The cat yowled in pain and fled, and the mouse triumphantly went home with her prize.
+""",
+"""When I was younger, I dreamt of scaling Mt. Everest. It was the tallest mountain in the world, and I wanted to conquer it.
+
+But then I was in a car accident that left me paralyzed from the waist down. I was confined to a wheelchair, and my dreams of scaling Everest seemed impossible.
+
+But I didn't give up. I trained my upper body to be stronger, and I developed a special wheelchair that could handle the rough terrain.
+
+Finally, after years of preparation, I made it to the top of Everest. It was the hardest thing I'd ever done, but I did it. And it was the best feeling in the world.
+""",
+"""The cucumber and the salmon were both new to the tank. The cucumber was shy and withdrawn, while the salmon was outgoing and friendly.
+
+The salmon swim over to the cucumber and said hi. The cucumber was surprised, but happy to have made a new friend.
+
+The two of them became fast friends, and they loved spending time together. The salmon would swim around the cucumber, and the cucumber would wrap itself around the salmon. They were both happy to have found a friend in the other.
+""",
 """
+"I can't believe we're all going to different colleges," said Sarah.
+
+"I know," said John. "It's going to be weird not seeing you guys every day."
+
+"But it's not like we're never going to see each other again," said Jane. "We can still visit each other, and keep in touch."
+
+"I'm going to miss you guys so much," said Sarah.
+
+"We're going to miss you too," said John.
+
+"But we'll always be friends," said Jane.
+"""
+]
