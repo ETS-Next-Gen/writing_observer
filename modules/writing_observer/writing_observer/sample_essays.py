@@ -56,6 +56,17 @@ The two of them became fast friends, and they loved spending time together. The 
 "We're going to miss you too," said John.
 
 "But we'll always be friends," said Jane.
+""",
+"""
+The Polish winged hussars were a fearsome group of knights who rode into battle on horseback, armed with lances and swords. They were known for their skill in combat and their ability to move quickly and efficiently across the battlefield. The samurai were a similar group of warriors from Japan who were also highly skilled in combat and known for their speed and accuracy.
+
+One day, a group of samurai were travelling through Poland when they came across a group of winged hussars. The two groups immediately began to battle, and it quickly became clear that the hussars had the upper hand. The samurai were outnumbered and outmatched, and they were soon defeated.
+
+As the hussars celebrated their victory, one of the samurai walked up to them and bowed. The hussars were surprised by this gesture, and one of them asked the samurai why he had bowed.
+
+The samurai explained that in his culture, it was customary to bow to one's enemies after a battle. He said that the hussars had fought with honor and skill, and that they deserved his respect.
+
+The hussars were touched by the samurai's words, and they returned the gesture. From then on, the two groups became friends, and they often fought side by side against their common enemies.
 """
 ]
 
@@ -153,3 +164,8 @@ Some people will argue that the death penalty is too harsh of a punishment for y
 Implementing the death penalty at preschools will send a clear message that violence will not be tolerated. It is time for our society to take a stand against the growing problem of preschool violence.
 """
 ]
+
+GPT3_TEXTS = {
+    'story': SHORT_STORIES,
+    'argument': ARGUMENTATIVE_ESSAYS
+}

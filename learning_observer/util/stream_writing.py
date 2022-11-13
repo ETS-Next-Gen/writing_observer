@@ -9,6 +9,7 @@ Usage:
                       [--gdids=googledoc_id,gdi,gdi]
                       [--text-length=5]
                       [--fake-name]
+                      [--gpt3=type]
 
 Options:
     --url=url                URL to connect [default: http://localhost:8888/wsapi/in/]
@@ -19,6 +20,7 @@ Options:
     --source=filename        Stream text instead of lorem ipsum
     --text-length=n          Number of paragraphs of lorem ipsum [default: 5]
     --fake-name              Use fake names (instead of test-user)
+    --gpt3=type              Use GPT-3 generated data ('story' or 'argument')
 
 Overview:
     Stream fake keystroke data to a server, emulating Google Docs
@@ -67,6 +69,15 @@ def argument_list(argument, default):
         sys.exit(-1)
     return list_string
 
+if ARGS["--gpt3"] is not None:
+    import writing_observer.sample_essays
+    TEXT = writing_observer.sample_essays.GPT3_TEXTS[ARGS["--gpt3"]]
+    STREAMS = len(TEXT)
+elif source_files is None:
+    TEXT = ["\n".join(loremipsum.get_paragraphs(int(ARGS.get("--text-length", 5)))) for i in range(STREAMS)]
+else:
+    TEXT = [open(filename).read() for filename in source_files]
+
 ICI = argument_list(
     '--ici',
     "0.1"
@@ -81,11 +92,6 @@ source_files = argument_list(
     '--source',
     None
 )
-
-if source_files is None:
-    TEXT = ["\n".join(loremipsum.get_paragraphs(int(ARGS.get("--text-length", 5)))) for i in range(STREAMS)]
-else:
-    TEXT = [open(filename).read() for filename in source_files]
 
 if ARGS['--users'] is not None:
     USERS = argument_list('--users', None)

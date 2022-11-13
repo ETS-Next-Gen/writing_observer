@@ -22,7 +22,7 @@ import json
 
 import time
 
-import nlp_indicators
+import writing_observer.nlp_indicators
 
 def init_nlp():
     '''
@@ -101,7 +101,7 @@ def process_text(text):
     doc = nlp(text)
     results = {}
 
-    for indicator in nlp_indicators.SPAN_INDICATORS:
+    for indicator in writing_observer.nlp_indicators.SPAN_INDICATORS:
         (label, infoType, select, filterInfo, summaryType) = indicator
         results[select] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
         results[select].update({
