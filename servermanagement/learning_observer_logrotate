@@ -1,0 +1,22 @@
+/path/to/repo/learning_observer/learning_observer/logs/*.pid
+{
+    daily
+    rotate 2
+    olddir /path/to/backup
+    compress
+    missingok
+    notifempty
+}
+
+/path/to/repo/learning_observer/learning_observer/logs/*.json
+/path/to/repo/learning_observer/learning_observer/logs/learning_observer_service*.log
+/path/to/repo/learning_observer/learning_observer/logs/debug.log
+/path/to/repo/learning_observer/learning_observer/logs/incoming_websocket.log
+{
+    daily
+    rotate 5
+    olddir /path/to/backup
+    compress
+    missingok
+    notifempty
+}
