@@ -76,6 +76,18 @@ event_auth:
     local_storage:
         userfile: students.yaml
         allow_guest: true
+
+    # (CL) The lines below are necessary to allow the chrome extension
+    # to work.  These should be included in future anonymous cases
+    # but may need to be changed depending upon the security model.
+    
+    # chromebook:
+    #    allow_guest: true
+    # testcase_auth: {}
+
+
 feature_flags: {}  # For enabling / disabling features in development
 server:
     port: 8888     # Optional. Pick a different port.
+
+
