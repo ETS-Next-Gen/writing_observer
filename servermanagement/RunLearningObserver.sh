@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # ===============================
 # RunLearningObserver.sh
@@ -30,9 +29,10 @@ echo $LOG_NAME;
 echo "Running Learning Observer Service..."
 cd $LEARNING_OBSERVER_LOC
 source $VIRTUALENV_PATH/bin/activate
-#$($VIRTUALENV_PYTHON $LEARNING_OBSERVER_LOC > $LOG_NAME 2>&1)
+
 nohup python learning_observer > $LOGFILE_NAME 2>&1 &
 PROCESS_ID=$!
 echo $PROCESS_ID > $LOGFILE_DEST/run.pid
+
 # Set the number of allowed open files to something large 8192
 prlimit --pid $PROCESS_ID --nofile=8192
