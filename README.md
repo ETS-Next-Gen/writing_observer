@@ -75,6 +75,19 @@ You can also go into the devops directory, which has scripts in
 progress for spinning up a cloud instance and managing flocks of
 _Learning Observer_ instances.
 
+
+~~~~
+Writing Observer
+~~~~
+
+
+To setup writing_observer on top of the learning observer platform you must go into modules/writing_observer and run:
+
+   sudo python setup.py develop
+
+
+
+
 System requirements
 ===================
 
