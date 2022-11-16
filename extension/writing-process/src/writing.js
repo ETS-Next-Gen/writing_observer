@@ -195,8 +195,16 @@ function google_docs_version_history(token) {
 
       It also lets us debug the system.
 
-      TODO the following code ought to be refactored into more atomic
-      functions
+      NOTE (CL) in past cases use of the execute on page space by itself triggered
+      an error.  If it creates excessive delays or error due to history use the
+      following code block in lieu of the next call. 
+
+      try {
+        var token = executeOnPageSpace("_docs_flag_initialData.info_params.token");
+      } catch (error) {
+     	log_event("Error on Page History.", {"ERROR" : error})
+ 	return -1;
+      }
     */
 
     const metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true";
