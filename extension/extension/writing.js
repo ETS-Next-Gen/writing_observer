@@ -177,6 +177,17 @@ function google_docs_version_history() {
       work. But it's good to have for the pilot.
 
       It also lets us debug the system.
+
+      NOTE (CL) in past cases use of the execute on page space by itself triggered
+      an error.  If it creates excessive delays or error due to history use the
+      following code block in lieu of the next call. 
+
+      try {
+        var token = executeOnPageSpace("_docs_flag_initialData.info_params.token");
+      } catch (error) {
+     	log_event("Error on Page History.", {"ERROR" : error})
+ 	return -1;
+      }
     */
     var token = execute_on_page_space("_docs_flag_initialData.info_params.token");
 
