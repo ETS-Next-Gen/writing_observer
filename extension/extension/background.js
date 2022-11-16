@@ -215,7 +215,10 @@ loggers_enabled = [
 loggers_enabled = [
     console_logger(),
     //ajax_logger("https://writing.learning-observer.org/webapi/")//,
-    websocket_logger("wss://writing.learning-observer.org/wsapi/in/")
+
+    // Adapted to NCSU Setup.
+    websocket_logger("wss://observer.csc.ncsu.edu/wsapi/in/")
+    //websocket_logger("wss://writing.learning-observer.org/wsapi/in/")
 ];
 
 function log_event(event_type, event) {
