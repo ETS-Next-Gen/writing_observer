@@ -7,8 +7,8 @@ import dash_bootstrap_components as dbc
 
 prefix = 'teacher-dashboard-settings'
 # ids related to opening/closing panel
-show_hide_settings_open = f'{prefix}-show-hide-open-button'  # settings button
-show_hide_settings_offcanvas = f'{prefix}-show-hide-offcanvcas'  # setting wrapper
+open_btn = f'{prefix}-show-hide-open-button'  # settings button
+offcanvas = f'{prefix}-show-hide-offcanvcas'  # setting wrapper
 close_settings = f'{prefix}-close'  # X on settings panel
 # ids related to sorting
 sort_by_checklist = f'{prefix}-sort-by-checklist'  # options that can be included for sorting
@@ -17,15 +17,16 @@ sort_icon = f'{prefix}-sort-by-icon'  # icon for sort direction
 sort_label = f'{prefix}-sort-by-label'  # text for sort direction
 sort_reset = f'{prefix}-sort-by-reset'  # sort reset button
 # ids relating to showing or hiding elements
-show_hide_settings_checklist = f'{prefix}-show-hide-checklist'  # parent checklist - determines which type of stuff to show
-show_hide_settings_metric_collapse = f'{prefix}-show-hide-metric-collapse'  # metric options wrapper
-show_hide_settings_metric_checklist = f'{prefix}-show-hide-metric-checklist'  # metric options
-show_hide_settings_text_collapse = f'{prefix}-show-hide-text-collapse'  # text options wrapper
-show_hide_settings_text_radioitems = f'{prefix}-show-hide-text-radioitems'  # text options
-show_hide_settings_highlight_collapse = f'{prefix}-show-hide-highlight-collapse'  # highlight options wrapper
-show_hide_settings_highlight_checklist = f'{prefix}-show-hide-highlight-radioitems'  # highlight options
-show_hide_settings_indicator_collapse = f'{prefix}-show-hide-indicator-collapse'  # indicator options wrapper
-show_hide_settings_indicator_checklist = f'{prefix}-show-hide-indicator-checklist'  # indicator wrapper
+checklist = f'{prefix}-show-hide-checklist'  # parent checklist - determines which type of stuff to show
+metric_collapse = f'{prefix}-show-hide-metric-collapse'  # metric options wrapper
+metric_checklist = f'{prefix}-show-hide-metric-checklist'  # metric options
+text_collapse = f'{prefix}-show-hide-text-collapse'  # text options wrapper
+text_radioitems = f'{prefix}-show-hide-text-radioitems'  # text options
+highlight_collapse = f'{prefix}-show-hide-highlight-collapse'  # highlight options wrapper
+highlight_checklist = f'{prefix}-show-hide-highlight-radioitems'  # highlight options
+indicator_collapse = f'{prefix}-show-hide-indicator-collapse'  # indicator options wrapper
+indicator_checklist = f'{prefix}-show-hide-indicator-checklist'  # indicator wrapper
+dummy = f'{prefix}-dummy'
 
 # settings button
 open_btn = dbc.Button(
@@ -37,7 +38,7 @@ open_btn = dbc.Button(
     ],
     # bootstrap btn styling/coloring
     class_name='btn btn-secondary',
-    id=show_hide_settings_open,
+    id=open_btn,
     # hover text
     title='Open settings menu to show or hide different student attributes'
 )
@@ -45,6 +46,7 @@ open_btn = dbc.Button(
 # settings panel itself
 panel = dbc.Card(
     [
+        html.Div(id=dummy),
         html.Div(
             [
                 # panel title
@@ -76,14 +78,7 @@ panel = dbc.Card(
                     dbc.Card(
                         [
                             dcc.Checklist(
-                                options=[
-                                    {'label': 'Transition Words', 'value': 'transitions'},
-                                    {'label': 'Academic Language', 'value': 'academiclanguage'},
-                                    {'label': 'Argument Language', 'value': 'argumentlanguage'},
-                                    {'label': 'Attributions', 'value': 'attributions'},
-                                    {'label': 'Citations', 'value': 'cites'},
-                                    {'label': 'Sources', 'value': 'sources'}
-                                ],
+                                options=[],
                                 value=[],
                                 id=sort_by_checklist,
                                 labelClassName='form-check nested-form',  # style dcc as bootstrap
@@ -161,62 +156,13 @@ panel = dbc.Card(
                                                 dcc.Checklist(
                                                     # option for each possible metric
                                                     # TODO pull this information from somewhere
-                                                    options=[
-                                                        {
-                                                            'label': dbc.Badge(
-                                                                '# sentences',
-                                                                color='info',
-                                                                title='Total number of sentences'
-                                                            ),
-                                                            'value': 'sentences'
-                                                        },
-                                                        {
-                                                            'label': dbc.Badge(
-                                                                '# adverbs',
-                                                                color='info',
-                                                                title='Total number of adverbs'
-                                                            ),
-                                                            'value': 'adverbs'
-                                                        },
-                                                        {
-                                                            'label': dbc.Badge(
-                                                                '# adjectives',
-                                                                color='info',
-                                                                title='Total number of adjectives'
-                                                            ),
-                                                            'value': 'adjectives'
-                                                        },
-                                                        {
-                                                            'label': dbc.Badge(
-                                                                '# quoted words',
-                                                                color='info',
-                                                                title='Total number of quoted words'
-                                                            ),
-                                                            'value': 'quotedwords'
-                                                        },
-                                                        {
-                                                            'label': dbc.Badge(
-                                                                '# minutes on task',
-                                                                color='info',
-                                                                title='Total minutes on task'
-                                                            ),
-                                                            'value': 'timeontask'
-                                                        },
-                                                        {
-                                                            'label': dbc.Badge(
-                                                                '# words in last 5 min',
-                                                                color='info',
-                                                                title='Total words in last 5 minutes'
-                                                            ),
-                                                            'value': 'recentwords'
-                                                        },
-                                                    ],
-                                                    value=['sentences', 'timeontask'],  # defaults
-                                                    id=show_hide_settings_metric_checklist,
+                                                    options=[],
+                                                    value=[],  # defaults
+                                                    id=metric_checklist,
                                                     labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
                                                     inputClassName='form-check-input'  # style dcc as Bootstrap
                                                 ),
-                                                id=show_hide_settings_metric_collapse,
+                                                id=metric_collapse,
                                             )
                                         ],
                                     ),
@@ -237,34 +183,13 @@ panel = dbc.Card(
                                                 dcc.RadioItems(
                                                     # option for each possible text item
                                                     # TODO pull this information from somewhere
-                                                    options=[
-                                                        {
-                                                            'label': 'Student text',
-                                                            'value': 'studenttext'
-                                                        },
-                                                        # {
-                                                        #     'label': 'Emotion words',
-                                                        #     'value': 'emotionwords'
-                                                        # },
-                                                        # {
-                                                        #     'label': 'Concrete details',
-                                                        #     'value': 'concretedetails'
-                                                        # },
-                                                        {
-                                                            'label': 'Argument words',
-                                                            'value': 'argumentwords'
-                                                        },
-                                                        {
-                                                            'label': 'Transitions used',
-                                                            'value': 'transitionwords'
-                                                        }
-                                                    ],
-                                                    value='studenttext',  # default option
-                                                    id=show_hide_settings_text_radioitems,
+                                                    options=[],
+                                                    value=None,  # default option
+                                                    id=text_radioitems,
                                                     labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
                                                     inputClassName='form-check-input'  # style dcc as Bootstrap
                                                 ),
-                                                id=show_hide_settings_text_collapse,
+                                                id=text_collapse,
                                             )
                                         ],
                                     ),
@@ -274,6 +199,10 @@ panel = dbc.Card(
                                 {
                                     'label': html.Span(
                                         [
+                                            # IDEA 
+                                            # we keep a long enough list of 5 colors
+                                            # we rotate them as users are selecting each item
+                                            # pass the color into the component so it knows how to highlight
                                             html.Span(
                                                 [
                                                     html.I(className='fas fa-highlighter fa-flip-horizontal me-1'),
@@ -285,26 +214,13 @@ panel = dbc.Card(
                                                 dcc.Checklist(
                                                     # option for each possible highlightable item
                                                     # TODO pull this information from somewhere
-                                                    options=[
-                                                        {
-                                                            'label': html.Span('Main ideas', className='bg-success bg-opacity-50'),
-                                                            'value': 'coresentences'
-                                                        },
-                                                        {
-                                                            'label': html.Span('Supporting ideas', className='bg-danger bg-opacity-50'),
-                                                            'value': 'extendedcoresentences'
-                                                        },
-                                                        {
-                                                            'label': html.Span('Argument details', className='bg-warning bg-opacity-50'),
-                                                            'value': 'contentsegments'
-                                                        }
-                                                    ],
-                                                    value=['coresentences'],  # default options
-                                                    id=show_hide_settings_highlight_checklist,
+                                                    options=[],
+                                                    value=[],  # default options
+                                                    id=highlight_checklist,
                                                     labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
                                                     inputClassName='form-check-input'  # style dcc as Bootstrap
                                                 ),
-                                                id=show_hide_settings_highlight_collapse,
+                                                id=highlight_collapse,
                                             )
                                         ],
                                     ),
@@ -325,56 +241,13 @@ panel = dbc.Card(
                                                 # option for each possible indicator
                                                 # TODO pull this information from somewhere
                                                 dcc.Checklist(
-                                                    options=[
-                                                        {
-                                                            'label': html.Span(
-                                                                'Transitions',
-                                                                title='Percentile based on total number of transitions used'
-                                                            ),
-                                                            'value': 'transitions'
-                                                        },
-                                                        {
-                                                            'label': html.Span(
-                                                                'Academic Language',
-                                                                title='Percentile based on percent of academic language used'
-                                                            ),
-                                                            'value': 'academiclanguage'
-                                                        },
-                                                        {
-                                                            'label': html.Span(
-                                                                'Argument Language',
-                                                                title='Percentile based on percent of argument words used'
-                                                            ),
-                                                            'value': 'argumentlanguage'
-                                                        },
-                                                        {
-                                                            'label': html.Span(
-                                                                'Attributions',
-                                                                title='Percentile based on total attributes'
-                                                            ),
-                                                            'value': 'attributions'
-                                                        },
-                                                        {
-                                                            'label': html.Span(
-                                                                'Citations',
-                                                                title='Percentile based on total citations'
-                                                            ),
-                                                            'value': 'cites'
-                                                        },
-                                                        {
-                                                            'label': html.Span(
-                                                                'Sources',
-                                                                title='Percentile based on total sources'
-                                                            ),
-                                                            'value': 'sources'
-                                                        },
-                                                    ],
-                                                    value=['transitions'],  # default options
-                                                    id=show_hide_settings_indicator_checklist,
+                                                    options=[],
+                                                    value=[],  # default options
+                                                    id=indicator_checklist,
                                                     labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
                                                     inputClassName='form-check-input'  # style dcc as Bootstrap
                                                 ),
-                                                id=show_hide_settings_indicator_collapse,
+                                                id=indicator_collapse,
                                             )
                                         ]
                                     ),
@@ -382,7 +255,7 @@ panel = dbc.Card(
                                 }
                             ],
                             value=['text', 'highlight', 'indicators', 'metrics'],
-                            id=show_hide_settings_checklist,
+                            id=checklist,
                             labelClassName='form-check',  # style dcc as Bootstrap
                             inputClassName='form-check-input'  # style dcc as Bootstrap
                         ),
@@ -398,7 +271,7 @@ panel = dbc.Card(
             class_name='border-top'  # bootstrap border on top
         ),
     ],
-    id=show_hide_settings_offcanvas,
+    id=offcanvas,
     # TODO eventually we want sticky-top in the classname however
     # if the screen height is short enough we won't be able to
     # see all options available.
@@ -424,24 +297,28 @@ clientside_callback(
     Input(sort_reset, 'n_clicks')
 )
 
-# offcanvas checklist toggle
+# settings checklist toggle
+# if the option is selected, show its sub-options
+# 
+# e.g. if metrics is chosen, show the options for time_on_task, adjectives, adverbs, etc.
+#       otherwise, don't shown those items
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='toggle_indicators_checklist'),
-    Output(show_hide_settings_indicator_collapse, 'is_open'),
-    Input(show_hide_settings_checklist, 'value')
+    Output(indicator_collapse, 'is_open'),
+    Input(checklist, 'value')
 )
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='toggle_metrics_checklist'),
-    Output(show_hide_settings_metric_collapse, 'is_open'),
-    Input(show_hide_settings_checklist, 'value')
+    Output(metric_collapse, 'is_open'),
+    Input(checklist, 'value')
 )
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='toggle_text_checklist'),
-    Output(show_hide_settings_text_collapse, 'is_open'),
-    Input(show_hide_settings_checklist, 'value')
+    Output(text_collapse, 'is_open'),
+    Input(checklist, 'value')
 )
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='toggle_highlight_checklist'),
-    Output(show_hide_settings_highlight_collapse, 'is_open'),
-    Input(show_hide_settings_checklist, 'value')
+    Output(highlight_collapse, 'is_open'),
+    Input(checklist, 'value')
 )
