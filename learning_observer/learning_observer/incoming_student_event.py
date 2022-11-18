@@ -145,6 +145,7 @@ async def student_event_pipeline(metadata):
         return processed_analytics
     return pipeline
 
+COUNTER = 0
 
 async def handle_incoming_client_event(metadata):
     '''
@@ -153,7 +154,16 @@ async def handle_incoming_client_event(metadata):
     We do a reduce through the event pipeline, and forward on to
     for aggregation on the dashboard side.
     '''
+    global COUNTER
     pipeline = await student_event_pipeline(metadata=metadata)
+
+    filename = "{timestamp}-{counter:0>10}-{username}-{pid}.study".format(
+        username = metadata.get("auth", {}).get("user_id", "GUEST"),
+        timestamp=datetime.datetime.utcnow().isoformat(),
+        counter=COUNTER,
+        pid=os.getpid()
+    )
+    COUNTER += 1
 
     # The adapter allows us to handle old event formats
     adapter = learning_observer.adapters.adapter.EventAdapter()
@@ -172,10 +182,11 @@ async def handle_incoming_client_event(metadata):
 
         # Log to the main event log file
         log_event.log_event(event)
-        # Log the same thing with a time stamp. We really don't want this second log. We had these both for debugging....
+        # Log the same thing to our study log file. This isn't a good final format, since we
+        # mix data with auth, but we want this for now.
         log_event.log_event(
             json.dumps(event, sort_keys=True),
-            "incoming_websocket", preencoded=True, timestamp=True)
+            filename, preencoded=True, timestamp=True)
         await pipeline(event)
 
     return handler
@@ -308,8 +319,12 @@ async def incoming_websocket_handler(request):
     json_msg = None
     if INIT_PIPELINE:
         async for msg in ws:
-            debug_log("Auth", msg)
-            json_msg = json.loads(msg)
+            debug_log("Auth", msg.data)
+            try:
+                json_msg = json.loads(msg.data)
+            except:
+                print("Bad message:",  msg)
+                raise
             header_events.append(json_msg)
             if json_msg["event"] == "metadata_finished":
                 break
