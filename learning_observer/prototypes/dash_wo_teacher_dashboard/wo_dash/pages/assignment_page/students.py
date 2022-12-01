@@ -22,6 +22,7 @@ student_counter = f'{prefix}-student-counter'  # store item for quick access to 
 student_store = f'{prefix}-student-store'  # store item for student information
 course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
+websocket_status = f'{prefix}-websocket-status'  # websocket status icon
 last_updated = f'{prefix}-last-updated'  # data last updated id
 
 assignment_store = f'{prefix}-assignment-info_store'
@@ -62,7 +63,8 @@ def student_dashboard_view(course_id, assignment_id):
             ),
             html.Small(
                 [
-                    'Last Updated: ',
+                    html.I(id=websocket_status),
+                    html.Span('Last Updated: ', className='ms-1'),
                     html.Span(id=last_updated)
                 ]
             ),
@@ -135,6 +137,14 @@ clientside_callback(
     Input(assignment_store, 'data')
 )
 
+# set the websocket status icon
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='set_status'),
+    Output(websocket_status, 'className'),
+    Output(websocket_status, 'title'),
+    Input(websocket, 'state')
+)
+
 # fetch student info for course
 # TODO fix this to pull the roster information better
 clientside_callback(
@@ -199,7 +209,6 @@ clientside_callback(
     Input(settings.indicator_checklist, 'value'),
     State(student_counter, 'data')
 )
-
 
 # highlight text
 clientside_callback(

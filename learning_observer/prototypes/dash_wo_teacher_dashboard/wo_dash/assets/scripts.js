@@ -338,5 +338,17 @@ window.dash_clientside.clientside = {
                 }
             }
         })
+    },
+
+    set_status: function(status) {
+        // Set the websocket status icon/title
+        //
+        // Output(websocket_status, 'className'),
+        // Output(websocket_status, 'title'),
+        // Input(websocket, 'state')
+
+        const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
+        const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
+        return [icons[status.readyState], titles[status.readyState]];
     }
 }
