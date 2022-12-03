@@ -30,7 +30,6 @@ VIRTUAL_ENV_LOC=$2
 PYTHON_CMD="python3.9"
 PIP_CMD="pip"
 
-
 # Execution
 # ---------------------------------------------------------
 echo "1) Generating VENV"
