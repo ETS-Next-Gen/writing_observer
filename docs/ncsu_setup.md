@@ -4,7 +4,11 @@
 Currently the system is set for use with RHEL 8 on the NCSU systems.  We are running with Python 3.9 and connected to the AWEWorkbench code.  This assumes that we are also installing it into a vm with those tools installed as packages.  An installation script has been added to the servermanagement directory.  
 
 
+<<<<<<< HEAD
 Installation on RHEL 8 requires:
+=======
+Ihnstallation on RHEL 8 requires:
+>>>>>>> 292f3ef (Updating documentation on installation scripts.)
 
 - python 3.9 or 3.10 (39 still default).
 - redis.x86_64        5.0.3-5.module+el8.4.0+12927+b9845322    @rhel-8-for-x86_64-appstream-rpms   
