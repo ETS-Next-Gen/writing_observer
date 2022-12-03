@@ -31,6 +31,12 @@ PYTHON_CMD="python3.9"
 PIP_CMD="pip"
 
 
+# Argument Parsing
+# -----------------------------------------------
+
+VIRTUAL_ENV_LOC=$2
+VIRTUAL_ENV_NAME=$1
+
 # Execution
 # ---------------------------------------------------------
 echo "1) Generating VENV"
