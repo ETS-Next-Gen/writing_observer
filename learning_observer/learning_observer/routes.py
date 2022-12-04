@@ -443,6 +443,6 @@ def register_wsgi_routes(app):
         if isinstance(wsgi_url_patterns, str):
             wsgi_url_patterns = [wsgi_url_patterns]
 
-        wsgi_handler = aiohttp_wsgi.WSGIHandler(wsgi_app.server)
+        wsgi_handler = learning_observer.auth.teacher(aiohttp_wsgi.WSGIHandler(wsgi_app.server))
         for pattern in wsgi_url_patterns:
             app.router.add_route("*", pattern, wsgi_handler)

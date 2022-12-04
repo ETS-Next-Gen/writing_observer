@@ -32,6 +32,8 @@ import learning_observer.paths
 import learning_observer.prestartup
 import learning_observer.settings
 
+import learning_observer.auth.http_basic
+
 from learning_observer.log_event import debug_log
 
 AUTH_METHODS = {}
@@ -111,6 +113,33 @@ def token_authorize_user(auth_method, user_id_token):
     if am_settings.get("allow_guest", False):
         return "unauthenticated"
     raise aiohttp.web.HTTPUnauthorized()
+
+
+@register_event_auth("http_basic")
+async def basic_auth(request, headers, first_event, source):
+    '''
+    Authenticate with HTTP Basic through nginx.
+    '''
+    (username, password)  = learning_observer.auth.http_basic.http_basic_extract_username_password(request)
+    print(f"Authenticated as {username}")
+    if username is None:
+        # nginx shouldn't pass requests without
+        # auth headers. We are logging, but
+        # with red flags; we don't want to lose
+        # data. In more secure settings, we
+        # might want to raise an exception
+        # instead
+        print("Event auth missing: This should never happen")
+        return {
+            'sec': 'unauthorized',
+            'user_id': 'guest',
+            'providence': 'error'
+        }
+    return {
+        'sec': 'authenticated',
+        'user_id': username,
+        'providence': 'nginx'
+    }
 
 
 @register_event_auth("guest")
@@ -299,7 +328,8 @@ async def authenticate(request, headers, first_event, source):
                 )
             return auth_metadata
 
-    raise aiohttp.web.HTTPUnauthorized("All authentication methods failed. Unauthorized.")
+    print("All authentication methods failed. Unauthorized.")
+    raise aiohttp.web.HTTPUnauthorized()
 
 
 @learning_observer.prestartup.register_startup_check

@@ -19,6 +19,16 @@ if (!window.dash_clientside) {
     window.dash_clientside = {};
 }
 
+function getRGBAValues(str) {
+    var vals = str.substring(str.indexOf('(') +1, str.length -1).split(', ');
+    return {
+        'r': parseInt(vals[0]),
+        'g': parseInt(vals[1]),
+        'b': parseInt(vals[2]),
+        'o': parseFloat(vals[3])
+    };
+}
+
 // define functions we are calling
 window.dash_clientside.clientside = {
 
@@ -67,6 +77,8 @@ window.dash_clientside.clientside = {
         // Input({'type': student_card, 'index': ALL}, 'data'),
         // State(settings.sort_by_checklist, 'options'),
         // State(student_counter, 'data')
+
+        // TODO fix sorting, haven't been updated with the new NLP data
         let orders = Array(students).fill(window.dash_clientside.no_update);
         if (values.length === 0) {
             // preserves current order when no values are present
@@ -98,34 +110,59 @@ window.dash_clientside.clientside = {
         // State(student_counter, 'data')
 
         if (!msg) {
-            return [old_data, 'Never'];
+            return [old_data, 'Never']; //, 0, []];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
-        const data = JSON.parse(msg.data)['student_data'];  // TODO change this to student_data when ready
-        for (let i = 0; i < students; i++) {
+        const data = JSON.parse(msg.data)['latest_writing_data'];
+        const stud_data = data.map(x => x.student);
+        // console.log(data);
+        for (let i = 0; i < data.length; i++) {
             // TODO whatever data is included in the message should be parsed into it's appropriate spot
             updates[i] = {
                 'id': data[i].userId,
                 'text': {
-                    "studenttext": {
-                        "id": "studenttext",
-                        "value": data[i].writing_observer_compiled.text,
+                    "student_text": {
+                        "id": "student_text",
+                        "value": data[i].text,
                         "label": "Student text"
                     }
                 },
                 'highlight': {},
-                'metrics': {
-                    "timeontask": {
-                        "id": "timeontask",
-                        "value": rendertime2(data[i]['writing_observer.writing_analysis.time_on_task'].total_time_on_task),
-                        "label": " on task"
-                    },
-                },
+                'metrics': {},
                 'indicators': {}
+            }
+            for (const key in data[i]) {
+                let item = data[i][key];
+                const sum_type = (item.hasOwnProperty('summary_type') ? item['summary_type'] : '');
+                if (sum_type === 'total') {
+                    updates[i]['metrics'][`${key}_metric`] = {
+                        'id': `${key}_metric`,
+                        'value': item['metric'],
+                        'label': item['label']
+                    }
+                } else if (sum_type === 'percent') {
+                    updates[i]['indicators'][`${key}_indicator`] = {
+                        'id': `${key}_indicator`,
+                        'value': item['metric'],
+                        'label': item['label']
+                    }
+                }
+                const offsets = (item.hasOwnProperty('offsets') ? item['offsets'] : '');
+                if (offsets.length !== 0) {
+                    updates[i]['highlight'][`${key}_highlight`] = {
+                        'id': `${key}_highlight`,
+                        'value': item['offsets'],
+                        'label': item['label']
+                    }
+                }
             }
         }
         const timestamp = new Date();
-        return [updates, timestamp.toLocaleTimeString()];
+
+        const count = (data.length == students ? window.dash_clientside.no_update : data.length)
+        const new_students = (stud_data.length == students ? window.dash_clientside.no_update : stud_data)
+
+        return [updates, timestamp.toLocaleTimeString()]; //, count, new_students];
     },
 
     open_settings: function(clicks, close, is_open, students) {
@@ -139,7 +176,7 @@ window.dash_clientside.clientside = {
         // Output(settings_collapse, 'is_open'),
         // Output({'type': student_col, 'index': ALL}, 'class_name'),
         // Output(student_grid, 'class_name'),
-        // Input(settings.show_hide_settings_open, 'n_clicks'),
+        // Input(settings.open_btn, 'n_clicks'),
         // Input(settings.close_settings, 'n_clicks'),
         // State(settings_collapse, 'is_open'),
         // State(student_counter, 'data')
@@ -162,8 +199,8 @@ window.dash_clientside.clientside = {
     //     [x] Transitions      ->
     //     [] Other             ->
     
-    // Output(show_hide_settings_indicator_collapse, 'is_open'),
-    // Input(show_hide_settings_checklist, 'value')
+    // Output(indicator_collapse, 'is_open'),
+    // Input(checklist, 'value')
     toggle_indicators_checklist: function(values) {
         if (values.includes('indicators')) {
             return true;
@@ -200,13 +237,16 @@ window.dash_clientside.clientside = {
         // All settings checklists/radioitems are combined into a single list and passed to all student cards
         //
         // Output({'type': student_card, 'index': ALL}, 'shown'),
-        // Input(settings.show_hide_settings_checklist, 'value'),
-        // Input(settings.show_hide_settings_metric_checklist, 'value'),
-        // Input(settings.show_hide_settings_text_radioitems, 'value'),
-        // Input(settings.show_hide_settings_highlight_checklist, 'value'),
-        // Input(settings.show_hide_settings_indicator_checklist, 'value'),
+        // Input(settings.checklist, 'value'),
+        // Input(settings.metric_checklist, 'value'),
+        // Input(settings.text_radioitems, 'value'),
+        // Input(settings.highlight_checklist, 'value'),
+        // Input(settings.indicator_checklist, 'value'),
         // State(student_counter, 'data')
-        const l = values.concat(metrics).concat(text).concat(highlights).concat(indicators);
+        const l = values.concat(metrics.map(x => `${x}_metric`))
+            .concat(text)
+            .concat(highlights.map(x => `${x}_highlight`))
+            .concat(indicators.map(x => `${x}_indicator`));
         return Array(students).fill(l);
     },
 
@@ -230,5 +270,85 @@ window.dash_clientside.clientside = {
         // Input(course_store, 'data'),
         // Input(assignment_store, 'data')
         return [`Assignment ${assignment_id}`, `This is assignment ${assignment_id} from course ${course_id}`]
+    },
+
+    update_course_assignment: function(hash) {
+        // Update the course and assignment info based on the hash query string
+        //
+        // Output(course_store, 'data'),
+        // Output(assignment_store, 'data'),
+        // Input('_pages_location', 'hash')
+        if (hash.length === 0) {return window.dash_clientside.no_update;}
+        const decoded = decode_string_dict(hash.slice(1))
+        return [decoded.course_id, decoded.assignment_id]
+    },
+
+    highlight_text: function(overall_show, shown, data_trigger, options) {
+        // Highlights the text appropriately
+        //
+        // Output(settings.dummy, 'style'),
+        // Input(settings.checklist, 'value'),
+        // Input(settings.highlight_checklist, 'value'),
+        // Input({'type': student_card, 'index': ALL}, 'data'),
+        // State(settings.highlight_checklist, 'options')
+
+        if (!overall_show.includes('highlight')) {return window.dash_clientside.no_update;}
+        const colors = [
+            'rgba(86, 204, 157, 0.25)', 'rgba(108, 195, 213, 0.25)',
+            'rgba(255, 206, 103, 0.25)', 'rgba(255, 120, 81, 0.25)'
+        ];
+        let docs = [];
+        const shown_colors = {};
+        // remove all highlighting and record current colors
+        options.forEach(item => {
+            docs = document.getElementsByClassName(`${item.value}_highlight`);
+            if (shown.includes(item.value)) {
+                if (docs[0].style.backgroundColor.length > 0 & docs[0].style.backgroundColor !== 'transparent') {
+                    shown_colors[item.value] = docs[0].style.backgroundColor;
+                }
+            }
+            for (var i = 0; i < docs.length; i++) {
+                docs[i].style.backgroundColor = 'transparent';
+            }
+        })
+        // highlight shown items
+        let high_color = '';
+        shown.forEach(item => {
+            docs = document.getElementsByClassName(`${item}_highlight`);
+            // fetch current color or figure out a new one
+            if (shown_colors.hasOwnProperty(item)) {
+                high_color = shown_colors[item];
+            } else {
+                let curr_colors = Object.values(shown_colors);
+                let remaining_colors = Array.from(new Set([...colors].filter(x => !curr_colors.includes(x))));
+                high_color = (remaining_colors.length === 0 ? colors[Math.floor(Math.random()*colors.length)] : remaining_colors[0])
+                shown_colors[item] = high_color;
+            }
+
+            // add background color to highlighted elements
+            for (var i = 0; i < docs.length; i++) {
+                if (docs[i].style.backgroundColor.length > 0 & docs[i].style.backgroundColor !== 'transparent') {
+                    let dc = getRGBAValues(docs[i].style.backgroundColor);
+                    let hc = getRGBAValues(high_color);
+                    let combined = `rgba(${parseInt((dc.r+hc.r)/2)}, ${parseInt((dc.g+hc.g)/2)}, ${parseInt((dc.b+hc.b)/2)}, ${hc.o+dc.o})`;
+                    console.log(dc, hc, combined);
+                    docs[i].style.backgroundColor = combined;
+                } else {
+                    docs[i].style.backgroundColor = high_color;
+                }
+            }
+        })
+    },
+
+    set_status: function(status) {
+        // Set the websocket status icon/title
+        //
+        // Output(websocket_status, 'className'),
+        // Output(websocket_status, 'title'),
+        // Input(websocket, 'state')
+
+        const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
+        const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
+        return [icons[status.readyState], titles[status.readyState]];
     }
 }

@@ -2,13 +2,13 @@
 Creates the grid of student cards
 '''
 # package imports
-from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL
+from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, exceptions as dash_e
 import dash_bootstrap_components as dbc
 from learning_observer_components import LOConnection
 import learning_observer_components as loc  # student cards
 
 # local imports
-from . import settings
+from . import settings, settings_defaults, settings_options as so
 
 # define ids for the dashboard
 # use a prefix to help ensure we don't double up on IDs (guess what happens if you double up? it breaks)
@@ -22,6 +22,7 @@ student_counter = f'{prefix}-student-counter'  # store item for quick access to 
 student_store = f'{prefix}-student-store'  # store item for student information
 course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
+websocket_status = f'{prefix}-websocket-status'  # websocket status icon
 last_updated = f'{prefix}-last-updated'  # data last updated id
 
 assignment_store = f'{prefix}-assignment-info_store'
@@ -60,6 +61,13 @@ def student_dashboard_view(course_id, assignment_id):
                     html.P(id=assignment_desc)
                 ]
             ),
+            html.Small(
+                [
+                    html.I(id=websocket_status),
+                    html.Span('Last Updated: ', className='ms-1'),
+                    html.Span(id=last_updated)
+                ]
+            ),
             dbc.Row(
                 [
                     # settings panel wrapper
@@ -77,19 +85,11 @@ def student_dashboard_view(course_id, assignment_id):
                     ),
                     # overall student grid wrapp
                     dbc.Col(
-                        [
-                            dbc.Row(
-                                id=student_row,
-                                # bootstrap gutters-2 (little bit of space between cards) and w(idth)-100(%)
-                                class_name='g-2 w-100'
-                            ),
-                            html.Small(
-                                [
-                                    'Last Updated: ',
-                                    html.Span(id=last_updated)
-                                ]
-                            )
-                        ],
+                        dbc.Row(
+                            id=student_row,
+                            # bootstrap gutters-2 (little bit of space between cards) and w(idth)-100(%)
+                            class_name='g-2 w-100'
+                        ),
                         id=student_grid,
                         # classname set in callback, default classname should go in the callback
                     )
@@ -98,25 +98,10 @@ def student_dashboard_view(course_id, assignment_id):
                 # students already have some space on the sides
                 class_name='g-0'
             ),
-            # TODO this will likely need the assignment id as well
-            # also will eventually need to be updated
-            LOConnection(
-                id=websocket,
-                data_scope={
-                    'module': 'writing_observer',
-                    'course': course_id,
-                    # 'assignment': assignment_id
-                },
-            ),
+            LOConnection(id=websocket),
             # stores for course and student info + student counter
-            dcc.Store(
-                id=course_store,
-                data=course_id
-            ),
-            dcc.Store(
-                id=assignment_store,
-                data=assignment_id
-            ),
+            dcc.Store(id=course_store),
+            dcc.Store(id=assignment_store),
             dcc.Store(
                 id=student_store,
                 data=[]
@@ -131,7 +116,37 @@ def student_dashboard_view(course_id, assignment_id):
     return container
 
 
+# set hash parameters
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_course_assignment'),
+    Output(course_store, 'data'),
+    Output(assignment_store, 'data'),
+    Input('_pages_location', 'hash')
+)
+
+# set the websocket data_scope
+clientside_callback(
+    """
+    function(course, assignment) {
+        const ret = {"module": "latest_data", "course": course};
+        return ret;
+    }
+    """,
+    Output(websocket, 'data_scope'),
+    Input(course_store, 'data'),
+    Input(assignment_store, 'data')
+)
+
+# set the websocket status icon
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='set_status'),
+    Output(websocket_status, 'className'),
+    Output(websocket_status, 'title'),
+    Input(websocket, 'state')
+)
+
 # fetch student info for course
+# TODO fix this to pull the roster information better
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='update_students'),
     Output(student_counter, 'data'),
@@ -154,7 +169,7 @@ clientside_callback(
     Output(settings_collapse, 'is_open'),
     Output({'type': student_col, 'index': ALL}, 'class_name'),
     Output(student_grid, 'class_name'),
-    Input(settings.show_hide_settings_open, 'n_clicks'),
+    Input(settings.open_btn, 'n_clicks'),
     Input(settings.close_settings, 'n_clicks'),
     State(settings_collapse, 'is_open'),
     State(student_counter, 'data')
@@ -165,6 +180,8 @@ clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
     Output({'type': student_card, 'index': ALL}, 'data'),
     Output(last_updated, 'children'),
+    # Output(student_counter, 'data'),
+    # Output(student_store, 'data'),
     Input(websocket, 'message'),
     State({'type': student_card, 'index': ALL}, 'data'),
     State(student_counter, 'data')
@@ -185,13 +202,62 @@ clientside_callback(
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='show_hide_data'),
     Output({'type': student_card, 'index': ALL}, 'shown'),
-    Input(settings.show_hide_settings_checklist, 'value'),
-    Input(settings.show_hide_settings_metric_checklist, 'value'),
-    Input(settings.show_hide_settings_text_radioitems, 'value'),
-    Input(settings.show_hide_settings_highlight_checklist, 'value'),
-    Input(settings.show_hide_settings_indicator_checklist, 'value'),
+    Input(settings.checklist, 'value'),
+    Input(settings.metric_checklist, 'value'),
+    Input(settings.text_radioitems, 'value'),
+    Input(settings.highlight_checklist, 'value'),
+    Input(settings.indicator_checklist, 'value'),
     State(student_counter, 'data')
 )
+
+# highlight text
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='highlight_text'),
+    Output(settings.dummy, 'style'),
+    Input(settings.checklist, 'value'),
+    Input(settings.highlight_checklist, 'value'),
+    Input({'type': student_card, 'index': ALL}, 'data'),
+    State(settings.highlight_checklist, 'options')
+)
+
+
+@callback(
+    output=dict(
+        sort_by_options=Output(settings.sort_by_checklist, 'options'),
+        metric_options=Output(settings.metric_checklist, 'options'),
+        metric_value=Output(settings.metric_checklist, 'value'),
+        text_options=Output(settings.text_radioitems, 'options'),
+        text_value=Output(settings.text_radioitems, 'value'),
+        highlight_options=Output(settings.highlight_checklist, 'options'),
+        highlight_value=Output(settings.highlight_checklist, 'value'),
+        indicator_options=Output(settings.indicator_checklist, 'options'),
+        indicator_value=Output(settings.indicator_checklist, 'value'),
+    ),
+    inputs=dict(
+        course=Input(course_store, 'data'),
+        assignment=Input(assignment_store, 'data')
+    )    
+)
+def fill_in_settings(course, assignment):
+    # populate all settings based on assignment or default
+
+    # TODO grab the options or type from assignment
+    # if options (obj) set opt to assignment options
+    # if type (string) set opt to settings_default.type
+    opt = settings_defaults.argumentative
+    
+    ret = dict(
+        sort_by_options=[so.sort_by_options[o] for o in opt['sort_by']['options']],
+        metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
+        metric_value=opt['metrics']['selected'],
+        text_options=[so.text_options[o] for o in opt['text']['options']],
+        text_value=opt['text']['selected'],
+        highlight_options=[so.highlight_options[o] for o in opt['highlight']['options']],
+        highlight_value=opt['highlight']['selected'],
+        indicator_options=[so.indicator_options[o] for o in opt['indicators']['options']],
+        indicator_value=opt['indicators']['selected'],
+    )
+    return ret
 
 
 @callback(
@@ -200,6 +266,11 @@ clientside_callback(
 )
 def create_cards(students):
     # create student cards based on student info
+
+    # TODO if the card data exists in the student_store,
+    # we want to include it in the initial loading of the card
+    # this will require the same parser we create for updates
+    # i.e. the same code for both js and python
     cards = [
         dbc.Col(
             loc.StudentOverviewCard(

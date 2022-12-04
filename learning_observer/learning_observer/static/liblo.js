@@ -115,3 +115,32 @@ function rendertime2(t) {
     }
     return '-';
 }
+
+// TODO this is copied code from static/common/dashboard.js
+// I couldn't get dash to pull in that file specifically,
+// but I didn't want to deal with it at that time.
+// Guessing that /common is blocked somewhere along the way.
+function decode_string_dict(stringdict) {
+    /*
+      Decode a string dictionary of the form:
+        `key1=value1; key2=value2;key3=value3`
+      This is used both to encode document hashes and for cookies.
+
+      This is inspired by a (buggy) cookie decoder from w3cschools. We
+      wrote out own since that one starts out with decodeURIComponent,
+      potentially allowing for injections.
+     */
+    var decoded = {};
+    var splitstring = stringdict.split(';');
+    for(var i = 0; i<splitstring.length; i++) {
+	var pair = splitstring[i];
+	while (pair.charAt(0) == ' ') {
+	    pair = pair.substring(1);
+	}
+	pair = pair.split('=');
+	let key = decodeURIComponent(pair[0]);
+	let value = decodeURIComponent(pair[1]);
+	decoded[key] = value;
+    }
+    return decoded;
+}
