@@ -134,6 +134,12 @@ async def get_latest_student_documents(student_data):
 
     kvs = learning_observer.kvs.KVS()
 
+    # Debugging printing used for testing the key store and student ID issue.
+    # for s in student_data:
+    #    print(s)
+    #    print(dir(s))
+
+    
     document_keys = ([
         learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
@@ -142,13 +148,22 @@ async def get_latest_student_documents(student_data):
                 EventField('doc_id'): s['writing_observer.writing_analysis.last_document']['document_id'] 
             },
             KeyStateType.INTERNAL
-        ) for s in student_data])
+        ) for s in student_data if 'writing_observer.writing_analysis.last_document' in s])
 
+    #print(">>> DOC KEYS")
+    #print(document_keys)
+    
     writing_data = await kvs.multiget(keys=document_keys)
 
+    #print(">> WRITING DATA", writing_data)
+    
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.
     writing_data = [{} if item is None else item for item in writing_data]
+
+    #print("WRITING DATA >>>>")
+    #print(writing_data)
+    
     return writing_data
 
 
@@ -185,8 +200,21 @@ async def latest_data(student_data):
     writing_data = await get_latest_student_documents(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
+
+    #print(">>>> PRINT WRITE DATA.")
+    #print(writing_data)
+
     just_the_text = [w.get("text", "") for w in writing_data]
+
+    #print(">>>> PRINT just.")
+    #print(just_the_text)
+
     annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
+
+    #print(">>>> PRINT ANN TXT.")
+    #print(annotated_texts)
+
+    
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
