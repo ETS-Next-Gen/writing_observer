@@ -28,7 +28,6 @@ PIP_CMD="pip"
 
 CODE_REPOS_LOC="../../"
 
-
 # Activate VENV
 # ---------------------------------------------------------
 source "$VIRTUAL_ENV/bin/activate"
@@ -61,9 +60,6 @@ echo -e "\n=== Installing Requirements.txt ==="
 cd ..
 "$PIP_CMD" install -r requirements.txt
 
-
-
-
 echo -e "\n=== Installing Learning Observer ==="
 cd learning_observer
 "$PYTHON_CMD" setup.py develop
@@ -75,6 +71,6 @@ cd ../modules/writing_observer
 
 
 echo -e "\n=== Installing Brad's Dashboard ==="
-cd ../wo_highlight_dashboard
+cd ../../learning_observer/prototypes/dash_wo_teacher_dashboard
 "$PYTHON_CMD" setup.py develop
 
