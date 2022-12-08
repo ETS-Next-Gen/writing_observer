@@ -162,6 +162,8 @@ async def get_latest_student_documents(student_data):
 
     kvs_data = await kvs.multiget(keys=document_keys)
 
+    #print(">> WRITING DATA", writing_data)
+    
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.  For the sake of later alignment
     # we also zip up the items with the keys and users that they come from
@@ -314,9 +316,6 @@ async def latest_data(runtime, student_data, options=None):
     # for annotated_text, single_doc in zip(annotated_texts, writing_data):
     #     if annotated_text != "Error":
     #         single_doc.update(annotated_text)
-
-    writing_data = await merge_with_student_data(writing_data, student_data)
-    writing_data = await processor(writing_data, options)
 
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)
