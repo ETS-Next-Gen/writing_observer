@@ -61,9 +61,6 @@ echo -e "\n=== Installing Requirements.txt ==="
 cd ..
 "$PIP_CMD" install -r requirements.txt
 
-
-
-
 echo -e "\n=== Installing Learning Observer ==="
 cd learning_observer
 "$PYTHON_CMD" setup.py develop
