@@ -71,7 +71,10 @@ def parse_and_validate_arguments():
     return args
 
 
-RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY')
+# DEV = Development, with full debugging
+# DEPLOY = Running on a server, with good performance
+# INTERACTIVE = Processing data offline
+RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY INTERACTIVE')
 RUN_MODE = None
 
 settings = None
@@ -116,8 +119,10 @@ def load_settings(config):
         RUN_MODE = RUN_MODES.DEV
     elif settings['config']['run_mode'] == 'deploy':
         RUN_MODE = RUN_MODES.DEPLOY
+    elif settings['config']['run_mode'] == 'interactive':
+        RUN_MODE = RUN_MODES.INTERACTIVE
     else:
-        raise ValueError("Configuration setting for run_mode must be either 'dev' or 'deploy'")
+        raise ValueError("Configuration setting for run_mode must be either 'dev', 'deploy', or 'interactive'")
 
     if 'repos' in settings:
         for repo in settings['repos']:
