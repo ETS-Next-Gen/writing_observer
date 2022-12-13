@@ -67,10 +67,6 @@ def static_url(filename):
 
 test_layout = html.Div(children=[
     html.H1(children='Test Case for Dash'),
-    # WebSocket(
-    #     id='ws',
-    #     url='ws://127.0.0.1:8892/wsapi/dashboard?module=writing_observer&course=12345678901'
-    # ),
     LOConnection(
         id='ws',
         data_scope={
