@@ -158,7 +158,7 @@ async def handle_incoming_client_event(metadata):
     pipeline = await student_event_pipeline(metadata=metadata)
 
     filename = "{timestamp}-{counter:0>10}-{username}-{pid}.study".format(
-        username = metadata.get("auth", {}).get("user_id", "GUEST"),
+        username = metadata.get("auth", {}).get("safe_user_id", "GUEST"),
         timestamp=datetime.datetime.utcnow().isoformat(),
         counter=COUNTER,
         pid=os.getpid()
