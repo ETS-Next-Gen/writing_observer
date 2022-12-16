@@ -60,6 +60,7 @@ class _KVS:
         '''
         return [await self[key] for key in keys]
 
+    
     async def load(self, filename):
         '''
         Loads the contents of a JSON object into the KVS.
@@ -143,6 +144,9 @@ class _RedisKVS(_KVS):
 
         >> await kvs['item']
         '''
+
+        print("$$$$ Getting: ", key)
+
         await self.connect()
         item = await learning_observer.redis_connection.get(key)
         if item is not None:
@@ -252,8 +256,10 @@ async def test():
     learning_observer.settings.load_settings('creds.yaml')
     mk1 = InMemoryKVS()
     mk2 = InMemoryKVS()
-    ek1 = EphemeralRedisKVS()
-    ek2 = EphemeralRedisKVS()
+    #ek1 = EphemeralRedisKVS()
+    #ek2 = EphemeralRedisKVS()
+    ek1 = PersistentRedisKVS()
+    ek2 = PersistentRedisKVS()
     assert(await mk1["hi"]) is None
     print(await ek1["hi"])
     assert(await ek1["hi"]) is None
