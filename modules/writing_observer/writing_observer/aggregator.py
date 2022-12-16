@@ -266,20 +266,25 @@ async def latest_data(runtime, student_data, options=None):
         await update_reconstruct_data_with_google_api(runtime, student_data)
     writing_data = await retrieve_latest_documents_kvs(student_data)
     writing_data = await remove_extra_data(writing_data)
+
+    print(">>>> PRINT WRITE DATA: Remove Extra")
+    print(writing_data)
+
+    # This is the error.
     writing_data = await merge_with_student_data(writing_data, student_data)
 
-    #print(">>>> PRINT WRITE DATA.")
-    #print(writing_data)
+    print(">>>> PRINT WRITE DATA: Merge")
+    print(writing_data)
 
     just_the_text = [w.get("text", "") for w in writing_data]
 
-    #print(">>>> PRINT just.")
-    #print(just_the_text)
+    print(">>>> PRINT just.")
+    print(just_the_text)
 
     annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
 
-    #print(">>>> PRINT ANN TXT.")
-    #print(annotated_texts)
+    print(">>>> PRINT ANN TXT.")
+    print(annotated_texts)
 
     
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
