@@ -171,7 +171,6 @@ def adjust_external_gc_ids(resp_json):
 
         # Pull the actual profile data.
         student_profile = student_json['profile']
-
         # Calculate the new ID to use for our student.
         google_id = auth.google_id_to_user_id(student_profile['id'])
 
