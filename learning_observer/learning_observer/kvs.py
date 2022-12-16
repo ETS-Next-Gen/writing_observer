@@ -64,6 +64,7 @@ class _KVS:
         '''
         return [await self[key] for key in keys]
 
+    
     async def load(self, filename):
         '''
         Loads the contents of a JSON object into the KVS.
@@ -147,6 +148,9 @@ class _RedisKVS(_KVS):
 
         >> await kvs['item']
         '''
+
+        print("$$$$ Getting: ", key)
+
         await self.connect()
         item = await learning_observer.redis_connection.get(key)
         if item is not None:
