@@ -51,9 +51,27 @@ def student_dashboard_view(course_id, assignment_id):
                     # open settings button
                     html.Div(
                         [
-                            settings.open_btn
+                            dbc.Button(
+                                [
+                                    html.I(id=websocket_status),
+                                    html.Span('Last Updated: ', className='ms-2'),
+                                    html.Span(id=last_updated)
+                                ],
+                                outline=True, color="dark", className="me-2"
+                            ),
+                            settings.open_btn,
+                            dbc.DropdownMenu(
+                                [
+                                    dbc.DropdownMenuItem(
+                                        "Logout", 
+                                        href="/auth/logout",
+                                    ),
+                                ],
+                                label="Menu",
+                                className="ms-2"
+                            )
                         ],
-                        className='float-end'
+                        className='d-flex align-items-center float-end'
                     ),
                     html.Br(),
                     # assignment description
