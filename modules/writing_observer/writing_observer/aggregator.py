@@ -148,7 +148,6 @@ async def get_latest_student_documents(student_data):
 
     # Compile a list of the active students.
     active_students = [s for s in student_data if 'writing_observer.writing_analysis.last_document' in s]
-
     # Now collect documents for all of the active students.
     document_keys = ([
         learning_observer.stream_analytics.helpers.make_key(
@@ -162,7 +161,7 @@ async def get_latest_student_documents(student_data):
 
     kvs_data = await kvs.multiget(keys=document_keys)
 
-    print(">> WRITING DATA", writing_data)
+    print(">> WRITING DATA: KVS Data", kvs_data)
     
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.  For the sake of later alignment
@@ -287,6 +286,8 @@ async def latest_data(runtime, student_data, options=None):
     #         single_doc.update(annotated_text)
     :return: The latest writing data.
     '''
+    print(">>>> PRINT WRITE DATA: Incoming Student")
+    print(student_data)
 
     # HACK we have a cache downstream that relies on redis_ephemeral being setup
     # when that is resolved, we can remove the feature flag
