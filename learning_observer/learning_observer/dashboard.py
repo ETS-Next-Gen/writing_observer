@@ -209,8 +209,6 @@ def fetch_student_state(
         students = []
         for student in roster:
 
-            print("#$#$ StudRost: ", student)
-            
             student_state = {
                 # We're copying Google's roster format here.
                 #
@@ -324,8 +322,6 @@ async def websocket_dashboard_view(request):
 
     roster = await rosters.courseroster(request, course_id)
 
-    print("%%% ROSTER: ", roster)
-    
     # If we're grabbing data for just one student, we filter the
     # roster down.  This pathway ensures we only serve data for
     # students on a class roster.  I'm not sure this API is
@@ -352,8 +348,6 @@ async def websocket_dashboard_view(request):
     while True:
         sd = await student_state_fetcher()
 
-        print("#### sd: ", sd)
-        
         data = {
             "student_data": sd   # Per-student list
         }
