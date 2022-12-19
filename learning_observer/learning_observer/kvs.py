@@ -150,8 +150,6 @@ class _RedisKVS(_KVS):
         >> await kvs['item']
         '''
 
-        print("$$$$ Getting: ", key)
-
         await self.connect()
         item = await learning_observer.redis_connection.get(key)
         if item is not None:
