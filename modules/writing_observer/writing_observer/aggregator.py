@@ -158,12 +158,10 @@ async def get_latest_student_documents(student_data):
             KeyStateType.INTERNAL
         ) for s in active_students]) # in student_data if 'writing_observer.writing_analysis.last_document' in s])
 
-    print(">>> DOC KEYS")
     print(document_keys)
     
     kvs_data = await kvs.multiget(keys=document_keys)
 
-    print(">> WRITING DATA: KVS Data", kvs_data)
     
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.  For the sake of later alignment
@@ -183,7 +181,6 @@ async def get_latest_student_documents(student_data):
         doc['student'] = student
         writing_data.append(doc)
     
-    print(">>>> Writing Data: LATEST STUDENT DOCS")
     print(writing_data)
     
     return writing_data
@@ -205,9 +202,6 @@ async def merge_with_student_data(writing_data, student_data):
     Add the student metadata to each text
     '''
 
-    print("!!!! WRITE: ", writing_data)
-    print("!!!! STUDENT: ", student_data)
-    
     for item, student in zip(writing_data, student_data):
         if 'edit_metadata' in item:
             del item['edit_metadata']
@@ -243,20 +237,11 @@ async def latest_data(student_data, options=None):
     object interface that hides some of this from the user 
     but for the now we'll roll with this.  
     '''
-    print(">>>> PRINT WRITE DATA: Incoming Student")
-    print(student_data)
-
     # Get the latest documents with the students appended.
     writing_data = await get_latest_student_documents(student_data)
 
-    print(">>>> PRINT WRITE DATA: LAtest DOC")
-    print(writing_data)
-
     # Strip out the unnecessary extra data.
     writing_data = await remove_extra_data(writing_data)
-
-    print(">>>> PRINT WRITE DATA: Remove Extra")
-    print(writing_data)
 
     # This is the error.  Skipping now.
     #writing_data = await merge_with_student_data(writing_data, student_data)
@@ -266,17 +251,11 @@ async def latest_data(student_data, options=None):
 
     just_the_text = [w.get("text", "") for w in writing_data]
 
-    print(">>>> PRINT just.")
-    print(just_the_text)
-
     annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
 
-    print(">>>> PRINT ANN TXT.")
-    print(annotated_texts)
-    
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
     # Call Paul's code to add stuff to it
-    print(">>>>> Final Data: ", writing_data)
+
     return {'latest_writing_data': writing_data}
