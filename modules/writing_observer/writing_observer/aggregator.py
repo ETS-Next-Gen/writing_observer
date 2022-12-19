@@ -208,7 +208,11 @@ async def get_latest_student_documents(student_data):
         doc['student'] = student
         writing_data.append(doc)
 
-    print("WRITING DATA >>>>")
+        # Now insert the student data and pass it along.
+        doc['student'] = student
+        writing_data.append(doc)
+    
+    print(">>>> Writing Data: LATEST STUDENT DOCS")
     print(writing_data)
     
     return writing_data
