@@ -116,7 +116,6 @@ platforms so you may need to install some version manually.
 
 #### Additional Notes
 
-=======
  * REDIS
  * nginx.
 
