@@ -24,9 +24,13 @@ auth:
       token_uri: https://oauth2.googleapis.com/token
       auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
       client_secret: {google-client-secret}
+<<<<<<< HEAD
       javascript_origins: ["{url}"]
       # base_scopes: []        # We can override the scopes we ask Google for here
       # additional_scopes: []  # Or just add a few new ones. Not very tested.
+=======
+      # javascript_origins: ["{url}"]
+>>>>>>> 7a9315cf (Updated with upstream content and removed local debugging printing.)
   password_file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
   http_basic_auth:        # HTTP auth. You probably want to remove this.
