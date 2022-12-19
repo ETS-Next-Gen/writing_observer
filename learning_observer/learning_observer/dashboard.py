@@ -181,6 +181,9 @@ def fetch_student_state(
         '''
         students = []
         for student in roster:
+
+            print("#$#$ StudRost: ", student)
+            
             student_state = {
                 # We're copying Google's roster format here.
                 #
@@ -191,23 +194,35 @@ def fetch_student_state(
                 # extra stuff.
                 'profile': {
                     'name': {
-                        'fullName': student['profile']['name']['fullName']
+                        'full_name': student['profile']['name']['full_name']
                     },
-                    'photoUrl': student['profile']['photoUrl'],
-                    'emailAddress': student['profile']['emailAddress'],
+                    'photo_url': student['profile']['photo_url'],
+                    'email_address': student['profile']['email_address'],
+                    'external_ids': student['profile']['external_ids'],
                 },
-                "courseId": course_id,
-                "userId": student['userId'],  # TODO: Encode?
+                "course_id": course_id,
+                "user_id": student['user_id'],  # TODO: Encode?
             }
+
+            print("@@@ NewStudent: ", student_state)
+            
+            # # Hack to deal with cases where the external_ids are not yet
+            # # saved.  This will simply skip over the issues.  For the
+            # # moment we add a blank list if none are present.
+            # if ("external_ids" in student['profile']):
+            #     student_state["profile"]["external_ids"] = student["profile"]['external_ids']
+            # else: student_state["external_ids"] = []
+                                        
             student_state.update(default_data)
 
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
-            google_id = student['userId']
+            google_id = student['user_id']
             if google_id.isnumeric():
                 student_id = learning_observer.auth.google_id_to_user_id(google_id)
             else:
                 student_id = google_id
+
             # TODO: Evaluate whether this is a bottleneck.
             #
             # mget is faster than ~50 gets. But some online benchmarks show both taking
@@ -289,6 +304,8 @@ async def websocket_dashboard_view(request):
 
     roster = await rosters.courseroster(request, course_id)
 
+    print("%%% ROSTER: ", roster)
+    
     # If we're grabbing data for just one student, we filter the
     # roster down.  This pathway ensures we only serve data for
     # students on a class roster.  I'm not sure this API is
@@ -297,8 +314,10 @@ async def websocket_dashboard_view(request):
     # the same data format for 1 student as for a classroom of
     # students.
     if student_id is not None:
-        roster = [r for r in roster if r['userId'] == student_id]
+        roster = [r for r in roster if r['user_id'] == student_id]
 
+    print("%%% ROSTER2!!!: ", roster)
+        
     # Grab student list, and deliver to the client
     student_state_fetcher = fetch_student_state(
         course_id,
@@ -312,6 +331,9 @@ async def websocket_dashboard_view(request):
 
     while True:
         sd = await student_state_fetcher()
+
+        print("#### sd: ", sd)
+        
         data = {
             "student_data": sd   # Per-student list
         }
