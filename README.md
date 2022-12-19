@@ -116,6 +116,12 @@ platforms so you may need to install some version manually.
 
 #### Additional Notes
 
+=======
+ * REDIS
+ * nginx.
+
+
+Additional Notes
 At present the system also uses static content that is served from a repo.
 This allows us to actually select different sources for the static data.
 This can also point to the current copy if necessary and can be configured

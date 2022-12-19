@@ -188,7 +188,6 @@ async def get_latest_student_documents(student_data):
         doc['student'] = student
         writing_data.append(doc)
     
-    print(">>>> Writing Data: LATEST STUDENT DOCS")
     print(writing_data)
     
     return writing_data
@@ -210,9 +209,6 @@ async def merge_with_student_data(writing_data, student_data):
     Add the student metadata to each text
     '''
 
-    print("!!!! WRITE: ", writing_data)
-    print("!!!! STUDENT: ", student_data)
-    
     for item, student in zip(writing_data, student_data):
         if 'edit_metadata' in item:
             del item['edit_metadata']

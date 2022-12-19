@@ -93,7 +93,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     - We often want some default if that field is missing (`default`)
     - We often want the response sensibly sorted (`sort_key`)
     '''
-    print(">> RESP_JSON_IN:", key, resp_json)
 
     # Convert errors into appropriate codes for clients
     # Typically, resp_json['error'] == 'UNAUTHENTICATED'
@@ -126,7 +125,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
         resp_json.sort(key=sort_key)
   
         
-    print("<< RESP_JSON_OUT:", resp_json)
     return resp_json
 
 
