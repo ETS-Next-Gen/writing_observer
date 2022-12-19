@@ -126,7 +126,16 @@ def aggregate_course_summary_stats(student_data):
 async def get_latest_student_documents(student_data):
     '''
     This will retrieve the latest student documents from the database. It breaks
-    abstractions.
+    abstractions.  
+
+    It also involves some excess loops that are annoying but briefly we need to 
+    determine which students actually *have* last writing data. Then we need to 
+    go through and build keys for that data.  Then we fetch the data itself. 
+    Later on in this file we need to marry the information again.  This builds
+    up a series of lists which are successively merged into a single dict with
+    the resulting data.  
+
+    Some of what is copied along is clearly duplicative and probably unneeded.
     '''
     import learning_observer.kvs
 
@@ -135,6 +144,10 @@ async def get_latest_student_documents(student_data):
 
     kvs = learning_observer.kvs.KVS()
 
+    # Compile a list of the active students.
+    active_students = [s for s in student_data if 'writing_observer.writing_analysis.last_document' in s]
+    
+    # Now collect documents for all of the active students.
     document_keys = ([
         learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
@@ -143,20 +156,34 @@ async def get_latest_student_documents(student_data):
                 EventField('doc_id'): s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
             },
             KeyStateType.INTERNAL
-        ) for s in student_data if 'writing_observer.writing_analysis.last_document' in s])
+        ) for s in active_students]) # in student_data if 'writing_observer.writing_analysis.last_document' in s])
 
     print(">>> DOC KEYS")
     print(document_keys)
     
-    writing_data = await kvs.multiget(keys=document_keys)
+    kvs_data = await kvs.multiget(keys=document_keys)
 
-    print(">> WRITING DATA", writing_data)
+    print(">> WRITING DATA: KVS Data", kvs_data)
     
     # Return blank entries if no data, rather than None. This makes it possible
-    # to use item.get with defaults sanely.
-    writing_data = [{} if item is None else item for item in writing_data]
+    # to use item.get with defaults sanely.  For the sake of later alignment
+    # we also zip up the items with the keys and users that they come from
+    # this hack allows us to align them after cleaning occurrs later.
+    # writing_data = [{} if item is None else item for item in writing_data]
+    writing_data = []
+    for idx in range(len(document_keys)):
+        student = active_students[idx]
+        doc     = kvs_data[idx]
+        
+        # If we have an empty item we simply return an empty dict with the
+        # student but an empty doc value.
+        if (doc is None): doc = {}
 
-    print("WRITING DATA >>>>")
+        # Now insert the student data and pass it along.
+        doc['student'] = student
+        writing_data.append(doc)
+    
+    print(">>>> Writing Data: LATEST STUDENT DOCS")
     print(writing_data)
     
     return writing_data
@@ -204,26 +231,38 @@ else:
 async def latest_data(student_data, options=None):
     '''
     HACK HACK HACK
+    
+    This code needs to take the student data as a dict and then 
+    collect the latest writing data for each student (assuming 
+    they have it). The code then passes that writing data on 
+    to Paul's code for processing.  For the time being this 
+    works by essentially building up some large dicts that 
+    contain the text and student data together.  
 
-    I just hardcoded this, breaking abstractions, repeating code, etc.
+    In the long run this should *all* be replaced by a cleaner
+    object interface that hides some of this from the user 
+    but for the now we'll roll with this.  
     '''
+    print(">>>> PRINT WRITE DATA: Incoming Student")
+    print(student_data)
 
+    # Get the latest documents with the students appended.
     writing_data = await get_latest_student_documents(student_data)
 
     print(">>>> PRINT WRITE DATA: LAtest DOC")
     print(writing_data)
 
-
+    # Strip out the unnecessary extra data.
     writing_data = await remove_extra_data(writing_data)
 
     print(">>>> PRINT WRITE DATA: Remove Extra")
     print(writing_data)
 
-    # This is the error.
-    writing_data = await merge_with_student_data(writing_data, student_data)
+    # This is the error.  Skipping now.
+    #writing_data = await merge_with_student_data(writing_data, student_data)
 
-    print(">>>> PRINT WRITE DATA: Merge")
-    print(writing_data)
+    #print(">>>> PRINT WRITE DATA: Merge")
+    #print(writing_data)
 
     just_the_text = [w.get("text", "") for w in writing_data]
 
@@ -234,10 +273,10 @@ async def latest_data(student_data, options=None):
 
     print(">>>> PRINT ANN TXT.")
     print(annotated_texts)
-
     
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
     # Call Paul's code to add stuff to it
+    print(">>>>> Final Data: ", writing_data)
     return {'latest_writing_data': writing_data}
