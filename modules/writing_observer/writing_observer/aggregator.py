@@ -195,12 +195,10 @@ async def retrieve_latest_documents_kvs(student_data):
             KeyStateType.INTERNAL
         ) for s in active_students]) # in student_data if 'writing_observer.writing_analysis.last_document' in s])
 
-    print(">>> DOC KEYS")
     print(document_keys)
     
     kvs_data = await kvs.multiget(keys=document_keys)
 
-    print(">> WRITING DATA: KVS Data", kvs_data)
     
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.
