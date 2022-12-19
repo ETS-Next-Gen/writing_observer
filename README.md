@@ -108,6 +108,21 @@ All _Learning Observer_ development has been on Linux-based platforms
 (including Ubuntu and RHEL). There are folks outside of the core team
 who have tried to run it on Mac or on WSL, with mixed success.
 
+Running on RHEL requires the following services:
+ * REDIS
+ * nginx.
+
+
+Additional Notes
+===================
+At present the system also uses static content that is served from a repo.
+This allows us to actually select different sources for the static data.
+This can also point to the current copy if necessary and can be configured
+as part of the creds.yaml file to generate the repo or add it on startup.
+
+This is not ideal but it is a mechanism for embedding the alternatives.
+
+
 Contributing or learning more
 =============================
 

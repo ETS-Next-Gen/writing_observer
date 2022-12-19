@@ -23,7 +23,7 @@ auth:
       token_uri: https://oauth2.googleapis.com/token
       auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
       client_secret: {google-client-secret}
-      javascript_origins: ["{url}"]
+      # javascript_origins: ["{url}"]
   password_file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
   http_basic_auth:        # HTTP auth. You probably want to remove this.

@@ -132,7 +132,6 @@ def camel_to_underscore_rename_dict(d, translations):
     Replace all of the keys in the dictionary with new keys, including
     sub-dictionaries
     """
-    print("<<< DD ", d)
     if isinstance(d,list):
         for l in d:
             camel_to_underscore_rename_dict(l, translations)
@@ -159,7 +158,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     - We often want some default if that field is missing (`default`)
     - We often want the response sensibly sorted (`sort_key`)
     '''
-    print(">> RESP_JSON_IN:", key, resp_json)
 
     # Convert errors into appropriate codes for clients
     # Typically, resp_json['error'] == 'UNAUTHENTICATED'
@@ -192,7 +190,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
         resp_json.sort(key=sort_key)
   
         
-    print("<< RESP_JSON_OUT:", resp_json)
     return resp_json
 
 
@@ -211,7 +208,6 @@ def adjust_external_gc_ids(resp_json):
     forward that will need to be changed to something more robust. See the comments
     at the top of this module.
     '''
-    print(">>> Adj ExtGC ", resp_json) 
 
     # Iterate over the students performing an addition of the external_ids and possible
     # conversion of the individual id.
@@ -376,7 +372,6 @@ async def google_ajax(
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
-    print(">> CALL GOOGL AJAX")
 
     if parameters is None:  # Should NOT be a default param. See W0102.
         parameters = {}

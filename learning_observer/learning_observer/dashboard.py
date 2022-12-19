@@ -182,8 +182,6 @@ def fetch_student_state(
         students = []
         for student in roster:
 
-            print("#$#$ StudRost: ", student)
-            
             student_state = {
                 # We're copying Google's roster format here.
                 #
@@ -204,8 +202,6 @@ def fetch_student_state(
                 "user_id": student['user_id'],  # TODO: Encode?
             }
 
-            print("@@@ NewStudent: ", student_state)
-            
             # # Hack to deal with cases where the external_ids are not yet
             # # saved.  This will simply skip over the issues.  For the
             # # moment we add a blank list if none are present.
@@ -304,8 +300,6 @@ async def websocket_dashboard_view(request):
 
     roster = await rosters.courseroster(request, course_id)
 
-    print("%%% ROSTER: ", roster)
-    
     # If we're grabbing data for just one student, we filter the
     # roster down.  This pathway ensures we only serve data for
     # students on a class roster.  I'm not sure this API is
@@ -315,8 +309,6 @@ async def websocket_dashboard_view(request):
     # students.
     if student_id is not None:
         roster = [r for r in roster if r['user_id'] == student_id]
-
-    print("%%% ROSTER2!!!: ", roster)
         
     # Grab student list, and deliver to the client
     student_state_fetcher = fetch_student_state(
@@ -332,8 +324,6 @@ async def websocket_dashboard_view(request):
     while True:
         sd = await student_state_fetcher()
 
-        print("#### sd: ", sd)
-        
         data = {
             "student_data": sd   # Per-student list
         }

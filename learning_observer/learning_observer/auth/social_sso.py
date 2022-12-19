@@ -118,8 +118,6 @@ async def _google(request):
         async with client.post(url, data=params) as resp:
             data = await resp.json()
 
-        # print(">>>>DATA::")
-        # print(data)
         assert 'access_token' in data, data
 
         # get user profile
