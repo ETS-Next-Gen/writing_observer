@@ -410,8 +410,8 @@ async def latest_data(runtime, student_data, options=None):
 
     writing_data = await merge_with_student_data(writing_data, student_data)
 
-    print(">>>> PRINT WRITE DATA: Merge")
-    print(writing_data)
+    #print(">>>> PRINT WRITE DATA: Merge")
+    #print(writing_data)
 
     just_the_text = [w.get("text", "") for w in writing_data]
 
@@ -422,12 +422,12 @@ async def latest_data(runtime, student_data, options=None):
 
     print(">>>> PRINT ANN TXT.")
     print(annotated_texts)
-
     
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
     # Call Paul's code to add stuff to it
+    print(">>>>> Final Data: ", writing_data)
     return {'latest_writing_data': writing_data}
 
 
