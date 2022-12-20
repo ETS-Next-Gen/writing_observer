@@ -22,8 +22,26 @@ import learning_observer.kvs
 import learning_observer.rosters
 import learning_observer.dashboard
 
+from learning_observer.stream_analytics.helpers import kvs_pipeline, KeyField, EventField, Scope
 
-async def init():
+
+# For interactive data analysis
+INTERACTIVE_SETTINGS = {
+    'kvs': {'type': 'stub'},
+    'config': {
+        'run_mode': 'interactive'
+    },
+    "logging": {
+        "debug_log_level": "NONE",
+        "debug_log_destination": ["console"]
+    },
+    "roster_data": {
+        "source": "all"
+    }
+}
+
+
+def init(settings=INTERACTIVE_SETTINGS):
     '''
     Initialize the Learning Observer library.
 
@@ -33,32 +51,27 @@ async def init():
     This function will load the settings, and initialize the KVS to
     run from memory.
     '''
-    # Run from memory
-    learning_observer.settings.load_settings({
-        "logging": {
-            "debug_log_level": "NONE",
-            "debug_log_destination": ["console"]
-        },
-        "kvs": {
-            "type": "stub",
-        },
-        "config": {
-            "run_mode": "dev"
-        },
-        "roster_data": {
-            "source": "all"
-        }
-    })
-
-    # Initialize the system
+    # We override the debug log level since we don't want to spew logs if we do
+    # anything before we've loaded the settings. This might not be necessary,
+    # depending on the (still-changing) startup order
     learning_observer.log_event.DEBUG_LOG_LEVEL = learning_observer.log_event.LogLevel.NONE
+    learning_observer.settings.load_settings(settings)
+    learning_observer.kvs.kvs_startup_check()  # Set up the KVS
+    # Force load of the reducers. This is not necessary right now, but it was
+    # before, and might be later again. We should remove this call once the
+    # system has stabilized a little bit.
     reducers = learning_observer.module_loader.reducers()
-    learning_observer.kvs.kvs_startup_check()
-    learning_observer.stream_analytics.init()
+    learning_observer.stream_analytics.init()  # Load existing reducers
     learning_observer.rosters.init()
 
 
-async def process_file(file_path, source=None, userid=None):
+async def process_file(
+    file_path=None,
+    events_list=None,
+    source=None,
+    userid=None,
+    pipeline=None
+):
     '''
     Process a single log file.
 
@@ -83,38 +96,52 @@ async def process_file(file_path, source=None, userid=None):
     that should be done with care, and a parameter would be needed to
     enable this.
     '''
-    if file_path.endswith('.log'):
-        opener = open
-    elif file_path.endswith('.log.gz'):
-        opener = gzip.open
-    else:
-        raise ValueError("Unknown file type: " + file_path)
+    if events_list is not None and file_path is not None:
+        raise AttributeError("Please specify either an events list or a file path, not both")
+
+    # Opener returns an iterator of events. It handles diverse sources:
+    # lists, log files, and compressed log files
+    opener = lambda: events_list
+
+    if file_path is not None:
+        if file_path.endswith('.log'):
+            file_opener = lambda: open(file_path)
+        elif file_path.endswith('.log.gz'):
+            file_opener = lambda: gzip.open(file_path)
+        else:
+            raise ValueError("Unknown file type: " + file_path)
+        opener = lambda: (json.loads(line) for line in file_opener().readlines())
 
     if source is None:
-        with opener(file_path, 'r') as fp:
-            first_line = json.loads(fp.readline())
-            source = first_line['client']['source']
+        for event in opener:
+            source = event['client']['source']
+            break
 
+    # In most cases, for development, a dummy name is good.
     if userid is None:
         userid = names.get_first_name()
 
-    pipeline = await learning_observer.incoming_student_event.student_event_pipeline({
+    metadata = {
         "source": source,
         "auth": {
             "user_id": userid,
             "safe_user_id": userid
         }
-    })
+    }
 
+    if pipeline is None:
+        pipeline = await learning_observer.incoming_student_event.student_event_pipeline(metadata)
+    else:
+        pipeline = await pipeline(metadata)
+    print(pipeline)
     n = 0  # Number of events processed
-    with opener(file_path) as fp:
-        for line in fp.readlines():
-            try:
-                await pipeline(json.loads(line))
-                n += 1
-            except:
-                print(line)
-                raise
+    for event in opener():
+        try:
+            await pipeline(event)
+            n += 1
+        except:
+            print(event)
+            raise
 
     return n, source, userid
 
@@ -164,7 +191,7 @@ async def reset():
     Reset the Learning Observer library, clearing all processed events
     from the KVS.
 
-    In the future, this will also clear the modules, etc.
+    In the future, this might also clear the modules, etc.
     '''
     kvs = learning_observer.kvs.KVS()
     await kvs.clear()
@@ -200,3 +227,74 @@ async def aggregate(module_id):
     }
     data.update(aggregator(sd))
     return data
+
+
+async def default_aggregation(function):
+    """
+    Return the aggregated data from this reducer function. This doesn't
+    require any aggregators to be loaded, which is nice.
+
+    This is only for offline operation (e.g. with the `all` roster)
+    """
+    roster = await learning_observer.rosters.courseroster(None, 12345)
+    student_state_fetcher = learning_observer.dashboard.fetch_student_state(
+        12345,
+        "test_case_unused",
+        {"sources": [function]},
+        roster,
+        {}
+    )
+    sd = await student_state_fetcher()
+    return {"student_data": sd}
+
+
+@kvs_pipeline(
+    scope=Scope([KeyField.STUDENT]),
+    module_override="testcase",
+    qualname_override="event_count"
+)
+async def test_reducer(event, state):
+    if state is None:
+        state = {}
+    state['event_count'] = state.get('event_count', 0) + 1
+    return state, state
+
+
+async def test_case():
+    init()
+    print("Reducers:")
+    print(learning_observer.module_loader.reducers())
+    kvs = learning_observer.kvs.KVS()
+    print("Keys:")
+    print(await kvs.keys())
+    import tempfile
+    import os
+    (handle, filename) = tempfile.mkstemp(text=True, suffix=".log")
+    with os.fdopen(handle, "w") as fp:
+        for i in range(5):
+            fp.write("{}\n")
+    await process_file(
+        file_path=filename,
+        source="org.ets.testcase",
+        pipeline=test_reducer,
+        userid="Bob"
+    )
+    os.unlink(filename)
+    await process_file(
+        events_list=[{}]*3,
+        source="org.ets.testcase",
+        pipeline=test_reducer,
+        userid="Sue"
+    )
+    print("Keys:")
+    keys = await kvs.keys()
+    print(keys)
+    for key in keys:
+        print("{key} {value}".format(
+            key=key,
+            value=await kvs[key]
+        ))
+    print(await default_aggregation(test_reducer))
+
+if __name__ == '__main__':
+    asyncio.run(test_case())
