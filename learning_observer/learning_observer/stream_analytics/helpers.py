@@ -188,7 +188,9 @@ def make_key(func, key_dict, state_type):
 
 def kvs_pipeline(
         null_state=None,
-        scope=None
+        scope=None,
+        module_override=None,
+        qualname_override=None
 ):
     '''
     Closures, anyone?
@@ -208,7 +210,9 @@ def kvs_pipeline(
         debug_log("Defaulting to student scope")
         scope = Scope([KeyField.STUDENT])
 
-    def decorator(func):
+    def decorator(
+        func
+    ):
         '''
         The decorator itself.
 
@@ -218,7 +222,21 @@ def kvs_pipeline(
         we could make modules with just reducers (where all aggregation, etc.
         was handled automatically). This isn't as central to the current
         design.
+
+        For interactive development, we allow overriding the `__module__` and
+        `__qualname__` of the function. This is helpful in places like Jupyer
+        notebooks, since this is used for setting keys.
+
+        We could, as an alternative, pass these as additional parameters to
+        `make_key`, and `setattr` just over `wrapper_closure` to avoid side
+        effects.
         '''
+        if qualname_override is not None:
+            setattr(func, '__qualname__', qualname_override)
+        if module_override is not None:
+            setattr(func, '__module__', module_override)
+
+
         @functools.wraps(func)
         async def wrapper_closure(metadata):
             '''
@@ -231,7 +249,7 @@ def kvs_pipeline(
             '''
             taskkvs = learning_observer.kvs.KVS()
 
-            async def process_event(event, event_fields):
+            async def process_event(event, event_fields={}):
                 '''
                 This is the function which processes events. It calls the event
                 processor, passes in the event(s) and state. It takes
