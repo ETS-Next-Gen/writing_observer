@@ -143,7 +143,7 @@ def static_repos():
     engine).
 
     (Of course, YMMV. If you're hosting test items in a repo, then you
-    want to be very careful about security)\
+    want to be very careful about security)
     '''
     load_modules()
     return STATIC_REPOS
@@ -207,12 +207,32 @@ def validate_module(module):
 DEFAULT_STUDENT_SCOPE = helpers.Scope([helpers.KeyField.STUDENT])
 
 
+def format_function(f):
+    '''
+    Returns a nice, fully-qualified name for a function
+    '''
+    return f"{f.__module__}.{f.__name__}"
+
+
+def add_reducer(reducer, string_id=None):
+    '''
+    We add a reducer. In actual operation, this should only happen once, on
+    module load. We'd like to be able to dynamic load and reload reducers in
+    interactive programming, so we offer the optnio of a `string_id`
+    '''
+    if string_id is not None:
+        REDUCERS = [r for r in REDUCERS if r.get("string_id", None) != string_id]
+    REDUCERS.append(reducer)
+    return REDUCERS
+
+
+
 def load_reducers(component_name, module):
     '''
     Load reducers from a module.
 
     We clean up the reducer by removing any keys that we don't
-    need, adding defaults for any missing keys.
+    and need, adding defaults for any missing keys.
     '''
     # Load any state reducers / event processors
     if hasattr(module, "REDUCERS"):
@@ -220,10 +240,20 @@ def load_reducers(component_name, module):
         for reducer in module.REDUCERS:
             cleaned_reducer = {
                 "context": reducer['context'],
-                "function": reducer['function'],
+                "function": reducer['function'],  # Primary ID
                 "scope": reducer.get('scope', DEFAULT_STUDENT_SCOPE),
                 "module": module
             }
+
+            # Here's the deal: Our primary ID is the function itself, and our
+            # code should rely on that. It gives us type safety. However, it's
+            # convenient to be able to reference these things more easily when
+            # developing interactively. This gives a string ID. We might eliminate
+            # this later, since it's possible to recompute to the string
+            # representation of the function. But it's convenient for now.
+            if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.INTERACTIVE:
+                cleaned_reducer['string_id'] = format_function(reducer['function'])
+
             debug_log(f"Loading reducer: {cleaned_reducer}")
             REDUCERS.append(cleaned_reducer)
     else:
