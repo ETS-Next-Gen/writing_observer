@@ -80,6 +80,7 @@ if not os.path.exists(paths.logs("startup")):
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
 
+
 # Do we make files for exceptions? Do we print extra stuff on the console?
 #
 # On deployed systems, this can make a mess. On dev systems, this is super-helpful
@@ -87,7 +88,6 @@ files = {}
 # We should probably move this to the settings file instead of hardcoding it. There
 # was a reason for not placing this in the settings file, but it's no longer relevant
 # after a refactor.
-#
 class LogLevel(Enum):
     '''
     What level of logging do we want?
@@ -107,6 +107,7 @@ class LogDestination(Enum):
     '''
     CONSOLE = 'CONSOLE'
     FILE = 'FILE'
+
 
 # Before we've read the settings file, we'll log basic messages to the
 # console and to the log file.

@@ -26,6 +26,7 @@ import os.path
 import sys
 import time
 import logging
+import traceback
 
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
@@ -90,7 +91,7 @@ def reimport_child_modules(paths=[LOCAL_PATH]):
             importlib.reload(module)
             print('reloaded %s' % module.__name__)
             reloaded.append(module)
-        except:
+        except Exception:
             print("Failed to reload %s" % module.__name__)
             traceback.print_exc()
             failed.append(module)

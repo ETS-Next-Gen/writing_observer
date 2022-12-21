@@ -114,6 +114,7 @@ def json_load(string):
 
 COUNT = 0
 
+
 def session_key(session):
     """
     Return an ID associated with a session.
@@ -273,10 +274,10 @@ class Merkle:
         '''
         if not continue_session:
             event = {
-                    'type': 'start',
-                    'session': session
-                    # Perhaps we want to add a category here? E.g. 'session_event_stream' for the raw streams
-                    # and something else to indicate parents?
+                'type': 'start',
+                'session': session
+                # Perhaps we want to add a category here? E.g. 'session_event_stream' for the raw streams
+                # and something else to indicate parents?
             }
         else:
             raise NotImplementedError('Continuing sessions not implemented')

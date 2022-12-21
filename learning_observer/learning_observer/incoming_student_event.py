@@ -108,7 +108,7 @@ async def student_event_pipeline(metadata):
 
         # Try to run a message through all event processors.
         #
-        # To do: Finer-grained exception handling. Right now, if we break, we 
+        # To do: Finer-grained exception handling. Right now, if we break, we
         # don't even run through the remaining processors.
         try:
             processed_analytics = []
@@ -147,6 +147,7 @@ async def student_event_pipeline(metadata):
 
 COUNTER = 0
 
+
 async def handle_incoming_client_event(metadata):
     '''
     Common handler for both Websockets and AJAX events.
@@ -158,7 +159,7 @@ async def handle_incoming_client_event(metadata):
     pipeline = await student_event_pipeline(metadata=metadata)
 
     filename = "{timestamp}-{counter:0>10}-{username}-{pid}.study".format(
-        username = metadata.get("auth", {}).get("safe_user_id", "GUEST"),
+        username=metadata.get("auth", {}).get("safe_user_id", "GUEST"),
         timestamp=datetime.datetime.utcnow().isoformat(),
         counter=COUNTER,
         pid=os.getpid()
@@ -199,7 +200,8 @@ def event_decoder_and_logger(
     request,
     headers=None,
     metadata=None,
-    session={}):
+    session={}
+):
     '''
     This is the main event decoder. It is called by the
     websocket handler to log events.
@@ -230,11 +232,11 @@ def event_decoder_and_logger(
 
     The feature flag has the non-hack implementation.
     '''
-    if merkle_config:=settings.feature_flag("merkle"):
+    if merkle_config := settings.feature_flag("merkle"):
         import merkle_store
 
         storage_class = merkle_store.STORES[merkle_config['store']]
-        params=merkle_config.get("params", {})
+        params = merkle_config.get("params", {})
         if not isinstance(params, dict):
             raise ValueError("Merkle tree params must be a dict (even an empty one)")
         storage = storage_class(**params)
@@ -244,6 +246,7 @@ def event_decoder_and_logger(
             "tool": request.tool
         }
         merkle_store.start(session)
+
         def decode_and_log_event(msg):
             '''
             Decode and store the event in the Merkle tree
@@ -251,7 +254,6 @@ def event_decoder_and_logger(
             event = json.loads(msg)
             merkle_store.event_to_session(event)
             return event
-
 
     global COUNT
     # Count + PID should guarantee uniqueness.
@@ -322,8 +324,8 @@ async def incoming_websocket_handler(request):
             debug_log("Auth", msg.data)
             try:
                 json_msg = json.loads(msg.data)
-            except:
-                print("Bad message:",  msg)
+            except Exception:
+                print("Bad message:", msg)
                 raise
             header_events.append(json_msg)
             if json_msg["event"] == "metadata_finished":
@@ -332,8 +334,7 @@ async def incoming_websocket_handler(request):
         # This is a path for the old way of doing auth, which was to
         # send the auth data in the first message.
         #
-        # It is untested, so we raise an error if it is used.
-        #raise NotImplementedError("We have not tested auth backwards compatibility.")
+        # It is poorly tested.
         print("Running without an initialization pipeline / events. This is for")
         print("development purposes, and may not continue to be supported")
         msg = await ws.receive()
@@ -354,7 +355,7 @@ async def incoming_websocket_handler(request):
     print(event_metadata['auth'])
 
     # We're now ready to make the pipeline.
-    hostname = socket.gethostname();
+    hostname = socket.gethostname()
     decoder_and_logger = event_decoder_and_logger(
         request,
         headers=header_events,
@@ -392,8 +393,7 @@ async def incoming_websocket_handler(request):
     async for msg in ws:
         # If web socket closed, we're done.
         if msg.type == aiohttp.WSMsgType.ERROR:
-            debug_log('ws connection closed with exception %s' %
-                  ws.exception())
+            debug_log(f"ws connection closed with exception {ws.exception()}")
             return
 
         # If we receive an unknown event type, we keep going, but we

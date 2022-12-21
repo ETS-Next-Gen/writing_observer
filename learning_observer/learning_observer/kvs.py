@@ -254,18 +254,18 @@ async def test():
     mk2 = InMemoryKVS()
     ek1 = EphemeralRedisKVS()
     ek2 = EphemeralRedisKVS()
-    assert(await mk1["hi"]) is None
+    assert (await mk1["hi"]) is None
     print(await ek1["hi"])
-    assert(await ek1["hi"]) is None
+    assert (await ek1["hi"]) is None
     await mk1.set("hi", 5)
     await mk2.set("hi", 7)
     await ek1.set("hi", 8)
     await ek2.set("hi", 9)
-    assert(await mk1["hi"]) == 7
+    assert (await mk1["hi"]) == 7
     print(await ek1["hi"])
     print(type(await ek1["hi"]))
     print((await ek1["hi"]) == 9)
-    assert(await ek1["hi"]) == 9
+    assert (await ek1["hi"]) == 9
     print(await mk1.keys())
     print(await ek1.keys())
     print("Test successful")

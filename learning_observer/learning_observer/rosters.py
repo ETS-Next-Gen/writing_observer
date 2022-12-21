@@ -196,7 +196,7 @@ async def synthetic_ajax(
     else:
         debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
         raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
-                            + " (should be 'test' or 'filesystem')")
+                         + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
     except FileNotFoundError as exc:

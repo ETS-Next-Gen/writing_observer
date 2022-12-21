@@ -27,6 +27,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+
 async def main():
     async with aiohttp.ClientSession() as session:
         print("Connecting to", args.url)

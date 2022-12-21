@@ -139,7 +139,7 @@ async def process_file(
         try:
             await pipeline(event)
             n += 1
-        except:
+        except Exception:
             print(event)
             raise
 
@@ -281,7 +281,7 @@ async def test_case():
     )
     os.unlink(filename)
     await process_file(
-        events_list=[{}]*3,
+        events_list=[{}] * 3,
         source="org.ets.testcase",
         pipeline=test_reducer,
         userid="Sue"

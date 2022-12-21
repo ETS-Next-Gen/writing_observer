@@ -69,6 +69,7 @@ def argument_list(argument, default):
         sys.exit(-1)
     return list_string
 
+
 if ARGS["--gpt3"] is not None:
     import writing_observer.sample_essays
     TEXT = writing_observer.sample_essays.GPT3_TEXTS[ARGS["--gpt3"]]
@@ -104,6 +105,7 @@ assert len(TEXT) == STREAMS, "len(filenames) != STREAMS."
 assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
 assert len(USERS) == STREAMS, "len(users) != STREAMS."
 assert len(DOC_IDS) == STREAMS, "len(document IDs) != STREAMS."
+
 
 def insert(index, text, doc_id):
     '''
