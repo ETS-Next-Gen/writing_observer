@@ -64,6 +64,11 @@ import learning_observer.settings as settings
 import learning_observer.prestartup
 
 
+# These should move into the startup check
+#
+# Moving this would involve either queuing log messages until that check
+# is called, or calling that before any events are generated. That's an
+# important to do in either case.
 if not os.path.exists(paths.logs()):
     print("Creating path for log files...")
     os.mkdir(paths.logs())
@@ -109,9 +114,16 @@ DEBUG_LOG_LEVEL = LogLevel.SIMPLE
 DEBUG_LOG_DESTINATIONS = (LogDestination.CONSOLE, LogDestination.FILE)
 
 
-# FIXME: This needs to be fixed and re-enabled
 @learning_observer.prestartup.register_init_function
-def log_source():
+def initialize_logging_framework():
+    '''
+    On startup, once settings are loaded, we set destinations as per the settings.
+
+    Note that we may get log events before this is set up from other init code, which
+    may ignore settings.
+
+    We also log the system startup state.
+    '''
     global DEBUG_LOG_LEVEL
     global DEBUG_LOG_DESTINATIONS
 
@@ -133,6 +145,23 @@ def log_source():
 
     debug_log("DEBUG_LOG_LEVEL:", DEBUG_LOG_LEVEL)
     debug_log("DEBUG_DESTINATIONS:", DEBUG_LOG_DESTINATIONS)
+
+    # We're going to save the state of the filesystem on application startup
+    # This way, event logs can refer uniquely to running version
+    # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
+    # hexdigest?
+    startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
+    STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
+    STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
+        directory=paths.logs("startup"),
+        time=datetime.datetime.utcnow().isoformat(),
+        hash=STARTUP_STATE_HASH
+    )
+
+    with open(STARTUP_FILENAME, "w") as sfp:
+        # gzip can save about 2-3x space. It makes more sense to do this
+        # with larger files later. tar.gz should save a lot more
+        sfp.write(startup_state)
 
 
 def encode_json_line(line):
@@ -186,24 +215,6 @@ def insecure_hash(text):
     See `secure_hash` above for documentation
     '''
     return "MD5_" + hashlib.md5(text).hexdigest()
-
-
-# We're going to save the state of the filesystem on application startup
-# This way, event logs can refer uniquely to running version
-# Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
-# hexdigest?
-startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
-STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
-STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
-    directory=paths.logs("startup"),
-    time=datetime.datetime.utcnow().isoformat(),
-    hash=STARTUP_STATE_HASH
-)
-
-with open(STARTUP_FILENAME, "w") as sfp:
-    # gzip can save about 2-3x space. It makes more sense to do this
-    # with larger files later. tar.gz should save a lot more
-    sfp.write(startup_state)
 
 
 def log_event(event, filename=None, preencoded=False, timestamp=False):
