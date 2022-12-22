@@ -59,6 +59,8 @@ async def student_event_pipeline(metadata):
     '''
     Create an event pipeline, based on header metadata
     '''
+    print(">>> Event pipe: ", metadata)
+
     client_source = metadata["source"]
     debug_log("client_source", client_source)
     debug_log("Module", stream_analytics.reducer_modules(client_source))
