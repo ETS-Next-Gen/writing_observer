@@ -383,7 +383,6 @@ async def incoming_websocket_handler(request):
         if not authenticated:
             return False
 
-<<<<<<< HEAD
         nonlocal event_handler, reducers_last_updated
         if 'source' in lock_fields:
             debug_log('Updating the event_handler()')
@@ -399,33 +398,6 @@ async def incoming_websocket_handler(request):
         '''This method checks a single method for auth and
         updates our `lock_fields`. If we are unauthenticated,
         an error will be thrown and we ignore it.
-=======
-    # We're now ready to make the pipeline.
-    hostname = socket.gethostname()
-    decoder_and_logger = event_decoder_and_logger(
-        request,
-        headers=header_events,
-        metadata={
-            'ip': request.remote,
-            'host': request.headers.get('Host', ''),
-            'user_agent': request.headers.get('User-Agent', ''),
-            'x_real_ip': request.headers.get('X-Real-IP', ''),
-            'timestamp': datetime.datetime.utcnow().isoformat(),
-            'session_count': COUNT,
-            'pid': os.getpid(),
-            'hostname': hostname,
-            'hostip': socket.gethostbyname(hostname),
-            'referer': request.headers.get('Referer', ''),
-            'host': request.headers.get('Host', ''),
-            'x-forwarded-for': request.headers.get('X-Forwarded-For', ''),
-            'x-forwarded-host': request.headers.get('X-Forwarded-Host', '')
-        },
-        session={
-            'student': event_metadata['auth']['safe_user_id'],
-            'source': event_metadata['source']
-        }
-    )
->>>>>>> f72c6224 (Removing some unnecessary info.)
 
         HACK The auth method expects a list of events to find
         specific auth events. Since we are yielding event by
