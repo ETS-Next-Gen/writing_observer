@@ -60,9 +60,9 @@ def student_dashboard_view(course_id, assignment_id):
                                 ],
                                 outline=True, color="dark", className="me-2"
                             ),
-                            settings.open_btn,
                             dbc.DropdownMenu(
                                 [
+                                    settings.open_btn,
                                     dbc.DropdownMenuItem(
                                         "Logout", 
                                         href="/auth/logout",
