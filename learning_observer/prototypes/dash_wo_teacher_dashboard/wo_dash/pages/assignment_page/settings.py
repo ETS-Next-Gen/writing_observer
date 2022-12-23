@@ -28,18 +28,9 @@ show_hide_settings_indicator_collapse = f'{prefix}-show-hide-indicator-collapse'
 show_hide_settings_indicator_checklist = f'{prefix}-show-hide-indicator-checklist'  # indicator wrapper
 
 # settings button
-open_btn = dbc.Button(
-    [
-        # font awesome gear icon
-        html.I(className='fas fa-gear'),
-        # boostrap with margin on left (s)tart with display set to none except when screen is lg
-        html.Span('Settings', className='ms-1 d-none d-lg-inline'),
-    ],
-    # bootstrap btn styling/coloring
-    class_name='btn btn-secondary',
-    id=show_hide_settings_open,
-    # hover text
-    title='Open settings menu to show or hide different student attributes'
+open_btn = dbc.DropdownMenuItem(
+    "Settings",
+    id=show_hide_settings_open
 )
 
 # settings panel itself
