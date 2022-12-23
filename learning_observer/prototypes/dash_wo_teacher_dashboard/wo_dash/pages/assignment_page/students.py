@@ -52,24 +52,29 @@ def student_dashboard_view(course_id, assignment_id):
                     # open settings button
                     html.Div(
                         [
-                            dbc.Button(
+                            dbc.ButtonGroup(
                                 [
-                                    html.I(id=websocket_status),
-                                    html.Span('Last Updated: ', className='ms-2'),
-                                    html.Span(id=last_updated)
-                                ],
-                                outline=True, color="dark", className="me-2"
-                            ),
-                            dbc.DropdownMenu(
-                                [
-                                    settings.open_btn,
-                                    dbc.DropdownMenuItem(
-                                        "Logout", 
-                                        href="/auth/logout",
+                                    dbc.Button(
+                                        [
+                                            html.I(id=websocket_status),
+                                            html.Span('Last Updated: ', className='ms-2'),
+                                            html.Span(id=last_updated)
+                                        ],
+                                        outline=True, color="dark", className=""
                                     ),
-                                ],
-                                label="Menu",
-                                className="ms-2"
+                                    dbc.DropdownMenu(
+                                        [
+                                            settings.open_btn,
+                                            dbc.DropdownMenuItem(
+                                                "Logout", 
+                                                href="/auth/logout",
+                                            ),
+                                        ],
+                                        group=True,
+                                        label="Menu",
+                                        className="btn-menu-outline-dark"
+                                    )
+                                ]
                             )
                         ],
                         className='d-flex align-items-center float-end'
