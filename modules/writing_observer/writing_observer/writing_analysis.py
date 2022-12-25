@@ -12,6 +12,7 @@ import re
 import time
 
 import writing_observer.reconstruct_doc
+import writing_observer.event_wrapper
 
 import learning_observer.adapters
 import learning_observer.communication_protocol.integration
