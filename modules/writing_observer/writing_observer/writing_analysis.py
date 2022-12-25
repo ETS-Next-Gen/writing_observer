@@ -10,6 +10,7 @@ import time
 import re
 
 import writing_observer.reconstruct_doc
+import writing_observer.event_wrapper
 
 import learning_observer.communication_protocol.integration
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
@@ -180,10 +181,6 @@ async def last_document(event, internal_state):
     model.
     '''
     document_id = get_doc_id(event)
-
-    document_id = get_doc_id_wrapper(event)
-
-    document_id = get_doc_id_wrapper(event)
 
     if document_id is not None:
         state = {"document_id": document_id}
