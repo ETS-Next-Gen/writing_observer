@@ -6,6 +6,7 @@ It just routes to smaller pipelines. Currently that's:
 2) Reconstruct text (+Deane graphs, etc.)
 '''
 import writing_observer.reconstruct_doc
+import writing_observer.event_wrapper
 
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
 import learning_observer.settings
@@ -163,8 +164,14 @@ async def last_document(event, internal_state):
     `document_list`, but we don't need that level of complexity for the 1.0
     dashboard.
     '''
-    document_id = event.get('client', {}).get('doc_id', None)
 
+    print(">>> last_doc_call: ", event)
+
+    #document_id = event.get('client', {}).get('doc_id', None)
+    document_id = writing_observer.event_wrapper.get_doc_id(event)
+
+    print(">>> last_doc_call docid: ", document_id)
+    
     if document_id is not None:
         state = {"document_id": document_id}
         return state, state
