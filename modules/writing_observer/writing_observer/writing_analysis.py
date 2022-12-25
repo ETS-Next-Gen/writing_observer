@@ -12,6 +12,7 @@ import re
 import time
 
 import writing_observer.reconstruct_doc
+import writing_observer.event_wrapper
 
 import learning_observer.adapters
 import learning_observer.communication_protocol.integration
@@ -355,10 +356,6 @@ async def last_document(event, internal_state):
     model.
     '''
     document_id = get_doc_id(event)
-
-    document_id = get_doc_id_wrapper(event)
-
-    document_id = get_doc_id_wrapper(event)
 
     if document_id is not None:
         state = {"document_id": document_id}
