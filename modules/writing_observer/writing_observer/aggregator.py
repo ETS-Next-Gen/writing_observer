@@ -138,7 +138,7 @@ async def get_latest_student_documents(student_data):
         learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
             {
-                KeyField.STUDENT: s['userId'],
+                KeyField.STUDENT: s['user_id'],
                 EventField('doc_id'): s['writing_observer.writing_analysis.last_document']['document_id'] 
             },
             KeyStateType.INTERNAL

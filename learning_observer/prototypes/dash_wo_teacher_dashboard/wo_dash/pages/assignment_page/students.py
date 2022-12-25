@@ -277,11 +277,11 @@ def create_cards(students):
                 # pattern matching callback
                 id={
                     'type': student_card,
-                    'index': s['userId']
+                    'index': s['user_id']
                 },
-                name=s['profile']['name']['fullName'],
+                name=s['profile']['name']['full_name'],
                 data={
-                    'id': s['userId'],
+                    'id': s['user_id'],
                     'text': {},
                     'highlight': {},
                     'metrics': {},
@@ -294,7 +294,7 @@ def create_cards(students):
             # pattern matching callback
             id={
                 'type': student_col,
-                'index': s['userId']
+                'index': s['user_id']
             },
         ) for s in students
     ]
