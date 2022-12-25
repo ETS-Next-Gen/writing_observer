@@ -12,6 +12,7 @@ import re
 import time
 
 import writing_observer.reconstruct_doc
+import writing_observer.event_wrapper
 
 import learning_observer.adapters
 import learning_observer.communication_protocol.integration
@@ -354,10 +355,14 @@ async def last_document(event, internal_state):
     functions for the analysis.  Over time these may age off with a better
     model.
     '''
-    document_id = get_doc_id(event)
 
-    document_id = get_doc_id_wrapper(event)
+    print(">>> last_doc_call: ", event)
 
+    #document_id = event.get('client', {}).get('doc_id', None)
+    document_id = writing_observer.event_wrapper.get_doc_id(event)
+
+    print(">>> last_doc_call docid: ", document_id)
+    
     if document_id is not None:
         state = {"document_id": document_id}
         return state, state
