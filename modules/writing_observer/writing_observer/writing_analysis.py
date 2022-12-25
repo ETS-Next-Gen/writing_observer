@@ -9,6 +9,7 @@ It just routes to smaller pipelines. Currently that's:
 import re
 
 import writing_observer.reconstruct_doc
+import writing_observer.event_wrapper
 
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
 import learning_observer.settings
