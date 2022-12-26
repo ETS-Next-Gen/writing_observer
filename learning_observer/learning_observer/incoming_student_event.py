@@ -59,8 +59,6 @@ async def student_event_pipeline(metadata):
     '''
     Create an event pipeline, based on header metadata
     '''
-    print(">>> Event pipe: ", metadata)
-
     client_source = metadata["source"]
     debug_log("client_source", client_source)
     debug_log("Module", stream_analytics.reducer_modules(client_source))
@@ -353,8 +351,6 @@ async def incoming_websocket_handler(request):
         first_event=first_event,  # This is obsolete
         source=json_msg['source']
     )
-
-    print(event_metadata['auth'])
 
     # We're now ready to make the pipeline.
     hostname = socket.gethostname()
