@@ -12,6 +12,13 @@ and to simplify event recognition.
 Over time this will likely expand and will need to adapt to keep 
 up with any changes in the event structure.  For now it is just 
 a thin abstraction layer on a few of the pieces.
+
+Clearly of course there are events at multiple levels of the system
+this code is located within the writing_observer module at the 
+moment because it is exclusively concerned with visibiity events, 
+keystroke events, and other doc-specific tasks.  A larger heirarchy
+of event wrappers for different levels of the system may make sense
+as time goes on.
 """
 
 
