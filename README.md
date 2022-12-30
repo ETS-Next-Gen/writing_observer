@@ -121,6 +121,13 @@ platforms so you may need to install some version manually.
  * nginx.
 
 
+bcrypt
+-----------------------------------------------
+A note on bcrypt.  The code uses bcrypt for some internal password management.
+We are not including it directly in the install because it acts oddly across
+platforms so you may need to install some version manually.
+
+
 Additional Notes
 At present the system also uses static content that is served from a repo.
 This allows us to actually select different sources for the static data.
