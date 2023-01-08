@@ -24,13 +24,9 @@ auth:
       token_uri: https://oauth2.googleapis.com/token
       auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
       client_secret: {google-client-secret}
-<<<<<<< HEAD
       javascript_origins: ["{url}"]
       # base_scopes: []        # We can override the scopes we ask Google for here
       # additional_scopes: []  # Or just add a few new ones. Not very tested.
-=======
-      # javascript_origins: ["{url}"]
->>>>>>> 7a9315cf (Updated with upstream content and removed local debugging printing.)
   password_file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
   http_basic_auth:        # HTTP auth. You probably want to remove this.
@@ -91,7 +87,6 @@ event_auth:
     local_storage:
         userfile: students.yaml
         allow_guest: true
-<<<<<<< HEAD
     # chromebook:            # May be necessary to support execution on chromebooks.
     #    allow_guest: true   # uncomment for testing or deployment as needed.
     # testcase_auth: {}
@@ -106,20 +101,3 @@ modules:
     writing_observer:
         use_nlp: false
         openai_api_key: '' # can also be set with OPENAI_API_KEY environment variable
-=======
-
-    # (CL) The lines below are necessary to allow the chrome extension
-    # to work.  These should be included in future anonymous cases
-    # but may need to be changed depending upon the security model.
-    
-    # chromebook:
-    #    allow_guest: true
-    # testcase_auth: {}
-
-
-feature_flags: {}  # For enabling / disabling features in development
-server:
-    port: 8888     # Optional. Pick a different port.
-
-
->>>>>>> 6fb3752e (Added in missing documentation files from prior fork and added in scripts)
