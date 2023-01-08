@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 6b0b47c7 (Added in missing documentation files from prior fork and added in scripts)
 #!/usr/bin/env bash
 # ===============================
 # RunLearningObserver.sh
