@@ -173,11 +173,12 @@ async def last_document(event, internal_state):
     '''
     document_id = get_doc_id(event)
 
-    # Initially this code looked only for cases where the document
-    # id was specified by a doc_id field.  This fix uses the event
-    # wrapper methods to support access of IDs located in the
-    # doc_id field or in the 'object' field.
-    document_id = writing_observer.event_wrapper.get_doc_id(event)
+    print(">>> last_doc_call: ", event)
+
+    #document_id = event.get('client', {}).get('doc_id', None)
+    document_id = get_doc_id_wrapper(event)
+
+    print(">>> last_doc_call docid: ", document_id)
     
     if document_id is not None:
         state = {"document_id": document_id}
