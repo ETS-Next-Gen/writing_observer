@@ -5,6 +5,9 @@ It just routes to smaller pipelines. Currently that's:
 1) Time-on-task
 2) Reconstruct text (+Deane graphs, etc.)
 '''
+# Necessary for the wrapper code below.
+import re
+
 import writing_observer.reconstruct_doc
 import writing_observer.event_wrapper
 
@@ -163,12 +166,16 @@ async def last_document(event, internal_state):
     Small bit of data -- the last document accessed. This can be extracted from
     `document_list`, but we don't need that level of complexity for the 1.0
     dashboard.
+
+    This code accesses the code below which provides some hackish support 
+    functions for the analysis.  Over time these may age off with a better
+    model.
     '''
 
     print(">>> last_doc_call: ", event)
 
     #document_id = event.get('client', {}).get('doc_id', None)
-    document_id = writing_observer.event_wrapper.get_doc_id(event)
+    document_id = get_doc_id_wrapper(event)
 
     print(">>> last_doc_call docid: ", document_id)
     
@@ -177,3 +184,113 @@ async def last_document(event, internal_state):
         return state, state
 
     return False, False
+
+
+
+
+# Basic class tests and extraction. 
+# -------------------------------
+
+# A big part of this project is wrapping up google doc events.
+# In doing that we are reverse-engineering some of the elements 
+# particularly the event types.  This code provides some basic
+# wrappers for event types to simplify extraction of key elements
+# and to simplify event recognition.  
+
+# Over time this will likely expand and will need to adapt to keep 
+# up with any changes in the event structure.  For now it is just 
+# a thin abstraction layer on a few of the pieces.
+
+
+def is_visibility_eventp(event):
+    """
+    Given an event return true if it is a visibility 
+    event which indicates changing the doc shown or 
+    active.
+
+    Here we look for an event with 'client' 
+    containing the field 'event_type' of 
+    'visibility'
+    """
+    Event_Type = event.get('client', {}).get('event', None)
+    return(Event_Type == 'visibility')
+
+
+def is_keystroke_eventp(event):
+    """
+    Given an event return true if it is a keystroke 
+    event which indicates changing the doc shown or 
+    active.
+
+    Here we look for an event with 'client' 
+    containing the field 'event_type' of 
+    'keystroke'
+    """
+    Event_Type = event.get('client', {}).get('event', None)
+    return(Event_Type == 'keystroke')
+
+# def doc_url_p(
+
+
+# Simple hack to match URLs.  This should probably be moved as well
+# but for now it works.
+#
+# The URL for the main page looks as follows:
+#  https://docs.google.com/document/u/0/?tgif=d
+#
+# Document URls are as follows:
+#  https://docs.google.com/document/d/18JAnmxzVD_lGSfa8t6Se66KLZm30YFrC_4M-D2zdYG4/edit
+
+DOC_URL_re = re.compile("^https://docs.google.com/document/d/(?P<DOCID>[^/\s]+)/(?P<ACT>[a-zA-Z]+)")
+
+def get_doc_id_wrapper(event):
+    """
+    Some of the event types (e.g. 'google_docs_save') have 
+    a 'doc_id' which provides a link to the google document.
+    Others, notably the 'visibility' and 'keystroke' events
+    do not have doc_id but do have a link to an 'object'
+    field which in turn contains an 'id' field linking to 
+    the google doc along with other features such as the 
+    title.  However other events (e.g. login & visibility)
+    contain object links with id fields that do not 
+    correspond to a known doc.  
+
+    This method provides a simple abstraction that returns 
+    the 'doc_id' value if it exists or returns the 'id' from
+    the 'object' field if it is present and if the url in 
+    the object field corresponds to a google doc id.  
+
+    We use the helper function for doc_url_p to test
+    this.  
+    """
+
+    # Handle standard Doc_ID cases first.
+    Doc_ID = event.get('client', {}).get('doc_id', None)
+    if (Doc_ID != None): return(Doc_ID)
+
+    # Failing that pull out the url event.
+    # Object_value = event.get('client', {}).get('object', None)
+    URL_value = event.get('client', {}).get('object', {}).get('url', None)
+    if (URL_value is None): return(None)
+
+    # Now test if the object has a URL and if that corresponds
+    # to a doc edit/review URL as opposed to their main page.
+    # if so return the id from it.  In the off chance the id
+    # is still not present or is none then this will return
+    # none.
+    URLMatch = DOC_URL_re.match(URL_value)
+    if (URLMatch is None): return(None)
+
+    Doc_ID = event.get('client', {}).get('object', {}).get('id', None)
+    return(Doc_ID)
+        
+    # # Handle cases where the object is encoded.  For
+    # # safety we only do this for cases where it is a
+    # # keystroke or visibility item.
+    # if (is_keystroke_eventp(event)
+    #     or is_visibility_eventp(event)):
+
+    #     Doc_ID = event.get('client', {}).get('object', {}).get('id', None)
+    
+
+    # # As a bottom out case we just return None.
