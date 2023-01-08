@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 # ===============================
 # RunLearningObserver.sh
@@ -12,9 +13,10 @@
 
 # System Variables
 # --------------------------------------
-VIRTUALENV_PYTHON="/usr/local/share/Projects/WritingObserver/VirtualENVs/learning_observer/bin/python3.8"
-LEARNING_OBSERVER_LOC="/usr/local/share/Projects/WritingObserver/Repo-Fork/writing_observer/learning_observer"
-LOGFILE_DEST="/usr/local/share/Projects/WritingObserver/Repo-Fork/writing_observer/learning_observer/learning_observer/logs"
+VIRTUALENV_PATH="/usr/local/share/projects/WritingObserver/VirtualENVs/WOvenv"
+#VIRTUALENV_PYTHON="/usr/local/share/Projects/WritingObserver/VirtualENVs/learning_observer/bin/python3.9"
+LEARNING_OBSERVER_LOC="/usr/local/share/projects/WritingObserver/Repositories/ArgLab_writing_observer/learning_observer"
+LOGFILE_DEST="/usr/local/share/projects/WritingObserver/Repositories/ArgLab_writing_observer/learning_observer/learning_observer/logs"
 
 # Make the logfile name
 # ---------------------------------------
@@ -27,8 +29,9 @@ echo $LOG_NAME;
 # --------------------------------------
 echo "Running Learning Observer Service..."
 cd $LEARNING_OBSERVER_LOC
+source $VIRTUALENV_PATH/bin/activate
 #$($VIRTUALENV_PYTHON $LEARNING_OBSERVER_LOC > $LOG_NAME 2>&1)
-nohup $VIRTUALENV_PYTHON learning_observer > $LOGFILE_NAME 2>&1 &
+nohup python learning_observer > $LOGFILE_NAME 2>&1 &
 PROCESS_ID=$!
 echo $PROCESS_ID > $LOGFILE_DEST/run.pid
 
