@@ -12,6 +12,13 @@ and to simplify event recognition.
 Over time this will likely expand and will need to adapt to keep 
 up with any changes in the event structure.  For now it is just 
 a thin abstraction layer on a few of the pieces.
+
+Clearly of course there are events at multiple levels of the system
+this code is located within the writing_observer module at the 
+moment because it is exclusively concerned with visibiity events, 
+keystroke events, and other doc-specific tasks.  A larger heirarchy
+of event wrappers for different levels of the system may make sense
+as time goes on.
 """
 
 
@@ -48,7 +55,7 @@ def is_keystroke_eventp(event):
     'keystroke'
     """
     Event_Type = event.get('client', {}).get('event', None)
-    return(Event_Type == 'visibility')
+    return(Event_Type == 'keystroke')
 
 
 
@@ -69,6 +76,11 @@ def get_doc_id(event):
     the 'doc_id' value if it exists or returns the 'id' from
     the 'object' field if this is a 'visibility' or 'keystroke'
     event.
+
+    NOTE: This change is based upon the (possibly faulty)
+     assumption that the object in keystroke and visibility
+     events is always a doc. The type field in the object 
+     entry is uninformative in these cases.
     """
 
     # Handle standard Doc_ID cases first.
@@ -85,4 +97,27 @@ def get_doc_id(event):
         return(Doc_ID)
 
     # As a bottom out case we just return None.
-    
+
+
+
+def get_doc_title(event):
+    """
+    The keystroke and visibility events provide a link to the 
+    the document title under the 'object' field which will 
+    be useful for pulling title information in later cases.
+
+    NOTE: This change is based upon the (possibly faulty)
+     assumption that the object in keystroke and visibility
+     events is always a doc. The type field in the object 
+     entry is uninformative in these cases.
+    """
+    # For safety we only do this for cases where it is a
+    # keystroke or visibility item.
+    if (is_keystroke_eventp(event)
+        or is_visibility_eventp(event)):
+
+        Doc_Title = event.get('client', {}).get('object', {}).get('title', None)
+        return(Doc_Title)
+
+    # As a bottom out case we just return None.
+
