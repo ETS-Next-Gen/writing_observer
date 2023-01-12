@@ -228,7 +228,7 @@ async def google_ajax(
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
-    if parameters is None:  # Should NOT be a default param. See W0102.
+    if parameters is None:  # {} should NOT be a default param. See W0102.
         parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         # We would like better error handling for what to do if auth_headers
