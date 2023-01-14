@@ -20,6 +20,7 @@ import learning_observer.auth.http_basic
 import learning_observer.client_config
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
+import learning_observer.google
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
 
@@ -63,7 +64,7 @@ def add_routes(app):
     register_static_routes(app)
     register_incoming_event_views(app)
     register_debug_routes(app)
-    register_google_routes(app)
+    learning_observer.google.register_google_debug_routes(app)
 
     app.add_routes([
         aiohttp.web.get(
@@ -163,52 +164,6 @@ def register_debug_routes(app):
             aiohttp.web.get(
                 '/admin/headers',
                 learning_observer.auth.social_sso.show_me_my_auth_headers
-            )
-        ])
-
-
-def register_google_routes(app):
-    '''
-    Apps to pass through AJAX requests to Google
-
-    This is for debugging, primarily. We'll figure out if we want production
-    APIs from this later.
-
-    This is more useful than it looks, since making use of Google APIs requires
-    a lot of infrastructure (registering apps, auth/auth, etc.) which we already
-    have in place on dev / debug servers.
-
-    A lot of this code should move out of here into a dedicated Google API
-    module, with just the piece to set up routes left here.
-    '''
-    if 'google_routes' not in settings.settings['feature_flags']:
-        return
-
-    DEFAULT_URLS = [
-        ("/google/docs/{documentId}", "https://docs.googleapis.com/v1/documents/{documentId}")
-    ]
-
-    if not isinstance(settings.settings['feature_flags'], dict) or \
-        'urls' not in settings.settings['feature_flags']:
-        urls = DEFAULT_URLS
-    else:
-        urls = settings.settings['feature_flags']['urls']
-
-    def handler(remote_url):
-        async def ajax_passthrough(request):
-            async with aiohttp.ClientSession(loop=request.app.loop) as client:
-                url = remote_url.format(**request.match_info)
-                async with client.get(url, headers=request["auth_headers"]) as resp:
-                    return aiohttp.web.json_response(await resp.json())
-        return ajax_passthrough
-        #async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
-        #    resp_json = await resp.json()
-
-    for (url, remote_url) in urls:
-        app.add_routes([
-            aiohttp.web.get(
-                url,
-                handler(remote_url)
             )
         ])
 
