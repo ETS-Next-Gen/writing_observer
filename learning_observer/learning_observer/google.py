@@ -4,8 +4,24 @@ We will gradually move all of the Google-specific code into here.
 Our design goals:
 - Easily call into Google APIs (Classroom, Drive, Docs, etc.)
 - Be able to preprocess the data into standard formats
+
+On a high level, for each Google request, we plan to have a 4x4 grid:
+- Web request and function call
+- Cleaned versus raw data
+
+The Google APIs are well-designed (if poorly-documented, and with occasional
+bugs), but usually return more data than we need, so we have cleaner functions.
+
+For a given call, we might have several cleaners. For example, for a Google Doc,
+Google returns a massive JSON object containing everything. For most purposes,
+we don't need all of that, and it's more convenient to work with a plain
+text representation, and for downstream code to not need to understand this
+JSON. However, for some algorithms, we might need additonal data of different
+sorts. It's still more convenient to hand this back in something simplified for
+analysis.
 '''
 
+import collections
 import itertools
 
 import aiohttp
@@ -18,24 +34,28 @@ import learning_observer.settings as settings
 # This list might change. Many of these contain additional (optional) parameters
 # which we might add later. This is here for debugging, mostly. We'll stabilize
 # APIs later.
-#
-# This should probably not be a list, eventually.
-DEFAULT_URLS = [
+Endpoint = collections.namedtuple("Endpoint", ["name", "local_url", "remote_url", "doc", "cleaners"], defaults=[[], ""])
+
+ENDPOINTS = list(map(lambda x: Endpoint(*x), [
     ("document", "/google/docs/{documentId}", "https://docs.googleapis.com/v1/documents/{documentId}"),
     ("course_list", "/google/courses", "https://classroom.googleapis.com/v1/courses"),
-    ("course_roster", "/google/roster/{courseId}", "https://classroom.googleapis.com/v1/courses/{courseId}/students"),
-    ("drive_files", "/google/listfiles", "https://www.googleapis.com/drive/v3/files"),    # This paginates. We only return page 1.
+    ("course_roster", "/google/courses/{courseId}/students", "https://classroom.googleapis.com/v1/courses/{courseId}/students"),
+    ("course_work", "/google/courses/{courseId}/coursework", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWork"),
+    ("submissions", "/google/courses/{courseId}/submissions/{courseWorkId}", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWork/{courseWorkId}/studentSubmissions"),
+    ("materials", "/google/courses/{courseId}/materials", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWorkMaterials"),
+    ("topics", "/google/courses/{courseId}/topics", "https://classroom.googleapis.com/v1/courses/{courseId}/topics"),
+    ("drive_files", "/google/drive/files", "https://www.googleapis.com/drive/v3/files"),    # This paginates. We only return page 1.
     ("drive_about", "/google/drive/about", "https://www.googleapis.com/drive/v3/about?fields=%2A"),  # Fields=* probably gives us more than we need
-    ("drive_comments", "/google/drive/comments/{documentId}", "https://www.googleapis.com/drive/v3/files/{documentId}/comments?fields=%2A&includeDeleted=true"),
-    ("drive_revisions", "/google/drive/revisions/{documentId}", "https://www.googleapis.com/drive/v3/files/{documentId}/revisions")
-]
+    ("drive_comments", "/google/drive/{documentId}/comments", "https://www.googleapis.com/drive/v3/files/{documentId}/comments?fields=%2A&includeDeleted=true"),
+    ("drive_revisions", "/google/drive/{documentId}/revisions", "https://www.googleapis.com/drive/v3/files/{documentId}/revisions")
+]))
 
 async def raw_google_ajax(request, target_url, **kwargs):
     '''
     Make an AJAX call to Google, managing auth + auth.
 
     * request is the aiohttp request object.
-    * default_url is typically grabbed from DEFAULT_URLs
+    * default_url is typically grabbed from ENDPOINTS
     * ... and we pass the named parameters
     '''
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
@@ -51,7 +71,7 @@ def raw_access_partial(remote_url, name=None):
 
     To test this, try:
 
-        print(await raw_document(request, documentId="1t27dWsD_IOeByc5aBL9b0Pmf2VEVLrKuOswVdMUXN9w"))
+        print(await raw_document(request, documentId="some_google_doc_id"))
     '''
     async def caller(request, **kwargs):
         '''
@@ -62,13 +82,20 @@ def raw_access_partial(remote_url, name=None):
 
     return caller
 
-# We create function calls for each of the Google APIs. For example:
-#   raw_document()
-#   raw_course_list()
-# etc.
-for name, local_url, remote_url in DEFAULT_URLS:
-    function_name = f"raw_{name}"
-    globals()[function_name] = raw_access_partial(remote_url=remote_url, name=name)
+
+def register_module_function_calls():
+    '''
+    We create function calls for each of the Google APIs. For example:
+       raw_document()
+       raw_course_list()
+    etc.
+
+    This called on import, at the very end.
+    '''
+    # Raw function calls
+    for e in ENDPOINTS:
+        function_name = f"raw_{e.name}"
+        globals()[function_name] = raw_access_partial(remote_url=e.remote_url, name=e.name)
 
 
 def register_google_debug_routes(app):
@@ -88,11 +115,9 @@ def register_google_debug_routes(app):
     if 'google_routes' not in settings.settings['feature_flags']:
         return
 
-    if not isinstance(settings.settings['feature_flags'], dict) or \
-        'urls' not in settings.settings['feature_flags']:
-        urls = DEFAULT_URLS
-    else:
-        urls = settings.settings['feature_flags']['urls']
+    app.add_routes([
+        aiohttp.web.get("/google/doctext/{documentId}", google_docs_text_handler)
+    ])
 
     def handler(remote_url):
         '''
@@ -110,13 +135,50 @@ def register_google_debug_routes(app):
             ))
         return ajax_passthrough
 
-    for (name, url, remote_url) in urls:
+    for e in ENDPOINTS:
         app.add_routes([
             aiohttp.web.get(
-                url,
-                handler(remote_url)
+                e.local_url,
+                handler(e.remote_url)
             )
         ])
+
+
+async def google_docs_text_handler(request):
+    '''
+    Return a Google Doc as plain text.
+    '''
+    return aiohttp.web.Response(
+        text=extract_text_from_google_doc_json(
+            await raw_document(request, **request.match_info)
+        )
+    )
+
+
+
+async def course_roster_handler(request):
+    pass
+
+
+async def course_roster(request):
+    pass
+
+
+# Rosters
+async def clean_course_roster(google_json):
+    pass
+
+
+async def clean_course_list(google_json):
+    '''
+    Google's course list is one object deeper than we'd like, and alphabetic
+    sort order is nicer. This will clean it up a bit
+    '''
+    courses = google_json['courses']
+    courses.sort(
+        sort_key=lambda x: x.get('name', 'ZZ'),
+    )
+    return courses
 
 
 # Google Docs
@@ -173,10 +235,10 @@ def extract_text_from_google_doc_json(
 
     return text
 
+register_module_function_calls()
 
 if __name__=='__main__':
     import json, sys
     j = json.load(open(sys.argv[1]))
     extract_text_from_google_doc_json(j, align=False, EXTRACT_DEBUG_CHECKS=True)
     extract_text_from_google_doc_json(j, align=True, EXTRACT_DEBUG_CHECKS=True)
-    
