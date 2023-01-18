@@ -5,15 +5,16 @@ Defines the options in the settings panel
 from dash import html
 import dash_bootstrap_components as dbc
 
-
-sort_by_options = {
-    'transitions': {'label': 'Transition Words', 'value': 'transitions'},
-    'academic_language': {'label': 'Academic Language', 'value': 'academic_language'},
-    'argument_language': {'label': 'Argument Language', 'value': 'argument_language'},
-    'attributes': {'label': 'Attributions', 'value': 'attributions'},
-    'cites': {'label': 'Citations', 'value': 'cites'},
-    'sources': {'label': 'Sources', 'value': 'sources'}
-}
+# currently we use the same options for both sorting and indicators
+# sort_by_options = {
+#     'is_academic': {'label': 'Academic Language', 'value': 'is_academic'},
+#     'vwp_argumentword': {'label': 'Argument Language', 'value': 'vwp_argumentword'},
+#     'vwp_attribution': {'label': 'Attributions', 'value': 'vwp_attribution'},
+#     'vwp_cite': {'label': 'Citations', 'value': 'vwp_cite'},
+#     'vwp_source': {'label': 'Information Sources', 'value': 'vwp_source'},
+#     'vwp_interactive': {'label': 'Informal Language', 'value': 'vwp_interactive'},
+#     'vwp_evaluation': {'label': 'Opinion Words', 'value': 'vwp_evaluation'}
+# }
 metric_options = {
     'sents': {
         'label': dbc.Badge(

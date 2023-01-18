@@ -40,13 +40,10 @@ window.dash_clientside.clientside = {
         // Output(sort_label, 'children'),
         // Input(sort_toggle, 'value'),
         // Input(sort_by_checklist, 'value')
-        if (sort_values.length == 0) {
-            return ['fas fa-sort', 'None']
-        }
         if (sort_check.includes('checked')) {
-            return ['fas fa-sort-down', 'Desc']
+            return ['fas fa-sort-down', 'Desc'];
         }
-        return ['fas fa-sort-up', 'Asc']
+        return ['fas fa-sort-up', 'Asc'];
     },
 
     reset_sort_options: function(clicks) {
@@ -81,8 +78,9 @@ window.dash_clientside.clientside = {
         // TODO fix sorting, haven't been updated with the new NLP data
         let orders = Array(students).fill(window.dash_clientside.no_update);
         if (values.length === 0) {
-            // preserves current order when no values are present
-            // TODO determine some default ordering instead of leaving it as is
+            // default sort is alphabetical by id
+            const sort_order = [...data.keys()].sort((a, b) => data[a].id - data[b].id);
+            orders = sort_order.map(idx => {return {'order': (direction.includes('checked') ? data.length - idx : idx)}});
             return orders;
         }
         let labels = options.map(obj => {return (values.includes(obj.value) ? obj.label : '')});
@@ -90,7 +88,7 @@ window.dash_clientside.clientside = {
         for (let i = 0; i < data.length; i++) {
             let score = 0;
             values.forEach(function (item, index) {
-                score += data[i].indicators[item]['value'];
+                score += data[i].indicators[`${item}_indicator`]['value'];
             });
             let order = (direction.includes('checked') ? (100*values.length) - score : score);
             orders[i] = {'order': order};
@@ -136,6 +134,7 @@ window.dash_clientside.clientside = {
             for (const key in data[i]) {
                 let item = data[i][key];
                 const sum_type = (item.hasOwnProperty('summary_type') ? item['summary_type'] : '');
+                // we set each id to be ${key}_{type} so we can select items by class name when highlighting
                 if (sum_type === 'total') {
                     updates[i]['metrics'][`${key}_metric`] = {
                         'id': `${key}_metric`,

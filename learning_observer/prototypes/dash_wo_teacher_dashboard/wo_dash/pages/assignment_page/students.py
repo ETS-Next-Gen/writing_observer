@@ -276,7 +276,7 @@ def fill_in_settings(course, assignment):
     opt = settings_defaults.argumentative
     
     ret = dict(
-        sort_by_options=[so.sort_by_options[o] for o in opt['sort_by']['options']],
+        sort_by_options=[so.indicator_options[o] for o in opt['sort_by']['options']],
         metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
         metric_value=opt['metrics']['selected'],
         text_options=[so.text_options[o] for o in opt['text']['options']],
