@@ -83,7 +83,7 @@ window.dash_clientside.clientside = {
         if (values.length === 0) {
             // preserves current order when no values are present
             // TODO determine some default ordering instead of leaving it as is
-            return orders
+            return orders;
         }
         let labels = options.map(obj => {return (values.includes(obj.value) ? obj.label : '')});
         labels = labels.filter(e => e);
@@ -108,9 +108,8 @@ window.dash_clientside.clientside = {
         // Input(websocket, 'message'),
         // State({'type': student_card, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
-
         if (!msg) {
-            return [old_data, 'Never']; //, 0, []];
+            return [old_data, 'Never', 0]; //, 0, []];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
@@ -118,8 +117,11 @@ window.dash_clientside.clientside = {
         // console.log(data);
         for (let i = 0; i < data.length; i++) {
             // TODO whatever data is included in the message should be parsed into it's appropriate spot
+                // Grab curr_user=data[i].userId of update from server (inside for loop)
+                // Then figure out the appropriate index of the curr_user from the old_data. Search the old_data list for the index that has the matching id as curr_user.
+                // Set updates[user_index] instead of updates[i].
             updates[i] = {
-                'id': data[i].userId,
+                'id': data[i].student.userId,
                 'text': {
                     "student_text": {
                         "id": "student_text",
@@ -162,7 +164,7 @@ window.dash_clientside.clientside = {
         const count = (data.length == students ? window.dash_clientside.no_update : data.length)
         const new_students = (stud_data.length == students ? window.dash_clientside.no_update : stud_data)
 
-        return [updates, timestamp.toLocaleTimeString()]; //, count, new_students];
+        return [updates, timestamp.toLocaleTimeString(), 1]; //, count, new_students];
     },
 
     open_settings: function(clicks, close, is_open, students) {
@@ -346,9 +348,22 @@ window.dash_clientside.clientside = {
         // Output(websocket_status, 'className'),
         // Output(websocket_status, 'title'),
         // Input(websocket, 'state')
-
+        if (status === undefined) {
+            return window.dash_clientside.no_update;
+        }
         const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
         const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
         return [icons[status.readyState], titles[status.readyState]];
+    },
+
+    show_hide_initialize_message: function(msg_count) {
+        // Show or hide the initialization message based on how many messages we've seen
+        //
+        // Output(initialize_alert, 'is_open'),
+        // Input(msg_counter, 'data')
+        if (msg_count > 0){
+            return false;
+        }
+        return true;
     }
 }
