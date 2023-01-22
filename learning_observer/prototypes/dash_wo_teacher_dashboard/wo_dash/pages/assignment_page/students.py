@@ -24,6 +24,8 @@ course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
 websocket_status = f'{prefix}-websocket-status'  # websocket status icon
 last_updated = f'{prefix}-last-updated'  # data last updated id
+initialize_alert = f'{prefix}-initialize-alert'
+msg_counter = f'{prefix}-msg-counter'
 
 assignment_store = f'{prefix}-assignment-info_store'
 assignment_name = f'{prefix}-assignment-name'
@@ -68,6 +70,20 @@ def student_dashboard_view(course_id, assignment_id):
                     html.Span(id=last_updated)
                 ]
             ),
+            dbc.Alert(
+                [
+                    dbc.Spinner(
+                        color='white',
+                        size='sm',
+                        spinner_class_name='me-1'
+                    ),
+                    'Fetching initial data, this may take a few moments...'
+                ],
+                dismissable=True,
+                is_open=False,
+                color='info',
+                id=initialize_alert
+            ),
             dbc.Row(
                 [
                     # settings panel wrapper
@@ -109,6 +125,10 @@ def student_dashboard_view(course_id, assignment_id):
             dcc.Store(
                 id=student_counter,
                 data=0
+            ),
+            dcc.Store(
+                id=msg_counter,
+                data=0
             )
         ],
         fluid=True
@@ -125,6 +145,7 @@ clientside_callback(
 )
 
 # set the websocket data_scope
+# TODO set with url similar to course id
 clientside_callback(
     """
     function(course, assignment) {
@@ -180,11 +201,19 @@ clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
     Output({'type': student_card, 'index': ALL}, 'data'),
     Output(last_updated, 'children'),
+    Output(msg_counter, 'data'),
     # Output(student_counter, 'data'),
     # Output(student_store, 'data'),
     Input(websocket, 'message'),
     State({'type': student_card, 'index': ALL}, 'data'),
     State(student_counter, 'data')
+)
+
+# Show/hide the initialization alert
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='show_hide_initialize_message'),
+    Output(initialize_alert, 'is_open'),
+    Input(msg_counter, 'data')
 )
 
 # Sort students by indicator values
@@ -247,7 +276,7 @@ def fill_in_settings(course, assignment):
     opt = settings_defaults.argumentative
     
     ret = dict(
-        sort_by_options=[so.sort_by_options[o] for o in opt['sort_by']['options']],
+        sort_by_options=[so.indicator_options[o] for o in opt['sort_by']['options']],
         metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
         metric_value=opt['metrics']['selected'],
         text_options=[so.text_options[o] for o in opt['text']['options']],
@@ -269,7 +298,8 @@ def create_cards(students):
 
     # TODO if the card data exists in the student_store,
     # we want to include it in the initial loading of the card
-    # this will require the same parser we create for updates
+    # this will require the same parser to initially populate data
+    # what do we want the storage type to be?
     # i.e. the same code for both js and python
     cards = [
         dbc.Col(

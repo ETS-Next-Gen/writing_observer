@@ -55,20 +55,21 @@ panel = dbc.Card(
                         html.I(className='fas fa-gear me-2'),  # gear icon
                         'Settings'
                     ],
-                    # bootstrap styling to allow for the floating X button
-                    className='d-inline'
+                    # bootstrap styling to allow for the floating X button and remove lower margin
+                    className='d-inline mb-0'
                 ),
                 # close settings X
                 dbc.Button(
                     # font awesome X icon
                     html.I(className='fas fa-xmark'),
                     color='white',
-                    # bootstrap position and text styling
-                    class_name='float-end text-body',
+                    # bootstrap text styling
+                    class_name='text-body',
                     id=close_settings
                 )
             ],
-            className='m-2'
+            # create flex container so children can be positioned properly
+            className='m-2 d-flex align-items-center justify-content-between'
         ),
         # Each settings option is an accordion item
         dbc.Accordion(
@@ -106,7 +107,7 @@ panel = dbc.Card(
                                                         )
                                                     }
                                                 ],
-                                                value=['checked'],
+                                                value=[],
                                                 id=sort_toggle,
                                                 inputClassName='d-none',  # hide the checkbox, icon/text are clickable
                                                 className='d-inline',  # needed to style for components as options

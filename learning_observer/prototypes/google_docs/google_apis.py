@@ -12,11 +12,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "document_id", help="Google document ID. Usually 44 characters long"
-)
-args = parser.parse_args()
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = [
@@ -36,7 +31,7 @@ def list_files(creds):
     print(items)
 
 
-def document(creds):
+def document(creds, document_id):
     service = build('docs', 'v1', credentials=creds)
 
     # This is an optional keyword parameter we should play with
@@ -51,22 +46,22 @@ def document(creds):
     SUGGESTION_MODE = suggestion_modes[0]
 
     document = service.documents().get(
-        documentId=args.document_id
+        documentId=document_id
     ).execute()
     print('The title of the document is: {}'.format(document.get('title')))
     return document
 
 
-def document_revisions(creds):
+def document_revisions(creds, document_id):
     service = build('drive', 'v3', credentials=creds)
     r = service.revisions()
-    return r.list(fileId=args.document_id).execute()
+    return r.list(fileId=document_id).execute()
 
 
-def document_comments(creds):
+def document_comments(creds, document_id):
     service = build('drive', 'v3', credentials=creds)
     return service.comments().list(
-        fileId=args.document_id,
+        fileId=document_id,
         fields="*",
         includeDeleted=True
     ).execute()
@@ -93,21 +88,26 @@ def authenticate():
     return creds
 
 
-def main():
+def main(document_id):
     """Shows basic usage of the Docs API.
     Prints the title of a sample document.
     """
     creds = authenticate()
     print(list_files(creds))
     print("Document:")
-    print(document(creds))
+    print(document(creds, document_id))
     with open("doc.json", "w") as fp:
-        fp.write(json.dumps(document(creds), indent=2))
+        fp.write(json.dumps(document(creds, document_id), indent=2))
     print("Document revisions:")
-    print(document_revisions(creds))
+    print(document_revisions(creds, document_id))
     print("Document comments:")
-    print(document_comments(creds))
+    print(document_comments(creds, document_id))
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "document_id", help="Google document ID. Usually 44 characters long"
+    )
+    args = parser.parse_args()
+    main(args.document_id)

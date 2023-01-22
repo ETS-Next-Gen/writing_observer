@@ -3,7 +3,7 @@ Defaults for different essay types
 '''
 argumentative = {
     'sort_by': {
-        'options': ['transitions', 'academic_language', 'argument_language'],
+        'options': ['is_academic', 'vwp_source', 'vwp_attribution', 'vwp_cite', 'vwp_interactive', 'vwp_argumentword', 'vwp_evaluation'],
         'selected': []
     },
     'metrics': {

@@ -40,13 +40,10 @@ window.dash_clientside.clientside = {
         // Output(sort_label, 'children'),
         // Input(sort_toggle, 'value'),
         // Input(sort_by_checklist, 'value')
-        if (sort_values.length == 0) {
-            return ['fas fa-sort', 'None']
-        }
         if (sort_check.includes('checked')) {
-            return ['fas fa-sort-down', 'Desc']
+            return ['fas fa-sort-down', 'Desc'];
         }
-        return ['fas fa-sort-up', 'Asc']
+        return ['fas fa-sort-up', 'Asc'];
     },
 
     reset_sort_options: function(clicks) {
@@ -81,16 +78,17 @@ window.dash_clientside.clientside = {
         // TODO fix sorting, haven't been updated with the new NLP data
         let orders = Array(students).fill(window.dash_clientside.no_update);
         if (values.length === 0) {
-            // preserves current order when no values are present
-            // TODO determine some default ordering instead of leaving it as is
-            return orders
+            // default sort is alphabetical by id
+            const sort_order = [...data.keys()].sort((a, b) => data[a].id - data[b].id);
+            orders = sort_order.map(idx => {return {'order': (direction.includes('checked') ? data.length - idx : idx)}});
+            return orders;
         }
         let labels = options.map(obj => {return (values.includes(obj.value) ? obj.label : '')});
         labels = labels.filter(e => e);
         for (let i = 0; i < data.length; i++) {
             let score = 0;
             values.forEach(function (item, index) {
-                score += data[i].indicators[item]['value'];
+                score += data[i].indicators[`${item}_indicator`]['value'];
             });
             let order = (direction.includes('checked') ? (100*values.length) - score : score);
             orders[i] = {'order': order};
@@ -108,9 +106,8 @@ window.dash_clientside.clientside = {
         // Input(websocket, 'message'),
         // State({'type': student_card, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
-
         if (!msg) {
-            return [old_data, 'Never']; //, 0, []];
+            return [old_data, 'Never', 0]; //, 0, []];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
@@ -118,8 +115,11 @@ window.dash_clientside.clientside = {
         // console.log(data);
         for (let i = 0; i < data.length; i++) {
             // TODO whatever data is included in the message should be parsed into it's appropriate spot
+                // Grab curr_user=data[i].userId of update from server (inside for loop)
+                // Then figure out the appropriate index of the curr_user from the old_data. Search the old_data list for the index that has the matching id as curr_user.
+                // Set updates[user_index] instead of updates[i].
             updates[i] = {
-                'id': data[i].userId,
+                'id': data[i].student.userId,
                 'text': {
                     "student_text": {
                         "id": "student_text",
@@ -134,6 +134,7 @@ window.dash_clientside.clientside = {
             for (const key in data[i]) {
                 let item = data[i][key];
                 const sum_type = (item.hasOwnProperty('summary_type') ? item['summary_type'] : '');
+                // we set each id to be ${key}_{type} so we can select items by class name when highlighting
                 if (sum_type === 'total') {
                     updates[i]['metrics'][`${key}_metric`] = {
                         'id': `${key}_metric`,
@@ -162,7 +163,7 @@ window.dash_clientside.clientside = {
         const count = (data.length == students ? window.dash_clientside.no_update : data.length)
         const new_students = (stud_data.length == students ? window.dash_clientside.no_update : stud_data)
 
-        return [updates, timestamp.toLocaleTimeString()]; //, count, new_students];
+        return [updates, timestamp.toLocaleTimeString(), 1]; //, count, new_students];
     },
 
     open_settings: function(clicks, close, is_open, students) {
@@ -346,9 +347,22 @@ window.dash_clientside.clientside = {
         // Output(websocket_status, 'className'),
         // Output(websocket_status, 'title'),
         // Input(websocket, 'state')
-
+        if (status === undefined) {
+            return window.dash_clientside.no_update;
+        }
         const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
         const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
         return [icons[status.readyState], titles[status.readyState]];
+    },
+
+    show_hide_initialize_message: function(msg_count) {
+        // Show or hide the initialization message based on how many messages we've seen
+        //
+        // Output(initialize_alert, 'is_open'),
+        // Input(msg_counter, 'data')
+        if (msg_count > 0){
+            return false;
+        }
+        return true;
     }
 }
