@@ -64,7 +64,7 @@ def add_routes(app):
     register_static_routes(app)
     register_incoming_event_views(app)
     register_debug_routes(app)
-    learning_observer.google.register_google_debug_routes(app)
+    learning_observer.google.initialize_and_register_routes(app)
 
     app.add_routes([
         aiohttp.web.get(

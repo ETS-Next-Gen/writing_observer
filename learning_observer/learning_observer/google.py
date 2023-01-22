@@ -21,34 +21,76 @@ sorts. It's still more convenient to hand this back in something simplified for
 analysis.
 '''
 
+import recordclass
 import collections
 import itertools
+import string
 
 import aiohttp
 import aiohttp.web
 
 import learning_observer.settings as settings
+import learning_observer.log_event
+
 
 # These took a while to find, but many are documented here:
 # https://developers.google.com/drive/api/v3/reference/
 # This list might change. Many of these contain additional (optional) parameters
 # which we might add later. This is here for debugging, mostly. We'll stabilize
 # APIs later.
-Endpoint = collections.namedtuple("Endpoint", ["name", "local_url", "remote_url", "doc", "cleaners"], defaults=[[], ""])
+class Endpoint(recordclass.make_dataclass("Endpoint", ["name", "remote_url", "doc", "cleaners"], defaults=["", None])):
+    def arguments(self):
+        return extract_parameters_from_format_string(self.remote_url)
+
+    def _local_url(self):
+        parameters = "}/{".join(self.arguments())
+        base_url = f"/google/{self.name}"
+        if len(parameters) == 0:
+            return base_url
+        else:
+            return base_url + "/{" + parameters + "}"
+
+    def _add_cleaner(self, name, cleaner):
+        if self.cleaners is None:
+            self.cleaners = dict()
+        self.cleaners[name] = cleaner
+        if 'local_url' not in cleaner:
+            cleaner['local_url'] = self._local_url + "/" + name
+
+    def _cleaners(self):
+        if self.cleaners is None:
+            return []
+        else:
+            return self.cleaners
+
 
 ENDPOINTS = list(map(lambda x: Endpoint(*x), [
-    ("document", "/google/docs/{documentId}", "https://docs.googleapis.com/v1/documents/{documentId}"),
-    ("course_list", "/google/courses", "https://classroom.googleapis.com/v1/courses"),
-    ("course_roster", "/google/courses/{courseId}/students", "https://classroom.googleapis.com/v1/courses/{courseId}/students"),
-    ("course_work", "/google/courses/{courseId}/coursework", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWork"),
-    ("submissions", "/google/courses/{courseId}/submissions/{courseWorkId}", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWork/{courseWorkId}/studentSubmissions"),
-    ("materials", "/google/courses/{courseId}/materials", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWorkMaterials"),
-    ("topics", "/google/courses/{courseId}/topics", "https://classroom.googleapis.com/v1/courses/{courseId}/topics"),
-    ("drive_files", "/google/drive/files", "https://www.googleapis.com/drive/v3/files"),    # This paginates. We only return page 1.
-    ("drive_about", "/google/drive/about", "https://www.googleapis.com/drive/v3/about?fields=%2A"),  # Fields=* probably gives us more than we need
-    ("drive_comments", "/google/drive/{documentId}/comments", "https://www.googleapis.com/drive/v3/files/{documentId}/comments?fields=%2A&includeDeleted=true"),
-    ("drive_revisions", "/google/drive/{documentId}/revisions", "https://www.googleapis.com/drive/v3/files/{documentId}/revisions")
+    ("document", "https://docs.googleapis.com/v1/documents/{documentId}"),
+    ("course_list", "https://classroom.googleapis.com/v1/courses"),
+    ("course_roster", "https://classroom.googleapis.com/v1/courses/{courseId}/students"),
+    ("course_work", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWork"),
+    ("coursework_submissions", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWork/{courseWorkId}/studentSubmissions"),
+    ("coursework_materials", "https://classroom.googleapis.com/v1/courses/{courseId}/courseWorkMaterials"),
+    ("course_topics", "https://classroom.googleapis.com/v1/courses/{courseId}/topics"),
+    ("drive_files", "https://www.googleapis.com/drive/v3/files"),    # This paginates. We only return page 1.
+    ("drive_about", "https://www.googleapis.com/drive/v3/about?fields=%2A"),  # Fields=* probably gives us more than we need
+    ("drive_comments", "https://www.googleapis.com/drive/v3/files/{documentId}/comments?fields=%2A&includeDeleted=true"),
+    ("drive_revisions", "https://www.googleapis.com/drive/v3/files/{documentId}/revisions")
 ]))
+
+
+def extract_parameters_from_format_string(format_string):
+    '''
+    Extracts parameters from a format string. E.g.
+
+    >>> ("hello {hi} my {bye}")]
+    ['hi', 'bye']
+    '''
+    # The parse returns a lot of context, which we discard. In particular, the
+    # last item is often about the suffix after the last parameter and may be
+    # `None`
+    return [f[1] for f in string.Formatter().parse(format_string) if f[1] is not None]
+
 
 async def raw_google_ajax(request, target_url, **kwargs):
     '''
@@ -59,9 +101,19 @@ async def raw_google_ajax(request, target_url, **kwargs):
     * ... and we pass the named parameters
     '''
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
+        if 'auth_headers' not in request:
+            raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
         url = target_url.format(**kwargs)
         async with client.get(url, headers=request["auth_headers"]) as resp:
-            return await resp.json()
+            response = await resp.json()
+            learning_observer.log_event.log_ajax(target_url, response, request)
+            if 'save_google_ajax' in settings.settings.get('feature_flags', {}).get("save_google_ajax", {}):
+                endpoints = [e for e in endpoints if e.remote_url == target_url]
+                if len(endpoints != 1):
+                    raise AttributeError("Multiple endpoints match URL")
+                path = learning_observer.paths.data(endpoints['name'])
+
+            return response
 
 
 def raw_access_partial(remote_url, name=None):
@@ -83,43 +135,33 @@ def raw_access_partial(remote_url, name=None):
     return caller
 
 
-def register_module_function_calls():
+def initialize_and_register_routes(app):
     '''
-    We create function calls for each of the Google APIs. For example:
-       raw_document()
-       raw_course_list()
-    etc.
+    This is a big 'ol function which might be broken into smaller ones at some
+    point. We:
 
-    This called on import, at the very end.
+    - Created debug routes to pass through AJAX requests to Google
+    - Created production APIs to have access to cleaned versions of said data
+    - Create local function calls to call from other pieces of code
+      within process
+
+    We probably don't need all of this in production, but a lot of this is
+    very important for debugging. Having APIs is more useful than it looks, since
+    making use of Google APIs requires a lot of infrastructure (registering
+    apps, auth/auth, etc.) which we already have in place on dev / debug servers.
     '''
-    # Raw function calls
-    for e in ENDPOINTS:
-        function_name = f"raw_{e.name}"
-        globals()[function_name] = raw_access_partial(remote_url=e.remote_url, name=e.name)
-
-
-def register_google_debug_routes(app):
-    '''
-    Apps to pass through AJAX requests to Google
-
-    This is for debugging, primarily. We'll figure out if we want production
-    APIs from this later.
-
-    This is more useful than it looks, since making use of Google APIs requires
-    a lot of infrastructure (registering apps, auth/auth, etc.) which we already
-    have in place on dev / debug servers.
-
-    A lot of this code should move out of here into a dedicated Google API
-    module, with just the piece to set up routes left here.
-    '''
+    # For now, all of this is behind one big feature flag. In the future,
+    # we'll want seperate ones for the debugging tools and the production
+    # staff
     if 'google_routes' not in settings.settings['feature_flags']:
         return
 
+    # Provide documentation on what we're doing
     app.add_routes([
-        aiohttp.web.get("/google/doctext/{documentId}", google_docs_text_handler)
+        aiohttp.web.get("/google", api_docs_handler)
     ])
 
-    def handler(remote_url):
+    def make_ajax_raw_handler(remote_url):
         '''
         This creates a handler to forward Google requests to the client. It's used
         for debugging right now. We should think through APIs before relying on this.
@@ -128,55 +170,142 @@ def register_google_debug_routes(app):
             '''
             And the actual handler....
             '''
-            return aiohttp.web.json_response(await raw_google_ajax(
+            response = await raw_google_ajax(
                 request,
                 remote_url,
                 **request.match_info
-            ))
+            )
+
+            return aiohttp.web.json_response(response)
         return ajax_passthrough
 
+    def make_cleaner_handler(raw_function, cleaner_function, name=None):
+        async def cleaner_handler(request):
+            '''
+            '''
+            response = cleaner_function(
+                await raw_function(request, **request.match_info)
+            )
+            if isinstance(response, dict) or isinstance(response, list):
+                return aiohttp.web.json_response(
+                    response
+                )
+            elif isinstance(response, str):
+                return aiohttp.web.Response(
+                    text=response
+                )
+            else:
+                raise AttributeError(f"Invalid response type: {type(response)}")
+        if name is not None:
+            setattr(cleaner_handler, "__qualname__", name+"_handler")
+
+        return cleaner_handler
+
+    def make_cleaner_function(raw_function, cleaner_function, name=None):
+        async def cleaner_local(request, **kwargs):
+            google_response = await raw_function(request, **kwargs)
+            print(cleaner_function)
+            clean = cleaner_function(google_response)
+            return clean
+        if name is not None:
+            setattr(cleaner_local, "__qualname__", name)
+        return cleaner_local
+
     for e in ENDPOINTS:
+        function_name = f"raw_{e.name}"
+        raw_function = raw_access_partial(remote_url=e.remote_url, name=e.name)
+        globals()[function_name] = raw_function
+        cleaners = e._cleaners()
+        for c in cleaners:
+            app.add_routes([
+                aiohttp.web.get(
+                    cleaners[c]['local_url'],
+                    make_cleaner_handler(
+                        raw_function,
+                        cleaners[c]['function'],
+                        name=cleaners[c]['name']
+                    )
+                )
+            ])
+            globals()[cleaners[c]['name']] = make_cleaner_function(
+                raw_function,
+                cleaners[c]['function'],
+                name=cleaners[c]['name']
+            )
         app.add_routes([
             aiohttp.web.get(
-                e.local_url,
-                handler(e.remote_url)
+                e._local_url(),
+                make_ajax_raw_handler(e.remote_url)
             )
         ])
 
 
-async def google_docs_text_handler(request):
+def api_docs_handler(request):
     '''
-    Return a Google Doc as plain text.
+    Return a list of available endpoints.
+
+    Eventually, we should also document available function calls
     '''
-    return aiohttp.web.Response(
-        text=extract_text_from_google_doc_json(
-            await raw_document(request, **request.match_info)
-        )
-    )
+    response = "URL Endpoints:\n\n"
+    for endpoint in ENDPOINTS:
+        response += f"{endpoint._local_url()}\n"
+        cleaners = endpoint._cleaners()
+        for c in cleaners:
+            response += f"   {cleaners[c]['local_url']}\n"
+    response += "\n\n Globals:"
+    if False:
+        response += str(globals())
+    return aiohttp.web.Response(text=response)
 
 
+def register_cleaner(data_source, cleaner_name):
+    '''
+    This will register a cleaner function, for export both as a web service
+    and as a local function call.
+    '''
+    def decorator(f):
+        found = False
+        for endpoint in ENDPOINTS:
+            if endpoint.name == data_source:
+                found = True
+                endpoint._add_cleaner(
+                    cleaner_name,
+                    {
+                        'function': f,
+                        'local_url': f'{endpoint._local_url()}/{cleaner_name}',
+                        'name': cleaner_name
+                    }
+                )
 
-async def course_roster_handler(request):
-    pass
+        if not found:
+            raise AttributeError(f"Data source {data_source} invalid; not found in endpoints.")
+        return f
 
-
-async def course_roster(request):
-    pass
+    return decorator
 
 
 # Rosters
-async def clean_course_roster(google_json):
-    pass
+@register_cleaner("course_roster", "roster")
+def clean_course_roster(google_json):
+    '''
+    Retrieve the roster for a course, alphabetically
+    '''
+    students = google_json.get('students', [])
+    students.sort(
+        key=lambda x: x.get('name', {}).get('fullName', 'ZZ'),
+    )
+    return students
 
 
-async def clean_course_list(google_json):
+@register_cleaner("course_list", "courses")
+def clean_course_list(google_json):
     '''
     Google's course list is one object deeper than we'd like, and alphabetic
     sort order is nicer. This will clean it up a bit
     '''
-    courses = google_json['courses']
+    courses = google_json.get('courses', [])
     courses.sort(
-        sort_key=lambda x: x.get('name', 'ZZ'),
+        key=lambda x: x.get('name', 'ZZ'),
     )
     return courses
 
@@ -195,6 +324,7 @@ def _force_text_length(text, length):
     return text[:length] + " " * (length-len(text))
 
 
+@register_cleaner("document", "doctext")
 def extract_text_from_google_doc_json(
         j, align=True,
         EXTRACT_DEBUG_CHECKS = False):
@@ -235,7 +365,6 @@ def extract_text_from_google_doc_json(
 
     return text
 
-register_module_function_calls()
 
 if __name__=='__main__':
     import json, sys
