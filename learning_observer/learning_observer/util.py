@@ -35,7 +35,7 @@ def to_safe_filename(name):
     For example, { would be encoded as -123- since { is character 123 in UTF-8.
     '''
     return ''.join(
-        '-' + str(ord(c)) + '-' if not c.isidentifier() else c
+        '-' + str(ord(c)) + '-' if not c.isidentifier() and not c.isalnum() else c
         for c in name
     )
 
@@ -52,9 +52,24 @@ def from_safe_filename(filename):
     '''
     return re.sub(r'-(\d+)-', lambda m: chr(int(m.group(1))), filename)
 
+
+def url_pathname(s):
+    """
+    Remove URL and domain from a URL. Return the full remainder of the path.
+
+    Input: https://www.googleapis.com/drive/v3/files
+    Output: drive/v3/files
+
+    Note that in contrast to the JavaScript version, we don't include the
+    initial slash.
+    """
+    return s.split('/', 3)[-1]
+
+
 # And a test case
 if __name__=='__main__':
     assert to_safe_filename('{') == '-123-'
     assert from_safe_filename('-123-') == '{'
     test_string = "Hello? How are -- you doing? łłł"
     assert from_safe_filename(to_safe_filename(test_string)) == test_string
+    assert url_pathname('https://www.googleapis.com/drive/v3/files') == 'drive/v3/files'

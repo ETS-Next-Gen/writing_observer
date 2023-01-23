@@ -21,9 +21,10 @@ sorts. It's still more convenient to hand this back in something simplified for
 analysis.
 '''
 
-import recordclass
 import collections
 import itertools
+import json
+import recordclass
 import string
 
 import aiohttp
@@ -31,6 +32,9 @@ import aiohttp.web
 
 import learning_observer.settings as settings
 import learning_observer.log_event
+import learning_observer.util
+
+cache = None
 
 
 # These took a while to find, but many are documented here:
@@ -100,19 +104,20 @@ async def raw_google_ajax(request, target_url, **kwargs):
     * default_url is typically grabbed from ENDPOINTS
     * ... and we pass the named parameters
     '''
+    url = target_url.format(**kwargs)
+    cache_key = "raw_google/" + learning_observer.util.url_pathname(url)
+    if settings.feature_flag('use_google_ajax') is not None:
+        value = await cache[cache_key]
+        if value is not None:
+            return json.loads(value)
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         if 'auth_headers' not in request:
             raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
-        url = target_url.format(**kwargs)
         async with client.get(url, headers=request["auth_headers"]) as resp:
             response = await resp.json()
             learning_observer.log_event.log_ajax(target_url, response, request)
-            if 'save_google_ajax' in settings.settings.get('feature_flags', {}).get("save_google_ajax", {}):
-                endpoints = [e for e in endpoints if e.remote_url == target_url]
-                if len(endpoints != 1):
-                    raise AttributeError("Multiple endpoints match URL")
-                path = learning_observer.paths.data(endpoints['name'])
-
+            if settings.feature_flag('use_google_ajax') is not None:
+                await cache.set(cache_key, json.dumps(response, indent=2))
             return response
 
 
@@ -155,6 +160,12 @@ def initialize_and_register_routes(app):
     # staff
     if 'google_routes' not in settings.settings['feature_flags']:
         return
+
+
+    for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
+        if key in settings.settings['feature_flags']:
+            global cache
+            cache = learning_observer.kvs.FilesystemKVS(path=learning_observer.paths.data('google'), subdirs=True)
 
     # Provide documentation on what we're doing
     app.add_routes([
@@ -204,7 +215,6 @@ def initialize_and_register_routes(app):
     def make_cleaner_function(raw_function, cleaner_function, name=None):
         async def cleaner_local(request, **kwargs):
             google_response = await raw_function(request, **kwargs)
-            print(cleaner_function)
             clean = cleaner_function(google_response)
             return clean
         if name is not None:
