@@ -2,7 +2,7 @@
 Defines the options in the settings panel
 '''
 # package imports
-from dash import html
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 # currently we use the same options for both sorting and indicators
@@ -15,6 +15,32 @@ import dash_bootstrap_components as dbc
 #     'vwp_interactive': {'label': 'Informal Language', 'value': 'vwp_interactive'},
 #     'vwp_evaluation': {'label': 'Opinion Words', 'value': 'vwp_evaluation'}
 # }
+metric_parents = {
+    'pos_': {
+        'label': 'Parts of Speech',
+        'value': 'pos_',
+        'children': [
+            {
+                'label': dbc.Badge(
+                    '# adverbs',
+                    color='info',
+                    title='Total number of adverbs',
+                    class_name='subchecklist-label'
+                ),
+                'value': 'adverbs'
+            },
+            {
+                'label': dbc.Badge(
+                    '# adjectives',
+                    color='info',
+                    title='Total number of adjectives',
+                    class_name='subchecklist-label'
+                ),
+                'value': 'adjectives'
+            }
+        ]
+    }
+}
 metric_options = {
     'sents': {
         'label': dbc.Badge(
@@ -81,6 +107,7 @@ highlight_options = {
         'value': 'vwp_argumentword'
     }
 }
+highlight_parents = {}
 indicator_options = {
     'is_academic': {
         'label': html.Span(
@@ -174,3 +201,31 @@ indicator_options = {
         'value': 'concrete_details'
     }
 }
+indicator_parents = {}
+
+def return_settings_options(selected, choices, parent_options):
+    options = []
+    for item in selected:
+        if item in parent_options:
+            options.append(
+                {
+                    'label': parent_options[item]['label'],
+                    'value': parent_options[item]['value'],
+                    'disabled': True
+                }
+            )
+            for child in parent_options[item]['children']:
+                options.append(child)
+        else:
+            options.append(choices[item])
+    return options
+
+
+def create_options(selected, option_type):
+    if option_type == 'metric':
+        return return_settings_options(selected, metric_options, metric_parents)
+    elif option_type == 'indicators':
+        return return_settings_options(selected, indicator_options, indicator_parents)
+    elif option_type == 'highlight':
+        return return_settings_options(selected, highlight_options, highlight_parents)
+    return []

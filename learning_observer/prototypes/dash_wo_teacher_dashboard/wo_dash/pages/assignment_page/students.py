@@ -13,9 +13,14 @@ from . import settings, settings_defaults, settings_options as so
 # define ids for the dashboard
 # use a prefix to help ensure we don't double up on IDs (guess what happens if you double up? it breaks)
 prefix = 'teacher-dashboard'
-student_card = f'{prefix}-student-card'  # individual student card id
-student_row = f'{prefix}-student-row'  # overall student row 
+
+# individual student items 
 student_col = f'{prefix}-student-col'  # individual student card wrapper id
+student_metrics = f'{prefix}-student-metrics'
+student_texthighlight = f'{prefix}-student-texthighlight'
+student_indicators = f'{prefix}-student-indicators'
+
+student_row = f'{prefix}-student-row'  # overall student row 
 student_grid = f'{prefix}-student-grid'  # overall student grid wrapper id
 websocket = f'{prefix}-websocket'  # websocket to connect to the server (eventually)
 student_counter = f'{prefix}-student-counter'  # store item for quick access to the number of students
@@ -199,13 +204,69 @@ clientside_callback(
 # Update data from websocket
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
-    Output({'type': student_card, 'index': ALL}, 'data'),
+    Output({'type': student_metrics, 'index': ALL}, 'data'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'text'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
+    Output({'type': student_indicators, 'index': ALL}, 'data'),
     Output(last_updated, 'children'),
     Output(msg_counter, 'data'),
-    # Output(student_counter, 'data'),
-    # Output(student_store, 'data'),
     Input(websocket, 'message'),
-    State({'type': student_card, 'index': ALL}, 'data'),
+    State(student_store, 'data'),
+    State({'type': student_metrics, 'index': ALL}, 'data'),
+    State({'type': student_texthighlight, 'index': ALL}, 'text'),
+    State({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
+    State({'type': student_indicators, 'index': ALL}, 'data'),
+    State(student_counter, 'data')
+)
+
+show_hide_module = '''
+    function(values, students) {{
+        if (values.includes('{id}')) {{
+            return Array(students).fill('');
+        }}
+        return Array(students).fill('d-none');
+    }}
+    '''
+clientside_callback(
+    show_hide_module.format(id='metrics'),
+    Output({'type': student_metrics, 'index': ALL}, 'class_name'),
+    Input(settings.checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    show_hide_module.format(id='highlight'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'class_name'),
+    Input(settings.checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    show_hide_module.format(id='indicators'),
+    Output({'type': student_indicators, 'index': ALL}, 'class_name'),
+    Input(settings.checklist, 'value'),
+    State(student_counter, 'data')
+)
+
+update_shown_items = '''
+    function(values, students) {{
+        return Array(students).fill(values.map(x => `${{x}}_{}`));
+    }}
+'''
+clientside_callback(
+    update_shown_items.format('metric'),
+    Output({'type': student_metrics, 'index': ALL}, 'shown'),
+    Input(settings.metric_checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    update_shown_items.format('highlight'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'shown'),
+    Input(settings.highlight_checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    update_shown_items.format('indicator'),
+    Output({'type': student_indicators, 'index': ALL}, 'shown'),
+    Input(settings.indicator_checklist, 'value'),
     State(student_counter, 'data')
 )
 
@@ -222,20 +283,9 @@ clientside_callback(
     Output({'type': student_col, 'index': ALL}, 'style'),
     Input(settings.sort_by_checklist, 'value'),
     Input(settings.sort_toggle, 'value'),
-    Input({'type': student_card, 'index': ALL}, 'data'),
+    Input({'type': student_indicators, 'index': ALL}, 'data'),
+    State(student_store, 'data'),
     State(settings.sort_by_checklist, 'options'),
-    State(student_counter, 'data')
-)
-
-# hide/show attributes on student cards
-clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='show_hide_data'),
-    Output({'type': student_card, 'index': ALL}, 'shown'),
-    Input(settings.checklist, 'value'),
-    Input(settings.metric_checklist, 'value'),
-    Input(settings.text_radioitems, 'value'),
-    Input(settings.highlight_checklist, 'value'),
-    Input(settings.indicator_checklist, 'value'),
     State(student_counter, 'data')
 )
 
@@ -245,7 +295,7 @@ clientside_callback(
     Output(settings.dummy, 'style'),
     Input(settings.checklist, 'value'),
     Input(settings.highlight_checklist, 'value'),
-    Input({'type': student_card, 'index': ALL}, 'data'),
+    Input({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
     State(settings.highlight_checklist, 'options')
 )
 
@@ -255,8 +305,8 @@ clientside_callback(
         sort_by_options=Output(settings.sort_by_checklist, 'options'),
         metric_options=Output(settings.metric_checklist, 'options'),
         metric_value=Output(settings.metric_checklist, 'value'),
-        text_options=Output(settings.text_radioitems, 'options'),
-        text_value=Output(settings.text_radioitems, 'value'),
+        # text_options=Output(settings.text_radioitems, 'options'),
+        # text_value=Output(settings.text_radioitems, 'value'),
         highlight_options=Output(settings.highlight_checklist, 'options'),
         highlight_value=Output(settings.highlight_checklist, 'value'),
         indicator_options=Output(settings.indicator_checklist, 'options'),
@@ -265,7 +315,7 @@ clientside_callback(
     inputs=dict(
         course=Input(course_store, 'data'),
         assignment=Input(assignment_store, 'data')
-    )    
+    )
 )
 def fill_in_settings(course, assignment):
     # populate all settings based on assignment or default
@@ -274,16 +324,19 @@ def fill_in_settings(course, assignment):
     # if options (obj) set opt to assignment options
     # if type (string) set opt to settings_default.type
     opt = settings_defaults.argumentative
-    
+
     ret = dict(
         sort_by_options=[so.indicator_options[o] for o in opt['sort_by']['options']],
-        metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
+        metric_options=so.create_options(opt['metrics']['options'], 'metric'),
+        # metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
         metric_value=opt['metrics']['selected'],
-        text_options=[so.text_options[o] for o in opt['text']['options']],
-        text_value=opt['text']['selected'],
-        highlight_options=[so.highlight_options[o] for o in opt['highlight']['options']],
+        # text_options=[so.text_options[o] for o in opt['text']['options']],
+        # text_value=opt['text']['selected'],
+        highlight_options=so.create_options(opt['highlight']['options'], 'highlight'),
+        # highlight_options=[so.highlight_options[o] for o in opt['highlight']['options']],
         highlight_value=opt['highlight']['selected'],
-        indicator_options=[so.indicator_options[o] for o in opt['indicators']['options']],
+        indicator_options=so.create_options(opt['indicators']['options'], 'indicators'),
+        # indicator_options=[so.indicator_options[o] for o in opt['indicators']['options']],
         indicator_value=opt['indicators']['selected'],
     )
     return ret
@@ -303,24 +356,36 @@ def create_cards(students):
     # i.e. the same code for both js and python
     cards = [
         dbc.Col(
-            loc.StudentOverviewCard(
-                # pattern matching callback
-                id={
-                    'type': student_card,
-                    'index': s['userId']
-                },
-                name=s['profile']['name']['fullName'],
-                data={
-                    'id': s['userId'],
-                    'text': {},
-                    'highlight': {},
-                    'metrics': {},
-                    'indicators': {}
-                },
-                shown=[],
-                # adds shadow on hover
-                class_name='shadow-card'
-            ),
+            [
+                dbc.Card(
+                    [
+                        html.H4(s['profile']['name']['fullName']),
+                        loc.LOMetrics(
+                            id={
+                                'type': student_metrics,
+                                'index': s['userId']
+                            }
+                        ),
+                        html.Div(
+                            loc.LOTextHighlight(
+                                id={
+                                    'type': student_texthighlight,
+                                    'index': s['userId']
+                                }
+                            ),
+                            className='student-card-text'
+                        ),
+                        loc.LOIndicatorBars(
+                            id={
+                                'type': student_indicators,
+                                'index': s['userId']
+                            }
+                        )
+                    ],
+                    body=True,
+                    class_name='shadow-card'
+                )
+            ],
             # pattern matching callback
             id={
                 'type': student_col,

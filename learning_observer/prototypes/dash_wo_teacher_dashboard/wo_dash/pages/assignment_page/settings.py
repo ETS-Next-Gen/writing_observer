@@ -156,7 +156,6 @@ panel = dbc.Card(
                                             dbc.Collapse(
                                                 dcc.Checklist(
                                                     # option for each possible metric
-                                                    # TODO pull this information from somewhere
                                                     options=[],
                                                     value=[],  # defaults
                                                     id=metric_checklist,
@@ -170,32 +169,32 @@ panel = dbc.Card(
                                     'value': 'metrics'
                                 },
                                 # text
-                                {
-                                    'label': html.Span(
-                                        [
-                                            html.Span(
-                                                [
-                                                    html.I(className='fas fa-file me-1'),
-                                                    'Text',
-                                                ],
-                                                className='font-size-lg'
-                                            ),
-                                            dbc.Collapse(
-                                                dcc.RadioItems(
-                                                    # option for each possible text item
-                                                    # TODO pull this information from somewhere
-                                                    options=[],
-                                                    value=None,  # default option
-                                                    id=text_radioitems,
-                                                    labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
-                                                    inputClassName='form-check-input'  # style dcc as Bootstrap
-                                                ),
-                                                id=text_collapse,
-                                            )
-                                        ],
-                                    ),
-                                    'value': 'text'
-                                },
+                                # {
+                                #     'label': html.Span(
+                                #         [
+                                #             html.Span(
+                                #                 [
+                                #                     html.I(className='fas fa-file me-1'),
+                                #                     'Text',
+                                #                 ],
+                                #                 className='font-size-lg'
+                                #             ),
+                                #             dbc.Collapse(
+                                #                 dcc.RadioItems(
+                                #                     # option for each possible text item
+                                #                     # TODO pull this information from somewhere
+                                #                     options=[],
+                                #                     value=None,  # default option
+                                #                     id=text_radioitems,
+                                #                     labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
+                                #                     inputClassName='form-check-input'  # style dcc as Bootstrap
+                                #                 ),
+                                #                 id=text_collapse,
+                                #             )
+                                #         ],
+                                #     ),
+                                #     'value': 'text'
+                                # },
                                 # highlight
                                 {
                                     'label': html.Span(
@@ -303,23 +302,32 @@ clientside_callback(
 # 
 # e.g. if metrics is chosen, show the options for time_on_task, adjectives, adverbs, etc.
 #       otherwise, don't shown those items
+
+toggle_checklist_visibility = '''
+    function(values, students) {{
+        if (values.includes('{id}')) {{
+            return true;
+        }}
+        return false;
+    }}
+    '''
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_indicators_checklist'),
+    toggle_checklist_visibility.format(id='indicators'),
     Output(indicator_collapse, 'is_open'),
     Input(checklist, 'value')
 )
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_metrics_checklist'),
+    toggle_checklist_visibility.format(id='metrics'),
     Output(metric_collapse, 'is_open'),
     Input(checklist, 'value')
 )
+# clientside_callback(
+#     toggle_checklist_visibility.format(id='text'),
+#     Output(text_collapse, 'is_open'),
+#     Input(checklist, 'value')
+# )
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_text_checklist'),
-    Output(text_collapse, 'is_open'),
-    Input(checklist, 'value')
-)
-clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_highlight_checklist'),
+    toggle_checklist_visibility.format(id='highlight'),
     Output(highlight_collapse, 'is_open'),
     Input(checklist, 'value')
 )

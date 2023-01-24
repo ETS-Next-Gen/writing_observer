@@ -7,7 +7,7 @@ argumentative = {
         'selected': []
     },
     'metrics': {
-        'options': ['sents', 'delimiter_\n', 'time_on_task'],
+        'options': ['sents', 'delimiter_\n', 'time_on_task', 'pos_'],
         'selected': ['time_on_task', 'sents']
     },
     'text': {
