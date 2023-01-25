@@ -19,8 +19,8 @@ import awe_components.components.viewpointFeatures
 import awe_components.components.lexicalClusters
 import awe_components.components.contentSegmentation
 import json
-
 import time
+import warnings
 
 import writing_observer.nlp_indicators
 
@@ -29,6 +29,7 @@ def init_nlp():
     Initialize the spacy pipeline with the AWE components. This takes a while
     to run.
     '''
+    warnings.filterwarnings('ignore', category=UserWarning, module='nltk')
     nlp = spacy.load("en_core_web_lg")
 
     # Adding all of the components, since
