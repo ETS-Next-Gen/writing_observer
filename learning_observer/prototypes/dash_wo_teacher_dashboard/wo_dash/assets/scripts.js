@@ -121,8 +121,8 @@ window.dash_clientside.clientside = {
         const data = JSON.parse(msg.data)['latest_writing_data'];
         console.log(data);
         for (let i = 0; i < data.length; i++) {
-            let curr_user = data[i].student.userId;
-            let user_index = student_ids.findIndex(item => item.userId === curr_user)
+            let curr_user = data[i].student.user_id;
+            let user_index = student_ids.findIndex(item => item.user_id === curr_user)
             updates[user_index] = {
                 'id': curr_user,
                 'text': {
