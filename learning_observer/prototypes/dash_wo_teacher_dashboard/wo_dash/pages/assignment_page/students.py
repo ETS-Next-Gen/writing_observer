@@ -359,18 +359,18 @@ def create_cards(students):
             [
                 dbc.Card(
                     [
-                        html.H4(s['profile']['name']['fullName']),
+                        html.H4(s['profile']['name']['full_name']),
                         loc.LOMetrics(
                             id={
                                 'type': student_metrics,
-                                'index': s['userId']
+                                'index': s['user_id']
                             }
                         ),
                         html.Div(
                             loc.LOTextHighlight(
                                 id={
                                     'type': student_texthighlight,
-                                    'index': s['userId']
+                                    'index': s['user_id']
                                 }
                             ),
                             className='student-card-text'
@@ -378,7 +378,7 @@ def create_cards(students):
                         loc.LOIndicatorBars(
                             id={
                                 'type': student_indicators,
-                                'index': s['userId']
+                                'index': s['user_id']
                             }
                         )
                     ],
