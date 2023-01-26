@@ -76,7 +76,6 @@ import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 import learning_observer.auth as auth
 
-
 from learning_observer.log_event import debug_log
 
 import learning_observer.prestartup
@@ -229,8 +228,6 @@ def adjust_external_gc_ids(resp_json):
         # For the present there is only one external id so we will add that directly.
         ext_ids = [{ "source": "google", "id": google_id }]
         student_profile['external_ids'] = ext_ids
-        
-
 
 
 async def all_students():
@@ -370,7 +367,6 @@ async def google_ajax(
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
-
     if parameters is None:  # Should NOT be a default param. See W0102.
         parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
