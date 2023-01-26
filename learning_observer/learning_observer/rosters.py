@@ -32,7 +32,7 @@ we use to manage the data and to address variations in the roster sources
 whether we are taking them from google or from our own backup data.
 
 As of now this partially implements a separation between the internal ID
-which shows up in our rosters as id or user_id and the id used for the 
+which shows up in our rosters as id or `user_id` and the id used for the 
 external sources of data.  We store external ids on student data under 
 external_ids and keep space for ids from google etc.  However as of now
 we do not make use of it.  Ultimately it would be ideal to move so that 
@@ -158,7 +158,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     - We often want some default if that field is missing (`default`)
     - We often want the response sensibly sorted (`sort_key`)
     '''
-
     # Convert errors into appropriate codes for clients
     # Typically, resp_json['error'] == 'UNAUTHENTICATED'
     if 'error' in resp_json:
@@ -188,8 +187,7 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     # Sort the list
     if sort_key is not None:
         resp_json.sort(key=sort_key)
-  
-        
+
     return resp_json
 
 
@@ -340,7 +338,7 @@ async def synthetic_ajax(
     else:
         debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
         raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
-                            + " (should be 'test' or 'filesystem')")
+                         + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
     except FileNotFoundError as exc:
