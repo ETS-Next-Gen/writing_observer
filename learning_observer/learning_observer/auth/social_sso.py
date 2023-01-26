@@ -40,6 +40,26 @@ import learning_observer.auth.utils
 import learning_observer.exceptions
 
 
+DEFAULT_GOOGLE_SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/classroom.courses.readonly',
+    'https://www.googleapis.com/auth/classroom.rosters.readonly',
+    'https://www.googleapis.com/auth/classroom.profile.emails',
+    'https://www.googleapis.com/auth/classroom.profile.photos',
+    'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
+    'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
+    'https://www.googleapis.com/auth/classroom.guardianlinks.students.readonly',
+    'https://www.googleapis.com/auth/classroom.student-submissions.students.readonly',
+    'https://www.googleapis.com/auth/classroom.topics.readonly',
+    'https://www.googleapis.com/auth/drive.metadata.readonly',
+    'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/documents.readonly',
+    'https://www.googleapis.com/auth/classroom.announcements.readonly'
+]
+
+
+
 async def social_handler(request):
     """Handles Google sign in.
 
@@ -81,25 +101,19 @@ async def _google(request):
     if 'code' not in request.query:
         url = 'https://accounts.google.com/o/oauth2/auth'
         params = common_params.copy()
+        # We can override the scopes in the settings file entirely...
+        scopes = settings.settings['auth']['google_oauth']['web'].get(
+            'base_scopes',
+            DEFAULT_GOOGLE_SCOPES
+        )
+        # Or keep the default scopes and just add a few new ones....
+        scopes += settings.settings['auth']['google_oauth'].get(
+            'additional_scopes',
+            []
+        )
         params.update({
             'response_type': 'code',
-            'scope': (
-                'https://www.googleapis.com/auth/userinfo.profile'
-                ' https://www.googleapis.com/auth/userinfo.email'
-                ' https://www.googleapis.com/auth/classroom.courses.readonly'
-                ' https://www.googleapis.com/auth/classroom.rosters.readonly'
-                ' https://www.googleapis.com/auth/classroom.profile.emails'
-                ' https://www.googleapis.com/auth/classroom.profile.photos'
-                ' https://www.googleapis.com/auth/classroom.coursework.students.readonly'
-                ' https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly'
-                ' https://www.googleapis.com/auth/classroom.guardianlinks.students.readonly'
-                ' https://www.googleapis.com/auth/classroom.student-submissions.students.readonly'
-                ' https://www.googleapis.com/auth/classroom.topics.readonly'
-                ' https://www.googleapis.com/auth/drive.metadata.readonly'
-                ' https://www.googleapis.com/auth/drive.readonly'
-                ' https://www.googleapis.com/auth/documents.readonly'
-                ' https://www.googleapis.com/auth/classroom.announcements.readonly'
-            ),
+            'scope': " ".join(scopes),
         })
         if 'back_to' in request.query:
             params['state'] = request.query['back_to']

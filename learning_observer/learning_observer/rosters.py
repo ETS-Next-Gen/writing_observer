@@ -367,7 +367,7 @@ async def google_ajax(
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
-    if parameters is None:  # Should NOT be a default param. See W0102.
+    if parameters is None:  # {} should NOT be a default param. See W0102.
         parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         # We would like better error handling for what to do if auth_headers
@@ -455,6 +455,11 @@ async def courselist(request):
     '''
     List all of the courses a teacher manages: Helper
     '''
+    # New code
+    if settings.settings['roster_data']['source'] in ["google_api"]:
+        return await learning_observer.google.courses(request)
+
+    # Legacy code
     course_list = await ajax(
         request,
         url=COURSE_URL,
@@ -469,6 +474,9 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
+    if settings.settings['roster_data']['source'] in ["google_api"]:
+        return await learning_observer.google.roster(request, courseId=course_id)
+
     roster = await ajax(
         request,
         url=ROSTER_URL,
@@ -493,19 +501,3 @@ async def courseroster_api(request):
     '''
     course_id = int(request.match_info['course_id'])
     return aiohttp.web.json_response(await courseroster(request, course_id))
-
-
-# We'd like to be able to fetch classwork from Google. We don't know how to do this yet.
-# the following is a placeholder for the future. The code is commented out and probably
-# completely incorrect. It's never been tried.
-#
-# CLASSWORK_URL = "https://www.googleapis.com/auth/classroom.coursework.students.readonly"
-# async def fetch_classwork(request, course_id):
-#    '''
-#    Fetch the classwork associated with a course
-#    '''
-#    async with aiohttp.ClientSession(loop=request.app.loop) as client:
-#        async with client.get(CLASSWORK_URL, headers=request["auth_headers"]) as resp:
-#            resp_json = await resp.json()
-#            log_event.log_ajax(CLASSWORK_URL, resp_json, request)
-#            return resp_json
