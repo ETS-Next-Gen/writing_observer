@@ -193,20 +193,13 @@ def fetch_student_state(
                     'name': {
                         'full_name': student['profile']['name']['full_name']
                     },
-                    'photo_url': student['profile']['photo_url'],
-                    'email_address': student['profile']['email_address'],
-                    'external_ids': student['profile']['external_ids'],
+                    'photo_url': student['profile'].get('photo_url', ''),
+                    'email_address': student['profile'].get('email_address', ''),
+                    'external_ids': student['profile'].get('external_ids', []),
                 },
                 "course_id": course_id,
                 "user_id": student['user_id'],  # TODO: Encode?
             }
-
-            # # Hack to deal with cases where the external_ids are not yet
-            # # saved.  This will simply skip over the issues.  For the
-            # # moment we add a blank list if none are present.
-            # if ("external_ids" in student['profile']):
-            #     student_state["profile"]["external_ids"] = student["profile"]['external_ids']
-            # else: student_state["external_ids"] = []
                                         
             student_state.update(default_data)
 
