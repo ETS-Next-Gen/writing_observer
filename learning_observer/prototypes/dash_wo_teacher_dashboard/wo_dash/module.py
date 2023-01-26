@@ -49,3 +49,12 @@ THIRD_PARTY = {
         "666e8a2e34aae8e79904f8e9b4c0ccae40249897cce5f5ae58d12cc1b3985e588d6"
     }
 }
+
+COURSE_DASHBOARDS = [{
+    'name': "Dash Writing Observer",
+    'url': "/wo_dash/dash/dashboard/",
+    "icon": {
+        "type": "fas",
+        "icon": "fa-pen-nib"
+    }
+}]
