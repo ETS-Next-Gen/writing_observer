@@ -47,3 +47,11 @@ SPAN_INDICATORS = [
     ('Supporting Detail Sentences', 'Doc', 'supporting_details', None, 'total')
 ]
 
+INDICATORS = {}
+for indicator in SPAN_INDICATORS:
+    if indicator[3] is None:
+        name = indicator[2]
+    else:
+        name = indicator[0].lower().replace(' ', '_')
+    indicator = indicator + (name,)
+    INDICATORS[name] = indicator

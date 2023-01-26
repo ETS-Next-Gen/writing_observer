@@ -219,6 +219,15 @@ clientside_callback(
     State(student_counter, 'data')
 )
 
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='send_options_to_server'),
+    Output(websocket, 'send'),
+    Input(settings.checklist, 'value'),
+    Input(settings.metric_checklist, 'value'),
+    Input(settings.highlight_checklist, 'value'),
+    Input(settings.indicator_checklist, 'value')
+)
+
 show_hide_module = '''
     function(values, students) {{
         if (values.includes('{id}')) {{

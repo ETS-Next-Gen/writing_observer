@@ -316,4 +316,14 @@ window.dash_clientside.clientside = {
         }
         return true;
     },
+
+    send_options_to_server: function(types, metrics, highlights, indicators) {
+        // const data = [
+        //     {type: 'metric', options: metrics},
+        //     {type: 'highlight', options: highlights},
+        //     {type: 'indicators', options: indicators}
+        // ]
+        const data = metrics.concat(highlights).concat(indicators);
+        return [JSON.stringify(data)]
+    }
 }
