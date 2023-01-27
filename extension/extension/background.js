@@ -111,6 +111,7 @@ function websocket_logger(server) {
     function prepare_socket() {
         // Send the server the user info. This might not always be available.
         state = new Set();
+        let event;
         profileInfoWrapper(function callback(userInfo) {
             event = {
                 "chrome_identity": userInfo
@@ -120,7 +121,7 @@ function websocket_logger(server) {
             state.add("chrome_identity");
             are_we_done();
         });
-        storage_keys = [
+        let storage_keys = [
             "teacher_tag", // Unused. In the future: whom do we authorize to receive data?
             "user_tag", // Unique per-user tag in the settings page
             "process_server", // Unused. Which server should we send to?
@@ -190,7 +191,7 @@ function ajax_logger(ajax_server) {
       To do: Handle failures / dropped connections
      */
     var server = ajax_server;
-    return function(data) {
+    return function (data) {
         /*
           Helper function to send a logging AJAX request to the server.
           This function takes a JSON dictionary of data.
@@ -212,7 +213,7 @@ loggers_enabled = [
     websocket_logger("wss://localhost/wsapi/in/")
 ];
 */
-loggers_enabled = [
+let loggers_enabled = [
     console_logger(),
     //ajax_logger("https://writing.learning-observer.org/webapi/")//,
 
@@ -226,7 +227,7 @@ function log_event(event_type, event) {
        This sends an event to the server.
     */
     event = add_event_metadata(event_type, event);
-    
+
     if(event['wa_source'] = null) {
         event['wa_source'] = 'background_page';
     }
@@ -237,8 +238,12 @@ function log_event(event_type, event) {
     }
 }
 
+function logFromServiceWorker(event) {
+  console.log(event);
+}
+
 function send_chrome_identity() {
-    /*
+  /*
        We sometimes may want to log the user's identity, as stored in
        Google Chrome. Note that this is not secure; we need oauth to do
        that. oauth can be distracting in that (at least in the workflow
@@ -249,11 +254,12 @@ function send_chrome_identity() {
 
        Note this function is untested, following a refactor.
     */
-    chrome.identity.getProfileInfo(function(userInfo) {
-        log_event("chrome_identity_load", {"email": userInfo.email,
-                                           "id": userInfo.id
-                                          });
+  chrome.identity.getProfileInfo(function (userInfo) {
+    log_event("chrome_identity_load", {
+      email: userInfo.email,
+      id: userInfo.id,
     });
+  });
 }
 
 function this_a_google_docs_save(request) {
@@ -343,6 +349,7 @@ chrome.webRequest.onBeforeRequest.addListener(
     function(request) {
         //chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
         var formdata = {};
+        let event;
         if(request.requestBody) {
             formdata = request.requestBody.formData;
         }
@@ -360,24 +367,24 @@ chrome.webRequest.onBeforeRequest.addListener(
             //chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
             try {
                 /* We should think through which time stamps we should log. These are all subtly
-                   different: browser event versus request timestamp, as well as user time zone
-                   versus GMT. */
+                  different: browser event versus request timestamp, as well as user time zone
+                  versus GMT. */
                 event = {
                     'doc_id':  googledocs_id_from_url(request.url),
-		    'url': request.url,
+                    'url': request.url,
                     'bundles': JSON.parse(formdata.bundles),
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
                 }
-                chrome.extension.getBackgroundPage().console.log(event);
+                logFromServiceWorker(event);
                 log_event('google_docs_save', event);
             } catch(err) {
                 /*
                   Oddball events, like text selections.
-                 */
+                */
                 event = {
                     'doc_id':  googledocs_id_from_url(request.url),
-		    'url': request.url,
+                    'url': request.url,
                     'formdata': formdata,
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
@@ -385,9 +392,9 @@ chrome.webRequest.onBeforeRequest.addListener(
                 log_event('google_docs_save_extra', event);
             }
         } else if(this_a_google_docs_bind(request)) {
-            chrome.extension.getBackgroundPage().console.log(request);
+            logFromServiceWorker(request);
         } else {
-            chrome.extension.getBackgroundPage().console.log("Not a save or bind: "+request.url);
+            logFromServiceWorker("Not a save or bind: "+request.url);
         }
     },
     { urls: ["*://docs.google.com/*"] },
@@ -403,4 +410,5 @@ profileInfoWrapper(function callback(userInfo) {
 });
 
 // And let the console know we've loaded
-chrome.extension.getBackgroundPage().console.log("Loaded");
+// chrome.extension.getBackgroundPage().console.log("Loaded"); remove
+logFromServiceWorker("Loaded");
