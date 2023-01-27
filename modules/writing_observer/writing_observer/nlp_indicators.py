@@ -47,6 +47,9 @@ SPAN_INDICATORS = [
     ('Supporting Detail Sentences', 'Doc', 'supporting_details', None, 'total')
 ]
 
+# Create indicator dict to easily refer to each tuple above by name
+# if a filter exists, we use a lowercased version of the label
+# otherwise, we just use the indicator name (adjectives and adverbs both use pos_ for the indicator)
 INDICATORS = {}
 for indicator in SPAN_INDICATORS:
     if indicator[3] is None:
