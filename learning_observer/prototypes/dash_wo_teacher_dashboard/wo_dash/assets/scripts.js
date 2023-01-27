@@ -96,7 +96,7 @@ window.dash_clientside.clientside = {
         return orders;
     },
 
-    populate_student_data: function(msg, student_ids, prev_metrics, prev_text, prev_highlights, prev_indicators, students) {
+    populate_student_data: function(msg, student_ids, prev_metrics, prev_text, prev_highlights, prev_indicators, students, msg_count) {
         // Populates and updates students data from the websocket
         // for each update, parse the data into the proper format
         // Also return the current time
@@ -119,7 +119,7 @@ window.dash_clientside.clientside = {
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
-        console.log(data);
+        // console.log(data);
         for (let i = 0; i < data.length; i++) {
             let curr_user = data[i].student.user_id;
             let user_index = student_ids.findIndex(item => item.user_id === curr_user)
@@ -172,7 +172,7 @@ window.dash_clientside.clientside = {
             updates.map(function(d) { return d['highlight']; }), // texthighlight highlighting
             updates.map(function(d) { return d['indicators']; }), // indicators
             timestamp.toLocaleTimeString(), // current time
-            1 // set message count
+            msg_count + 1 // set message count
         ];
     },
 
@@ -246,8 +246,15 @@ window.dash_clientside.clientside = {
 
         if (!overall_show.includes('highlight')) {return window.dash_clientside.no_update;}
         const colors = [
-            'rgba(86, 204, 157, 0.25)', 'rgba(108, 195, 213, 0.25)',
-            'rgba(255, 206, 103, 0.25)', 'rgba(255, 120, 81, 0.25)'
+            // Mints primary 4 colors with a 0.25 opacity
+            // 'rgba(86, 204, 157, 0.25)', 'rgba(108, 195, 213, 0.25)',
+            // 'rgba(255, 206, 103, 0.25)', 'rgba(255, 120, 81, 0.25)',
+            // Plotly's T10 with a 0.25 opacity applied
+            'rgba(245, 133, 24, 0.25)',
+            'rgba(114, 183, 178, 0.25)', 'rgba(228, 87, 86, 0.25)', 
+            'rgba(84, 162, 75, 0.25)', 'rgba(238, 202, 59, 0.25)',
+            'rgba(178, 121, 162, 0.25)', 'rgba(255, 157, 166, 0.25)',
+            'rgba(76, 120, 168, 0.25)', 
         ];
         let docs = [];
         const shown_colors = {};
@@ -316,4 +323,33 @@ window.dash_clientside.clientside = {
         }
         return true;
     },
+
+    send_options_to_server: function(types, metrics, highlights, indicators) {
+        // const data = [
+        //     {type: 'metric', options: metrics},
+        //     {type: 'highlight', options: highlights},
+        //     {type: 'indicators', options: indicators}
+        // ]
+        const data = metrics.concat(highlights).concat(indicators);
+        return [JSON.stringify(data)]
+    },
+
+    show_nlp_running_alert: function(msg_count, checklist, metrics, highlight, indicator) {
+        const trig = dash_clientside.callback_context.triggered[0];
+        if (trig.prop_id === 'teacher-dashboard-msg-counter.data') {
+            return false;
+        }
+        return true;
+    },
+
+    update_overall_alert: function(is_open, children) {
+        const truth = is_open.filter(function(e) {return e}).length;
+        if (truth == 1) {
+            return [children[is_open.indexOf(true)], '']
+        }
+        if (truth > 1) {
+            return [`Waiting on ${truth} items to finish`, ''];
+        }
+        return [window.dash_clientside.no_update, 'hidden-alert'];
+    }
 }

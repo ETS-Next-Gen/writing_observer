@@ -176,7 +176,7 @@ async def merge_with_student_data(writing_data, student_data):
 
 import writing_observer.awe_nlp
 
-async def latest_data(student_data):
+async def latest_data(student_data, options=None):
     '''
     HACK HACK HACK
 
@@ -186,7 +186,7 @@ async def latest_data(student_data):
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
     just_the_text = [w.get("text", "") for w in writing_data]
-    annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
+    annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text, options)
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
