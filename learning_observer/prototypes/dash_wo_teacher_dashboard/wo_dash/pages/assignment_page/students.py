@@ -343,19 +343,7 @@ clientside_callback(
 )
 
 clientside_callback(
-    '''
-    function(is_open, children) {
-        const truth = is_open.filter(function(e) {return e}).length;
-        console.log(children);
-        if (truth == 1) {
-            return [children[is_open.indexOf(true)], '']
-        }
-        if (truth > 1) {
-            return [`Waiting on ${truth} items to finish`, ''];
-        }
-        return [window.dash_clientside.no_update, 'hidden-alert'];
-    }
-    ''',
+    ClientsideFunction(namespace='clientside', function_name='update_overall_alert'),
     Output(overall_alert, 'label'),
     Output(overall_alert, 'class_name'),
     Input({'type': alert_type, 'index': ALL}, 'is_open'),

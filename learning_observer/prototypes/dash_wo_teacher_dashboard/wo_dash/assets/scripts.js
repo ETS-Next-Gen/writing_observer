@@ -340,5 +340,16 @@ window.dash_clientside.clientside = {
             return false;
         }
         return true;
+    },
+
+    update_overall_alert: function(is_open, children) {
+        const truth = is_open.filter(function(e) {return e}).length;
+        if (truth == 1) {
+            return [children[is_open.indexOf(true)], '']
+        }
+        if (truth > 1) {
+            return [`Waiting on ${truth} items to finish`, ''];
+        }
+        return [window.dash_clientside.no_update, 'hidden-alert'];
     }
 }

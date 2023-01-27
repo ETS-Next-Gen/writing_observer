@@ -114,6 +114,7 @@ def process_text(text, options=[]):
             "name": name,
             "summary_type": summaryType
         })
+    # Return metrics for every indicator (OLD)
     # for indicator in writing_observer.nlp_indicators.SPAN_INDICATORS:
     #     (label, infoType, select, filterInfo, summaryType) = indicator
     #     results[select] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
