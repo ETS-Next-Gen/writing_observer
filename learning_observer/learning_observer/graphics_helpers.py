@@ -40,13 +40,13 @@ class ColorWheel:
         '''
         Return a color in an RGB format, appropriate for plotly or css
         '''
-        return 'rgb({0},{1},{2})'.format(*map(lambda x: int(x*255), colorsys.hsv_to_rgb(self.h, self.s, self.v)))
+        return 'rgb({0},{1},{2})'.format(*map(lambda x: int(x * 255), colorsys.hsv_to_rgb(self.h, self.s, self.v)))
 
     def hex_format(self):
         '''
         Return a color in an hex format
         '''
-        return '#{0:02x}{1:02x}{2:02x}'.format(*map(lambda x: int(x*255), colorsys.hsv_to_rgb(self.h, self.s, self.v)))
+        return '#{0:02x}{1:02x}{2:02x}'.format(*map(lambda x: int(x * 255), colorsys.hsv_to_rgb(self.h, self.s, self.v)))
 
 
 def default_user_icon(name):

@@ -71,9 +71,18 @@
     box-shadow: 0px 0px 5px var(--bs-gray-300);
     border-radius: 0.4rem;
 }
-
 .btn-menu-outline-dark button {
     color: #343a40;
     background-color: #fff;
     border-color: #343a40;
+}
+.form-check-input:disabled {
+    display: none;
+}
+
+.nested-form:has(.subchecklist-label) {
+    margin-left: 1.5em;
+}
+.nested-form:has(.form-check-input:disabled) {
+    padding-left: 0;
 }

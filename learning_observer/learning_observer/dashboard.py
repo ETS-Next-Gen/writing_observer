@@ -191,19 +191,21 @@ def fetch_student_state(
                 # extra stuff.
                 'profile': {
                     'name': {
-                        'fullName': student['profile']['name']['fullName']
+                        'full_name': student['profile']['name']['full_name']
                     },
-                    'photoUrl': student['profile']['photoUrl'],
-                    'emailAddress': student['profile']['emailAddress'],
+                    'photo_url': student['profile'].get('photo_url', ''),
+                    'email_address': student['profile'].get('email_address', ''),
+                    'external_ids': student['profile'].get('external_ids', []),
                 },
-                "courseId": course_id,
-                "userId": student['userId'],  # TODO: Encode?
+                "course_id": course_id,
+                "user_id": student['user_id'],  # TODO: Encode?
             }
+                                        
             student_state.update(default_data)
 
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
-            google_id = student['userId']
+            google_id = student['user_id']
             if google_id.isnumeric():
                 student_id = learning_observer.auth.google_id_to_user_id(google_id)
             else:
@@ -297,8 +299,7 @@ async def websocket_dashboard_view(request):
     # the same data format for 1 student as for a classroom of
     # students.
     if student_id is not None:
-        roster = [r for r in roster if r['userId'] == student_id]
-
+        roster = [r for r in roster if r['user_id'] == student_id]
     # Grab student list, and deliver to the client
     student_state_fetcher = fetch_student_state(
         course_id,

@@ -143,7 +143,7 @@ def static_repos():
     engine).
 
     (Of course, YMMV. If you're hosting test items in a repo, then you
-    want to be very careful about security)\
+    want to be very careful about security)
     '''
     load_modules()
     return STATIC_REPOS
@@ -198,13 +198,32 @@ def validate_module(module):
     '''
     if not hasattr(module, "NAME"):
         raise ValueError(
-                f"Module {module} does not have a NAME attribute "
-                "Please give your module a short, human-friendly name "
-                "Spaces, etc. are okay"
+            f"Module {module} does not have a NAME attribute "
+            "Please give your module a short, human-friendly name "
+            "Spaces, etc. are okay"
         )
 
 
 DEFAULT_STUDENT_SCOPE = helpers.Scope([helpers.KeyField.STUDENT])
+
+
+def format_function(f):
+    '''
+    Returns a nice, fully-qualified name for a function
+    '''
+    return f"{f.__module__}.{f.__name__}"
+
+
+def add_reducer(reducer, string_id=None):
+    '''
+    We add a reducer. In actual operation, this should only happen once, on
+    module load. We'd like to be able to dynamic load and reload reducers in
+    interactive programming, so we offer the optnio of a `string_id`
+    '''
+    if string_id is not None:
+        REDUCERS = [r for r in REDUCERS if r.get("string_id", None) != string_id]
+    REDUCERS.append(reducer)
+    return REDUCERS
 
 
 def load_reducers(component_name, module):
@@ -212,7 +231,7 @@ def load_reducers(component_name, module):
     Load reducers from a module.
 
     We clean up the reducer by removing any keys that we don't
-    need, adding defaults for any missing keys.
+    and need, adding defaults for any missing keys.
     '''
     # Load any state reducers / event processors
     if hasattr(module, "REDUCERS"):
@@ -220,10 +239,20 @@ def load_reducers(component_name, module):
         for reducer in module.REDUCERS:
             cleaned_reducer = {
                 "context": reducer['context'],
-                "function": reducer['function'],
+                "function": reducer['function'],  # Primary ID
                 "scope": reducer.get('scope', DEFAULT_STUDENT_SCOPE),
                 "module": module
             }
+
+            # Here's the deal: Our primary ID is the function itself, and our
+            # code should rely on that. It gives us type safety. However, it's
+            # convenient to be able to reference these things more easily when
+            # developing interactively. This gives a string ID. We might eliminate
+            # this later, since it's possible to recompute to the string
+            # representation of the function. But it's convenient for now.
+            if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.INTERACTIVE:
+                cleaned_reducer['string_id'] = format_function(reducer['function'])
+
             debug_log(f"Loading reducer: {cleaned_reducer}")
             REDUCERS.append(cleaned_reducer)
     else:
@@ -314,29 +343,28 @@ def register_3rd_party(component_name, module):
             # If another module already wants this library, confirm
             # it's under the same hash
             if library_filename in THIRD_PARTY:
-                if THIRD_PARTY[library_filename]['hash'] != \
-                       module.THIRD_PARTY[library_filename]['hash']:
+                if THIRD_PARTY[library_filename]['hash'] != module.THIRD_PARTY[library_filename]['hash']:
                     raise RuntimeError(
-                            "Version Conflict in 3rd party libs\n"
-                            "Component {} has a different hash for {}"
-                            "than previous component.\n"
-                            "{} vs {}".format(
-                                component_name,
-                                library_filename,
-                                THIRD_PARTY[library_filename]['module'],
-                                module.THIRD_PARTY[library_filename]
-                            )
+                        "Version Conflict in 3rd party libs\n"
+                        "Component {} has a different hash for {}"
+                        "than previous component.\n"
+                        "{} vs {}".format(
+                            component_name,
+                            library_filename,
+                            THIRD_PARTY[library_filename]['module'],
+                            module.THIRD_PARTY[library_filename]
                         )
+                    )
             else:
                 THIRD_PARTY[library_filename] = {
-                        'urls': [],
-                        'hash': module.THIRD_PARTY[library_filename].get('hash', None),
-                        'users': []
-                    }
+                    'urls': [],
+                    'hash': module.THIRD_PARTY[library_filename].get('hash', None),
+                    'users': []
+                }
             THIRD_PARTY[library_filename]['users'].append(module.NAME)
             THIRD_PARTY[library_filename]['urls'].append(
-                    module.THIRD_PARTY[library_filename]['url']
-                )
+                module.THIRD_PARTY[library_filename]['url']
+            )
 
 
 def register_git_repos(component_name, module):
@@ -357,12 +385,12 @@ def register_git_repos(component_name, module):
             debug_log(f"Validating and registering git repository: {repo}")
             if repo in STATIC_REPOS:
                 raise NotImplementedError(
-                        f"Multiple modules want to clone {repo}\n"
-                        "This isn't bad, but isn't implemented yet.\n"
-                        "We want code to either make sure both versions\n"
-                        "are the same, or place them in different locations,\n"
-                        "or something. Please code that up and make a PR!"
-                    )
+                    f"Multiple modules want to clone {repo}\n"
+                    "This isn't bad, but isn't implemented yet.\n"
+                    "We want code to either make sure both versions\n"
+                    "are the same, or place them in different locations,\n"
+                    "or something. Please code that up and make a PR!"
+                )
             STATIC_REPOS[repo] = copy.deepcopy(module.STATIC_FILE_GIT_REPOS[repo])
             # TODO: This is a bit awkward.... The URL and key structure won't work well
             # if we use the same repo twice.
@@ -371,9 +399,9 @@ def register_git_repos(component_name, module):
                 print(f"Repo {repo} does not exist.")
                 print(f"It is requested by {component_name}")
                 print("Should I clone it from {url} to {location}?".format(
-                        location=learning_observer.paths.repo(repo),
-                        url=module.STATIC_FILE_GIT_REPOS[repo]['url']
-                    ))
+                    location=learning_observer.paths.repo(repo),
+                    url=module.STATIC_FILE_GIT_REPOS[repo]['url']
+                ))
                 yesno = input("Yes/No> ")
                 if yesno.lower().strip() not in ["y", "tak", "yes", "yup", "好", "نعم"]:
                     print("Fine. Get it yourself, and configure the location")
@@ -382,9 +410,9 @@ def register_git_repos(component_name, module):
                     sys.exit(-1)
                 gitrepo = gitserve.gitaccess.GitRepo(learning_observer.paths.repo(repo))
                 print(gitrepo.clone(
-                        module.STATIC_FILE_GIT_REPOS[repo]['url'],
-                        mirror=module.STATIC_FILE_GIT_REPOS[repo].get("mirror", True)
-                    ))
+                    module.STATIC_FILE_GIT_REPOS[repo]['url'],
+                    mirror=module.STATIC_FILE_GIT_REPOS[repo].get("mirror", True)
+                ))
                 # Paths are top-level for bare repos e.g. `/home/ubuntu/repo` and subdir for
                 # working repos e.g. `/home/ubuntu/repo.git` which we need to later manage.
             if not os.path.exists(os.path.join(learning_observer.paths.repo(repo), ".git")):
