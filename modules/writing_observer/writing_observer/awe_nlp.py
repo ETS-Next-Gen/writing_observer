@@ -102,9 +102,6 @@ def process_text(text, options=[]):
     doc = nlp(text)
     results = {}
 
-    print('+++++++++++++++++++++++++++')
-    print(options)
-    print('+++++++++++++++++++++++++++')
     for item in options:
         if item not in writing_observer.nlp_indicators.INDICATORS:
             continue

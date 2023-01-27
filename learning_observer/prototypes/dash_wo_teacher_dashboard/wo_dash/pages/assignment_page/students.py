@@ -94,6 +94,7 @@ def student_dashboard_view(course_id, assignment_id):
                                     dbc.DropdownMenuItem(
                                         'Logout', 
                                         href='/auth/logout',
+                                        external_link=True
                                     ),
                                 ],
                                 group=True,
@@ -117,18 +118,7 @@ def student_dashboard_view(course_id, assignment_id):
             html.P(id=assignment_desc),
             dbc.Alert(
                 'Fetching initial data...',
-                # [
-                #     dbc.Spinner(
-                #         color='white',
-                #         size='sm',
-                #         spinner_class_name='me-1'
-                #     ),
-                #     'Fetching initial data, this may take a few moments...'
-                # ],
-                dismissable=True,
                 is_open=False,
-                fade=True,
-                color='info',
                 class_name='d-none',
                 id={
                     'type': alert_type,
@@ -137,18 +127,7 @@ def student_dashboard_view(course_id, assignment_id):
             ),
             dbc.Alert(
                 'Running NLP...',
-                # [
-                #     dbc.Spinner(
-                #         color='white',
-                #         size='sm',
-                #         spinner_class_name='me-1'
-                #     ),
-                #     'NLP running on documents, this may take a few moments...'
-                # ],
-                dismissable=True,
                 is_open=False,
-                fade=True,
-                color='info',
                 class_name='d-none',
                 id={
                     'type': alert_type,

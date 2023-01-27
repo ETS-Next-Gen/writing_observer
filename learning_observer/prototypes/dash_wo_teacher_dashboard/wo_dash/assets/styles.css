@@ -71,6 +71,11 @@
     box-shadow: 0px 0px 5px var(--bs-gray-300);
     border-radius: 0.4rem;
 }
+
+/*
+Style dropdown menu component to be an outline btn
+with appropriate colors
+*/
 .dropdown-menu-outline-dark {
     color: #343a40;
     background-color: transparent;
@@ -83,10 +88,15 @@
     color: #212529;
     background-color: var(--bs-gray-300);
 }
+
+/*
+Adjust styling for parent and children items
+Parents are disabled and shift to the left
+Children are indented to the right
+*/
 .form-check-input:disabled {
     display: none;
 }
-
 .nested-form:has(.subchecklist-label) {
     margin-left: 1.5em;
 }
@@ -94,12 +104,16 @@
     padding-left: 0;
 }
 
+/*
+Animation to hide the alert
+Some items need a slight delay which is why we don't adjust opacity
+until halfway through
+*/
 @keyframes delay_hide {
     0% {opacity: 1;}
     50% {opacity: 1;}
     100% {opacity: 0;}
 }
-
 .hidden-alert {
     opacity: 0;
     animation: delay_hide 2s linear;
