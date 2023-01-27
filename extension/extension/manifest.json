@@ -1,40 +1,48 @@
 {
     "author": "Piotr Mitros",
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "Writing Process",
     "homepage_url": "https://github.com/ETS-Next-Gen/writing_observer",
     "incognito": "not_allowed",
     "offline_enabled": true,
     "version": "0.0.0.1",
     "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
-
-    "browser_action": {
-	"default_title": "Writing Process",
-	"default_popup": "pages/settings.html",
-	"default_icon": {
-	    "48": "icons/lousy-fountain-pen-48.png"
-	}
+    "action": {
+        "default_title": "Writing Process",
+        "default_popup": "pages/settings.html",
+        "default_icon": {
+            "48": "icons/lousy-fountain-pen-48.png"
+        }
     },
-
-    "content_scripts": [ {
+    "content_scripts": [{
         "matches": ["*://docs.google.com/*"],
-	"js": ["3rdparty/sha256.js", "writing_common.js", "writing.js"]
+	    "js": ["3rdparty/sha256.js", "writing_common.js", "writing.js"]
+    }],
+    "web_accessible_resources": [{ 
+        "resources": ["inject.js"],
+        "matches": ["*://docs.google.com/*"],
+        "use_dynamic_url": true
     }],
     "background": {
-	"scripts": ["writing_common.js", "background.js"]
+        "service_worker": "service_worker.js"
     },
     "permissions": [
-	"webRequest",
-	"identity",
-	"identity.email",
-	"*://docs.google.com/*",
-        "storage"
-   ],
+        "webRequest",
+        "declarativeNetRequest",
+        "identity",
+        "identity.email",
+        "storage",
+        "nativeMessaging",
+        "scripting",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "*://docs.google.com/*"
+    ],
     "icons": {
-	"48": "icons/lousy-fountain-pen-48.png"
+	    "48": "icons/lousy-fountain-pen-48.png"
     },
     "options_ui": {
-	"page": "pages/options.html",
-	"chrome_style": true
+        "page": "pages/options.html"
     }
 }
