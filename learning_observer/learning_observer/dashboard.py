@@ -320,6 +320,8 @@ async def websocket_dashboard_view(request):
         }
         # Prep the aggregator function to be called.
         # Determine if we should pass the client_data in or not/async capability
+        # Currently options is a list of strings (what we want returned)
+        # In the futuer this should be some form of communication protocol
         if 'options' in args_aggregrator:
             agg = aggregator(sd, client_data)
         else:
