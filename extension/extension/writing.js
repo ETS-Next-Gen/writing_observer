@@ -98,7 +98,7 @@ function google_docs_partial_text() {
       reconstructing text.
     */
     try {
-        return document.getElementsByClassName("kix-page")[0].innerText;
+        return document.getElementsByClassName("kix")[0].innerText;
     } catch(error) {
         log_error("Could not get document text");
         return null;
