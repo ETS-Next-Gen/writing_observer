@@ -10,6 +10,7 @@ prefix = 'teacher-dashboard-settings'
 open_btn = f'{prefix}-show-hide-open-button'  # settings button
 offcanvas = f'{prefix}-show-hide-offcanvcas'  # setting wrapper
 close_settings = f'{prefix}-close'  # X on settings panel
+
 # ids related to sorting
 sort_by_checklist = f'{prefix}-sort-by-checklist'  # options that can be included for sorting
 sort_toggle = f'{prefix}-sort-by-toggle'  # checkbox for determining sort direction
@@ -27,12 +28,6 @@ highlight_checklist = f'{prefix}-show-hide-highlight-radioitems'  # highlight op
 indicator_collapse = f'{prefix}-show-hide-indicator-collapse'  # indicator options wrapper
 indicator_checklist = f'{prefix}-show-hide-indicator-checklist'  # indicator wrapper
 dummy = f'{prefix}-dummy'
-
-# settings button
-open_btn = dbc.DropdownMenuItem(
-    "Settings",
-    id=show_hide_settings_open
-)
 
 # settings panel itself
 panel = dbc.Card(
