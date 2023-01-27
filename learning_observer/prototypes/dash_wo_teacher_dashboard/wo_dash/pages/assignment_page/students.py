@@ -29,7 +29,12 @@ course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
 websocket_status = f'{prefix}-websocket-status'  # websocket status icon
 last_updated = f'{prefix}-last-updated'  # data last updated id
+
+alert_type = f'{prefix}-alert'
 initialize_alert = f'{prefix}-initialize-alert'
+nlp_running_alert = f'{prefix}-nlp-running-alert'
+overall_alert = f'{prefix}-navbar-alert'
+
 msg_counter = f'{prefix}-msg-counter'
 
 assignment_store = f'{prefix}-assignment-info_store'
@@ -43,54 +48,65 @@ def student_dashboard_view(course_id, assignment_id):
     course_id: id of given course
     assignment_id: id of assignment
     '''
-    container = dbc.Container(
+    navbar = dbc.Navbar(
         [
+            # assignment title
+            html.H3(
+                [
+                    # document icon with a right bootstrap margin
+                    html.I(className='fas fa-file-lines me-2'),
+                    html.Span(id=assignment_name),
+                ],
+                className='d-inline'
+            ),
+            html.Div(
+                dbc.Progress(
+                    value=100, striped=True, animated=True,
+                    label='Fetching data...',
+                    color='info',
+                    id=overall_alert,
+                    style={'height': '1.5rem'}
+                ),
+                className='w-25',
+            ),
+            # open settings button
             html.Div(
                 [
-                    # assignment title
-                    html.H3(
+                    dbc.ButtonGroup(
                         [
-                            # document icon with a right bootstrap margin
-                            html.I(className='fas fa-file-lines me-2'),
-                            html.Span(id=assignment_name),
-                        ],
-                        className='d-inline'
-                    ),
-                    # open settings button
-                    html.Div(
-                        [
-                            dbc.ButtonGroup(
+                            dbc.Button(
                                 [
-                                    dbc.Button(
-                                        [
-                                            html.I(id=websocket_status),
-                                            html.Span('Last Updated: ', className='ms-2'),
-                                            html.Span(id=last_updated)
-                                        ],
-                                        outline=True, color="dark", className=""
+                                    html.I(id=websocket_status),
+                                    html.Span('Last Updated: ', className='ms-2'),
+                                    html.Span(id=last_updated)
+                                ],
+                                outline=True, color="dark", className=""
+                            ),
+                            dbc.DropdownMenu(
+                                [
+                                    settings.open_btn,
+                                    dbc.DropdownMenuItem(
+                                        "Logout", 
+                                        href="/auth/logout",
                                     ),
-                                    dbc.DropdownMenu(
-                                        [
-                                            settings.open_btn,
-                                            dbc.DropdownMenuItem(
-                                                "Logout", 
-                                                href="/auth/logout",
-                                            ),
-                                        ],
-                                        group=True,
-                                        label="Menu",
-                                        className="btn-menu-outline-dark"
-                                    )
-                                ]
+                                ],
+                                group=True,
+                                label="Menu",
+                                className="btn-menu-outline-dark"
                             )
-                        ],
-                        className='d-flex align-items-center float-end'
-                    ),
-                    html.Br(),
-                    # assignment description
-                    html.P(id=assignment_desc)
-                ]
-            ),
+                        ]
+                    )
+                ],
+                className='d-flex align-items-center float-end'
+            )
+        ],
+        sticky='top',
+        class_name='justify-content-between align-items-center px-3'
+    )
+    container = dbc.Container(
+        [
+            # assignment description
+            html.P(id=assignment_desc),
             html.Small(
                 [
                     html.I(id=websocket_status),
@@ -99,18 +115,44 @@ def student_dashboard_view(course_id, assignment_id):
                 ]
             ),
             dbc.Alert(
-                [
-                    dbc.Spinner(
-                        color='white',
-                        size='sm',
-                        spinner_class_name='me-1'
-                    ),
-                    'Fetching initial data, this may take a few moments...'
-                ],
+                'Fetching initial data...',
+                # [
+                #     dbc.Spinner(
+                #         color='white',
+                #         size='sm',
+                #         spinner_class_name='me-1'
+                #     ),
+                #     'Fetching initial data, this may take a few moments...'
+                # ],
                 dismissable=True,
                 is_open=False,
+                fade=True,
                 color='info',
-                id=initialize_alert
+                class_name='d-none',
+                id={
+                    'type': alert_type,
+                    'index': initialize_alert
+                }
+            ),
+            dbc.Alert(
+                'Running NLP...',
+                # [
+                #     dbc.Spinner(
+                #         color='white',
+                #         size='sm',
+                #         spinner_class_name='me-1'
+                #     ),
+                #     'NLP running on documents, this may take a few moments...'
+                # ],
+                dismissable=True,
+                is_open=False,
+                fade=True,
+                color='info',
+                class_name='d-none',
+                id={
+                    'type': alert_type,
+                    'index': nlp_running_alert
+                }
             ),
             dbc.Row(
                 [
@@ -161,7 +203,7 @@ def student_dashboard_view(course_id, assignment_id):
         ],
         fluid=True
     )
-    return container
+    return html.Div([navbar, container])
 
 
 # set hash parameters
@@ -239,7 +281,8 @@ clientside_callback(
     State({'type': student_texthighlight, 'index': ALL}, 'text'),
     State({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
     State({'type': student_indicators, 'index': ALL}, 'data'),
-    State(student_counter, 'data')
+    State(student_counter, 'data'),
+    State(msg_counter, 'data'),
 )
 
 clientside_callback(
@@ -305,8 +348,38 @@ clientside_callback(
 # Show/hide the initialization alert
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='show_hide_initialize_message'),
-    Output(initialize_alert, 'is_open'),
+    Output({'type': alert_type, 'index': initialize_alert}, 'is_open'),
     Input(msg_counter, 'data')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='show_nlp_running_alert'),
+    Output({'type': alert_type, 'index': nlp_running_alert}, 'is_open'),
+    Input(msg_counter, 'data'),
+    Input(settings.checklist, 'value'),
+    Input(settings.metric_checklist, 'value'),
+    Input(settings.highlight_checklist, 'value'),
+    Input(settings.indicator_checklist, 'value')
+)
+
+clientside_callback(
+    '''
+    function(is_open, children) {
+        const truth = is_open.filter(function(e) {return e}).length;
+        console.log(children);
+        if (truth == 1) {
+            return [children[is_open.indexOf(true)], '']
+        }
+        if (truth > 1) {
+            return [`Waiting on ${truth} items to finish`, ''];
+        }
+        return [window.dash_clientside.no_update, 'hidden-alert'];
+    }
+    ''',
+    Output(overall_alert, 'label'),
+    Output(overall_alert, 'class_name'),
+    Input({'type': alert_type, 'index': ALL}, 'is_open'),
+    Input({'type': alert_type, 'index': ALL}, 'children'),
 )
 
 # Sort students by indicator values

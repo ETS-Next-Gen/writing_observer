@@ -86,3 +86,14 @@
 .nested-form:has(.form-check-input:disabled) {
     padding-left: 0;
 }
+
+@keyframes delay_hide {
+    0% {opacity: 1;}
+    50% {opacity: 1;}
+    100% {opacity: 0;}
+}
+
+.hidden-alert {
+    opacity: 0;
+    animation: delay_hide 2s linear;
+}
