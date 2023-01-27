@@ -223,7 +223,10 @@ loggers_enabled = [
     websocket_logger("wss://localhost/wsapi/in/")
 ];
 */
+<<<<<<< HEAD:extension/writing-process/src/background.js
 
+=======
+>>>>>>> 028c417 (Migrate extension from v2 to v3):extension/extension/background.js
 let loggers_enabled = [
     console_logger(),
     //ajax_logger("https://writing.learning-observer.org/webapi/")//,
