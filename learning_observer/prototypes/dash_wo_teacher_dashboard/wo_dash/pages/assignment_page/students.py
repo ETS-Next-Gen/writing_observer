@@ -79,7 +79,7 @@ def student_dashboard_view(course_id, assignment_id):
                                     [
                                         html.I(id=websocket_status),
                                         html.Span('Last Updated: ', className='ms-2'),
-                                        html.Span(id=last_updated)
+                                        html.Span(id=last_updated, className='font-monospace')
                                     ]
                                 ),
                                 outline=True,
@@ -97,8 +97,10 @@ def student_dashboard_view(course_id, assignment_id):
                                     ),
                                 ],
                                 group=True,
+                                align_end=True,
                                 label='Menu',
-                                className='btn-menu-outline-dark'
+                                color='dark',
+                                toggle_class_name='dropdown-menu-outline-dark'
                             )
                         ]
                     )

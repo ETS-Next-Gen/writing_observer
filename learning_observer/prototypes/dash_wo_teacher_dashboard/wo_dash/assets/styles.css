@@ -71,10 +71,17 @@
     box-shadow: 0px 0px 5px var(--bs-gray-300);
     border-radius: 0.4rem;
 }
-.btn-menu-outline-dark button {
+.dropdown-menu-outline-dark {
     color: #343a40;
-    background-color: #fff;
-    border-color: #343a40;
+    background-color: transparent;
+}
+.dropdown-menu-outline-dark:hover {
+    color: white;
+    background-color: #343a40;
+}
+.dropdown-item:focus, .dropdown-item:hover {
+    color: #212529;
+    background-color: var(--bs-gray-300);
 }
 .form-check-input:disabled {
     display: none;
