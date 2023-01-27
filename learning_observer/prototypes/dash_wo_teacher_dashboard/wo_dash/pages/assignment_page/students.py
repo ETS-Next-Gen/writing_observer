@@ -75,24 +75,30 @@ def student_dashboard_view(course_id, assignment_id):
                     dbc.ButtonGroup(
                         [
                             dbc.Button(
-                                [
-                                    html.I(id=websocket_status),
-                                    html.Span('Last Updated: ', className='ms-2'),
-                                    html.Span(id=last_updated)
-                                ],
-                                outline=True, color="dark", className=""
+                                html.Small(
+                                    [
+                                        html.I(id=websocket_status),
+                                        html.Span('Last Updated: ', className='ms-2'),
+                                        html.Span(id=last_updated)
+                                    ]
+                                ),
+                                outline=True,
+                                color='dark'
                             ),
                             dbc.DropdownMenu(
                                 [
-                                    settings.open_btn,
                                     dbc.DropdownMenuItem(
-                                        "Logout", 
-                                        href="/auth/logout",
+                                        'Settings',
+                                        id=settings.open_btn
+                                    ),
+                                    dbc.DropdownMenuItem(
+                                        'Logout', 
+                                        href='/auth/logout',
                                     ),
                                 ],
                                 group=True,
-                                label="Menu",
-                                className="btn-menu-outline-dark"
+                                label='Menu',
+                                className='btn-menu-outline-dark'
                             )
                         ]
                     )
@@ -107,13 +113,6 @@ def student_dashboard_view(course_id, assignment_id):
         [
             # assignment description
             html.P(id=assignment_desc),
-            html.Small(
-                [
-                    html.I(id=websocket_status),
-                    html.Span('Last Updated: ', className='ms-1'),
-                    html.Span(id=last_updated)
-                ]
-            ),
             dbc.Alert(
                 'Fetching initial data...',
                 # [
