@@ -112,7 +112,6 @@ window.dash_clientside.clientside = {
         if (!msg) {
             return [old_data, 'Never']; //, 0, []];
         }
-	//console.log(JSON.parse(msg.data));
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
         const stud_data = data.map(x => x.student);
