@@ -144,11 +144,9 @@ async def get_latest_student_documents(student_data):
 
     kvs = learning_observer.kvs.KVS()
 
-    
     # Compile a list of the active students defined as those
-    # for which we have some "last_document".  
+    # for which we have some "last_document"
     active_students = [s for s in student_data if 'writing_observer.writing_analysis.last_document' in s]
-
     
     # Now collect documents for all of the active students.
     document_keys = ([

@@ -347,12 +347,13 @@ window.dash_clientside.clientside = {
         // Output(websocket_status, 'className'),
         // Output(websocket_status, 'title'),
         // Input(websocket, 'state')
-	if (status === undefined) {
-	    return window.dash_clientside.no_update;
-	}
-        else { const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
-               const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
-               return [icons[status.readyState], titles[status.readyState]];
-	     }
+        if (status === undefined) {
+            return window.dash_clientside.no_update;
+        }
+        else {
+            const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
+            const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
+            return [icons[status.readyState], titles[status.readyState]];
+        }
     }
 }
