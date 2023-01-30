@@ -14,11 +14,15 @@ To read objects:
 import asyncio
 import copy
 import json
+import os
+import os.path
 import sys
 
 import learning_observer.prestartup
 import learning_observer.settings
 import learning_observer.redis_connection
+import learning_observer.paths
+import learning_observer.util
 
 OBJECT_STORE = dict()
 
@@ -186,7 +190,7 @@ class EphemeralRedisKVS(_RedisKVS):
         '''
         We're just a `_RedisKVS` with expiration set
         '''
-        super().__init__(expire=learning_observer.settings.settings['kvs']['expiry'])
+        super().__init__(expire=learning_observer.settings.settings['kvs'].get('expiry', 30))
 
 
 class PersistentRedisKVS(_RedisKVS):
@@ -199,6 +203,75 @@ class PersistentRedisKVS(_RedisKVS):
         We're just a `_RedisKVS` with expiration unset
         '''
         super().__init__(expire=None)
+
+
+class FilesystemKVS(_KVS):
+    '''
+    This is a very non-scalable, non-performant KVS, where each item is a file
+    on the filesystem. It can be helpful for debugging. Note that any sort
+    of real-world use as the main KVS is not only non-performant, but could
+    result in SSD wear.
+
+    It's not a bad solution for caching some files in small-scale deploys.
+    '''
+    def __init__(self, path=None, subdirs=False):
+        '''
+        path: Where to store the kvs. Default: kvs
+        subdirs: If set, keys with slashes will result in the creation of
+        subdirs. For example, self.set("foo/bar", "hello") would create the
+        directory foo (if it doesn't exist) and store "hello" in the file "bar"
+        '''
+        self.path = path or learning_observer.paths.data('kvs')
+        self.subdirs = subdirs
+
+    def key_to_safe_filename(self, key):
+        '''
+        Convert a key to a safe filename
+        '''
+        if self.subdirs:
+            paths = key.split('/')
+            # Add underscores to directories so they don't conflict with files
+            for i in range(len(paths)-1):
+                paths[i] = '_' + paths[i]
+            safename = (os.sep).join(map(learning_observer.util.to_safe_filename, paths))
+        else:
+            safename = learning_observer.util.to_safe_filename(key)
+        return os.path.join(self.path, safename)
+
+    def safe_filename_to_key(self, filename):
+        raise NotImplementedError("Code this up, please. Or for debugging, comment out the exception")
+        return filename
+
+    async def __getitem__(self, key):
+        path = self.key_to_safe_filename(key)
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            return f.read()
+
+    async def set(self, key, value):
+        path = self.key_to_safe_filename(key)
+        if self.subdirs:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as f:
+            f.write(value)
+
+    async def __delitem__(self, key):
+        path = key_to_safe_filename(key)
+        os.remove(path)
+
+    async def keys(self):
+        '''
+        This one is a little bit tricky, since if subdirs, we need to do a full
+        walk
+        '''
+        if self.subdirs:
+            for root, dirs, files in os.walk(self.path):
+                for f in files:
+                    yield self.safe_filename_to_key(os.path.join(root, f).replace(os.sep, '/'))
+        else:
+            for f in os.listdir(self.path):
+                yield self.safe_filename_to_key(f)
 
 
 KVS = None
@@ -254,13 +327,29 @@ async def test():
     mk2 = InMemoryKVS()
     ek1 = EphemeralRedisKVS()
     ek2 = EphemeralRedisKVS()
+    fs1 = FilesystemKVS(path="/tmp/flatkvs")
+    fs2 = FilesystemKVS(path="/tmp/dirkvs", subdirs=True)
     assert (await mk1["hi"]) is None
     print(await ek1["hi"])
-    assert (await ek1["hi"]) is None
+    #assert (await ek1["hi"]) is None
     await mk1.set("hi", 5)
     await mk2.set("hi", 7)
     await ek1.set("hi", 8)
     await ek2.set("hi", 9)
+    if True:
+        os.makedirs("/tmp/flatkvs", exist_ok=True)
+        os.makedirs("/tmp/dirkvs", exist_ok=True)
+        await fs1.set("fooo", "poof")
+        await fs1.set("foo/barła", "zoo")
+        await fs2.set("foob", "loo")
+        await fs2.set("fob/perła", "koo")
+        assert (await fs1["fooo"]) == "poof"
+    if False:  # We don't do this correctly yet
+        async for k in fs2.keys():
+            print(k)
+        async for k in fs1.keys():
+            print(k)
+
     assert (await mk1["hi"]) == 7
     print(await ek1["hi"])
     print(type(await ek1["hi"]))

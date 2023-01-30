@@ -40,13 +40,10 @@ window.dash_clientside.clientside = {
         // Output(sort_label, 'children'),
         // Input(sort_toggle, 'value'),
         // Input(sort_by_checklist, 'value')
-        if (sort_values.length == 0) {
-            return ['fas fa-sort', 'None']
-        }
         if (sort_check.includes('checked')) {
-            return ['fas fa-sort-down', 'Desc']
+            return ['fas fa-sort-down', 'Desc'];
         }
-        return ['fas fa-sort-up', 'Asc']
+        return ['fas fa-sort-up', 'Asc'];
     },
 
     reset_sort_options: function(clicks) {
@@ -60,7 +57,7 @@ window.dash_clientside.clientside = {
         return window.dash_clientside.no_update;
     },
 
-    sort_students: function(values, direction, data, options, students) {
+    sort_students: function(values, direction, data, student_ids, options, students) {
         // We sort students whenever one of the following occurs:
         // 1. the checklist for sorting changes
         // 2. the direction of sorting changes
@@ -74,23 +71,24 @@ window.dash_clientside.clientside = {
         // Output({'type': student_col, 'index': ALL}, 'style'),
         // Input(settings.sort_by_checklist, 'value'),
         // Input(settings.sort_toggle, 'value'),
-        // Input({'type': student_card, 'index': ALL}, 'data'),
+        // Input({'type': student_indicators, 'index': ALL}, 'data'),
+        // State(student_store, 'data'),
         // State(settings.sort_by_checklist, 'options'),
         // State(student_counter, 'data')
 
-        // TODO fix sorting, haven't been updated with the new NLP data
         let orders = Array(students).fill(window.dash_clientside.no_update);
         if (values.length === 0) {
-            // preserves current order when no values are present
-            // TODO determine some default ordering instead of leaving it as is
-            return orders
+            // default sort is alphabetical by student id
+            const sort_order = [...student_ids.keys()].sort((a, b) => student_ids[a].id - student_ids[b].id);
+            orders = sort_order.map(idx => {return {'order': (direction.includes('checked') ? student_ids.length - idx : idx)}});
+            return orders;
         }
         let labels = options.map(obj => {return (values.includes(obj.value) ? obj.label : '')});
         labels = labels.filter(e => e);
         for (let i = 0; i < data.length; i++) {
             let score = 0;
             values.forEach(function (item, index) {
-                score += data[i].indicators[item]['value'];
+                score += data[i][`${item}_indicator`]['value'];
             });
             let order = (direction.includes('checked') ? (100*values.length) - score : score);
             orders[i] = {'order': order};
@@ -98,28 +96,35 @@ window.dash_clientside.clientside = {
         return orders;
     },
 
-    populate_student_data: function(msg, old_data, students) {
+    populate_student_data: function(msg, student_ids, prev_metrics, prev_text, prev_highlights, prev_indicators, students, msg_count) {
         // Populates and updates students data from the websocket
         // for each update, parse the data into the proper format
         // Also return the current time
         //
-        // Output({'type': student_card, 'index': ALL}, 'data'),
+        // Output({'type': student_metrics, 'index': ALL}, 'data'),
+        // Output({'type': student_texthighlight, 'index': ALL}, 'text'),
+        // Output({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
+        // Output({'type': student_indicators, 'index': ALL}, 'data'),
         // Output(last_updated, 'children'),
+        // Output(msg_counter, 'data'),
         // Input(websocket, 'message'),
-        // State({'type': student_card, 'index': ALL}, 'data'),
+        // State(student_store, 'data'),
+        // State({'type': student_metrics, 'index': ALL}, 'data'),
+        // State({'type': student_texthighlight, 'index': ALL}, 'text'),
+        // State({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
+        // State({'type': student_indicators, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
-
         if (!msg) {
-            return [old_data, 'Never']; //, 0, []];
+            return [prev_metrics, prev_text, prev_highlights, prev_indicators, 'Never', 0];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
-        const stud_data = data.map(x => x.student);
         // console.log(data);
         for (let i = 0; i < data.length; i++) {
-            // TODO whatever data is included in the message should be parsed into it's appropriate spot
-            updates[i] = {
-                'id': data[i].userId,
+            let curr_user = data[i].student.user_id;
+            let user_index = student_ids.findIndex(item => item.user_id === curr_user)
+            updates[user_index] = {
+                'id': curr_user,
                 'text': {
                     "student_text": {
                         "id": "student_text",
@@ -134,14 +139,15 @@ window.dash_clientside.clientside = {
             for (const key in data[i]) {
                 let item = data[i][key];
                 const sum_type = (item.hasOwnProperty('summary_type') ? item['summary_type'] : '');
+                // we set each id to be ${key}_{type} so we can select items by class name when highlighting
                 if (sum_type === 'total') {
-                    updates[i]['metrics'][`${key}_metric`] = {
+                    updates[user_index]['metrics'][`${key}_metric`] = {
                         'id': `${key}_metric`,
                         'value': item['metric'],
                         'label': item['label']
                     }
                 } else if (sum_type === 'percent') {
-                    updates[i]['indicators'][`${key}_indicator`] = {
+                    updates[user_index]['indicators'][`${key}_indicator`] = {
                         'id': `${key}_indicator`,
                         'value': item['metric'],
                         'label': item['label']
@@ -149,7 +155,7 @@ window.dash_clientside.clientside = {
                 }
                 const offsets = (item.hasOwnProperty('offsets') ? item['offsets'] : '');
                 if (offsets.length !== 0) {
-                    updates[i]['highlight'][`${key}_highlight`] = {
+                    updates[user_index]['highlight'][`${key}_highlight`] = {
                         'id': `${key}_highlight`,
                         'value': item['offsets'],
                         'label': item['label']
@@ -159,10 +165,15 @@ window.dash_clientside.clientside = {
         }
         const timestamp = new Date();
 
-        const count = (data.length == students ? window.dash_clientside.no_update : data.length)
-        const new_students = (stud_data.length == students ? window.dash_clientside.no_update : stud_data)
-
-        return [updates, timestamp.toLocaleTimeString()]; //, count, new_students];
+        // return the data to each each module
+        return [
+            updates.map(function(d) { return d['metrics']; }), // metrics
+            updates.map(function(d) { return d['text']['student_text']['value']; }), // texthighlight text
+            updates.map(function(d) { return d['highlight']; }), // texthighlight highlighting
+            updates.map(function(d) { return d['indicators']; }), // indicators
+            timestamp.toLocaleTimeString(), // current time
+            msg_count + 1 // set message count
+        ];
     },
 
     open_settings: function(clicks, close, is_open, students) {
@@ -189,65 +200,6 @@ window.dash_clientside.clientside = {
             }
         }
         return [false, Array(students).fill('col-12 col-md-6 col-lg-4 col-xxl-3'), ''];
-    },
-
-    // TODO there is probably a better way to handle the following functions
-    // The following functions all do the same thing but with different values
-    // On the settings panel, they show or hide the sub-options for each option based on if the option is checked or not.
-    // Indicators options are shown vs. not
-    // [x] Indicators           ->  [] Indicators
-    //     [x] Transitions      ->
-    //     [] Other             ->
-    
-    // Output(indicator_collapse, 'is_open'),
-    // Input(checklist, 'value')
-    toggle_indicators_checklist: function(values) {
-        if (values.includes('indicators')) {
-            return true;
-        }
-        return false;
-    },
-
-    toggle_metrics_checklist: function(values) {
-        if (values.includes('metrics')) {
-            return true;
-        }
-        return false;
-    },
-
-    toggle_text_checklist: function(values) {
-        if (values.includes('text')) {
-            return true;
-        }
-        return false;
-    },
-
-    toggle_highlight_checklist: function(values) {
-        if (values.includes('highlight')) {
-            return true;
-        }
-        return false;
-    },
-
-    show_hide_data: function(values, metrics, text, highlights, indicators, students) {
-        // Change which items appear on the student cards
-        // The student card will only show elements whose id is in the `shown` property.
-        // Ids not included will not be shown
-        // 
-        // All settings checklists/radioitems are combined into a single list and passed to all student cards
-        //
-        // Output({'type': student_card, 'index': ALL}, 'shown'),
-        // Input(settings.checklist, 'value'),
-        // Input(settings.metric_checklist, 'value'),
-        // Input(settings.text_radioitems, 'value'),
-        // Input(settings.highlight_checklist, 'value'),
-        // Input(settings.indicator_checklist, 'value'),
-        // State(student_counter, 'data')
-        const l = values.concat(metrics.map(x => `${x}_metric`))
-            .concat(text)
-            .concat(highlights.map(x => `${x}_highlight`))
-            .concat(indicators.map(x => `${x}_indicator`));
-        return Array(students).fill(l);
     },
 
     update_students: async function(course_id) {
@@ -294,8 +246,15 @@ window.dash_clientside.clientside = {
 
         if (!overall_show.includes('highlight')) {return window.dash_clientside.no_update;}
         const colors = [
-            'rgba(86, 204, 157, 0.25)', 'rgba(108, 195, 213, 0.25)',
-            'rgba(255, 206, 103, 0.25)', 'rgba(255, 120, 81, 0.25)'
+            // Mints primary 4 colors with a 0.25 opacity
+            // 'rgba(86, 204, 157, 0.25)', 'rgba(108, 195, 213, 0.25)',
+            // 'rgba(255, 206, 103, 0.25)', 'rgba(255, 120, 81, 0.25)',
+            // Plotly's T10 with a 0.25 opacity applied
+            'rgba(245, 133, 24, 0.25)',
+            'rgba(114, 183, 178, 0.25)', 'rgba(228, 87, 86, 0.25)', 
+            'rgba(84, 162, 75, 0.25)', 'rgba(238, 202, 59, 0.25)',
+            'rgba(178, 121, 162, 0.25)', 'rgba(255, 157, 166, 0.25)',
+            'rgba(76, 120, 168, 0.25)', 
         ];
         let docs = [];
         const shown_colors = {};
@@ -331,7 +290,7 @@ window.dash_clientside.clientside = {
                     let dc = getRGBAValues(docs[i].style.backgroundColor);
                     let hc = getRGBAValues(high_color);
                     let combined = `rgba(${parseInt((dc.r+hc.r)/2)}, ${parseInt((dc.g+hc.g)/2)}, ${parseInt((dc.b+hc.b)/2)}, ${hc.o+dc.o})`;
-                    console.log(dc, hc, combined);
+                    // console.log(dc, hc, combined);
                     docs[i].style.backgroundColor = combined;
                 } else {
                     docs[i].style.backgroundColor = high_color;
@@ -354,5 +313,45 @@ window.dash_clientside.clientside = {
             const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
             return [icons[status.readyState], titles[status.readyState]];
 	    }
+    },
+
+    show_hide_initialize_message: function(msg_count) {
+        // Show or hide the initialization message based on how many messages we've seen
+        //
+        // Output(initialize_alert, 'is_open'),
+        // Input(msg_counter, 'data')
+        if (msg_count > 0){
+            return false;
+        }
+        return true;
+    },
+
+    send_options_to_server: function(types, metrics, highlights, indicators) {
+        // const data = [
+        //     {type: 'metric', options: metrics},
+        //     {type: 'highlight', options: highlights},
+        //     {type: 'indicators', options: indicators}
+        // ]
+        const data = metrics.concat(highlights).concat(indicators);
+        return [JSON.stringify(data)]
+    },
+
+    show_nlp_running_alert: function(msg_count, checklist, metrics, highlight, indicator) {
+        const trig = dash_clientside.callback_context.triggered[0];
+        if (trig.prop_id === 'teacher-dashboard-msg-counter.data') {
+            return false;
+        }
+        return true;
+    },
+
+    update_overall_alert: function(is_open, children) {
+        const truth = is_open.filter(function(e) {return e}).length;
+        if (truth == 1) {
+            return [children[is_open.indexOf(true)], '']
+        }
+        if (truth > 1) {
+            return [`Waiting on ${truth} items to finish`, ''];
+        }
+        return [window.dash_clientside.no_update, 'hidden-alert'];
     }
 }

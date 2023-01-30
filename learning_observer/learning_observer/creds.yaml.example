@@ -24,6 +24,8 @@ auth:
       auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
       client_secret: {google-client-secret}
       javascript_origins: ["{url}"]
+      # base_scopes: []        # We can override the scopes we ask Google for here
+      # additional_scopes: []  # Or just add a few new ones. Not very tested.
   password_file: passwd.lo  # Remove if you're not using a password file
                             # Otherwise, create one with lo_passwd.py
   http_basic_auth:        # HTTP auth. You probably want to remove this.
@@ -76,6 +78,10 @@ event_auth:
     local_storage:
         userfile: students.yaml
         allow_guest: true
-feature_flags: {}  # For enabling / disabling features in development
+feature_flags: {}  # For enabling / disabling features in development. Useful
+                   # ones include:
+                   # * google_routes (for debugging / developing Google APIs)
+                   # * save_google_ajax (for saving Google API calls -- NOT FOR PROD)
+                   # * use_google_ajax (for using saved Google API calls -- AGAIN, NOT FOR PROD)
 server:
     port: 8888     # Optional. Pick a different port.

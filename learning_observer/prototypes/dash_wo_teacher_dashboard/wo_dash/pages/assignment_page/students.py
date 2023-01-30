@@ -13,9 +13,14 @@ from . import settings, settings_defaults, settings_options as so
 # define ids for the dashboard
 # use a prefix to help ensure we don't double up on IDs (guess what happens if you double up? it breaks)
 prefix = 'teacher-dashboard'
-student_card = f'{prefix}-student-card'  # individual student card id
-student_row = f'{prefix}-student-row'  # overall student row 
+
+# individual student items 
 student_col = f'{prefix}-student-col'  # individual student card wrapper id
+student_metrics = f'{prefix}-student-metrics'
+student_texthighlight = f'{prefix}-student-texthighlight'
+student_indicators = f'{prefix}-student-indicators'
+
+student_row = f'{prefix}-student-row'  # overall student row 
 student_grid = f'{prefix}-student-grid'  # overall student grid wrapper id
 websocket = f'{prefix}-websocket'  # websocket to connect to the server (eventually)
 student_counter = f'{prefix}-student-counter'  # store item for quick access to the number of students
@@ -24,6 +29,13 @@ course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
 websocket_status = f'{prefix}-websocket-status'  # websocket status icon
 last_updated = f'{prefix}-last-updated'  # data last updated id
+
+alert_type = f'{prefix}-alert'
+initialize_alert = f'{prefix}-initialize-alert'
+nlp_running_alert = f'{prefix}-nlp-running-alert'
+overall_alert = f'{prefix}-navbar-alert'
+
+msg_counter = f'{prefix}-msg-counter'
 
 assignment_store = f'{prefix}-assignment-info_store'
 assignment_name = f'{prefix}-assignment-name'
@@ -36,37 +48,91 @@ def student_dashboard_view(course_id, assignment_id):
     course_id: id of given course
     assignment_id: id of assignment
     '''
-    container = dbc.Container(
+    navbar = dbc.Navbar(
         [
+            # assignment title
+            html.H3(
+                [
+                    # document icon with a right bootstrap margin
+                    html.I(className='fas fa-file-lines me-2'),
+                    html.Span(id=assignment_name),
+                ],
+                className='d-inline'
+            ),
+            html.Div(
+                dbc.Progress(
+                    value=100, striped=True, animated=True,
+                    label='Fetching data...',
+                    color='info',
+                    id=overall_alert,
+                    style={'height': '1.5rem'}
+                ),
+                className='w-25',
+            ),
+            # open settings button
             html.Div(
                 [
-                    # assignment title
-                    html.H3(
+                    dbc.ButtonGroup(
                         [
-                            # document icon with a right bootstrap margin
-                            html.I(className='fas fa-file-lines me-2'),
-                            html.Span(id=assignment_name),
-                        ],
-                        className='d-inline'
-                    ),
-                    # open settings button
-                    html.Div(
-                        [
-                            settings.open_btn
-                        ],
-                        className='float-end'
-                    ),
-                    html.Br(),
-                    # assignment description
-                    html.P(id=assignment_desc)
-                ]
+                            dbc.Button(
+                                html.Small(
+                                    [
+                                        html.I(id=websocket_status),
+                                        html.Span('Last Updated: ', className='ms-2'),
+                                        html.Span(id=last_updated, className='font-monospace')
+                                    ]
+                                ),
+                                outline=True,
+                                color='dark'
+                            ),
+                            dbc.DropdownMenu(
+                                [
+                                    dbc.DropdownMenuItem(
+                                        'Settings',
+                                        id=settings.open_btn
+                                    ),
+                                    dbc.DropdownMenuItem(
+                                        'Logout', 
+                                        href='/auth/logout',
+                                        external_link=True
+                                    ),
+                                ],
+                                group=True,
+                                align_end=True,
+                                label='Menu',
+                                color='dark',
+                                toggle_class_name='dropdown-menu-outline-dark'
+                            )
+                        ]
+                    )
+                ],
+                className='d-flex align-items-center float-end'
+            )
+        ],
+        sticky='top',
+        class_name='justify-content-between align-items-center px-3'
+    )
+    container = dbc.Container(
+        [
+            # assignment description
+            html.P(id=assignment_desc),
+            dbc.Alert(
+                'Fetching initial data...',
+                is_open=False,
+                class_name='d-none',
+                id={
+                    'type': alert_type,
+                    'index': initialize_alert
+                }
             ),
-            html.Small(
-                [
-                    html.I(id=websocket_status),
-                    html.Span('Last Updated: ', className='ms-1'),
-                    html.Span(id=last_updated)
-                ]
+            dbc.Alert(
+                'Running NLP...',
+                is_open=False,
+                class_name='d-none',
+                id={
+                    'type': alert_type,
+                    'index': nlp_running_alert
+                }
             ),
             dbc.Row(
                 [
@@ -109,11 +175,15 @@ def student_dashboard_view(course_id, assignment_id):
             dcc.Store(
                 id=student_counter,
                 data=0
+            ),
+            dcc.Store(
+                id=msg_counter,
+                data=0
             )
         ],
         fluid=True
     )
-    return container
+    return html.Div([navbar, container])
 
 
 # set hash parameters
@@ -125,6 +195,7 @@ clientside_callback(
 )
 
 # set the websocket data_scope
+# TODO set with url similar to course id
 clientside_callback(
     """
     function(course, assignment) {
@@ -178,13 +249,105 @@ clientside_callback(
 # Update data from websocket
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='populate_student_data'),
-    Output({'type': student_card, 'index': ALL}, 'data'),
+    Output({'type': student_metrics, 'index': ALL}, 'data'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'text'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
+    Output({'type': student_indicators, 'index': ALL}, 'data'),
     Output(last_updated, 'children'),
-    # Output(student_counter, 'data'),
-    # Output(student_store, 'data'),
+    Output(msg_counter, 'data'),
     Input(websocket, 'message'),
-    State({'type': student_card, 'index': ALL}, 'data'),
+    State(student_store, 'data'),
+    State({'type': student_metrics, 'index': ALL}, 'data'),
+    State({'type': student_texthighlight, 'index': ALL}, 'text'),
+    State({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
+    State({'type': student_indicators, 'index': ALL}, 'data'),
+    State(student_counter, 'data'),
+    State(msg_counter, 'data'),
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='send_options_to_server'),
+    Output(websocket, 'send'),
+    Input(settings.checklist, 'value'),
+    Input(settings.metric_checklist, 'value'),
+    Input(settings.highlight_checklist, 'value'),
+    Input(settings.indicator_checklist, 'value')
+)
+
+show_hide_module = '''
+    function(values, students) {{
+        if (values.includes('{id}')) {{
+            return Array(students).fill('');
+        }}
+        return Array(students).fill('d-none');
+    }}
+    '''
+clientside_callback(
+    show_hide_module.format(id='metrics'),
+    Output({'type': student_metrics, 'index': ALL}, 'class_name'),
+    Input(settings.checklist, 'value'),
     State(student_counter, 'data')
+)
+clientside_callback(
+    show_hide_module.format(id='highlight'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'class_name'),
+    Input(settings.checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    show_hide_module.format(id='indicators'),
+    Output({'type': student_indicators, 'index': ALL}, 'class_name'),
+    Input(settings.checklist, 'value'),
+    State(student_counter, 'data')
+)
+
+update_shown_items = '''
+    function(values, students) {{
+        return Array(students).fill(values.map(x => `${{x}}_{}`));
+    }}
+'''
+clientside_callback(
+    update_shown_items.format('metric'),
+    Output({'type': student_metrics, 'index': ALL}, 'shown'),
+    Input(settings.metric_checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    update_shown_items.format('highlight'),
+    Output({'type': student_texthighlight, 'index': ALL}, 'shown'),
+    Input(settings.highlight_checklist, 'value'),
+    State(student_counter, 'data')
+)
+clientside_callback(
+    update_shown_items.format('indicator'),
+    Output({'type': student_indicators, 'index': ALL}, 'shown'),
+    Input(settings.indicator_checklist, 'value'),
+    State(student_counter, 'data')
+)
+
+# Show/hide the initialization alert
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='show_hide_initialize_message'),
+    Output({'type': alert_type, 'index': initialize_alert}, 'is_open'),
+    Input(msg_counter, 'data')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='show_nlp_running_alert'),
+    Output({'type': alert_type, 'index': nlp_running_alert}, 'is_open'),
+    Input(msg_counter, 'data'),
+    Input(settings.checklist, 'value'),
+    Input(settings.metric_checklist, 'value'),
+    Input(settings.highlight_checklist, 'value'),
+    Input(settings.indicator_checklist, 'value')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_overall_alert'),
+    Output(overall_alert, 'label'),
+    Output(overall_alert, 'class_name'),
+    Input({'type': alert_type, 'index': ALL}, 'is_open'),
+    Input({'type': alert_type, 'index': ALL}, 'children'),
 )
 
 # Sort students by indicator values
@@ -193,20 +356,9 @@ clientside_callback(
     Output({'type': student_col, 'index': ALL}, 'style'),
     Input(settings.sort_by_checklist, 'value'),
     Input(settings.sort_toggle, 'value'),
-    Input({'type': student_card, 'index': ALL}, 'data'),
+    Input({'type': student_indicators, 'index': ALL}, 'data'),
+    State(student_store, 'data'),
     State(settings.sort_by_checklist, 'options'),
-    State(student_counter, 'data')
-)
-
-# hide/show attributes on student cards
-clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='show_hide_data'),
-    Output({'type': student_card, 'index': ALL}, 'shown'),
-    Input(settings.checklist, 'value'),
-    Input(settings.metric_checklist, 'value'),
-    Input(settings.text_radioitems, 'value'),
-    Input(settings.highlight_checklist, 'value'),
-    Input(settings.indicator_checklist, 'value'),
     State(student_counter, 'data')
 )
 
@@ -216,7 +368,7 @@ clientside_callback(
     Output(settings.dummy, 'style'),
     Input(settings.checklist, 'value'),
     Input(settings.highlight_checklist, 'value'),
-    Input({'type': student_card, 'index': ALL}, 'data'),
+    Input({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
     State(settings.highlight_checklist, 'options')
 )
 
@@ -226,8 +378,8 @@ clientside_callback(
         sort_by_options=Output(settings.sort_by_checklist, 'options'),
         metric_options=Output(settings.metric_checklist, 'options'),
         metric_value=Output(settings.metric_checklist, 'value'),
-        text_options=Output(settings.text_radioitems, 'options'),
-        text_value=Output(settings.text_radioitems, 'value'),
+        # text_options=Output(settings.text_radioitems, 'options'),
+        # text_value=Output(settings.text_radioitems, 'value'),
         highlight_options=Output(settings.highlight_checklist, 'options'),
         highlight_value=Output(settings.highlight_checklist, 'value'),
         indicator_options=Output(settings.indicator_checklist, 'options'),
@@ -236,7 +388,7 @@ clientside_callback(
     inputs=dict(
         course=Input(course_store, 'data'),
         assignment=Input(assignment_store, 'data')
-    )    
+    )
 )
 def fill_in_settings(course, assignment):
     # populate all settings based on assignment or default
@@ -245,16 +397,19 @@ def fill_in_settings(course, assignment):
     # if options (obj) set opt to assignment options
     # if type (string) set opt to settings_default.type
     opt = settings_defaults.argumentative
-    
+
     ret = dict(
-        sort_by_options=[so.sort_by_options[o] for o in opt['sort_by']['options']],
-        metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
+        sort_by_options=[so.indicator_options[o] for o in opt['sort_by']['options']],
+        metric_options=so.create_options(opt['metrics']['options'], 'metric'),
+        # metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
         metric_value=opt['metrics']['selected'],
-        text_options=[so.text_options[o] for o in opt['text']['options']],
-        text_value=opt['text']['selected'],
-        highlight_options=[so.highlight_options[o] for o in opt['highlight']['options']],
+        # text_options=[so.text_options[o] for o in opt['text']['options']],
+        # text_value=opt['text']['selected'],
+        highlight_options=so.create_options(opt['highlight']['options'], 'highlight'),
+        # highlight_options=[so.highlight_options[o] for o in opt['highlight']['options']],
         highlight_value=opt['highlight']['selected'],
-        indicator_options=[so.indicator_options[o] for o in opt['indicators']['options']],
+        indicator_options=so.create_options(opt['indicators']['options'], 'indicators'),
+        # indicator_options=[so.indicator_options[o] for o in opt['indicators']['options']],
         indicator_value=opt['indicators']['selected'],
     )
     return ret
@@ -269,28 +424,41 @@ def create_cards(students):
 
     # TODO if the card data exists in the student_store,
     # we want to include it in the initial loading of the card
-    # this will require the same parser we create for updates
+    # this will require the same parser to initially populate data
+    # what do we want the storage type to be?
     # i.e. the same code for both js and python
     cards = [
         dbc.Col(
-            loc.StudentOverviewCard(
-                # pattern matching callback
-                id={
-                    'type': student_card,
-                    'index': s['user_id']
-                },
-                name=s['profile']['name']['full_name'],
-                data={
-                    'id': s['user_id'],
-                    'text': {},
-                    'highlight': {},
-                    'metrics': {},
-                    'indicators': {}
-                },
-                shown=[],
-                # adds shadow on hover
-                class_name='shadow-card'
-            ),
+            [
+                dbc.Card(
+                    [
+                        html.H4(s['profile']['name']['full_name']),
+                        loc.LOMetrics(
+                            id={
+                                'type': student_metrics,
+                                'index': s['user_id']
+                            }
+                        ),
+                        html.Div(
+                            loc.LOTextHighlight(
+                                id={
+                                    'type': student_texthighlight,
+                                    'index': s['user_id']
+                                }
+                            ),
+                            className='student-card-text'
+                        ),
+                        loc.LOIndicatorBars(
+                            id={
+                                'type': student_indicators,
+                                'index': s['user_id']
+                            }
+                        )
+                    ],
+                    body=True,
+                    class_name='shadow-card'
+                )
+            ],
             # pattern matching callback
             id={
                 'type': student_col,

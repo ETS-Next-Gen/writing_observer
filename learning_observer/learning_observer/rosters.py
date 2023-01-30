@@ -32,7 +32,7 @@ we use to manage the data and to address variations in the roster sources
 whether we are taking them from google or from our own backup data.
 
 As of now this partially implements a separation between the internal ID
-which shows up in our rosters as id or user_id and the id used for the 
+which shows up in our rosters as id or `user_id` and the id used for the 
 external sources of data.  We store external ids on student data under 
 external_ids and keep space for ids from google etc.  However as of now
 we do not make use of it.  Ultimately it would be ideal to move so that 
@@ -75,7 +75,6 @@ import learning_observer.kvs
 import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 import learning_observer.auth as auth
-
 
 from learning_observer.log_event import debug_log
 
@@ -158,7 +157,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     - We often want some default if that field is missing (`default`)
     - We often want the response sensibly sorted (`sort_key`)
     '''
-
     # Convert errors into appropriate codes for clients
     # Typically, resp_json['error'] == 'UNAUTHENTICATED'
     if 'error' in resp_json:
@@ -188,8 +186,7 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     # Sort the list
     if sort_key is not None:
         resp_json.sort(key=sort_key)
-  
-        
+
     return resp_json
 
 
@@ -231,8 +228,6 @@ def adjust_external_gc_ids(resp_json):
         # For the present there is only one external id so we will add that directly.
         ext_ids = [{ "source": "google", "id": google_id }]
         student_profile['external_ids'] = ext_ids
-        
-
 
 
 async def all_students():
@@ -340,7 +335,7 @@ async def synthetic_ajax(
     else:
         debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
         raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
-                            + " (should be 'test' or 'filesystem')")
+                         + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
     except FileNotFoundError as exc:
@@ -372,8 +367,7 @@ async def google_ajax(
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
-
-    if parameters is None:  # Should NOT be a default param. See W0102.
+    if parameters is None:  # {} should NOT be a default param. See W0102.
         parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         # We would like better error handling for what to do if auth_headers
@@ -461,6 +455,11 @@ async def courselist(request):
     '''
     List all of the courses a teacher manages: Helper
     '''
+    # New code
+    if settings.settings['roster_data']['source'] in ["google_api"]:
+        return await learning_observer.google.courses(request)
+
+    # Legacy code
     course_list = await ajax(
         request,
         url=COURSE_URL,
@@ -475,6 +474,9 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
+    if settings.settings['roster_data']['source'] in ["google_api"]:
+        return await learning_observer.google.roster(request, courseId=course_id)
+
     roster = await ajax(
         request,
         url=ROSTER_URL,
@@ -499,19 +501,3 @@ async def courseroster_api(request):
     '''
     course_id = int(request.match_info['course_id'])
     return aiohttp.web.json_response(await courseroster(request, course_id))
-
-
-# We'd like to be able to fetch classwork from Google. We don't know how to do this yet.
-# the following is a placeholder for the future. The code is commented out and probably
-# completely incorrect. It's never been tried.
-#
-# CLASSWORK_URL = "https://www.googleapis.com/auth/classroom.coursework.students.readonly"
-# async def fetch_classwork(request, course_id):
-#    '''
-#    Fetch the classwork associated with a course
-#    '''
-#    async with aiohttp.ClientSession(loop=request.app.loop) as client:
-#        async with client.get(CLASSWORK_URL, headers=request["auth_headers"]) as resp:
-#            resp_json = await resp.json()
-#            log_event.log_ajax(CLASSWORK_URL, resp_json, request)
-#            return resp_json
