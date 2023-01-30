@@ -112,7 +112,6 @@ window.dash_clientside.clientside = {
         if (!msg) {
             return [old_data, 'Never']; //, 0, []];
         }
-	//console.log(JSON.parse(msg.data));
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
         const stud_data = data.map(x => x.student);
@@ -347,12 +346,13 @@ window.dash_clientside.clientside = {
         // Output(websocket_status, 'className'),
         // Output(websocket_status, 'title'),
         // Input(websocket, 'state')
-	if (status === undefined) {
-	    return window.dash_clientside.no_update;
-	}
-        else { const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
-               const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
-               return [icons[status.readyState], titles[status.readyState]];
-	     }
+        if (status === undefined) {
+            return window.dash_clientside.no_update;
+        }
+        else {
+            const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
+            const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
+            return [icons[status.readyState], titles[status.readyState]];
+	    }
     }
 }
