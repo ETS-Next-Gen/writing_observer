@@ -331,7 +331,7 @@ async def test():
     fs2 = FilesystemKVS(path="/tmp/dirkvs", subdirs=True)
     assert (await mk1["hi"]) is None
     print(await ek1["hi"])
-    #assert (await ek1["hi"]) is None
+    assert (await ek1["hi"]) is None
     await mk1.set("hi", 5)
     await mk2.set("hi", 7)
     await ek1.set("hi", 8)

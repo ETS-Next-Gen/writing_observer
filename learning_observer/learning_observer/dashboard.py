@@ -200,7 +200,7 @@ def fetch_student_state(
                 "course_id": course_id,
                 "user_id": student['user_id'],  # TODO: Encode?
             }
-                                        
+
             student_state.update(default_data)
 
             # TODO/HACK: Only do this for Google data. Make this do the right thing

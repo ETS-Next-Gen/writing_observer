@@ -66,8 +66,31 @@ def url_pathname(s):
     return s.split('/', 3)[-1]
 
 
+def translate_json_keys(d, translations):
+    """
+    Replace all of the keys in the dictionary with new keys, including
+    sub-dictionaries. This was written for converting CamelCase from
+    Google APIs to snake_case.
+
+    Note that this mutates the original data structure
+    """
+    if isinstance(d, list):
+        for item in d:
+            translate_json_keys(item, translations)
+    elif isinstance(d, dict):
+        for k, v in list(d.items()):
+            if k in translations:
+                d[translations[k]] = d.pop(k)
+            else:
+                pass  # print("UNTRANSLATED KEY: ", k)
+
+            if isinstance(v, dict) or isinstance(v, list):
+                translate_json_keys(v, translations)
+    return d
+
+
 # And a test case
-if __name__=='__main__':
+if __name__ == '__main__':
     assert to_safe_filename('{') == '-123-'
     assert from_safe_filename('-123-') == '{'
     test_string = "Hello? How are -- you doing? łłł"

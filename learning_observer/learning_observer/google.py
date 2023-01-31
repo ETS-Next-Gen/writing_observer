@@ -26,6 +26,7 @@ import itertools
 import json
 import recordclass
 import string
+import re
 
 import aiohttp
 import aiohttp.web
@@ -35,6 +36,21 @@ import learning_observer.log_event
 import learning_observer.util
 
 cache = None
+
+
+GOOGLE_FIELDS = [
+    'alternateLink', 'calculationType', 'calendarId', 'courseGroupEmail',
+    'courseId', 'courseState', 'creationTime', 'descriptionHeading',
+    'displaySetting', 'emailAddress', 'enrollmentCode', 'familyName',
+    'fullName', 'givenName', 'gradebookSettings', 'guardiansEnabled',
+    'ownerId', 'photoUrl', 'teacherFolder', 'teacherGroupEmail', 'updateTime',
+    'userId'
+]
+
+# On in-take, we want to convert Google's CamelCase to LO's snake_case. This
+# dictionary contains the conversions.
+camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
+GOOGLE_TO_SNAKE = {field: camel_to_snake.sub('_', field).lower() for field in GOOGLE_FIELDS}
 
 
 # These took a while to find, but many are documented here:
@@ -109,7 +125,10 @@ async def raw_google_ajax(request, target_url, **kwargs):
     if settings.feature_flag('use_google_ajax') is not None:
         value = await cache[cache_key]
         if value is not None:
-            return json.loads(value)
+            return learning_observer.util.translate_json_keys(
+                json.loads(value),
+                GOOGLE_TO_SNAKE
+            )
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         if 'auth_headers' not in request:
             raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
@@ -118,7 +137,10 @@ async def raw_google_ajax(request, target_url, **kwargs):
             learning_observer.log_event.log_ajax(target_url, response, request)
             if settings.feature_flag('use_google_ajax') is not None:
                 await cache.set(cache_key, json.dumps(response, indent=2))
-            return response
+            return learning_observer.util.translate_json_keys(
+                response,
+                GOOGLE_TO_SNAKE
+            )
 
 
 def raw_access_partial(remote_url, name=None):
@@ -160,7 +182,6 @@ def initialize_and_register_routes(app):
     # staff
     if 'google_routes' not in settings.settings['feature_flags']:
         return
-
 
     for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
         if key in settings.settings['feature_flags']:
@@ -337,13 +358,13 @@ def _force_text_length(text, length):
 @register_cleaner("document", "doctext")
 def extract_text_from_google_doc_json(
         j, align=True,
-        EXTRACT_DEBUG_CHECKS = False):
+        EXTRACT_DEBUG_CHECKS=False):
     '''
     Extract text from a Google Docs JSON object, ignoring formatting.
 
     There is an alignment issue between Google's and Python's handling
     of Unicode. We can either:
-    * extract text faithfully (align=False) 
+    * extract text faithfully (align=False)
     * extract text with aligned indexes by cutting text / adding
       spaces (align=True)
 
@@ -376,8 +397,9 @@ def extract_text_from_google_doc_json(
     return text
 
 
-if __name__=='__main__':
-    import json, sys
+if __name__ == '__main__':
+    import json
+    import sys
     j = json.load(open(sys.argv[1]))
     extract_text_from_google_doc_json(j, align=False, EXTRACT_DEBUG_CHECKS=True)
     extract_text_from_google_doc_json(j, align=True, EXTRACT_DEBUG_CHECKS=True)
