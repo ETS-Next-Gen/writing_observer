@@ -95,12 +95,15 @@ def outputIndicator(doc, indicatorName, itype, stype=None, text=None, added_filt
     return indicator
 
 
-def process_text(text, options=[]):
+def process_text(text, options=None):
     '''
     This will extract a dictionary of metadata using Paul's AWE Workbench code.
     '''
     doc = nlp(text)
     results = {}
+
+    if options is None:
+        options = writing_observer.nlp_indicators.INDICATORS.keys()
 
     for item in options:
         if item not in writing_observer.nlp_indicators.INDICATORS:
@@ -191,6 +194,7 @@ async def process_texts_parallel(texts, options=None):
             annotations = await result_future
             annotations['text'] = text
         except: # awe_components.errors.AWE_Workbench_Error and nltk.corpus.reader.wordnet.WordNetError
+            raise
             annotations = "Error"
         annotated.append(annotations)
 
@@ -205,6 +209,11 @@ if  __name__ == '__main__':
     results = process_text(example_texts[0])
     t2 = time.time()
     print(json.dumps(results, indent=2))
+
+    # If we want to save some test data, flip this to True
+    if False:
+        with open("results.json", "w") as fp:
+            json.dump(results, fp, indent=2)
     print("==============")
     results2 = asyncio.run(process_texts_parallel(example_texts[0:8]))
     t3 = time.time()
