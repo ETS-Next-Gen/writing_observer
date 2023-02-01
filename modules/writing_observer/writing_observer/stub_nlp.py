@@ -12,7 +12,6 @@ This can work without all of the tooling, load time, etc. required for the full
 AWE Workbench, and should make development faster and easier.
 '''
 
-import loremipsum
 import random
 import re
 
@@ -99,13 +98,6 @@ def show_selections(text, segments):
         list: A list of strings, each representing a selected segment of the input text.
     '''
     return [text[a:b] for a, b in segments]
-
-
-def lorem(paragraphs=5):
-    '''
-    Generate lorem ipsum test text.
-    '''
-    return "\n\n".join(loremipsum.get_paragraphs(paragraphs))
 
 
 TRANSITION_WORDS = ["also", "as well", "besides", "furthermore", "in addition", "in fact",    "indeed", "likewise", "moreover", "similarly", "too", "additionally",    "again", "alternatively", "and", "as", "as a result", "as an example",    "as a consequence", "as a matter of fact", "as well as", "at the same time",    "because", "before", "being that", "by comparison", "by contrast",    "by the same token", "compared to", "conversely", "correspondingly",    "coupled with", "earlier", "equally", "for instance", "for example",    "for that reason", "further", "furthermore", "hence", "however",    "in comparison", "in contrast", "in like manner", "in similar fashion",    "in the same way", "incidentally", "indeed", "instead", "likewise",    "meanwhile", "moreover", "namely", "neither", "nevertheless",    "next", "nonetheless", "nor", "not only", "not to mention",    "on the contrary", "on the other hand", "oppositely", "or", "otherwise",    "overall", "particularly", "previously", "rather", "regardless",    "similarly", "so", "so as to", "then", "therefore", "thus", "ultimately",    "unlike", "while"]

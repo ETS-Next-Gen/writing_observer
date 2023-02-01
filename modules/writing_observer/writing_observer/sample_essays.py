@@ -1,6 +1,44 @@
+from enum import Enum
+import random
+
+import loremipsum
+
+
+TextTypes = Enum('TextTypes', ["SHORT_STORY", "ARGUMENTATIVE", "LOREM"])
+
+
+def sample_texts(text_type=TextTypes.LOREM, count=1):
+    '''
+    Returns a sample, random essay of the appropriate type
+    '''
+    if text_type == TextTypes.LOREM:
+        return [lorem() for x in range(count)]
+
+    if text_type == TextTypes.ARGUMENTATIVE:
+        source = ARGUMENTATIVE_ESSAYS
+    elif text_type == TextTypes.SHORT_STORY:
+        source = SHORT_STORIES
+    else:
+        raise AttributeError(f"{text_type} is not a valid text type")
+
+    essays = []
+    while count > len(source):
+        essays.extend(source)
+    essays.extend(random.sample(source, count))
+
+    return [e.strip() for e in essays]
+
+
+def lorem(paragraphs=5):
+    '''
+    Generate lorem ipsum test text.
+    '''
+    return "\n\n".join(loremipsum.get_paragraphs(paragraphs))
+
+
 # Short stories, from GPT-3
 
-SHORT_STORIES =["""The snail had always dreamed of going to space. It was a lifelong dream, and finally, the day had arrived. The snail was strapped into a rocket, and prepared for takeoff.
+SHORT_STORIES = ["""The snail had always dreamed of going to space. It was a lifelong dream, and finally, the day had arrived. The snail was strapped into a rocket, and prepared for takeoff.
 
 As the rocket blasted off, the snail felt a sense of exhilaration. It was finally achieving its dream! The snail looked out the window as the Earth got smaller and smaller. Soon, it was in the vastness of space, floating weightlessly.
 
