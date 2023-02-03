@@ -36,7 +36,7 @@ nlp_running_alert = f'{prefix}-nlp-running-alert'
 overall_alert = f'{prefix}-navbar-alert'
 
 msg_counter = f'{prefix}-msg-counter'
-
+nlp_options = f'{prefix}-nlp-options'
 assignment_store = f'{prefix}-assignment-info_store'
 assignment_name = f'{prefix}-assignment-name'
 assignment_desc = f'{prefix}-assignment-description'
@@ -179,11 +179,15 @@ def student_dashboard_view(course_id, assignment_id):
             dcc.Store(
                 id=msg_counter,
                 data=0
+            ),
+            dcc.Store(
+                id=nlp_options,
+                data=[]
             )
         ],
         fluid=True
     )
-    return html.Div([navbar, container])
+    return html.Div([navbar, container], id=prefix)
 
 
 # set hash parameters
@@ -192,6 +196,12 @@ clientside_callback(
     Output(course_store, 'data'),
     Output(assignment_store, 'data'),
     Input('_pages_location', 'hash')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='fetch_nlp_options'),
+    Output(nlp_options, 'data'),
+    Input(prefix, 'className')
 )
 
 # set the websocket data_scope
@@ -387,10 +397,13 @@ clientside_callback(
     ),
     inputs=dict(
         course=Input(course_store, 'data'),
-        assignment=Input(assignment_store, 'data')
+        assignment=Input(assignment_store, 'data'),
+        options=Input('nlp_options', 'data')
     )
 )
-def fill_in_settings(course, assignment):
+def fill_in_settings(course, assignment, options):
+    if len(options) == 0:
+        raise dash_e.PreventUpdate
     # populate all settings based on assignment or default
 
     # TODO grab the options or type from assignment
@@ -399,17 +412,14 @@ def fill_in_settings(course, assignment):
     opt = settings_defaults.argumentative
 
     ret = dict(
-        sort_by_options=[so.indicator_options[o] for o in opt['sort_by']['options']],
-        metric_options=so.create_options(opt['metrics']['options'], 'metric'),
-        # metric_options=[so.metric_options[o] for o in opt['metrics']['options']],
+        sort_by_options=so.create_checklist_options(opt['indicators']['options'], options, 'indicators'),  # same as indicators
+        metric_options=so.create_checklist_options(opt['metrics']['options'], options, 'metric'),
         metric_value=opt['metrics']['selected'],
         # text_options=[so.text_options[o] for o in opt['text']['options']],
         # text_value=opt['text']['selected'],
-        highlight_options=so.create_options(opt['highlight']['options'], 'highlight'),
-        # highlight_options=[so.highlight_options[o] for o in opt['highlight']['options']],
+        highlight_options=so.create_checklist_options(opt['highlight']['options'], options, 'highlight'),
         highlight_value=opt['highlight']['selected'],
-        indicator_options=so.create_options(opt['indicators']['options'], 'indicators'),
-        # indicator_options=[so.indicator_options[o] for o in opt['indicators']['options']],
+        indicator_options=so.create_checklist_options(opt['indicators']['options'], options, 'indicators'),
         indicator_value=opt['indicators']['selected'],
     )
     return ret

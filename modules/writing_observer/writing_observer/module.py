@@ -14,6 +14,7 @@ import learning_observer.stream_analytics.helpers as helpers
 
 import writing_observer.aggregator
 import writing_observer.writing_analysis
+from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
 NAME = "The Writing Observer"
@@ -174,4 +175,10 @@ COURSE_DASHBOARDS = [{
         "type": "fas",
         "icon": "fa-pen-nib"
     }
+}]
+
+EXTRA_VIEWS = [{
+    'name': 'NLP Options',
+    'url': 'writing_observer/nlp-options/',
+    'data': INDICATOR_JSONS
 }]
