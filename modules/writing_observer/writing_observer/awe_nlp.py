@@ -19,8 +19,8 @@ import awe_components.components.viewpointFeatures
 import awe_components.components.lexicalClusters
 import awe_components.components.contentSegmentation
 import json
-
 import time
+import warnings
 
 import writing_observer.nlp_indicators
 
@@ -29,6 +29,7 @@ def init_nlp():
     Initialize the spacy pipeline with the AWE components. This takes a while
     to run.
     '''
+    warnings.filterwarnings('ignore', category=UserWarning, module='nltk')
     nlp = spacy.load("en_core_web_lg")
 
     # Adding all of the components, since
@@ -94,22 +95,38 @@ def outputIndicator(doc, indicatorName, itype, stype=None, text=None, added_filt
     return indicator
 
 
-def process_text(text):
+def process_text(text, options=None):
     '''
     This will extract a dictionary of metadata using Paul's AWE Workbench code.
     '''
     doc = nlp(text)
     results = {}
 
-    for indicator in writing_observer.nlp_indicators.SPAN_INDICATORS:
-        (label, infoType, select, filterInfo, summaryType) = indicator
-        results[select] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
-        results[select].update({
+    if options is None:
+        options = writing_observer.nlp_indicators.INDICATORS.keys()
+
+    for item in options:
+        if item not in writing_observer.nlp_indicators.INDICATORS:
+            continue
+        indicator = writing_observer.nlp_indicators.INDICATORS[item]
+        (label, infoType, select, filterInfo, summaryType, name) = indicator
+        results[name] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
+        results[name].update({
             "label": label,
             "type": infoType,
-            "name": select,
+            "name": name,
             "summary_type": summaryType
         })
+    # Return metrics for every indicator (OLD)
+    # for indicator in writing_observer.nlp_indicators.SPAN_INDICATORS:
+    #     (label, infoType, select, filterInfo, summaryType) = indicator
+    #     results[select] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
+    #     results[select].update({
+    #         "label": label,
+    #         "type": infoType,
+    #         "name": select,
+    #         "summary_type": summaryType
+    #     })
     return results
 
 
@@ -152,7 +169,7 @@ def run_in_fork(func):
         os._exit(0)
 
 
-async def process_texts_parallel(texts):
+async def process_texts_parallel(texts, options=None):
     '''
     This will spin up as many processes as we have cores, and process texts
     in parallel. Note that we should confirm issues of thread safety. If
@@ -167,7 +184,7 @@ async def process_texts_parallel(texts):
     loop = asyncio.get_running_loop()
     result_futures = []
     for text in texts:
-        processor = functools.partial(process_text, text)
+        processor = functools.partial(process_text, text, options)
         # forked_processor = functools.partial(run_in_fork, processor)
         result_futures.append(loop.run_in_executor(executor, processor))
 
@@ -177,6 +194,7 @@ async def process_texts_parallel(texts):
             annotations = await result_future
             annotations['text'] = text
         except: # awe_components.errors.AWE_Workbench_Error and nltk.corpus.reader.wordnet.WordNetError
+            raise
             annotations = "Error"
         annotated.append(annotations)
 
@@ -191,6 +209,11 @@ if  __name__ == '__main__':
     results = process_text(example_texts[0])
     t2 = time.time()
     print(json.dumps(results, indent=2))
+
+    # If we want to save some test data, flip this to True
+    if False:
+        with open("results.json", "w") as fp:
+            json.dump(results, fp, indent=2)
     print("==============")
     results2 = asyncio.run(process_texts_parallel(example_texts[0:8]))
     t3 = time.time()

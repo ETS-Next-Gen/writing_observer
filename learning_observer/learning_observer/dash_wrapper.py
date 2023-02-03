@@ -30,7 +30,9 @@ from dash import *
 # the only learning_observer modules will be:
 # ['learning_observer', 'learning_observer.dash_wrapper']
 #
-# If we're running 
+# If we're running in the main system, it will import learning_observer.main
+#
+# This way, we can tell which version of register_page to use
 lo_modules = [m for m in sys.modules if "learning" in m]
 
 if 'learning_observer.main' in lo_modules:

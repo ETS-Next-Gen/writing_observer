@@ -236,7 +236,6 @@ def kvs_pipeline(
         if module_override is not None:
             setattr(func, '__module__', module_override)
 
-
         @functools.wraps(func)
         async def wrapper_closure(metadata):
             '''

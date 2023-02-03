@@ -144,13 +144,6 @@ async def get_latest_student_documents(student_data):
 
     kvs = learning_observer.kvs.KVS()
 
-    #traceback.print_stack()
-
-    # Debugging printing used for testing the key store and student ID issue.
-    #for s in student_data:
-    #    print(s)
-    #    print(dir(s))
-
     # Compile a list of the active students.
     active_students = [s for s in student_data if 'writing_observer.writing_analysis.last_document' in s]
     
@@ -160,14 +153,13 @@ async def get_latest_student_documents(student_data):
             writing_observer.writing_analysis.reconstruct,
             {
                 KeyField.STUDENT: s['user_id'],
-                EventField('doc_id'): s['writing_observer.writing_analysis.last_document']['document_id'] 
+                EventField('doc_id'): s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
             },
             KeyStateType.INTERNAL
-        ) for s in active_students]) # in student_data if 'writing_observer.writing_analysis.last_document' in s])
+        ) for s in active_students]) 
 
     print(document_keys)
-    
-    kvs_data = await kvs.multiget(keys=document_keys)
+    writing_data = await kvs.multiget(keys=document_keys)
 
     
     # Return blank entries if no data, rather than None. This makes it possible
@@ -218,7 +210,7 @@ async def merge_with_student_data(writing_data, student_data):
 
 import writing_observer.awe_nlp
 
-async def latest_data(student_data):
+async def latest_data(student_data, options=None):
     '''
     HACK HACK HACK
     
@@ -246,12 +238,9 @@ async def latest_data(student_data):
     #print(writing_data)
 
     just_the_text = [w.get("text", "") for w in writing_data]
-
-    annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
-
+    annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text, options)
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
-    # Call Paul's code to add stuff to it
 
     return {'latest_writing_data': writing_data}

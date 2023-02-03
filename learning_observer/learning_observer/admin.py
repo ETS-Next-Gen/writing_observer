@@ -20,6 +20,7 @@ from learning_observer.log_event import debug_log
 
 from learning_observer.auth.utils import admin
 
+
 def machine_resources():
     '''
     A dictionary of information about memory, CPU, etc. usage

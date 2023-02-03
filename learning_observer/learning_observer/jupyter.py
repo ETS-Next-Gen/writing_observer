@@ -5,9 +5,9 @@ We're still figuring this out.
 
 By the current design:
 
-1. The user can run the notebook 
+1. The user can run the notebook
 2. The user can create an iframe in the notebook
-3. We have a server which serves the repos to iframes in 
+3. We have a server which serves the repos to iframes in
    the notebook to render data.
 4. We have tools to inject data into the iframes.
 
@@ -57,7 +57,7 @@ def show_dashboard(
     url = f"http://localhost:{port}/{repo}/{branch}/{path}"
 
 
-def make_iframe(url = "", width=1280, height=720):
+def make_iframe(url="", width=1280, height=720):
     '''
     Make an iframe for a given URL.
 
@@ -144,10 +144,10 @@ def refresh_dashboard(frameid, data):
     '''
     inject_script(frameid, f"""
         refresh_dashboard({json.dumps(data)});
-    """);
+    """)
 
 
-#def refresh_dashboard(frameid, data):
+# def refresh_dashboard(frameid, data):
 #    '''
 #    Refresh the dashboard with new data.
 
@@ -159,7 +159,7 @@ def refresh_dashboard(frameid, data):
 #        None
 #    '''
 #    #inject_data(frameid, data)
-    #rerender_dashboard_from_data(frameid)
+# rerender_dashboard_from_data(frameid)
 #    inject_script(frameid, """
 #        window.sendMessage({
 #            type: "lo_inject_data",
@@ -209,7 +209,6 @@ if __name__ == "__main__":
             return False
         else:
             raise ValueError("Boolean value expected. Got {}".format(s))
-
 
     parser = argparse.ArgumentParser(description="Run a server to serve the given repos.")
     parser.add_argument("repos", type=str, nargs="+", help="The repos to serve.")

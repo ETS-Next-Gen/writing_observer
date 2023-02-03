@@ -1,6 +1,98 @@
-# Short stories, from GPT-3
+'''
+This is an interface to a variety of sample texts to play with.
+'''
 
-SHORT_STORIES =["""The snail had always dreamed of going to space. It was a lifelong dream, and finally, the day had arrived. The snail was strapped into a rocket, and prepared for takeoff.
+from enum import Enum
+import json
+import os
+import os.path
+import random
+
+import loremipsum
+import wikipedia
+
+
+TextTypes = Enum('TextTypes', [
+    "SHORT_STORY", "ARGUMENTATIVE", "LOREM", "WIKI_SCIENCE", "WIKI_HISTORY"
+])
+
+
+def sample_texts(text_type=TextTypes.LOREM, count=1):
+    '''
+    Returns a sample, random essay of the appropriate type
+    '''
+    if text_type == TextTypes.LOREM:
+        return [lorem() for x in range(count)]
+
+    sources = {
+        TextTypes.ARGUMENTATIVE: ARGUMENTATIVE_ESSAYS,
+        TextTypes.SHORT_STORY: SHORT_STORIES,
+        TextTypes.WIKI_SCIENCE: WIKIPEDIA_SCIENCE,
+        TextTypes.WIKI_HISTORY: WIKIPEDIA_HISTORY
+    }
+
+    source = sources[text_type]
+
+    essays = []
+    while count > len(source):
+        essays.extend(source)
+        count = count - len(source)
+
+    essays.extend(random.sample(source, count))
+
+    if text_type in [TextTypes.WIKI_SCIENCE, TextTypes.WIKI_HISTORY]:
+        essays = map(wikitext, essays)
+
+    return [e.strip() for e in essays]
+
+
+def lorem(paragraphs=5):
+    '''
+    Generate lorem ipsum test text.
+    '''
+    return "\n\n".join(loremipsum.get_paragraphs(paragraphs))
+
+
+CACHE_PATH = os.path.join(os.path.dirname(__file__), "data")
+
+
+def wikitext(topic):
+    if not os.path.exists(CACHE_PATH):
+        os.mkdir(CACHE_PATH)
+    cache_file = os.path.join(CACHE_PATH, f"{topic}.json")
+
+    if not os.path.exists(cache_file):
+        page = wikipedia.page(topic)
+        data = {
+            "content": page.content,
+            "summary": page.summary,
+            "title": page.title,
+            "rev": page.revision_id,
+            "url": page.url,
+            "id": page.pageid
+        }
+        with open(cache_file, "w") as fp:
+            json.dump(data, fp, indent=3)
+
+    with open(cache_file) as fp:
+        data = json.load(fp)
+
+    return data["content"]
+
+
+# Wikipedia topics
+WIKIPEDIA_SCIENCE = [
+    "Corona_Borealis", "Funerary_art", "Splendid_fairywren", "European_hare", "Exelon_Pavilions", "Northern_rosella"
+]
+
+WIKIPEDIA_HISTORY = [
+    "Gare_Montparnasse", "History_of_photography", "Cliff_Palace",
+    "War_of_the_Fifth_Coalition", "Operation_Overlord",
+    "Slavery_in_the_United_States", "Dust_Bowl", "The_Rhodes_Colossus"
+]
+
+# Short stories, from GPT-3
+SHORT_STORIES = ["""The snail had always dreamed of going to space. It was a lifelong dream, and finally, the day had arrived. The snail was strapped into a rocket, and prepared for takeoff.
 
 As the rocket blasted off, the snail felt a sense of exhilaration. It was finally achieving its dream! The snail looked out the window as the Earth got smaller and smaller. Soon, it was in the vastness of space, floating weightlessly.
 

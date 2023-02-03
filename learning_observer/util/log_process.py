@@ -86,7 +86,7 @@ async def process_files(files):
             for line in f.readlines():
                 try:
                     await pipeline(json.loads(line))
-                except:  # In case of an error, we'd like to know where it happened
+                except Exception:  # In case of an error, we'd like to know where it happened
                     print(line)
                     raise
 

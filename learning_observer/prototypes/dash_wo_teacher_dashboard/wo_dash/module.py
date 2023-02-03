@@ -50,7 +50,6 @@ THIRD_PARTY = {
     }
 }
 
-
 COURSE_DASHBOARDS = [{
     'name': "Dash Writing Observer",
     'url': "/wo_dash/dash/dashboard/",

@@ -32,20 +32,20 @@ we use to manage the data and to address variations in the roster sources
 whether we are taking them from google or from our own backup data.
 
 As of now this partially implements a separation between the internal ID
-which shows up in our rosters as id or user_id and the id used for the 
-external sources of data.  We store external ids on student data under 
+which shows up in our rosters as id or `user_id` and the id used for the
+external sources of data.  We store external ids on student data under
 external_ids and keep space for ids from google etc.  However as of now
-we do not make use of it.  Ultimately it would be ideal to move so that 
+we do not make use of it.  Ultimately it would be ideal to move so that
 remote data retreival and raw document storage are done under an internal
-id with this translation taking place at event storage time *or* that the 
+id with this translation taking place at event storage time *or* that the
 event retreival by the dashboard makes use of the external ids consistently
 at composition time.  The latter approach however has the cost that we would
 be redoing the lookup and indexing each time we pull the raw data. This has
 the potential to create some extra, though probably manageable, queries.
 
-In either case we get around it now by also adding in a cheap hack that 
+In either case we get around it now by also adding in a cheap hack that
 makes the internal ID for google-sourced users match the google ID. This
-will need to change in a stable way for future use.  
+will need to change in a stable way for future use.
 
 Note that these APIs and file locations aren't finished. In the future,
 we may:
@@ -54,10 +54,10 @@ we may:
 * Have a less Googley format
 
 As it stands this file is also part of the way through a naming refactor.
-The roster information has changed from camel-case to underscores.  The 
-actual group information has not.  That should also be remapped and tested
-so that class info uses the same format but that is scut work for another 
-time.  
+The roster information has changed from camel-case to underscores. The
+actual group information has not. That should also be remapped and tested
+so that class info uses the same format but that is scut work for another
+time.
 '''
 
 import json
@@ -75,7 +75,7 @@ import learning_observer.kvs
 import learning_observer.log_event as log_event
 import learning_observer.paths as paths
 import learning_observer.auth as auth
-
+import learning_observer.google
 
 from learning_observer.log_event import debug_log
 
@@ -85,67 +85,6 @@ COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
 
-## Ajax Cleaning
-## -------------------------------------------------------------------------
-
-# As part of the cleanup process we need to convert google's standard
-# camel case to underscores.  This performs that task.
-#
-# This hack should probably be moved somewhere else eventually.
-CAMEL_TO_UNDERSCORE_FIELD_RENAMINGS = {
-    "descriptionHeading": "description_heading",
-    "alternateLink": "alternate_link",
-    "teacherGroupEmail": "teacher_group_email",
-    "courseGroupEmail": "course_group_email",
-    "teacherFolder": "teacher_folder",
-    "alternateLink": "alternate_link",
-    "calendarId": "calendar_d",
-    "courseId": "course_id",
-    "userId": "user_id",
-    "givenName": "given_name",
-    "familyName": "family_name",
-    "fullName": "full_name",
-    "emailAddress": "email_address",
-    "photoUrl": "photo_url",
-    "calculationType": "calculation_type",
-    "guardiansEnabled": "guardians_enabled",
-    "ownerId": "owner_id",
-    "gradebookSettings": "gradebook_settings",
-    "courseState": "course_state",
-    "enrollmentCode": "enrollment_code",
-    "updateTime": "update_time",
-    "creationTime": "creation_time",
-    "displaySetting": "display_setting"
-}
-    
-
-
-# d = {
-#    "descriptionHeading": "foo",
-#    "subdict": {
-#       "calendarId": "bar"
-#    }
-# }
-
-def camel_to_underscore_rename_dict(d, translations):
-    """
-    Replace all of the keys in the dictionary with new keys, including
-    sub-dictionaries
-    """
-    if isinstance(d,list):
-        for l in d:
-            camel_to_underscore_rename_dict(l, translations)
-        return
-        
-    for k, v in list(d.items()):
-
-        if k in translations:
-            d[translations[k]] = d.pop(k)
-        else: print("UNTRANSLATED KEY: ", k)
-
-        if isinstance(v, dict):
-            camel_to_underscore_rename_dict(v, translations)
-            
 
 
 
@@ -177,14 +116,14 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
             return default
 
     # Convert all camel cases to underscores.
-    camel_to_underscore_rename_dict(resp_json, CAMEL_TO_UNDERSCORE_FIELD_RENAMINGS)
+    util.translate_json_keys(resp_json, learning_observer.google.GOOGLE_TO_SNAKE)
 
     # Update the ID's to include the gc- prefix and to handle the external data.
     # this only runs if the quesry of concern was students meaning that we will
     # have a list of student dicts in resp_json.
-    if (key == 'students'): 
+    if (key == 'students'):
         adjust_external_gc_ids(resp_json)
-         
+
     # Sort the list
     if sort_key is not None:
         resp_json.sort(key=sort_key)
@@ -215,7 +154,7 @@ def adjust_external_gc_ids(resp_json):
 
         # Pull the actual profile data.
         student_profile = student_json['profile']
-        
+
         # Calculate the new ID to use for our student.
         google_id = auth.google_id_to_user_id(student_profile['id'])
 
@@ -225,14 +164,12 @@ def adjust_external_gc_ids(resp_json):
         # This hack changes the internal ID which we then use for
         # document retreival.  Going forward it should not be done
         # this way and it would be better for us to make this use
-        # the externals. 
+        # the externals.
         student_json['user_id'] = google_id
-        
-        # For the present there is only one external id so we will add that directly.
-        ext_ids = [{ "source": "google", "id": google_id }]
-        student_profile['external_ids'] = ext_ids
-        
 
+        # For the present there is only one external id so we will add that directly.
+        ext_ids = [{"source": "google", "id": google_id}]
+        student_profile['external_ids'] = ext_ids
 
 
 async def all_students():
@@ -298,7 +235,7 @@ async def all_ajax(
                     },
                     "emailAddress": "student" + idnum + "@localhost",
                     "photoUrl": "//",
-                    "external_ids" : []
+                    "external_ids": []
                 }
             }
 
@@ -340,7 +277,7 @@ async def synthetic_ajax(
     else:
         debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
         raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
-                            + " (should be 'test' or 'filesystem')")
+                         + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
     except FileNotFoundError as exc:
@@ -372,8 +309,7 @@ async def google_ajax(
     this error back to the JavaScript client, which can then handle
     loading the auth page.
     '''
-
-    if parameters is None:  # Should NOT be a default param. See W0102.
+    if parameters is None:  # {} should NOT be a default param. See W0102.
         parameters = {}
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
         # We would like better error handling for what to do if auth_headers
@@ -461,6 +397,11 @@ async def courselist(request):
     '''
     List all of the courses a teacher manages: Helper
     '''
+    # New code
+    if settings.settings['roster_data']['source'] in ["google_api"]:
+        return await learning_observer.google.courses(request)
+
+    # Legacy code
     course_list = await ajax(
         request,
         url=COURSE_URL,
@@ -475,6 +416,9 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
+    if settings.settings['roster_data']['source'] in ["google_api"]:
+        return await learning_observer.google.roster(request, courseId=course_id)
+
     roster = await ajax(
         request,
         url=ROSTER_URL,
@@ -499,19 +443,3 @@ async def courseroster_api(request):
     '''
     course_id = int(request.match_info['course_id'])
     return aiohttp.web.json_response(await courseroster(request, course_id))
-
-
-# We'd like to be able to fetch classwork from Google. We don't know how to do this yet.
-# the following is a placeholder for the future. The code is commented out and probably
-# completely incorrect. It's never been tried.
-#
-# CLASSWORK_URL = "https://www.googleapis.com/auth/classroom.coursework.students.readonly"
-# async def fetch_classwork(request, course_id):
-#    '''
-#    Fetch the classwork associated with a course
-#    '''
-#    async with aiohttp.ClientSession(loop=request.app.loop) as client:
-#        async with client.get(CLASSWORK_URL, headers=request["auth_headers"]) as resp:
-#            resp_json = await resp.json()
-#            log_event.log_ajax(CLASSWORK_URL, resp_json, request)
-#            return resp_json

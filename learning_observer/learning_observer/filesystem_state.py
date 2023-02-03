@@ -71,7 +71,8 @@ def filesystem_state():
     try:
         file_info['::git-head::'] = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
     except subprocess.CalledProcessError:
-        print("Not a git repo")
+        print("Learning Observer Startup Warning: Not in a git repo")
+        print("We will not log the system state.")
         file_info['::git-head::'] = "Not a git repo"
     file_info['::pid::'] = os.getpid()
     file_info['::hostname::'] = socket.gethostname()

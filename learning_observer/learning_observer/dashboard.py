@@ -194,21 +194,14 @@ def fetch_student_state(
                     'name': {
                         'full_name': student['profile']['name']['full_name']
                     },
-                    'photo_url': student['profile']['photo_url'],
-                    'email_address': student['profile']['email_address'],
-                    'external_ids': student['profile']['external_ids'],
+                    'photo_url': student['profile'].get('photo_url', ''),
+                    'email_address': student['profile'].get('email_address', ''),
+                    'external_ids': student['profile'].get('external_ids', []),
                 },
                 "course_id": course_id,
                 "user_id": student['user_id'],  # TODO: Encode?
             }
 
-            # # Hack to deal with cases where the external_ids are not yet
-            # # saved.  This will simply skip over the issues.  For the
-            # # moment we add a blank list if none are present.
-            # if ("external_ids" in student['profile']):
-            #     student_state["profile"]["external_ids"] = student["profile"]['external_ids']
-            # else: student_state["external_ids"] = []
-                                        
             student_state.update(default_data)
 
             # TODO/HACK: Only do this for Google data. Make this do the right thing
@@ -309,7 +302,6 @@ async def websocket_dashboard_view(request):
     # students.
     if student_id is not None:
         roster = [r for r in roster if r['user_id'] == student_id]
-        
     # Grab student list, and deliver to the client
     student_state_fetcher = fetch_student_state(
         course_id,
@@ -320,6 +312,8 @@ async def websocket_dashboard_view(request):
     )
     aggregator = course_aggregator_module.get('aggregator', lambda x: {})
     async_aggregator = inspect.iscoroutinefunction(aggregator)
+    args_aggregrator = inspect.getfullargspec(aggregator)[0]
+    client_data = None
 
     while True:
         sd = await student_state_fetcher()
@@ -327,15 +321,26 @@ async def websocket_dashboard_view(request):
         data = {
             "student_data": sd   # Per-student list
         }
-        if async_aggregator:
-            data.update(await aggregator(sd))
+        # Prep the aggregator function to be called.
+        # Determine if we should pass the client_data in or not/async capability
+        # Currently options is a list of strings (what we want returned)
+        # In the futuer this should be some form of communication protocol
+        if 'options' in args_aggregrator:
+            agg = aggregator(sd, client_data)
         else:
-            data.update(aggregator(sd))
+            agg = aggregator(sd)
+        if async_aggregator:
+            agg = await agg
+        data.update(agg)
         await ws.send_json(data)
+        # First try to receive a json, if you receive something that can't be json'd
+        # check for closing, otherwise timeout will fire
         # This is kind of an awkward block, but aiohttp doesn't detect
         # when sockets close unless they receive data. We try to receive,
         # and wait for an exception or a CLOSE message.
         try:
+            client_data = await ws.receive_json()
+        except (TypeError, ValueError):
             if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
                 debug_log("Socket closed!")
                 # By this point, the client is long gone, but we want to

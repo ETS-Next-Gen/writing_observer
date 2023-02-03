@@ -10,6 +10,7 @@ prefix = 'teacher-dashboard-settings'
 open_btn = f'{prefix}-show-hide-open-button'  # settings button
 offcanvas = f'{prefix}-show-hide-offcanvcas'  # setting wrapper
 close_settings = f'{prefix}-close'  # X on settings panel
+
 # ids related to sorting
 sort_by_checklist = f'{prefix}-sort-by-checklist'  # options that can be included for sorting
 sort_toggle = f'{prefix}-sort-by-toggle'  # checkbox for determining sort direction
@@ -28,12 +29,6 @@ indicator_collapse = f'{prefix}-show-hide-indicator-collapse'  # indicator optio
 indicator_checklist = f'{prefix}-show-hide-indicator-checklist'  # indicator wrapper
 dummy = f'{prefix}-dummy'
 
-# settings button
-open_btn = dbc.DropdownMenuItem(
-    "Settings",
-    id=open_btn
-)
-
 # settings panel itself
 panel = dbc.Card(
     [
@@ -46,20 +41,21 @@ panel = dbc.Card(
                         html.I(className='fas fa-gear me-2'),  # gear icon
                         'Settings'
                     ],
-                    # bootstrap styling to allow for the floating X button
-                    className='d-inline'
+                    # bootstrap styling to allow for the floating X button and remove lower margin
+                    className='d-inline mb-0'
                 ),
                 # close settings X
                 dbc.Button(
                     # font awesome X icon
                     html.I(className='fas fa-xmark'),
                     color='white',
-                    # bootstrap position and text styling
-                    class_name='float-end text-body',
+                    # bootstrap text styling
+                    class_name='text-body',
                     id=close_settings
                 )
             ],
-            className='m-2'
+            # create flex container so children can be positioned properly
+            className='m-2 d-flex align-items-center justify-content-between'
         ),
         # Each settings option is an accordion item
         dbc.Accordion(
@@ -97,7 +93,7 @@ panel = dbc.Card(
                                                         )
                                                     }
                                                 ],
-                                                value=['checked'],
+                                                value=[],
                                                 id=sort_toggle,
                                                 inputClassName='d-none',  # hide the checkbox, icon/text are clickable
                                                 className='d-inline',  # needed to style for components as options
@@ -146,7 +142,6 @@ panel = dbc.Card(
                                             dbc.Collapse(
                                                 dcc.Checklist(
                                                     # option for each possible metric
-                                                    # TODO pull this information from somewhere
                                                     options=[],
                                                     value=[],  # defaults
                                                     id=metric_checklist,
@@ -160,32 +155,32 @@ panel = dbc.Card(
                                     'value': 'metrics'
                                 },
                                 # text
-                                {
-                                    'label': html.Span(
-                                        [
-                                            html.Span(
-                                                [
-                                                    html.I(className='fas fa-file me-1'),
-                                                    'Text',
-                                                ],
-                                                className='font-size-lg'
-                                            ),
-                                            dbc.Collapse(
-                                                dcc.RadioItems(
-                                                    # option for each possible text item
-                                                    # TODO pull this information from somewhere
-                                                    options=[],
-                                                    value=None,  # default option
-                                                    id=text_radioitems,
-                                                    labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
-                                                    inputClassName='form-check-input'  # style dcc as Bootstrap
-                                                ),
-                                                id=text_collapse,
-                                            )
-                                        ],
-                                    ),
-                                    'value': 'text'
-                                },
+                                # {
+                                #     'label': html.Span(
+                                #         [
+                                #             html.Span(
+                                #                 [
+                                #                     html.I(className='fas fa-file me-1'),
+                                #                     'Text',
+                                #                 ],
+                                #                 className='font-size-lg'
+                                #             ),
+                                #             dbc.Collapse(
+                                #                 dcc.RadioItems(
+                                #                     # option for each possible text item
+                                #                     # TODO pull this information from somewhere
+                                #                     options=[],
+                                #                     value=None,  # default option
+                                #                     id=text_radioitems,
+                                #                     labelClassName='form-check nested-form',  # style dcc as Bootstrap and add nested hover
+                                #                     inputClassName='form-check-input'  # style dcc as Bootstrap
+                                #                 ),
+                                #                 id=text_collapse,
+                                #             )
+                                #         ],
+                                #     ),
+                                #     'value': 'text'
+                                # },
                                 # highlight
                                 {
                                     'label': html.Span(
@@ -293,23 +288,32 @@ clientside_callback(
 # 
 # e.g. if metrics is chosen, show the options for time_on_task, adjectives, adverbs, etc.
 #       otherwise, don't shown those items
+
+toggle_checklist_visibility = '''
+    function(values, students) {{
+        if (values.includes('{id}')) {{
+            return true;
+        }}
+        return false;
+    }}
+    '''
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_indicators_checklist'),
+    toggle_checklist_visibility.format(id='indicators'),
     Output(indicator_collapse, 'is_open'),
     Input(checklist, 'value')
 )
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_metrics_checklist'),
+    toggle_checklist_visibility.format(id='metrics'),
     Output(metric_collapse, 'is_open'),
     Input(checklist, 'value')
 )
+# clientside_callback(
+#     toggle_checklist_visibility.format(id='text'),
+#     Output(text_collapse, 'is_open'),
+#     Input(checklist, 'value')
+# )
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_text_checklist'),
-    Output(text_collapse, 'is_open'),
-    Input(checklist, 'value')
-)
-clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='toggle_highlight_checklist'),
+    toggle_checklist_visibility.format(id='highlight'),
     Output(highlight_collapse, 'is_open'),
     Input(checklist, 'value')
 )

@@ -36,6 +36,7 @@ py-bcrypt
 pycodestyle
 pylint
 pyyaml
+recordclass
 redis
 scipy
 slixmpp
