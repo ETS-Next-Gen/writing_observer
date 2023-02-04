@@ -34,6 +34,8 @@ import aiohttp.web
 import learning_observer.settings as settings
 import learning_observer.log_event
 import learning_observer.util
+import learning_observer.auth
+
 
 cache = None
 
@@ -325,6 +327,17 @@ def clean_course_roster(google_json):
     students.sort(
         key=lambda x: x.get('name', {}).get('fullName', 'ZZ'),
     )
+    # Convert Google IDs to internal ideas (which are the same, but with a gc- prefix)
+    for student_json in students:
+        google_id = student_json['profile']['id']
+        local_id = learning_observer.auth.google_id_to_user_id(google_id)
+        student_json['user_id'] = local_id
+        del student_json['profile']['id']
+
+        # For the present there is only one external id so we will add that directly.
+        if 'external_ids' not in student_json['profile']:
+            student_json['profile']['external_ids'] = []
+        student_json['profile']['external_ids'].append({"source": "google", "id": google_id})
     return students
 
 
