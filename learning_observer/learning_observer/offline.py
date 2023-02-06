@@ -296,5 +296,31 @@ async def test_case():
         ))
     print(await default_aggregation(test_reducer))
 
+# A lot of Learning Observer calls expect app object, request objects, etc.
+# These are dummy stub versions.
+
+
+class StubApp():
+    def __init__(self):
+        self.loop = asyncio.get_event_loop()
+    def add_routes(self, *args, **kwargs):
+        pass
+
+
+app = StubApp()
+
+class StubRequest():
+    def __init__(self):
+        self.app = app
+    def __contains__(self, item):
+        if item == 'auth_headers':
+            return True
+        return False
+    def __getitem__(self, item):
+        return {}
+
+request = StubRequest()
+
+
 if __name__ == '__main__':
     asyncio.run(test_case())
