@@ -132,8 +132,8 @@ def add_routes(app):
     for view in extra_views:
         app.add_routes([
             aiohttp.web.get(
-                f'/views/{view.get("url")}',
-                lambda x: aiohttp.web.json_response(view['data'])
+                f'/views/{view["module"]}/{view["suburl"]}/',
+                lambda x: aiohttp.web.json_response(view['static_json'])
             )
         ])
 

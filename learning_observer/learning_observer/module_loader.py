@@ -331,11 +331,11 @@ def load_extra_views(component_name, module):
     extras = False
     if hasattr(module, 'EXTRA_VIEWS'):
         debug_log(f'Loading extra views from {component_name}')
-        EXTRA_VIEWS.extend(module.EXTRA_VIEWS)
+        EXTRA_VIEWS.extend([m | {'module': component_name} for m in module.EXTRA_VIEWS])
         extras = True
 
     if not extras:
-        debug_log(f'Component{component_name} has no extra views')
+        debug_log(f'Component {component_name} has no extra views')
 
 
 def register_3rd_party(component_name, module):

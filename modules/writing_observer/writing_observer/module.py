@@ -179,6 +179,6 @@ COURSE_DASHBOARDS = [{
 
 EXTRA_VIEWS = [{
     'name': 'NLP Options',
-    'url': 'writing_observer/nlp-options/',
-    'data': INDICATOR_JSONS
+    'suburl': 'nlp-options',
+    'static_json': INDICATOR_JSONS
 }]

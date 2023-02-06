@@ -398,7 +398,7 @@ clientside_callback(
     inputs=dict(
         course=Input(course_store, 'data'),
         assignment=Input(assignment_store, 'data'),
-        options=Input('nlp_options', 'data')
+        options=Input(nlp_options, 'data')
     )
 )
 def fill_in_settings(course, assignment, options):
