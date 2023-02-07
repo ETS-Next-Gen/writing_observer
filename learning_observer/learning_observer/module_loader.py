@@ -35,6 +35,7 @@ THIRD_PARTY = {}
 STATIC_REPOS = {}
 STUDENT_DASHBOARDS = []
 COURSE_DASHBOARDS = []
+EXTRA_VIEWS = []
 
 # Additional calls, primarily for metadata
 AJAX = {}
@@ -49,10 +50,9 @@ def extra_views():
     will use the same API, provide backwards-compatibility, but also
     act as a place for things which aren't dashboards. Modules ought
     to be able to define random views.
-
-    To Be Implemented
     '''
-    return []
+    load_modules()
+    return EXTRA_VIEWS
 
 
 def student_dashboards():
@@ -325,6 +325,19 @@ def load_dashboards(component_name, module):
         debug_log(f"Component {component_name} has no dashboards")
 
 
+def load_extra_views(component_name, module):
+    '''
+    '''
+    extras = False
+    if hasattr(module, 'EXTRA_VIEWS'):
+        debug_log(f'Loading extra views from {component_name}')
+        EXTRA_VIEWS.extend([m | {'module': component_name} for m in module.EXTRA_VIEWS])
+        extras = True
+
+    if not extras:
+        debug_log(f'Component {component_name} has no extra views')
+
+
 def register_3rd_party(component_name, module):
     '''
     Register 3rd party components the module needs.
@@ -480,6 +493,7 @@ def load_module_from_entrypoint(entrypoint):
     load_course_aggregators(component_name, module)
     load_ajax(component_name, module)
     load_dashboards(component_name, module)
+    load_extra_views(component_name, module)
     register_3rd_party(component_name, module)
     register_git_repos(component_name, module)
 

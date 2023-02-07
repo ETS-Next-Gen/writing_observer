@@ -7,19 +7,26 @@ argumentative = {
         'selected': []
     },
     'metrics': {
-        'options': ['sents', 'delimiter_\n', 'time_on_task', 'pos_'],
-        'selected': ['time_on_task', 'sents']
+        'options': ['sentences', 'paragraphs', 'pos_'],
+        'selected': ['sentences', 'paragraphs']
     },
     'text': {
         'options': ['student_text'],
         'selected': 'student_text'
     },
     'highlight': {
-        'options': ['main_ideas', 'supporting_ideas', 'supporting_details', 'transitions', 'vwp_interactive', 'vwp_argumentword'],
-        'selected': ['main_ideas']
+        'options': [
+            'main_idea_sentences', 'supporting_idea_sentences', 'supporting_detail_sentences',
+            'informal_language', 'argument_words',
+            'statements_of_opinion', 'statements_of_fact',
+            'direct_speech_verbs', 'indirect_speech_quotation',
+            'in_past_tense', 'propositional_attitudes', 'social_awareness',
+            'transitions',
+        ],
+        'selected': ['main_idea_sentences']
     },
     'indicators': {
-        'options': ['is_academic', 'vwp_source', 'vwp_attribution', 'vwp_cite', 'vwp_interactive', 'vwp_argumentword', 'vwp_evaluation'],
+        'options': ['academic_language', 'informal_language', 'argument_words', 'latinate_words', 'information_sources', 'attributions', 'citations'],
         'selected': []
     }
 }

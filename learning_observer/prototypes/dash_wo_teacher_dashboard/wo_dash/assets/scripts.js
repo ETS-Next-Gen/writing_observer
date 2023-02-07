@@ -224,14 +224,24 @@ window.dash_clientside.clientside = {
         return [`Assignment ${assignment_id}`, `This is assignment ${assignment_id} from course ${course_id}`]
     },
 
-    update_course_assignment: function(hash) {
+    fetch_nlp_options: async function(trigger) {
+        // Fetch possible NLP options from the server to later build the settings panel
+        //
+        // Output(nlp_options, 'data'),
+        // Input(prefix, 'className')
+        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:${window.location.port}/views/writing_observer/nlp-options/`);
+        const data = await response.json();
+        return data;
+    },
+
+    update_course_assignment: function(url_hash) {
         // Update the course and assignment info based on the hash query string
         //
         // Output(course_store, 'data'),
         // Output(assignment_store, 'data'),
         // Input('_pages_location', 'hash')
-        if (hash.length === 0) {return window.dash_clientside.no_update;}
-        const decoded = decode_string_dict(hash.slice(1))
+        if (url_hash.length === 0) {return window.dash_clientside.no_update;}
+        const decoded = decode_string_dict(url_hash.slice(1))
         return [decoded.course_id, decoded.assignment_id]
     },
 
@@ -261,6 +271,7 @@ window.dash_clientside.clientside = {
         // remove all highlighting and record current colors
         options.forEach(item => {
             docs = document.getElementsByClassName(`${item.value}_highlight`);
+            if (docs.length === 0) {return window.dash_clientside.no_update;}
             if (shown.includes(item.value)) {
                 if (docs[0].style.backgroundColor.length > 0 & docs[0].style.backgroundColor !== 'transparent') {
                     shown_colors[item.value] = docs[0].style.backgroundColor;
@@ -325,16 +336,29 @@ window.dash_clientside.clientside = {
     },
 
     send_options_to_server: function(types, metrics, highlights, indicators) {
-        // const data = [
-        //     {type: 'metric', options: metrics},
-        //     {type: 'highlight', options: highlights},
-        //     {type: 'indicators', options: indicators}
-        // ]
+        // Send selected options to the server 
+        // TODO work on protocol for communicating with the 
+        //
+        // Output(websocket, 'send'),
+        // Input(settings.checklist, 'value'),
+        // Input(settings.metric_checklist, 'value'),
+        // Input(settings.highlight_checklist, 'value'),
+        // Input(settings.indicator_checklist, 'value')
         const data = metrics.concat(highlights).concat(indicators);
         return [JSON.stringify(data)]
     },
 
     show_nlp_running_alert: function(msg_count, checklist, metrics, highlight, indicator) {
+        // Show or hide the NLP running alert
+        // On new selections, show alert.
+        // When new data comes in, hide the alert
+        //
+        // Output({'type': alert_type, 'index': nlp_running_alert}, 'is_open'),
+        // Input(msg_counter, 'data'),
+        // Input(settings.checklist, 'value'),
+        // Input(settings.metric_checklist, 'value'),
+        // Input(settings.highlight_checklist, 'value'),
+        // Input(settings.indicator_checklist, 'value')
         const trig = dash_clientside.callback_context.triggered[0];
         if (trig.prop_id === 'teacher-dashboard-msg-counter.data') {
             return false;
@@ -343,6 +367,14 @@ window.dash_clientside.clientside = {
     },
 
     update_overall_alert: function(is_open, children) {
+        // Update the overall alert system,
+        // if only 1 alert exists, show its message,
+        // otherwise combine
+        //
+        // Output(overall_alert, 'label'),
+        // Output(overall_alert, 'class_name'),
+        // Input({'type': alert_type, 'index': ALL}, 'is_open'),
+        // Input({'type': alert_type, 'index': ALL}, 'children'),
         const truth = is_open.filter(function(e) {return e}).length;
         if (truth == 1) {
             return [children[is_open.indexOf(true)], '']

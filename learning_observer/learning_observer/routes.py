@@ -128,6 +128,15 @@ def add_routes(app):
     #             "/views/" + extra_views[view]['url'],
     #             handler=extra_views[view]['function'])
     #     ])
+    extra_views = learning_observer.module_loader.extra_views()
+    for view in extra_views:
+        app.add_routes([
+            aiohttp.web.get(
+                f'/views/{view["module"]}/{view["suburl"]}/',
+                lambda x: aiohttp.web.json_response(view['static_json'])
+            )
+        ])
+
 
     # Allow AJAX calls.  Right now, the function receives a `request`
     # object. This should be cleaned in some way.

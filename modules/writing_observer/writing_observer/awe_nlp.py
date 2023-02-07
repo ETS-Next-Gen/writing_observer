@@ -109,24 +109,14 @@ def process_text(text, options=None):
         if item not in writing_observer.nlp_indicators.INDICATORS:
             continue
         indicator = writing_observer.nlp_indicators.INDICATORS[item]
-        (label, infoType, select, filterInfo, summaryType, name) = indicator
-        results[name] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
-        results[name].update({
+        (id, label, infoType, select, filterInfo, summaryType) = indicator
+        results[id] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
+        results[id].update({
             "label": label,
             "type": infoType,
-            "name": name,
+            "name": id,
             "summary_type": summaryType
         })
-    # Return metrics for every indicator (OLD)
-    # for indicator in writing_observer.nlp_indicators.SPAN_INDICATORS:
-    #     (label, infoType, select, filterInfo, summaryType) = indicator
-    #     results[select] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
-    #     results[select].update({
-    #         "label": label,
-    #         "type": infoType,
-    #         "name": select,
-    #         "summary_type": summaryType
-    #     })
     return results
 
 
