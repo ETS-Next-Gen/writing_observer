@@ -46,7 +46,9 @@ function log_event(event_type, event) {
     // uncomment to watch events being logged from the client side with devtools
     // console.log(event);
 
-    chrome.runtime.sendMessage(event);
+    if (chrome.runtime.id !== undefined) {
+        chrome.runtime.sendMessage(event);
+    }
 }
 
 function doc_id() {
