@@ -223,10 +223,7 @@ loggers_enabled = [
     websocket_logger("wss://localhost/wsapi/in/")
 ];
 */
-<<<<<<< HEAD:extension/writing-process/src/background.js
 
-=======
->>>>>>> 028c417 (Migrate extension from v2 to v3):extension/extension/background.js
 let loggers_enabled = [
     console_logger(),
     //ajax_logger("https://writing.learning-observer.org/webapi/")//,
@@ -234,10 +231,6 @@ let loggers_enabled = [
 
     // Adapted to NCSU Setup.
     websocket_logger(WEBSOCKET_SERVER_URL)
-=======
-    // Adapted to NCSU Setup.
-    websocket_logger("wss://observer.csc.ncsu.edu/wsapi/in/")
-    //websocket_logger("wss://writing.learning-observer.org/wsapi/in/")
 ];
 
 function log_event(event_type, event) {
