@@ -11,19 +11,25 @@
 # are located in this folder and in the AWE_Workbench code.
 
 
+# Argument Parsing
+# -----------------------------------------------
+# The first argument to the script will specify the name of
+# the virtual environment.  Use something simple like WOVenv
+VIRTUAL_ENV_NAME=$1
+
+# The second should be a path to your working directory (above the
+# repositories) where you will actually run the code.  
+VIRTUAL_ENV_LOC=$2
+
+
 # Parameters
 # -----------------------------------------------
-# Change these params
+# Change these params if you need to shift python
+# or pip versions.  Otherwise leave them as-is.
 
 PYTHON_CMD="python3.9"
 PIP_CMD="pip"
 
-
-# Argument Parsing
-# -----------------------------------------------
-
-VIRTUAL_ENV_LOC=$2
-VIRTUAL_ENV_NAME=$1
 
 # Execution
 # ---------------------------------------------------------

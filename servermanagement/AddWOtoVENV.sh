@@ -9,18 +9,24 @@
 # using the SetupVENV script located in this directory.
 
 
+# Argument
+# --------------------------------------------
+# This takes a single argument that should point
+# to the directory of the VENV.  You can then
+# use this to make any necessary changes.  
+VIRTUAL_ENV="$1"
+echo "USING VENV: $VIRTUAL_ENV"
+
+
+
 # Parameters:
 # ---------------------------------------------
+# Change these if you need to use a different
+# python or pip.  Otherwise leave them as-is. 
 PYTHON_CMD="python"
 PIP_CMD="pip"
 
 CODE_REPOS_LOC="../../"
-
-
-# Argument
-# --------------------------------------------
-VIRTUAL_ENV="$1"
-echo "USING VENV: $VIRTUAL_ENV"
 
 
 # Activate VENV
