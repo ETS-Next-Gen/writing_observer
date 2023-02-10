@@ -116,18 +116,7 @@ def add_routes(app):
         aiohttp.web.get('/common/{filename}', static_directory_handler(paths.static("common"))),
     ])
 
-    # New-style modular views
-    # extra_views = learning_observer.module_loader.extra_views()
-    # for view in extra_views:
-    #     print(extra_views[view])
-    #     app.add_routes([
-    #         # TODO: Change URL
-    #         # TODO: Add classroom ID within URL
-    #         # TODO: Add student API
-    #         aiohttp.web.get(
-    #             "/views/" + extra_views[view]['url'],
-    #             handler=extra_views[view]['function'])
-    #     ])
+    # Add extra views as json responses
     extra_views = learning_observer.module_loader.extra_views()
     for view in extra_views:
         app.add_routes([
