@@ -1,3 +1,10 @@
+/*
+   Inject script. This is a web_accessible_resources used to pass the id 
+   of the document as a globally accessible variable to the extension.
+   It is called by the injectScript function in writing.js to make the result 
+   accessible using an event listener
+*/
+
 let script = document.createElement('script')
 script.id = 'tmpScript'
 
