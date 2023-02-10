@@ -141,6 +141,10 @@ function is_string(myVar) {
 }
 
 function injectScript(file_path, tag) {
+    /* 
+        This function is to inject a script from 'file_path' 
+        into a specific DOM tag passed in as 'tag'
+    */
     var node = document.getElementsByTagName(tag)[0];
     var script = document.createElement('script');
     script.setAttribute('type', 'text/javascript');
@@ -739,6 +743,8 @@ WO_XHR.send = function () {\n\
 
 window.addEventListener("load", writing_onload);
 
+// This event listener is to used to detect changes in the document's 
+// visibility. E.g. when a user switches tabs and back.
 window.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
         console.log("I got reloaded again...")

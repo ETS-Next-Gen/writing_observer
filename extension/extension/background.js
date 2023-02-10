@@ -238,6 +238,9 @@ function log_event(event_type, event) {
     }
 }
 
+// Function to serve as replacement for 
+// chrome.extension.getBackgroundPage().console.log(event); because it is not allowed in V3
+// It logs the event to the console for debugging.
 function logFromServiceWorker(event) {
   console.log(event);
 }
