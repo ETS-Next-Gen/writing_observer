@@ -115,7 +115,7 @@ window.dash_clientside.clientside = {
         // State({'type': student_indicators, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
         if (!msg) {
-            return [prev_metrics, prev_text, prev_highlights, prev_indicators, 'Never', 0];
+            return [prev_metrics, prev_text, prev_highlights, prev_indicators, -1, 0];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
@@ -171,9 +171,27 @@ window.dash_clientside.clientside = {
             updates.map(function(d) { return d['text']['student_text']['value']; }), // texthighlight text
             updates.map(function(d) { return d['highlight']; }), // texthighlight highlighting
             updates.map(function(d) { return d['indicators']; }), // indicators
-            timestamp.toLocaleTimeString(), // current time
+            timestamp, // current time
             msg_count + 1 // set message count
         ];
+    },
+    
+    update_last_updated_text: function(last_time, intervals) {
+        // Whenever we get a new message or 5 seconds have passed, update the last updated text
+
+        // Output(last_updated_msg, 'children'),
+        // Input(last_updated, 'data'),
+        // Input(last_updated_interval, 'n_intervals')
+        if (last_time === -1) {
+            return 'Never';
+        }
+        const curr_time = new Date();
+        const sec_diff = (curr_time.getTime() - last_time.getTime())/1000
+        if (sec_diff < 1) {
+            return 'just now'
+        }
+        const ms_since_last_message = rendertime2(sec_diff);
+        return `${ms_since_last_message} ago`;
     },
 
     open_settings: function(clicks, close, is_open, students) {

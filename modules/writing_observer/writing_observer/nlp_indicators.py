@@ -21,9 +21,9 @@ from recordclass import dataobject, asdict
 # filter (if needed), summary function to use
 SPAN_INDICATORS = [
     # language
-    ('Academic Language', 'Token', 'is_academic', None, 'percent'), # 1545
-    ('Informal Language', 'Token', 'vwp_interactive', None, 'percent'), #1536
-    ('Latinate Words', 'Token', 'is_latinate', None, 'percent'), # 1557
+    ('Academic Language', 'Token', 'is_academic', None, 'percent'),
+    ('Informal Language', 'Token', 'vwp_interactive', None, 'percent'),
+    ('Latinate Words', 'Token', 'is_latinate', None, 'percent'),
     ('Opinion Words', 'Token', 'vwp_evaluation', None, 'total'),
     ('Emotion Words', 'Token', 'vwp_emotionword', None, 'percent'),
     # vwp_emotion_states looks for noun/emotion word pairs (takes a lot of resources) - ignoring for now
@@ -32,10 +32,14 @@ SPAN_INDICATORS = [
     ('Argument Words', 'Token', 'vwp_argumentword', None, 'percent'),  # more surfacey # TODO needs new label
     ('Explicit argument', 'Token', 'vwp_explicit_argument', None, 'percent'),  # surfacey # TODO needs new label
     # statements
-    ('Statements of Opinion', 'Doc', 'vwp_statements_of_opinion', None, 'percent'), # TODO
-    ('Statements of Fact', 'Doc', 'vwp_statements_of_fact', None, 'percent'), # TODO
+    ('Statements of Opinion', 'Doc', 'vwp_statements_of_opinion', None, 'percent'),
+    ('Statements of Fact', 'Doc', 'vwp_statements_of_fact', None, 'percent'),
     # Transitions
+    # eventually we want to exclude \n\n as transitions using `[('!=',['introductory'])]`
+    # however the introductory category also includes "let us" and "let's"
+    # no highlighting is shown on the new lines, so we won't remove it for now.
     ('Transition Words', 'Doc', 'transitions', None, 'counts'),
+    #
     ('Positive Transition Words', 'Doc', 'transitions',[('==',['positive'])], 'total'),
     ('Conditional Transition Words', 'Doc', 'transitions',[('==',['conditional'])], 'total'),
     ('Consequential Transition Words', 'Doc', 'transitions',[('==',['consequential'])], 'total'),
@@ -81,7 +85,7 @@ SPAN_INDICATORS = [
     ('Citations', 'Token', 'vwp_cite', None, 'percent'),
     ('Quoted Words', 'Token', 'vwp_quoted', None, 'percent'),
     # Dialogue
-    ('Direct Speech Verbs', 'Doc', 'vwp_direct_speech', None, 'percent'), # TODO needs new label  # TODO fix
+    ('Direct Speech Verbs', 'Doc', 'vwp_direct_speech', None, 'percent'), # TODO needs new label
     ('Indirect Speech Quotation', 'Token', 'vwp_in_direct_speech', None, 'percent'), # TODO needs new label
     # vwp_quoted - already used above
     # tone

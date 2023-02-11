@@ -29,6 +29,8 @@ course_store = f'{prefix}-course-store'  # store item for course id
 settings_collapse = f'{prefix}-settings-collapse'  # settings menu wrapper
 websocket_status = f'{prefix}-websocket-status'  # websocket status icon
 last_updated = f'{prefix}-last-updated'  # data last updated id
+last_updated_msg = f'{prefix}-last-updated-text'  # data last updated id
+last_updated_interval = f'{prefix}-last-updated-interval'
 
 alert_type = f'{prefix}-alert'
 initialize_alert = f'{prefix}-initialize-alert'
@@ -79,7 +81,7 @@ def student_dashboard_view(course_id, assignment_id):
                                     [
                                         html.I(id=websocket_status),
                                         html.Span('Last Updated: ', className='ms-2'),
-                                        html.Span(id=last_updated, className='font-monospace')
+                                        html.Span(id=last_updated_msg)
                                     ]
                                 ),
                                 outline=True,
@@ -183,6 +185,14 @@ def student_dashboard_view(course_id, assignment_id):
             dcc.Store(
                 id=nlp_options,
                 data=[]
+            ),
+            dcc.Store(
+                id=last_updated,
+                data=-1
+            ),
+            dcc.Interval(
+                id=last_updated_interval,
+                interval=5000
             )
         ],
         fluid=True
@@ -263,7 +273,7 @@ clientside_callback(
     Output({'type': student_texthighlight, 'index': ALL}, 'text'),
     Output({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
     Output({'type': student_indicators, 'index': ALL}, 'data'),
-    Output(last_updated, 'children'),
+    Output(last_updated, 'data'),
     Output(msg_counter, 'data'),
     Input(websocket, 'message'),
     State(student_store, 'data'),
@@ -273,6 +283,13 @@ clientside_callback(
     State({'type': student_indicators, 'index': ALL}, 'data'),
     State(student_counter, 'data'),
     State(msg_counter, 'data'),
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_last_updated_text'),
+    Output(last_updated_msg, 'children'),
+    Input(last_updated, 'data'),
+    Input(last_updated_interval, 'n_intervals')
 )
 
 clientside_callback(
