@@ -3,6 +3,8 @@ This is an interface to AWE_Workbench.
 '''
 
 import asyncio
+import enum
+import hashlib
 import time
 import functools
 import os
@@ -23,6 +25,10 @@ import time
 import warnings
 
 import writing_observer.nlp_indicators
+import learning_observer.kvs
+import learning_observer.util
+
+RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
 
 def init_nlp():
     '''
@@ -103,7 +109,9 @@ def process_text(text, options=None):
     results = {}
 
     if options is None:
+        # Do we want options to be everything initially or nothing?
         options = writing_observer.nlp_indicators.INDICATORS.keys()
+        options = []
 
     for item in options:
         if item not in writing_observer.nlp_indicators.INDICATORS:
@@ -120,7 +128,7 @@ def process_text(text, options=None):
     return results
 
 
-async def process_texts_serial(texts):
+async def process_texts_serial(texts, options=None):
     '''
     Process a list of texts, in serial.
 
@@ -131,7 +139,7 @@ async def process_texts_serial(texts):
     annotated = []
     for text in texts:
         print(text)
-        annotations = process_text(text)
+        annotations = process_text(text, options)
         annotations['text'] = text
         annotated.append(annotations)
 
@@ -189,6 +197,58 @@ async def process_texts_parallel(texts, options=None):
         annotated.append(annotations)
 
     return annotated
+
+
+async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSING):
+    '''
+    Process texts with caching
+    1. Create hash of text
+    2. Fetch cache data
+    3. Check to see if all options are present
+        - Yes? Add to results
+        - No? Record missing options `needed_options` and add to `need_processing`
+    4. If we need to process anything process it
+    5. Update results/cache
+    '''
+    processor = {
+        RUN_MODES.MULTIPROCESSING: process_texts_parallel,
+        RUN_MODES.SERIAL: process_texts_serial
+    }
+
+    results = []
+    need_processing = []
+    needed_options = set()
+    cache = learning_observer.kvs.KVS()
+
+    for writing in writing_data:
+        text = writing.get('text', '')
+        if len(text) == 0:
+            continue
+        text_hash = 'NLP_CACHE_' + learning_observer.util.secure_hash(text.encode('utf-8'))
+        text_cache_data = await cache[text_hash]
+        if text_cache_data is None:
+            text_cache_data = {}
+        writing.update(text_cache_data)
+        missing_options = set(options if options is not None else []).difference(text_cache_data.keys())
+        needed_options.update(missing_options)
+        if len(missing_options) == 0:
+            results.append(writing)
+        else:
+            need_processing.append(writing)
+
+    if len(need_processing) > 0:
+        just_the_text = [w.get("text", "") for w in need_processing]
+        annotated_texts = await processor[mode](just_the_text, list(needed_options))
+
+        for annotated_text, single_doc in zip(annotated_texts, need_processing):
+            if annotated_text != "Error":
+                single_doc.update(annotated_text)
+                text_hash = 'NLP_CACHE_' + learning_observer.util.secure_hash(single_doc['text'].encode('utf-8'))
+                new_cache = {k: v for k, v in single_doc.items() if k != 'student'}
+                await cache.set(text_hash, new_cache)
+        results.extend(need_processing)
+    return results
+
 
 if  __name__ == '__main__':
     import time

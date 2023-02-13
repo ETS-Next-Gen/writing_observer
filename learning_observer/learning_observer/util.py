@@ -9,6 +9,7 @@ We can relax the design invariant, but we should think carefully
 before doing so.
 '''
 
+import hashlib
 import math
 import re
 
@@ -87,6 +88,35 @@ def translate_json_keys(d, translations):
             if isinstance(v, dict) or isinstance(v, list):
                 translate_json_keys(v, translations)
     return d
+
+
+def secure_hash(text):
+    '''
+    Our standard hash functions. We can either use either
+
+    * A full hash (e.g. SHA3 512) which should be secure against
+    intentional attacks (e.g. a well-resourced entity wants to temper
+    with our data, or if Moore's Law starts up again, a well-resourced
+    teenager).
+
+    * A short hash (e.g. MD5), which is no longer considered
+    cryptographically-secure, but is good enough to deter casual
+    tempering. Most "tempering" comes from bugs, rather than attackers,
+    so this is very helpful still. MD5 hashes are a bit more manageable
+    in size.
+
+    For now, we're using full hashes everywhere, but it would probably
+    make sense to alternate as makes sense. MD5 is 32 characters, while
+    SHA3_512 is 128 characters (104 if we B32 encode).
+    '''
+    return "SHA512_" + hashlib.sha3_512(text).hexdigest()
+
+
+def insecure_hash(text):
+    '''
+    See `secure_hash` above for documentation
+    '''
+    return "MD5_" + hashlib.md5(text).hexdigest()
 
 
 # And a test case

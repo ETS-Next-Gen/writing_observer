@@ -148,7 +148,6 @@ async def get_latest_student_documents(student_data):
             KeyStateType.INTERNAL
         ) for s in student_data])
 
-    print(document_keys)
     writing_data = await kvs.multiget(keys=document_keys)
 
     # Return blank entries if no data, rather than None. This makes it possible
@@ -190,10 +189,5 @@ async def latest_data(student_data, options=None):
     writing_data = await get_latest_student_documents(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
-    just_the_text = [w.get("text", "") for w in writing_data]
-    annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text, options)
-    for annotated_text, single_doc in zip(annotated_texts, writing_data):
-        if annotated_text != "Error":
-            single_doc.update(annotated_text)
-    # Call Paul's code to add stuff to it
+    writing_data = await writing_observer.awe_nlp.process_texts(writing_data, options)
     return {'latest_writing_data': writing_data}

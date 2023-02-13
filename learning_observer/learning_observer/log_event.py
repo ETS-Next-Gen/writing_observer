@@ -62,6 +62,7 @@ import learning_observer.filesystem_state
 import learning_observer.paths as paths
 import learning_observer.settings as settings
 import learning_observer.prestartup
+import learning_observer.util
 
 
 # These should move into the startup check
@@ -152,7 +153,7 @@ def initialize_logging_framework():
     # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
     # hexdigest?
     startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
-    STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
+    STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state.encode('utf-8'))
     STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
         directory=paths.logs("startup"),
         time=datetime.datetime.utcnow().isoformat(),
@@ -187,35 +188,6 @@ def encode_json_block(block):
     the same string, with the same hash.
     '''
     return json.dumps(block, sort_keys=True, indent=3)
-
-
-def secure_hash(text):
-    '''
-    Our standard hash functions. We can either use either
-
-    * A full hash (e.g. SHA3 512) which should be secure against
-    intentional attacks (e.g. a well-resourced entity wants to temper
-    with our data, or if Moore's Law starts up again, a well-resourced
-    teenager).
-
-    * A short hash (e.g. MD5), which is no longer considered
-    cryptographically-secure, but is good enough to deter casual
-    tempering. Most "tempering" comes from bugs, rather than attackers,
-    so this is very helpful still. MD5 hashes are a bit more manageable
-    in size.
-
-    For now, we're using full hashes everywhere, but it would probably
-    make sense to alternate as makes sense. MD5 is 32 characters, while
-    SHA3_512 is 128 characters (104 if we B32 encode).
-    '''
-    return "SHA512_" + hashlib.sha3_512(text).hexdigest()
-
-
-def insecure_hash(text):
-    '''
-    See `secure_hash` above for documentation
-    '''
-    return "MD5_" + hashlib.md5(text).hexdigest()
 
 
 def log_event(event, filename=None, preencoded=False, timestamp=False):
@@ -317,7 +289,7 @@ def log_ajax(url, resp_json, request):
         'timestamp': datetime.datetime.utcnow().isoformat()
     }
     encoded_payload = encode_json_block(payload)
-    payload_hash = secure_hash(encoded_payload.encode('utf-8'))
+    payload_hash = learning_observer.util.secure_hash(encoded_payload.encode('utf-8'))
     filename = AJAX_FILENAME_TEMPLATE.format(
         directory=paths.logs("ajax"),
         time=datetime.datetime.utcnow().isoformat(),
