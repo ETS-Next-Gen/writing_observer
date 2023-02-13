@@ -62,7 +62,7 @@ import learning_observer.filesystem_state
 import learning_observer.paths as paths
 import learning_observer.settings as settings
 import learning_observer.prestartup
-from learning_observer.util import secure_hash
+import learning_observer.util
 
 
 # These should move into the startup check
@@ -153,7 +153,7 @@ def initialize_logging_framework():
     # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
     # hexdigest?
     startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
-    STARTUP_STATE_HASH = secure_hash(startup_state.encode('utf-8'))
+    STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state.encode('utf-8'))
     STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
         directory=paths.logs("startup"),
         time=datetime.datetime.utcnow().isoformat(),
@@ -289,7 +289,7 @@ def log_ajax(url, resp_json, request):
         'timestamp': datetime.datetime.utcnow().isoformat()
     }
     encoded_payload = encode_json_block(payload)
-    payload_hash = secure_hash(encoded_payload.encode('utf-8'))
+    payload_hash = learning_observer.util.secure_hash(encoded_payload.encode('utf-8'))
     filename = AJAX_FILENAME_TEMPLATE.format(
         directory=paths.logs("ajax"),
         time=datetime.datetime.utcnow().isoformat(),

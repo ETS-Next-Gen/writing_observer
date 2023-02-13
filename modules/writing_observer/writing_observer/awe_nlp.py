@@ -25,7 +25,8 @@ import time
 import warnings
 
 import writing_observer.nlp_indicators
-from learning_observer import kvs, util
+import learning_observer.kvs
+import learning_observer.util
 
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
 
@@ -217,13 +218,13 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
     results = []
     need_processing = []
     needed_options = set()
-    cache = kvs.KVS()
+    cache = learning_observer.kvs.KVS()
 
     for writing in writing_data:
         text = writing.get('text', '')
         if len(text) == 0:
             continue
-        text_hash = 'NLP_CACHE_' + util.secure_hash(text.encode('utf-8'))
+        text_hash = 'NLP_CACHE_' + learning_observer.util.secure_hash(text.encode('utf-8'))
         text_cache_data = await cache[text_hash]
         if text_cache_data is None:
             text_cache_data = {}
@@ -242,7 +243,7 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
         for annotated_text, single_doc in zip(annotated_texts, need_processing):
             if annotated_text != "Error":
                 single_doc.update(annotated_text)
-                text_hash = 'NLP_CACHE_' + util.secure_hash(single_doc['text'].encode('utf-8'))
+                text_hash = 'NLP_CACHE_' + learning_observer.util.secure_hash(single_doc['text'].encode('utf-8'))
                 new_cache = {k: v for k, v in single_doc.items() if k != 'student'}
                 await cache.set(text_hash, new_cache)
         results.extend(need_processing)
