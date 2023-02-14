@@ -46,7 +46,7 @@ def select_random_segments(text, segments=3, segment_length=3, seed=0):
     word_boundaries = [match.start() for match in re.finditer(r"\b\w+\b", text)]
     word_boundary_count = len(word_boundaries)
     selected_indices = limited_sample(word_boundary_count - segment_length, segments)
-    segments_positions = [(word_boundaries[index], word_boundaries[index + segment_length]-word_boundaries[index]) for index in selected_indices]
+    segments_positions = [(word_boundaries[index], word_boundaries[index + segment_length] - word_boundaries[index]) for index in selected_indices]
     if seed is not None:
         random.setstate(state)
     return segments_positions
@@ -85,7 +85,7 @@ def select_random_sentences(text, segments=3):
     sentence_boundaries.insert(0, 0)
     sentence_boundary_count = len(sentence_boundaries)
     selected_indices = limited_sample(sentence_boundary_count - 1, segments)
-    sentence_positions = [(sentence_boundaries[index], sentence_boundaries[index + 1]-sentence_boundaries[index]) for index in selected_indices]
+    sentence_positions = [(sentence_boundaries[index], sentence_boundaries[index + 1] - sentence_boundaries[index]) for index in selected_indices]
     return sentence_positions
 
 
@@ -100,10 +100,10 @@ def show_selections(text, segments):
     Returns:
         list: A list of strings, each representing a selected segment of the input text.
     '''
-    return [text[a:a+b] for a, b in segments]
+    return [text[a:a + b] for a, b in segments]
 
 
-TRANSITION_WORDS = ["also", "as well", "besides", "furthermore", "in addition", "in fact",    "indeed", "likewise", "moreover", "similarly", "too", "additionally",    "again", "alternatively", "and", "as", "as a result", "as an example",    "as a consequence", "as a matter of fact", "as well as", "at the same time",    "because", "before", "being that", "by comparison", "by contrast",    "by the same token", "compared to", "conversely", "correspondingly",    "coupled with", "earlier", "equally", "for instance", "for example",    "for that reason", "further", "furthermore", "hence", "however",    "in comparison", "in contrast", "in like manner", "in similar fashion",    "in the same way", "incidentally", "indeed", "instead", "likewise",    "meanwhile", "moreover", "namely", "neither", "nevertheless",    "next", "nonetheless", "nor", "not only", "not to mention",    "on the contrary", "on the other hand", "oppositely", "or", "otherwise",    "overall", "particularly", "previously", "rather", "regardless",    "similarly", "so", "so as to", "then", "therefore", "thus", "ultimately",    "unlike", "while"]
+TRANSITION_WORDS = ["also", "as well", "besides", "furthermore", "in addition", "in fact", "indeed", "likewise", "moreover", "similarly", "too", "additionally", "again", "alternatively", "and", "as", "as a result", "as an example", "as a consequence", "as a matter of fact", "as well as", "at the same time", "because", "before", "being that", "by comparison", "by contrast", "by the same token", "compared to", "conversely", "correspondingly", "coupled with", "earlier", "equally", "for instance", "for example", "for that reason", "further", "furthermore", "hence", "however", "in comparison", "in contrast", "in like manner", "in similar fashion", "in the same way", "incidentally", "indeed", "instead", "likewise", "meanwhile", "moreover", "namely", "neither", "nevertheless", "next", "nonetheless", "nor", "not only", "not to mention", "on the contrary", "on the other hand", "oppositely", "or", "otherwise", "overall", "particularly", "previously", "rather", "regardless", "similarly", "so", "so as to", "then", "therefore", "thus", "ultimately", "unlike", "while"]
 
 
 def find_keywords_in_text(text, keywords):
@@ -140,11 +140,13 @@ async def process_texts(writing_data, options=None):
             indicator = writing_observer.nlp_indicators.INDICATORS[option]
             (id, label, infoType, select, filterInfo, summaryType) = indicator
             results[id] = {}
+            state = random.getstate()
             random.seed(id)
             if summaryType == 'percent':
                 metric = random.randint(0, 100)
             elif summaryType == 'total':
                 metric = random.randint(0, len(text.split(' ')))
+            random.setstate(state)
             results[id].update({
                 'label': label,
                 'type': infoType,
