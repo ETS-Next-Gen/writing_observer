@@ -1,5 +1,9 @@
+import importlib.util
 import time
+
+import learning_observer.settings
 import learning_observer.util
+
 
 def excerpt_active_text(
     text, cursor_position,
@@ -178,7 +182,14 @@ async def merge_with_student_data(writing_data, student_data):
     return writing_data
 
 
-import writing_observer.awe_nlp
+if importlib.util.find_spec('awe_components') is not None and\
+    learning_observer.settings.module_setting('writing_observer', 'use_nlp', False):
+    import writing_observer.awe_nlp
+    processor = writing_observer.awe_nlp.process_texts
+else:
+    import writing_observer.stub_nlp
+    processor = writing_observer.stub_nlp.process_texts
+
 
 async def latest_data(student_data, options=None):
     '''
@@ -189,5 +200,5 @@ async def latest_data(student_data, options=None):
     writing_data = await get_latest_student_documents(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
-    writing_data = await writing_observer.awe_nlp.process_texts(writing_data, options)
+    writing_data = await processor(writing_data, options)
     return {'latest_writing_data': writing_data}

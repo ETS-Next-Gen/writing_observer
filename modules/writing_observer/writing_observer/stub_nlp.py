@@ -15,6 +15,8 @@ AWE Workbench, and should make development faster and easier.
 import random
 import re
 
+import writing_observer.nlp_indicators
+
 
 def limited_sample(total, n):
     '''
@@ -44,7 +46,7 @@ def select_random_segments(text, segments=3, segment_length=3, seed=0):
     word_boundaries = [match.start() for match in re.finditer(r"\b\w+\b", text)]
     word_boundary_count = len(word_boundaries)
     selected_indices = limited_sample(word_boundary_count - segment_length, segments)
-    segments_positions = [(word_boundaries[index], word_boundaries[index + segment_length]) for index in selected_indices]
+    segments_positions = [(word_boundaries[index], word_boundaries[index + segment_length]-word_boundaries[index]) for index in selected_indices]
     if seed is not None:
         random.setstate(state)
     return segments_positions
@@ -64,7 +66,7 @@ def select_random_words(sentence, segments=3):
     word_boundaries = [match.start() for match in re.finditer(r"\b\w+\b", sentence)]
     word_boundary_count = len(word_boundaries)
     selected_indices = limited_sample(word_boundary_count, segments)
-    word_positions = [(word_boundaries[index], word_boundaries[index] + len(sentence[word_boundaries[index]:].split()[0])) for index in selected_indices]
+    word_positions = [(word_boundaries[index], len(sentence[word_boundaries[index]:].split()[0])) for index in selected_indices]
     return word_positions
 
 
@@ -79,10 +81,11 @@ def select_random_sentences(text, segments=3):
     Returns:
         list: A list of tuples, each containing the start and end indices of a selected sentence.
     '''
-    sentence_boundaries = [match.start() for match in re.finditer(r"[.?!][\s\S]*", text)]
+    sentence_boundaries = [match.start() for match in re.finditer(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)]
+    sentence_boundaries.insert(0, 0)
     sentence_boundary_count = len(sentence_boundaries)
     selected_indices = limited_sample(sentence_boundary_count - 1, segments)
-    sentence_positions = [(sentence_boundaries[index], sentence_boundaries[index + 1]) for index in selected_indices]
+    sentence_positions = [(sentence_boundaries[index], sentence_boundaries[index + 1]-sentence_boundaries[index]) for index in selected_indices]
     return sentence_positions
 
 
@@ -97,7 +100,7 @@ def show_selections(text, segments):
     Returns:
         list: A list of strings, each representing a selected segment of the input text.
     '''
-    return [text[a:b] for a, b in segments]
+    return [text[a:a+b] for a, b in segments]
 
 
 TRANSITION_WORDS = ["also", "as well", "besides", "furthermore", "in addition", "in fact",    "indeed", "likewise", "moreover", "similarly", "too", "additionally",    "again", "alternatively", "and", "as", "as a result", "as an example",    "as a consequence", "as a matter of fact", "as well as", "at the same time",    "because", "before", "being that", "by comparison", "by contrast",    "by the same token", "compared to", "conversely", "correspondingly",    "coupled with", "earlier", "equally", "for instance", "for example",    "for that reason", "further", "furthermore", "hence", "however",    "in comparison", "in contrast", "in like manner", "in similar fashion",    "in the same way", "incidentally", "indeed", "instead", "likewise",    "meanwhile", "moreover", "namely", "neither", "nevertheless",    "next", "nonetheless", "nor", "not only", "not to mention",    "on the contrary", "on the other hand", "oppositely", "or", "otherwise",    "overall", "particularly", "previously", "rather", "regardless",    "similarly", "so", "so as to", "then", "therefore", "thus", "ultimately",    "unlike", "while"]
@@ -117,3 +120,49 @@ def find_keywords_in_text(text, keywords):
     keywords_regex = "|".join(r"\b" + word + r"\b" for word in keywords)
     keyword_matches = [(match.start(), match.end()) for match in re.finditer(keywords_regex, text, flags=re.IGNORECASE)]
     return set(keyword_matches)
+
+
+async def process_texts(writing_data, options=None):
+    '''
+    Process texts with fake NLP results
+    '''
+    if options is None:
+        options = writing_observer.nlp_indicators.INDICATORS.keys()
+
+    for writing in writing_data:
+        text = writing.get('text', '')
+        if len(text) == 0:
+            continue
+        results = {}
+        for option in options:
+            if option not in writing_observer.nlp_indicators.INDICATORS:
+                continue
+            indicator = writing_observer.nlp_indicators.INDICATORS[option]
+            (id, label, infoType, select, filterInfo, summaryType) = indicator
+            results[id] = {}
+            random.seed(id)
+            if summaryType == 'percent':
+                metric = random.randint(0, 100)
+            elif summaryType == 'total':
+                metric = random.randint(0, len(text.split(' ')))
+            results[id].update({
+                'label': label,
+                'type': infoType,
+                'name': id,
+                'summary_type': summaryType,
+                'metric': metric,
+                'offsets': select_random_segments(text, seed=id)
+            })
+        writing.update(results)
+
+    return writing_data
+
+
+if __name__ == '__main__':
+    text = 'The quick brown fox jumps over the lazy dog. Waltz, bad nymph, for quick jigs vex. Sphinx of black quartz, judge my vow. How vexingly quick daft zebras jump. '
+    random_segments = select_random_segments(text)
+    print(show_selections(text, random_segments))
+    random_words = select_random_words(text, 5)
+    print(show_selections(text, random_words))
+    random_sents = select_random_sentences(text)
+    print(show_selections(text, random_sents))
