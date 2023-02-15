@@ -1,5 +1,9 @@
+import sys
 import time
+
+import learning_observer.settings
 import learning_observer.util
+
 
 def excerpt_active_text(
     text, cursor_position,
@@ -111,7 +115,6 @@ def aggregate_course_summary_stats(student_data):
     }
 
 
-
 ######
 #
 #  Everything from here on is a hack.
@@ -119,8 +122,8 @@ def aggregate_course_summary_stats(student_data):
 #
 ######
 
-
 import learning_observer.stream_analytics.helpers
+
 
 async def get_latest_student_documents(student_data):
     '''
@@ -178,7 +181,18 @@ async def merge_with_student_data(writing_data, student_data):
     return writing_data
 
 
-import writing_observer.awe_nlp
+if learning_observer.settings.module_setting('writing_observer', 'use_nlp', False):
+    try:
+        import writing_observer.awe_nlp
+        processor = writing_observer.awe_nlp.process_texts
+    except ImportError as e:
+        print(e)
+        print('AWE Components is not installed. To install, please see https://github.com/ETS-Next-Gen/AWE_Components')
+        sys.exit(-1)
+else:
+    import writing_observer.stub_nlp
+    processor = writing_observer.stub_nlp.process_texts
+
 
 async def latest_data(student_data, options=None):
     '''
@@ -189,5 +203,5 @@ async def latest_data(student_data, options=None):
     writing_data = await get_latest_student_documents(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
-    writing_data = await writing_observer.awe_nlp.process_texts(writing_data, options)
+    writing_data = await processor(writing_data, options)
     return {'latest_writing_data': writing_data}
