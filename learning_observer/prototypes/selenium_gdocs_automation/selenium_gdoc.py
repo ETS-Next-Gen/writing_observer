@@ -52,7 +52,7 @@ USERNAME_XPATH = "/html/body/div[1]/div[1]/div[2]/div/div[2]/div/div/div[2]" \
     "/input"
 
 PASSWORD_XPATH = "/html/body/div[1]/div[1]/div[2]/div/div[2]/div/div/div[2]/" \
-  "div/div[1]/div/form/span/section/div/div/div[1]/div/div[1]/div/div[1]/input"
+    "div/div[1]/div/form/span/section/div/div/div[1]/div/div[1]/div/div[1]/input"
 
 print("Username: ")
 driver.find_element_by_xpath(USERNAME_XPATH).send_keys(input())

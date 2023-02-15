@@ -59,7 +59,6 @@ DEFAULT_GOOGLE_SCOPES = [
 ]
 
 
-
 async def social_handler(request):
     """Handles Google sign in.
 

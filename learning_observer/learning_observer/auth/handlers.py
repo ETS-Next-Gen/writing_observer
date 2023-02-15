@@ -121,12 +121,12 @@ async def demo_user(request):
         name = names.get_full_name()
 
     user_info = {
-            "name": name,
-            "picture": "/auth/default-avatar.svg",
-            "authorized": True,
-            "google_id": random.randint(10000, 99999),
-            "email": name_to_email(name)
-        }
+        "name": name,
+        "picture": "/auth/default-avatar.svg",
+        "authorized": True,
+        "google_id": random.randint(10000, 99999),
+        "email": name_to_email(name)
+    }
     await learning_observer.auth.utils.update_session_user_info(request, user_info)
     return user_info
 

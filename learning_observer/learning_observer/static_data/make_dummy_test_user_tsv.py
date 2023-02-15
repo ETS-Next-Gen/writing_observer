@@ -17,7 +17,7 @@ for i in range(25):
     w.write(
         user_id_template.format(i=i),
         name,
-        "{fn} {ln}".format(fn = name, ln=names.get_last_name()),
+        "{fn} {ln}".format(fn=name, ln=names.get_last_name()),
         "{name}@school.district.us".format(name=name),
         "({pre})-{mid}-{post}".format(
             pre=random.randint(200, 999),

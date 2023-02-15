@@ -172,20 +172,21 @@ def http_basic_auth(filename=None, response=lambda: None):
 def http_basic_startup_check():
     if http_auth_page_enabled() and http_auth_middleware_enabled():
         raise learning_observer.prestartup.StartupCheck(
-            "Your HTTP Basic authentication is misconfigured.\n" +
-            "\n" +
-            "You want EITHER auth on every page, OR a login page,\n" +
-            "not both. Having both setting may be a security risk.\n" +
-            "Please fix this."
+            "Your HTTP Basic authentication is misconfigured.\n"
+            + "\n"
+            + "You want EITHER auth on every page, OR a login page,\n"
+            + "not both. Having both setting may be a security risk.\n"
+            + "Please fix this."
         )
 
-    if ('http_basic' in learning_observer.settings.settings['auth']
+    if (
+        'http_basic' in learning_observer.settings.settings['auth']
         and learning_observer.settings.settings['auth']['http_basic'].get("delegate_nginx_auth", False)
         and learning_observer.settings.settings['auth']['http_basic'].get("password_file", False)
-        ):
+    ):
         raise learning_observer.prestartup.StartupCheck(
-            "Your HTTP Basic authentication is misconfigured.\n" +
-            "\n" +
-            "You should EITHER rely on nginx for password authentication OR Learning Observer," +
-            "not both."
+            "Your HTTP Basic authentication is misconfigured.\n"
+            + "\n"
+            + "You should EITHER rely on nginx for password authentication OR Learning Observer,"
+            + "not both."
         )

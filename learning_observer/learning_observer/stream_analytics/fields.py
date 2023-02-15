@@ -40,7 +40,7 @@ class EventField:
             # included in the text verbatim.
             raise AttributeError(
                 "Events should be alphanumeric, dashes, and underscores:"
-                "{}".format(event = repr(event))
+                "{}".format(event=repr(event))
             )
         self.event = event
         self.name = "EventField." + self.event

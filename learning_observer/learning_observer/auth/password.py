@@ -62,7 +62,7 @@ def password_auth(filename):
                 data['password'].encode('utf-8'),
                 user_data['password'].encode('utf-8')
             )
-        except:
+        except:  # noqa: E722 TODO figure out which errors to catch
             debug_log("Error verifying password hash")
             debug_log("Hint: Try reinstalling / upgrading bcrypt")
             debug_log("For some reason, bcrypt tends to sometimes install incorrectly")

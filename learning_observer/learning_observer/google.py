@@ -231,7 +231,7 @@ def initialize_and_register_routes(app):
             else:
                 raise AttributeError(f"Invalid response type: {type(response)}")
         if name is not None:
-            setattr(cleaner_handler, "__qualname__", name+"_handler")
+            setattr(cleaner_handler, "__qualname__", name + "_handler")
 
         return cleaner_handler
 
@@ -365,7 +365,7 @@ def _force_text_length(text, length):
     >>> force_text_length("Hello", 13)
     >>> 'Hello        '
     '''
-    return text[:length] + " " * (length-len(text))
+    return text[:length] + " " * (length - len(text))
 
 
 @register_cleaner("document", "doctext")
@@ -394,7 +394,7 @@ def extract_text_from_google_doc_json(
     flat = sum(elements, [])
     text_chunks = [f['textRun']['content'] for f in flat]
     if align:
-        lengths = [f['endIndex']-f['startIndex'] for f in flat]
+        lengths = [f['endIndex'] - f['startIndex'] for f in flat]
         text_chunks = [_force_text_length(chunk, length) for chunk, length in zip(text_chunks, lengths)]
     text = ''.join(text_chunks)
 

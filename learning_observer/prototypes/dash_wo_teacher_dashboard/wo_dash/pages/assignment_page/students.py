@@ -14,13 +14,13 @@ from . import settings, settings_defaults, settings_options as so
 # use a prefix to help ensure we don't double up on IDs (guess what happens if you double up? it breaks)
 prefix = 'teacher-dashboard'
 
-# individual student items 
+# individual student items
 student_col = f'{prefix}-student-col'  # individual student card wrapper id
 student_metrics = f'{prefix}-student-metrics'
 student_texthighlight = f'{prefix}-student-texthighlight'
 student_indicators = f'{prefix}-student-indicators'
 
-student_row = f'{prefix}-student-row'  # overall student row 
+student_row = f'{prefix}-student-row'  # overall student row
 student_grid = f'{prefix}-student-grid'  # overall student grid wrapper id
 websocket = f'{prefix}-websocket'  # websocket to connect to the server (eventually)
 student_counter = f'{prefix}-student-counter'  # store item for quick access to the number of students
@@ -94,7 +94,7 @@ def student_dashboard_view(course_id, assignment_id):
                                         id=settings.open_btn
                                     ),
                                     dbc.DropdownMenuItem(
-                                        'Logout', 
+                                        'Logout',
                                         href='/auth/logout',
                                         external_link=True
                                     ),

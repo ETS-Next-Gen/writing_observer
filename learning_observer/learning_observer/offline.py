@@ -303,21 +303,27 @@ async def test_case():
 class StubApp():
     def __init__(self):
         self.loop = asyncio.get_event_loop()
+
     def add_routes(self, *args, **kwargs):
         pass
 
 
 app = StubApp()
 
+
 class StubRequest():
+
     def __init__(self):
         self.app = app
+
     def __contains__(self, item):
         if item == 'auth_headers':
             return True
         return False
+
     def __getitem__(self, item):
         return {}
+
 
 request = StubRequest()
 

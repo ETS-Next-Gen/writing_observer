@@ -126,7 +126,6 @@ def add_routes(app):
             )
         ])
 
-
     # Allow AJAX calls.  Right now, the function receives a `request`
     # object. This should be cleaned in some way.
     ajax = learning_observer.module_loader.ajax()

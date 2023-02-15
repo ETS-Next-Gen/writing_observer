@@ -17,6 +17,7 @@ from learning_observer.stream_analytics.fields import KeyField, KeyStateType, Ev
 
 import writing_observer.sample_essays
 
+
 async def select_course():
     """
     This is an asynchronous function that allows the user to select a

@@ -73,6 +73,8 @@ import json
 import yaml
 
 import asyncpg
+from databases import Database
+import sqlalchemy
 
 
 async def initialize(reset=False):
@@ -119,9 +121,6 @@ async def get_recipients(username):
     '''
     pass
 
-####
-from databases import Database
-import sqlalchemy
 
 # database = Database('sqlite:///example.db')
 # await database.connect()

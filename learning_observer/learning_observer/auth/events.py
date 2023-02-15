@@ -120,7 +120,7 @@ async def basic_auth(request, headers, first_event, source):
     '''
     Authenticate with HTTP Basic through nginx.
     '''
-    (username, password)  = learning_observer.auth.http_basic.http_basic_extract_username_password(request)
+    (username, password) = learning_observer.auth.http_basic.http_basic_extract_username_password(request)
     print(f"Authenticated as {username}")
     if username is None:
         # nginx shouldn't pass requests without

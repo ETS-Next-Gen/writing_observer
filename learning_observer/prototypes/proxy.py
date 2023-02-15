@@ -35,7 +35,7 @@ async def proxy(
         This is the main handler for the proxy.
         '''
         print(request)
-        target_url = base_url+request.path
+        target_url = base_url + request.path
 
         cookies = request.cookies
         headers = multidict.CIMultiDict(request.headers)
@@ -71,7 +71,7 @@ async def proxy(
                 )
             else:
                 raise NotImplementedError(
-                    "Unsupported method: "+request.method
+                    "Unsupported method: " + request.method
                 )
             data = await resp.read()
 

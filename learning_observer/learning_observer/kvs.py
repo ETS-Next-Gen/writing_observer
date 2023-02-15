@@ -231,7 +231,7 @@ class FilesystemKVS(_KVS):
         if self.subdirs:
             paths = key.split('/')
             # Add underscores to directories so they don't conflict with files
-            for i in range(len(paths)-1):
+            for i in range(len(paths) - 1):
                 paths[i] = '_' + paths[i]
             safename = (os.sep).join(map(learning_observer.util.to_safe_filename, paths))
         else:

@@ -185,10 +185,6 @@ panel = dbc.Card(
                                 {
                                     'label': html.Span(
                                         [
-                                            # IDEA 
-                                            # we keep a long enough list of 5 colors
-                                            # we rotate them as users are selecting each item
-                                            # pass the color into the component so it knows how to highlight
                                             html.Span(
                                                 [
                                                     html.I(className='fas fa-highlighter fa-flip-horizontal me-1'),
@@ -285,7 +281,7 @@ clientside_callback(
 
 # settings checklist toggle
 # if the option is selected, show its sub-options
-# 
+#
 # e.g. if metrics is chosen, show the options for time_on_task, adjectives, adverbs, etc.
 #       otherwise, don't shown those items
 

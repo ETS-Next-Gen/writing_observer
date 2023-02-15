@@ -30,10 +30,9 @@ async def initialize(reset=False):
 
     # Set up stored procedures
     for stored_procedure in sql_statements['stored_procedures']:
-        stored_procedures[stored_procedure] = \
-            await conn.prepare(
-                sql_statements['stored_procedures'][stored_procedure]
-            )
+        stored_procedures[stored_procedure] = await conn.prepare(
+            sql_statements['stored_procedures'][stored_procedure]
+        )
     print("Connected...")
 
 asyncio.get_event_loop().run_until_complete(initialize())
