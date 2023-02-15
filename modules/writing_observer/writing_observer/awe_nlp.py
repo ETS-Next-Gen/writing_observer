@@ -30,6 +30,7 @@ import learning_observer.util
 
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
 
+
 def init_nlp():
     '''
     Initialize the spacy pipeline with the AWE components. This takes a while
@@ -51,6 +52,7 @@ def init_nlp():
     nlp.add_pipe('contentsegmentation')
     return nlp
 
+
 nlp = init_nlp()
 
 
@@ -64,39 +66,37 @@ def outputIndicator(doc, indicatorName, itype, stype=None, text=None, added_filt
     indicator = {}
 
     if added_filter is None:
-        theFilter = [(indicatorName,[True]),('is_alpha',[True])]
+        theFilter = [(indicatorName, [True]), ('is_alpha', [True])]
     else:
         theFilter = added_filter
-        theFilter.append(('is_alpha',[True]))
+        theFilter.append(('is_alpha', [True]))
 
     indicator['metric'] =\
         doc._.AWE_Info(infoType=itype,
-                        indicator=indicatorName,
-                        filters=theFilter,
-                        summaryType=stype)  
-    
+                       indicator=indicatorName,
+                       filters=theFilter,
+                       summaryType=stype)
+
     data = json.loads(
         doc._.AWE_Info(infoType=itype,
-                        indicator=indicatorName,
-                        filters=theFilter)).values()
+                       indicator=indicatorName,
+                       filters=theFilter)).values()
 
     indicator['offsets'] = \
-        [[entry['offset'],entry['length']] \
-         for entry \
-         in data]
+        [[entry['offset'], entry['length']] for entry in data]
 
     if itype == 'Token':
         indicator['text'] = \
             json.loads(doc._.AWE_Info(infoType=itype,
-                   indicator=indicatorName, 
-                   filters=theFilter,
-                   transformations=['lemma'],
-                   summaryType='uniq'))
+                                      indicator=indicatorName,
+                                      filters=theFilter,
+                                      transformations=['lemma'],
+                                      summaryType='uniq'))
     else:
         indicator['text'] = []
 
         for span in indicator['offsets']:
-            indicator['text'].append(text[int(span[0]):int(span[0])+int(span[1])])
+            indicator['text'].append(text[int(span[0]):int(span[0]) + int(span[1])])
 
     return indicator
 
@@ -148,6 +148,7 @@ async def process_texts_serial(texts, options=None):
 
 executor = None
 
+
 def run_in_fork(func):
     '''
     This will run a function in a forked subproces, for isolation.
@@ -191,7 +192,7 @@ async def process_texts_parallel(texts, options=None):
         try:
             annotations = await result_future
             annotations['text'] = text
-        except: # awe_components.errors.AWE_Workbench_Error and nltk.corpus.reader.wordnet.WordNetError
+        except Exception:
             raise
             annotations = "Error"
         annotated.append(annotations)
@@ -250,7 +251,7 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
     return results
 
 
-if  __name__ == '__main__':
+if __name__ == '__main__':
     import time
     import writing_observer.sample_essays
     # Run over a sample text
@@ -270,9 +271,9 @@ if  __name__ == '__main__':
     results3 = asyncio.run(process_texts_serial(example_texts[0:8]))
     t4 = time.time()
     print(results2)
-    print("Single time", t2-t1)
-    print("Parallel time", t3-t2)
-    print("Serial time", t4-t3)
+    print("Single time", t2 - t1)
+    print("Parallel time", t3 - t2)
+    print("Serial time", t4 - t3)
     print("Note that these results are imperfect -- ")
-    print("Errors", len([r for r in results2 if r=="Error"]))
-    print("Errors", [r if r=="Error" else "--" for r in results2])
+    print("Errors", len([r for r in results2 if r == "Error"]))
+    print("Errors", [r if r == "Error" else "--" for r in results2])
