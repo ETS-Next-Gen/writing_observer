@@ -134,7 +134,7 @@ async def event_count(event, internal_state):
 async def document_list(event, internal_state):
     '''
     We would like to gather a list of all Google Docs a student
-    has visited / edited. In the future, we plan to add more metadata. This can 
+    has visited / edited. In the future, we plan to add more metadata. This can
     then be used to decide which ones to show.
     '''
     document_id = event.get('client', {}).get('doc_id', None)

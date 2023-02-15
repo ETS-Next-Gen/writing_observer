@@ -2,14 +2,15 @@ import sys
 import time
 
 import learning_observer.settings
+import learning_observer.stream_analytics.helpers
 import learning_observer.util
 
 
 def excerpt_active_text(
     text, cursor_position,
-    desired_length=103, cursor_target=2/3, max_overflow=10,
-    cursor_character = "❙"
-    ):
+    desired_length=103, cursor_target=2 / 3, max_overflow=10,
+    cursor_character="❙"
+):
     '''
     This function returns a short segment of student text, cutting in a
     sensible way around word boundaries. This can be used for real-time
@@ -121,8 +122,6 @@ def aggregate_course_summary_stats(student_data):
 #  We need to figure out proper abstractions.
 #
 ######
-
-import learning_observer.stream_analytics.helpers
 
 
 async def get_latest_student_documents(student_data):
