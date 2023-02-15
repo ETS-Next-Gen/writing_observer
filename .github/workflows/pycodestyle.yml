@@ -20,4 +20,4 @@ jobs:
         pip install pycodestyle
     - name: Analysing the code with pycodestyle
       run: |
-        pycodestyle --ignore=E501,W503 $(git ls-files 'learning_observer/*.py' 'modules/*.py')
+        pycodestyle --ignore=E501,W503,E731 $(git ls-files 'learning_observer/*.py' 'modules/*.py')
