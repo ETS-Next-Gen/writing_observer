@@ -7,6 +7,8 @@ learning analytics dashboard to help instructors be able to manage
 student learning processes, and in particular, student writing
 processes.
 
+![linting](https://github.com/ETS-Next-Gen/writing_observer/actions/workflows/pycodestyle.yml/badge.svg)
+
 ## Learning Observer
 
 _Learning Observer_ is designed as an open source, open science learning
