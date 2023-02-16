@@ -2,6 +2,7 @@ import sys
 import time
 import learning_observer.settings
 import learning_observer.stream_analytics.helpers
+# import traceback
 import learning_observer.util
 
 
@@ -156,7 +157,7 @@ async def get_latest_student_documents(student_data):
                 EventField('doc_id'): s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
             },
             KeyStateType.INTERNAL
-        ) for s in active_students]) # in student_data if 'writing_observer.writing_analysis.last_document' in s])
+        ) for s in active_students]) 
 
     print(document_keys)
     
@@ -256,6 +257,5 @@ async def latest_data(student_data, options=None):
     for annotated_text, single_doc in zip(annotated_texts, writing_data):
         if annotated_text != "Error":
             single_doc.update(annotated_text)
-    # Call Paul's code to add stuff to it
 
     return {'latest_writing_data': writing_data}
