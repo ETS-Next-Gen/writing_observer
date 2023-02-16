@@ -101,16 +101,21 @@ async def process_file(
 
     # Opener returns an iterator of events. It handles diverse sources:
     # lists, log files, and compressed log files
-    opener = lambda: events_list
+    def opener():
+        return events_list
 
     if file_path is not None:
         if file_path.endswith('.log'):
-            file_opener = lambda: open(file_path)
+            def file_opener():
+                return open(file_path)
         elif file_path.endswith('.log.gz'):
-            file_opener = lambda: gzip.open(file_path)
+            def file_opener():
+                return gzip.open(file_path)
         else:
             raise ValueError("Unknown file type: " + file_path)
-        opener = lambda: (json.loads(line) for line in file_opener().readlines())
+
+        def opener():
+            return (json.loads(line) for line in file_opener().readlines())
 
     if source is None:
         for event in opener:
