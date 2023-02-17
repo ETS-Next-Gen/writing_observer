@@ -8,12 +8,6 @@ import dash_bootstrap_components as dbc
 # local imports
 from .students import student_dashboard_view
 
-dash.register_page(
-    __name__,
-    path_template='/dashboard',
-    title='Dashboard'
-)
-
 
 # passing empty parameters will automatigically be used as query strings
 # see: https://dash.plotly.com/urls#query-strings
