@@ -75,6 +75,19 @@ You can also go into the devops directory, which has scripts in
 progress for spinning up a cloud instance and managing flocks of
 _Learning Observer_ instances.
 
+
+~~~~
+Writing Observer
+~~~~
+
+
+To setup writing_observer on top of the learning observer platform you must go into modules/writing_observer and run:
+
+   sudo python setup.py develop
+
+
+
+
 System requirements
 ===================
 
@@ -96,6 +109,28 @@ be a requirement for many types of uses.
 All _Learning Observer_ development has been on Linux-based platforms
 (including Ubuntu and RHEL). There are folks outside of the core team
 who have tried to run it on Mac or on WSL, with mixed success.
+
+Running on RHEL requires the following services:
+ * REDIS
+ * nginx.
+
+
+bcrypt
+-----------------------------------------------
+A note on bcrypt.  The code uses bcrypt for some internal password management.
+We are not including it directly in the install because it acts oddly across
+platforms so you may need to install some version manually.
+
+
+Additional Notes
+===================
+At present the system also uses static content that is served from a repo.
+This allows us to actually select different sources for the static data.
+This can also point to the current copy if necessary and can be configured
+as part of the creds.yaml file to generate the repo or add it on startup.
+
+This is not ideal but it is a mechanism for embedding the alternatives.
+
 
 Contributing or learning more
 =============================
