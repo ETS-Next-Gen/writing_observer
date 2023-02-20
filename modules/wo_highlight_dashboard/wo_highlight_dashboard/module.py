@@ -1,21 +1,20 @@
 import os.path
-import sys
 
 import dash_bootstrap_components as dbc
 
 from learning_observer.dash_integration import thirdparty_url, static_url
 
-import wo_dash.pages.assignment_page.layout
+import wo_highlight_dashboard.dashboard.layout
 
-NAME = "Dash Writing Observer Prototype Dashboard"
+NAME = "Dash Writing Observer Dashboard"
 
 DASH_PAGES = [
     {
-        "MODULE": wo_dash.pages.assignment_page.layout,
-        "LAYOUT": wo_dash.pages.assignment_page.layout.layout,
+        "MODULE": wo_highlight_dashboard.dashboard.layout,
+        "LAYOUT": wo_highlight_dashboard.dashboard.layout.layout,
         "ASSETS": 'assets',
         "TITLE": "Writing Observer Dashboard",
-        "DESCRIPTION": "Prototype Dashboard for the Writing Observer built with dash",
+        "DESCRIPTION": "Dashboard for the Writing Observer built with dash",
         "SUBPATH": "dashboard",
         "CSS": [
             thirdparty_url("css/bootstrap.min.css"),
@@ -52,7 +51,7 @@ THIRD_PARTY = {
 
 COURSE_DASHBOARDS = [{
     'name': "Dash Writing Observer",
-    'url': "/wo_dash/dash/dashboard/",
+    'url': "/wo_highlight_dashboard/dash/dashboard/",
     "icon": {
         "type": "fas",
         "icon": "fa-pen-nib"
