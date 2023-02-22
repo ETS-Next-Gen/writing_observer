@@ -1,32 +1,58 @@
 '''
-Defaults for different essay types
+Each variable displays the defaults for each type of essay.
+Ideally, users can select multiple (deep merge) to see both general
+and argumentative for instance.
+
+In the future, we probably want the dashboard more flexible with
+different types of modules being plugged in (metrics/highlighter/etc.).
+This information will probably want to be handled a bit nicer once
+we understand the full workflow of the plugability.
 '''
-argumentative = {
+general = {
     'sort_by': {
-        'options': ['is_academic', 'vwp_source', 'vwp_attribution', 'vwp_cite', 'vwp_interactive', 'vwp_argumentword', 'vwp_evaluation'],
+        'options': [],
         'selected': []
     },
     'metrics': {
         'options': ['sentences', 'paragraphs', 'pos_'],
-        'selected': ['sentences', 'paragraphs']
+        'selected': ['prepositions']
     },
-    'text': {
-        'options': ['student_text'],
-        'selected': 'student_text'
+    'highlight': {
+        'options': [
+            'informal_language', 'transition_words', 'low_frequency_words',
+            'positive_tone', 'negative_tone',
+            'polysyllabic_words'
+        ],
+        'selected': ['transition_words', 'informal_language']
+    },
+    'indicators': {
+        'options': [
+            'academic_language', 'informal_language', 'latinate_words',
+            'polysyllabic_words', 'low_frequency_words'
+        ],
+        'selected': ['informal_language']
+    }
+}
+argumentative = {
+    'sort_by': {
+        'options': [],
+        'selected': []
+    },
+    'metrics': {
+        'options': [],
+        'selected': []
     },
     'highlight': {
         'options': [
             'main_idea_sentences', 'supporting_idea_sentences', 'supporting_detail_sentences',
-            'informal_language', 'argument_words',
+            'argument_words', 'explicit_argument',
             'statements_of_opinion', 'statements_of_fact',
-            'direct_speech_verbs', 'indirect_speech_quotation',
-            'in_past_tense', 'propositional_attitudes', 'social_awareness',
-            'transitions',
+            'explicit_claims',
         ],
         'selected': ['main_idea_sentences']
     },
     'indicators': {
-        'options': ['academic_language', 'informal_language', 'argument_words', 'latinate_words', 'information_sources', 'attributions', 'citations'],
+        'options': ['opinion_words', 'argument_words', 'information_sources', 'attributions', 'citations'],
         'selected': []
     }
 }
@@ -39,12 +65,30 @@ narrative = {
         'options': [],
         'selected': []
     },
-    'text': {
-        'options': ['student_text'],
-        'selected': 'student_text'
+    'highlight': {
+        'options': [
+            'direct_speech_verbs', 'indirect_speech',
+            'in_past_tense', 'social_awareness',
+            'character_trait_words', 'concrete_details'
+        ],
+        'selected': []
+    },
+    'indicators': {
+        'options': ['emotion_words', 'character_trait_words'],
+        'selected': []
+    }
+}
+source_based = {
+    'sort_by': {
+        'options': [],
+        'selected': []
+    },
+    'metrics': {
+        'options': [],
+        'selected': []
     },
     'highlight': {
-        'options': [],
+        'options': ['information_sources', 'attributions', 'citations', 'quoted_words'],
         'selected': []
     },
     'indicators': {

@@ -85,8 +85,8 @@ SPAN_INDICATORS = [
     ('Citations', 'Token', 'vwp_cite', None, 'percent'),
     ('Quoted Words', 'Token', 'vwp_quoted', None, 'percent'),
     # Dialogue
-    ('Direct Speech Verbs', 'Doc', 'vwp_direct_speech', None, 'percent'),  # TODO needs new label
-    ('Indirect Speech Quotation', 'Token', 'vwp_in_direct_speech', None, 'percent'),  # TODO needs new label
+    ('Direct Speech Verbs', 'Doc', 'vwp_direct_speech', None, 'percent'),
+    ('Indirect Speech', 'Token', 'vwp_in_direct_speech', None, 'percent'),
     # vwp_quoted - already used above
     # tone
     ('Positive Tone', 'Token', 'vwp_tone', [('>', [.4])], 'percent'),
@@ -103,7 +103,7 @@ SPAN_INDICATORS = [
     ('Paragraphs', 'Doc', 'delimiter_\n', None, 'total'),
     ('Character Trait Words', 'Token', 'vwp_character', None, 'percent'),
     ('In Past Tense', 'Token', 'in_past_tense_scope', None, 'percent'),
-    ('Propositional Attitudes', 'Doc', 'vwp_propositional_attitudes', None, 'percent'),
+    ('Explicit Claims', 'Doc', 'vwp_propositional_attitudes', None, 'percent'),
     ('Social Awareness', 'Doc', 'vwp_social_awareness', None, 'percent')
 ]
 
