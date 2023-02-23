@@ -86,8 +86,8 @@ feature_flags: {}  # For enabling / disabling features in development. Useful
                    # * google_routes (for debugging / developing Google APIs)
                    # * save_google_ajax (for saving Google API calls -- NOT FOR PROD)
                    # * use_google_ajax (for using saved Google API calls -- AGAIN, NOT FOR PROD)
-
 server:
     port: 8888     # Optional. Pick a different port.
-
-
+modules:
+    writing_observer:
+        use_nlp: true
