@@ -34,7 +34,7 @@ repository has a series of prototypes to confirm we can:
 
 * collect the data we want;
 * extract what we need from it; and
-* route it to where we want it to go (there's *a lot* of data, with
+* route it to where we want it to go (there's _a lot_ of data, with
   complex dependencies, so this is actually a nontrivial problem)
 
 Which mitigates most of the technical risk. We also now integrate with
@@ -43,31 +43,30 @@ a few prototype dashboards.
 
 For this to be useful, we'll need to provide some basic documentation
 for developers to be able to navigate this repo (in particular,
-explaining *why* this approach works).
+explaining _why_ this approach works).
 
-This system is designed to be *massively* scalable, but it is not
+This system is designed to be _massively_ scalable, but it is not
 currently implemented to be so (mostly for trivial reasons;
 e.g. scaffolding code which uses static files as a storage model). It
 will take work to flush out all of these performance issues, but we'd
 like to do that work once we better understand what we're doing and
 that the core approach and APIs are correct.
 
-Getting Started
-===============
+## Getting Started
 
 As an early prototype, getting started isn't seamless. Run:
 
-~~~~~
+```~bash
 make install
-~~~~~
+```
 
 And follow the instructions. You'll probably run into bugs. Work around the bugs. Then fix up the makefile and make a PR to address those bugs :)
 
 Once that's done, run:
 
-~~~~
+```bash
 make
-~~~~
+```
 
 Again, fix up the makefile, and make a PR.
 
@@ -75,21 +74,15 @@ You can also go into the devops directory, which has scripts in
 progress for spinning up a cloud instance and managing flocks of
 _Learning Observer_ instances.
 
-
-~~~~
-Writing Observer
-~~~~
-
+### Installing Writing Observer
 
 To setup writing_observer on top of the learning observer platform you must go into modules/writing_observer and run:
 
-   sudo python setup.py develop
+```bash
+sudo python setup.py develop
+```
 
-
-
-
-System requirements
-===================
+### System requirements
 
 It depends on what you're planning to use the system for.
 
@@ -111,19 +104,18 @@ All _Learning Observer_ development has been on Linux-based platforms
 who have tried to run it on Mac or on WSL, with mixed success.
 
 Running on RHEL requires the following services:
- * REDIS
- * nginx.
 
+* REDIS
+* nginx.
 
-bcrypt
------------------------------------------------
+#### bcrypt
+
 A note on bcrypt.  The code uses bcrypt for some internal password management.
 We are not including it directly in the install because it acts oddly across
 platforms so you may need to install some version manually.
 
+#### Additional Notes
 
-Additional Notes
-===================
 At present the system also uses static content that is served from a repo.
 This allows us to actually select different sources for the static data.
 This can also point to the current copy if necessary and can be configured
@@ -131,9 +123,7 @@ as part of the creds.yaml file to generate the repo or add it on startup.
 
 This is not ideal but it is a mechanism for embedding the alternatives.
 
-
-Contributing or learning more
-=============================
+## Contributing or learning more
 
 We're still a small team, and the easiest way is to shoot us a quick
 email. We'll gladly walk you through anything you're interested in.
