@@ -227,8 +227,6 @@ def is_keystroke_eventp(event):
     Event_Type = event.get('client', {}).get('event', None)
     return(Event_Type == 'keystroke')
 
-# def doc_url_p(
-
 
 # Simple hack to match URLs.  This should probably be moved as well
 # but for now it works.
@@ -281,14 +279,3 @@ def get_doc_id_wrapper(event):
 
     Doc_ID = event.get('client', {}).get('object', {}).get('id', None)
     return(Doc_ID)
-        
-    # # Handle cases where the object is encoded.  For
-    # # safety we only do this for cases where it is a
-    # # keystroke or visibility item.
-    # if (is_keystroke_eventp(event)
-    #     or is_visibility_eventp(event)):
-
-    #     Doc_ID = event.get('client', {}).get('object', {}).get('id', None)
-    
-
-    # # As a bottom out case we just return None.
