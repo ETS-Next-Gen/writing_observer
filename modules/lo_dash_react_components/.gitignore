@@ -290,3 +290,5 @@ lo_dash_react_components/_imports_.py
 lo_dash_react_components/lo_dash_react_components.min.js
 lo_dash_react_components/lo_dash_react_components.min.js.map
 lo_dash_react_components/metadata.json
+lo_dash_react_components/package-info.json
+DESCRIPTION

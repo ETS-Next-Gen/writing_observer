@@ -14,7 +14,7 @@ export default class LoConnection extends Component {
 
         return (
             <div id={id}>
-                ExampleComponent: {label}&nbsp;
+                Example Component 1: {label}&nbsp;
                 <input
                     value={value}
                     onChange={
