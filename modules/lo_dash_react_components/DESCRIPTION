@@ -1,0 +1,13 @@
+Package: loDashReactComponents
+Title: React and Dash components for Learning Observer dashboards
+Version: 0.0.1
+Description: React and Dash components for Learning Observer dashboards
+Depends: R (>= 3.0.2)
+Imports: 
+Suggests: 
+License: GPL-3.0 + file LICENSE
+URL: https://github.com/ETS-Next-Gen/lo-dash-react-components
+BugReports: https://github.com/ETS-Next-Gen/lo-dash-react-components/issues
+Encoding: UTF-8
+LazyData: true
+KeepSource: true
