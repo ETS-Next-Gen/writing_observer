@@ -89,5 +89,6 @@ feature_flags: {}  # For enabling / disabling features in development. Useful
 
 server:
     port: 8888     # Optional. Pick a different port.
-
-
+modules:
+    writing_observer:
+        use_nlp: true

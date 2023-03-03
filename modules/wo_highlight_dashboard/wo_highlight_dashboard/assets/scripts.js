@@ -354,7 +354,7 @@ window.dash_clientside.clientside = {
         return true;
     },
 
-    send_options_to_server: function(types, metrics, highlights, indicators) {
+    send_options_to_server: function(types, metrics, highlights, indicators, sort_by) {
         // Send selected options to the server 
         // TODO work on protocol for communicating with the 
         //
@@ -363,11 +363,12 @@ window.dash_clientside.clientside = {
         // Input(settings.metric_checklist, 'value'),
         // Input(settings.highlight_checklist, 'value'),
         // Input(settings.indicator_checklist, 'value')
-        const data = metrics.concat(highlights).concat(indicators);
+        // Input(settings.sort_by_checklist, 'value')
+        const data = metrics.concat(highlights).concat(indicators).concat(sort_by);
         return [JSON.stringify(data)]
     },
 
-    show_nlp_running_alert: function(msg_count, checklist, metrics, highlight, indicator) {
+    show_nlp_running_alert: function(msg_count, checklist, metrics, highlight, indicator, sort_by) {
         // Show or hide the NLP running alert
         // On new selections, show alert.
         // When new data comes in, hide the alert
@@ -377,7 +378,8 @@ window.dash_clientside.clientside = {
         // Input(settings.checklist, 'value'),
         // Input(settings.metric_checklist, 'value'),
         // Input(settings.highlight_checklist, 'value'),
-        // Input(settings.indicator_checklist, 'value')
+        // Input(settings.indicator_checklist, 'value'),
+        // Input(settings.sort_by_checklist, 'value'),
         const trig = dash_clientside.callback_context.triggered[0];
         if (trig.prop_id === 'teacher-dashboard-msg-counter.data') {
             return false;

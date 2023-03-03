@@ -2,7 +2,7 @@
 Defines the settings panel used on the student overview dashbaord view
 '''
 # package imports
-from learning_observer.dash_wrapper import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
+from learning_observer.dash_wrapper import html, dcc, clientside_callback, ClientsideFunction, Output, Input
 import dash_bootstrap_components as dbc
 
 prefix = 'teacher-dashboard-settings'

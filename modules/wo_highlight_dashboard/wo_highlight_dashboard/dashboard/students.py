@@ -299,7 +299,8 @@ clientside_callback(
     Input(settings.checklist, 'value'),
     Input(settings.metric_checklist, 'value'),
     Input(settings.highlight_checklist, 'value'),
-    Input(settings.indicator_checklist, 'value')
+    Input(settings.indicator_checklist, 'value'),
+    Input(settings.sort_by_checklist, 'value')
 )
 
 show_hide_module = '''
@@ -367,7 +368,8 @@ clientside_callback(
     Input(settings.checklist, 'value'),
     Input(settings.metric_checklist, 'value'),
     Input(settings.highlight_checklist, 'value'),
-    Input(settings.indicator_checklist, 'value')
+    Input(settings.indicator_checklist, 'value'),
+    Input(settings.sort_by_checklist, 'value'),
 )
 
 clientside_callback(
@@ -427,7 +429,7 @@ def fill_in_settings(course, assignment, options):
     # TODO grab the options or type from assignment
     # if options (obj) set opt to assignment options
     # if type (string) set opt to settings_default.type
-    opt = settings_defaults.argumentative
+    opt = settings_defaults.general
 
     ret = dict(
         sort_by_options=so.create_checklist_options(opt['indicators']['options'], options, 'indicators'),  # same as indicators
