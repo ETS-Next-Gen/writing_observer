@@ -55,7 +55,6 @@ codestyle:
 install:
 	# Run:
 	#    mkvirtualenv learning_observer
-	#     Or use preexisting VENV produced by the workbench.
 	#    pip install -r requirements.txt
 	#    cd learning_observer
 	#    python setup.py develop
