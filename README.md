@@ -121,8 +121,6 @@ This allows us to actually select different sources for the static data.
 This can also point to the current copy if necessary and can be configured
 as part of the creds.yaml file to generate the repo or add it on startup.
 
-This is not ideal but it is a mechanism for embedding the alternatives.
-
 ## Contributing or learning more
 
 We're still a small team, and the easiest way is to shoot us a quick
