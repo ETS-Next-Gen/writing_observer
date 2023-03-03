@@ -175,24 +175,59 @@ async def last_document(event, internal_state):
     Small bit of data -- the last document accessed. This can be extracted from
     `document_list`, but we don't need that level of complexity for the 1.0
     dashboard.
-
     This code accesses the code below which provides some hackish support
     functions for the analysis.  Over time these may age off with a better
     model.
     '''
     document_id = get_doc_id(event)
 
-    print(">>> last_doc_call: ", event)
-
     document_id = get_doc_id_wrapper(event)
 
-    print(">>> last_doc_call docid: ", document_id)
-    
     if document_id is not None:
         state = {"document_id": document_id}
         return state, state
 
     return False, False
+
+
+# Basic class tests and extraction.
+# -------------------------------
+# A big part of this project is wrapping up google doc events.
+# In doing that we are reverse-engineering some of the elements
+# particularly the event types.  This code provides some basic
+# wrappers for event types to simplify extraction of key elements
+# and to simplify event recognition.
+#
+# Over time this will likely expand and will need to adapt to keep
+# up with any changes in the event structure.  For now it is just
+# a thin abstraction layer on a few of the pieces.
+
+def is_visibility_eventp(event):
+    """
+    Given an event return true if it is a visibility
+    event which indicates changing the doc shown or
+    active.
+
+    Here we look for an event with 'client'
+    containing the field 'event_type' of
+    'visibility'
+    """
+    Event_Type = event.get('client', {}).get('event', None)
+    return (Event_Type == 'visibility')
+
+
+def is_keystroke_eventp(event):
+    """
+    Given an event return true if it is a keystroke
+    event which indicates changing the doc shown or
+    active.
+
+    Here we look for an event with 'client'
+    containing the field 'event_type' of
+    'keystroke'
+    """
+    Event_Type = event.get('client', {}).get('event', None)
+    return (Event_Type == 'keystroke')
 
 
 # Simple hack to match URLs.  This should probably be moved as well
