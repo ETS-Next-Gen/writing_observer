@@ -5,6 +5,7 @@ Background script. This works across all of Google Chrome.
 // Do not save debug requests. We flip this frequently. Perhaps this
 // should be a cookie or browser.storage?
 var RAW_DEBUG = false;
+const SERVER_URL = "wss://observer.csc.ncsu.edu/wsapi/in/";
 
 
 /*
@@ -191,7 +192,7 @@ function ajax_logger(ajax_server) {
       To do: Handle failures / dropped connections
      */
     var server = ajax_server;
-    return function (data) {
+    return function(data) {
         /*
           Helper function to send a logging AJAX request to the server.
           This function takes a JSON dictionary of data.
@@ -218,7 +219,7 @@ let loggers_enabled = [
     //ajax_logger("https://writing.learning-observer.org/webapi/")//,
 
     // Adapted to NCSU Setup.
-    websocket_logger("wss://observer.csc.ncsu.edu/wsapi/in/")
+    websocket_logger(SERVER_URL)
     //websocket_logger("wss://writing.learning-observer.org/wsapi/in/")
 ];
 
@@ -257,7 +258,7 @@ function send_chrome_identity() {
 
        Note this function is untested, following a refactor.
     */
-  chrome.identity.getProfileInfo(function (userInfo) {
+  chrome.identity.getProfileInfo(function(userInfo) {
     log_event("chrome_identity_load", {
       email: userInfo.email,
       id: userInfo.id,
