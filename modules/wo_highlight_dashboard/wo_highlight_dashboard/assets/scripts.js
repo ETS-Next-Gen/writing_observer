@@ -121,7 +121,6 @@ window.dash_clientside.clientside = {
         if (!msg) {
             return [prev_metrics, prev_text, prev_highlights, prev_indicators, -1, 0];
         }
-	console.log(JSON.parse(msg.data));
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['latest_writing_data'];
         // console.log(data);
