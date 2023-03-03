@@ -1,12 +1,15 @@
 import logo from './logo.svg';
 import './App.css';
+
+import './css/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { LOConnection, LOMetrics, LOIndicatorBars } from './lib'
+import { LOConnection, LOMetrics, LOIndicatorBars, StudentSelectHeader } from './lib'
 
 function App() {
   return (
     <div className="App">
+      < StudentSelectHeader students={['Bart', 'Lisa', 'Milhouse']} selected='Bart'/>
       < LOConnection />
       < LOMetrics
         data={{
