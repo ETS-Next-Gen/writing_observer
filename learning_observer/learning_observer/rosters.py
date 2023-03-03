@@ -85,9 +85,6 @@ COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
 
-
-
-
 def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     '''
     This cleans up / standardizes Google AJAX data. In particular:
@@ -97,7 +94,6 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     - We often want some default if that field is missing (`default`)
     - We often want the response sensibly sorted (`sort_key`)
     '''
-
     # Convert errors into appropriate codes for clients
     # Typically, resp_json['error'] == 'UNAUTHENTICATED'
     if 'error' in resp_json:
@@ -127,14 +123,13 @@ def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
     # Sort the list
     if sort_key is not None:
         resp_json.sort(key=sort_key)
-  
-        
+
     return resp_json
 
 
 def adjust_external_gc_ids(resp_json):
     '''
-    What we are concerned with here is handling cases where the id supplied by the 
+    What we are concerned with here is handling cases where the id supplied by the
     google roster is a numerical value but we need to have gc- preprended to it
     for data fetching.  This is a relatively minor task but necessary for interfacing
     with the external data sources but makes it easier to get the stored values.
@@ -142,7 +137,7 @@ def adjust_external_gc_ids(resp_json):
     This will be run qith 'students' requests meaning that the attached will be
     a possibly-empty? list of student dicts.
 
-    This exists for the sole purpose of adjusting the internal ids and includes a 
+    This exists for the sole purpose of adjusting the internal ids and includes a
     cheap hack below that maps the internal user_id to match the google id.  Going
     forward that will need to be changed to something more robust. See the comments
     at the top of this module.

@@ -181,7 +181,6 @@ def fetch_student_state(
         '''
         students = []
         for student in roster:
-
             student_state = {
                 # We're copying Google's roster format here.
                 #
@@ -211,7 +210,6 @@ def fetch_student_state(
                 student_id = learning_observer.auth.google_id_to_user_id(google_id)
             else:
                 student_id = google_id
-
             # TODO: Evaluate whether this is a bottleneck.
             #
             # mget is faster than ~50 gets. But some online benchmarks show both taking
@@ -317,7 +315,6 @@ async def websocket_dashboard_view(request):
 
     while True:
         sd = await student_state_fetcher()
-
         data = {
             "student_data": sd   # Per-student list
         }

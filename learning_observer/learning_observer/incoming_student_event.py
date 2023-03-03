@@ -352,6 +352,8 @@ async def incoming_websocket_handler(request):
         source=json_msg['source']
     )
 
+    print(event_metadata['auth'])
+
     # We're now ready to make the pipeline.
     hostname = socket.gethostname()
     decoder_and_logger = event_decoder_and_logger(
