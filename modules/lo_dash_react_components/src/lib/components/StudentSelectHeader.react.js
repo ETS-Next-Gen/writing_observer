@@ -8,7 +8,8 @@ export default class StudentSelectHeader extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            showDropdown: false
+            showDropdown: false,
+            selected: props.selected
         }
     }
 
@@ -17,21 +18,22 @@ export default class StudentSelectHeader extends Component {
     };
 
     handleSelect(name) {
-        this.props.setStudentName(name);
-        this.setState({ showDropdown: false })
+        this.props.setProps({selected: name});
+        this.setState({ showDropdown: false, selected: name })
     };
 
     render() {
         const {id, class_name, students, selected} = this.props;
         const {showDropdown} = this.state;
-        console.log(students)
+        console.log(students, selected);
+        console.log(this.state.selected);
     
         return (
             <header id='student-select-header' className="nav-header">
                 <div className="button-left">
                     <button className="button">&lt;</button>
                 </div>
-                <div className="header-student" onClick={() => this.handleClick()}>{selected}</div>
+                <div className="header-student" onClick={() => this.handleClick()}>{this.state.selected}</div>
                 {showDropdown && (
                     <ul className="dropdown">
                         {students.map((name) => (
@@ -39,7 +41,7 @@ export default class StudentSelectHeader extends Component {
                                 key={name}
                                 onClick={() => this.handleSelect(name)}
                                 className={
-                                name === selected
+                                name === this.state.selected
                                     ? 'dropdown-item dropdown-item-selected'
                                     : 'dropdown-item'
                                 }
@@ -71,7 +73,7 @@ StudentSelectHeader.propTypes = {
     /**
      * Classes for the outer most div.
      */
-    students: PropTypes.string,
+    students: PropTypes.array,
 
     /**
      * Classes for the outer most div.
@@ -81,5 +83,5 @@ StudentSelectHeader.propTypes = {
     /**
      * Classes for the outer most div.
      */
-    setStudentName: PropTypes.func
+    setProps: PropTypes.func
 }
