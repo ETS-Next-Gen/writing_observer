@@ -6,7 +6,6 @@ aiohttp_session
 aiohttp_wsgi
 asyncio_redis
 asyncpg
-bcrypt
 cryptography
 cython
 dash
