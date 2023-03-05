@@ -1,16 +1,16 @@
 import inspect
-import json
 import os.path
 
 import js2py
 
 import dash.development
-from dash import Dash, callback, html, Input, Output
+from dash import Dash, html
 
 import lo_dash_react_components
 
 debug_test_data = {
 }
+
 
 def test_data(component):
     """
@@ -33,15 +33,17 @@ def test_data(component):
     if component in debug_test_data:
         return debug_test_data[component]
     path = f"src/lib/components/{component}.testdata.js"
-    
+
     if os.path.exists(path):
-        text = open(path).read()
+        with open(path) as f:
+            text = f.read()
         context = js2py.EvalJs({})
         # js2py is ES5.1, which doesn't support export
         context.execute(text.replace("export default ", ""))
         component_data = context.testData
         return component_data.to_dict()
     return {}
+
 
 def get_subclasses(module, base_class):
     """Returns a list of all items in a module that are subclasses of `base_class`."""
@@ -55,13 +57,11 @@ ul = html.Ul(children=link_items)
 app = Dash(__name__, use_pages=True, pages_folder="")
 
 for component in component_list:
-    path = f"/components/{component}"
+    urlpath = f"/components/{component}"
     component_class = getattr(lo_dash_react_components, component)
     parameters = test_data(component)
-    print(component_class, parameters, type(parameters))
     layout = component_class(**parameters)
-    print(path, layout)
-    dash.register_page(component,  path=path, layout=layout)
+    dash.register_page(component, path=urlpath, layout=layout)
 
 app.layout = html.Div([
     dash.page_container,
