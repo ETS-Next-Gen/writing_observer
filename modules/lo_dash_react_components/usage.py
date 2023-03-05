@@ -1,33 +1,47 @@
 import inspect
+import json
+import os.path
+
+import js2py
 
 import dash.development
 from dash import Dash, callback, html, Input, Output
 
 import lo_dash_react_components
 
-test_data = {
-    "LOTextHighlight": {
-        "id": "text-highlight-test",
-        "text": "This is a test of the text highlight component.",
-        "highlight_breakpoints": {
-            "testHighlight": {
-                "id": "testHighlight",
-                "value": [
-                    [
-                        5,
-                        7
-                    ],
-                    [
-                        19,
-                        28
-                    ]
-                ],
-                "label": "Test Highlight"
-            }
-        },
-        "class_name": "highlight-container"
-    }
+debug_test_data = {
 }
+
+def test_data(component):
+    """
+    This function is used to retrieve test data for a specific
+    component.
+
+    It first checks if the component exists in the test data
+    dictionary. This is mostly for use during development. If it does,
+    it returns the corresponding test data. If not, it checks if a
+    test data file exists for the component. If it does, it reads the
+    file and evaluates it using js2py, and returns the 'testData'
+    object defined in the file. If neither the component or the test
+    data file exists, it returns an empty dictionary..
+
+    :param component: The name of the component to get test data for.
+    :type component: str
+    :return: The test data for the specified component, or None if it doesn't exist.
+    :rtype: dict or None
+    """
+    if component in debug_test_data:
+        return debug_test_data[component]
+    path = f"src/lib/components/{component}.testdata.js"
+    
+    if os.path.exists(path):
+        text = open(path).read()
+        context = js2py.EvalJs({})
+        # js2py is ES5.1, which doesn't support export
+        context.execute(text.replace("export default ", ""))
+        component_data = context.testData
+        return component_data.to_dict()
+    return {}
 
 def get_subclasses(module, base_class):
     """Returns a list of all items in a module that are subclasses of `base_class`."""
@@ -42,7 +56,10 @@ app = Dash(__name__, use_pages=True, pages_folder="")
 
 for component in component_list:
     path = f"/components/{component}"
-    layout = getattr(lo_dash_react_components, component)(**test_data.get(component, {}))
+    component_class = getattr(lo_dash_react_components, component)
+    parameters = test_data(component)
+    print(component_class, parameters, type(parameters))
+    layout = component_class(**parameters)
     print(path, layout)
     dash.register_page(component,  path=path, layout=layout)
 
