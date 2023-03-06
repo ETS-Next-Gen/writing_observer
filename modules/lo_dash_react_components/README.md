@@ -1,6 +1,8 @@
 # Learning Observer Dash / React Components
 
-Learning Observer Dash / React Components is a Dash component library.
+Learning Observer Dash / React Components is a Dash component library of components we use in various dashboards for the Learning Observer and modules.
+
+At some point, some of these should meander over to those specific modules, while others should be kept system-wide.
 
 ## Install
 
@@ -45,7 +47,8 @@ Read the `package.json` file to see other scripts available. There's a lot more,
 1. To develop a new component, simply toss in a `react.js` file in `src/lib/components`.
 2. Remember to use class (not functional) syntax for compatibility with `dash`
 3. If the component needs data, toss in a `.testdata.js` file in `src/lib/components`. Note that this file should not use modern JavaScript (we're limited to ES5.1, except for `export default`).
-4. Add SCSS. As of this writing, we're still figuring out how to handle that. However, each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there).
+4. Add SCSS. As of this writing, we're still figuring out how to handle that. However:
+5. Each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there, or so we can introspect what's on a page).
 
 ## Test
 
