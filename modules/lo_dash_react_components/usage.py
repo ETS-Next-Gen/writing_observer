@@ -5,6 +5,7 @@ import js2py
 
 import dash.development
 from dash import Dash, html
+import dash_bootstrap_components as dbc
 
 import lo_dash_react_components
 
@@ -54,7 +55,7 @@ component_list = get_subclasses(lo_dash_react_components, dash.development.base_
 link_items = [html.Li(html.A(href=f"/components/{component}", children=component)) for component in component_list]
 ul = html.Ul(children=link_items)
 
-app = Dash(__name__, use_pages=True, pages_folder="")
+app = Dash(__name__, use_pages=True, pages_folder="", external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 for component in component_list:
     urlpath = f"/components/{component}"
