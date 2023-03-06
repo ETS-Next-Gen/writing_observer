@@ -1,4 +1,6 @@
 import React, { Component, useState } from "react";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
 import logo from "./logo.svg";
 import "./App.css";
 
@@ -11,6 +13,45 @@ import {
   LOIndicatorBars,
   StudentSelectHeader,
 } from "./lib";
+
+const components = {};
+
+const importAll = (r) => {
+  r.keys().forEach((key) => {
+    const componentName = key.replace('./', '').replace('.react.js', '');
+    components[componentName] = {
+      component: r(key).default,
+      testdata: testData(componentName)
+    };
+  });
+};
+
+function testData(component_name) {
+  let testData = {};
+  try {
+    testData = require(`./lib/components/${component_name}.testdata.js`).default;
+    console.log("Loaded test data for " + component_name);
+  } catch (error) {
+    console.log("No test data for " + component_name);
+  }
+  return testData;
+}
+
+importAll(require.context('./lib/components', true, /\.react.js$/));
+
+function ComponentList(props) {
+  return (
+    <div>
+      <hr/>
+      <h1>Component list</h1>
+      <ul>
+        {Object.entries(components).map(([name, component]) => (
+          <li key={"li_"+name}> <a href={"/components/"+name}  key={"a_"+name}>{name}</a> </li>
+        ))}
+      </ul>
+   </div>
+  );
+}
 
 class App extends Component {
   constructor() {
@@ -28,12 +69,18 @@ class App extends Component {
   render() {
     return (
       <div>
-        <StudentSelectHeader
-          students={["Bart", "Lisa", "Milhouse"]}
-          selected="Bart"
-          setProps={this.setProps}
-          {...this.state}
-        />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" key="home" element={<ComponentList/>}/>
+            {Object.entries(components).map(([name, component]) => (
+              <Route
+                key={name}
+                path={"/components/"+name}
+                element={(<div>{React.createElement(component.component, component.testdata)}<ComponentList/></div>)}
+              />
+            ))}
+          </Routes>
+        </BrowserRouter>
       </div>
     );
   }

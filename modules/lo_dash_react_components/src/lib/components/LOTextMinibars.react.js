@@ -9,7 +9,6 @@
  */
 
 import * as React from 'react';
-import './style.css';
 import PropTypes from "prop-types";
 
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';

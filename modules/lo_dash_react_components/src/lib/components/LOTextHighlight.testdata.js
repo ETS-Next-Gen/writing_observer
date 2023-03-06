@@ -1,4 +1,4 @@
-export default const testData = {
+let testData = {
   id: "text-highlight-test",
   text: "This is a test of the text highlight component.",
   highlight_breakpoints: {
@@ -19,3 +19,5 @@ export default const testData = {
   },
   class_name: "highlight-container"
 };
+
+export default testData;

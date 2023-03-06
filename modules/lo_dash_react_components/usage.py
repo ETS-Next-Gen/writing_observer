@@ -65,6 +65,7 @@ for component in component_list:
 
 app.layout = html.Div([
     dash.page_container,
+    html.Hr(),
     html.Div(id='output'),
     html.H1("Components"),
     ul
