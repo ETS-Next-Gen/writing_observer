@@ -13,8 +13,6 @@ import PropTypes from "prop-types";
 
 import { BarChart, Bar, Cell, Tooltip, XAxis, YAxis } from 'recharts';
 
-const sample_text = "Why Dogs are the Best Pets? \n\nWhen it comes to having a pet, there is no doubt that dogs are the best companion. There are a lot of reasons to support that statement. Dogs are loyal, friendly, and protective towards their owner. They are also great for physical activities and can be trained to perform various tasks. These are just a few reasons why dogs are the best pets for anyone.\n\nFirstly, dogs are known to be the most loyal pets. They are always by your side, wagging their tails, and giving you cuddles and kisses. No matter how bad your day is going, a dog’s unwavering loyalty makes the world seem that little bit brighter. This level of devotion is hard to find in any other animal. \n\nMoreover, dogs are very friendly and can bring so much joy to anyone’s life. They love meeting new people and make great companions even to strangers. They have an infectious and playful energy that always lifts your mood. That’s why they are also a great choice for families with children. They can help kids learn about responsibility, compassion, and friendship.\n\nAside from being great company, dogs also have a unique way of protecting their owners. They have a heightened sense of recognition when it comes to sensing danger or any suspicious activity. When they sense something amiss, they bark to alarm and protect their owner. A dog’s protective nature is an excellent asset to have, especially for elderly people living alone.\n\nLastly, dogs are very active and can keep their owners physically active too. Whether it's going for a walk or jog, playing fetch or joining their owner on hikes, dogs will make sure that their owner never gets bored. They can also be trained to perform various tasks like hunting, herding, police work, and search and rescue. These abilities show the intelligence and versatility of dogs as animals.\n\nIn conclusion, dogs are the best kind of pets for several reasons. They are loyal, friendly, and protective towards their owners that provide companionship, joy, and safety. They also have a unique ability to keep you active and are adaptable to perform various tasks. These positive qualities make dogs an excellent choice for anyone who wants a pet.\n"
-
 const DEFAULT_HEIGHT = 60;
 const DEFAULT_WIDTH = 200;
 
@@ -76,22 +74,13 @@ function annotateWithWordCount(list) {
  * A component that renders a miniature bar graph representation of text, where each bar represents a sentence, and each
  * set of bars, a paragraph
  */
-class LOTextMinibars extends React.Component {
+export default class LOTextMinibars extends React.Component {
   /**
    * Prepares the chart data from the given text and yscale value
    * @param {string} text - The input text
    * @param {number} [ymax] - The scaling factor for the y-axis. This is used if there are multiple graphs on the same page (optional)
    * @returns {object[]} The chart data, an array of objects with properties: name, value, group, fill
    */
-   static propTypes = {
-     text: PropTypes.string.isRequired,
-     className: PropTypes.string,
-     height: PropTypes.number,
-     width: PropTypes.number,
-     xmax: PropTypes.number,
-     ymax: PropTypes.number,
-  };
-
   prepareChartData = (text) => {
     const annotatedTextLength = annotateWithWordCount(segmentParagraphsIntoSentences(segmentTextIntoParagraphs(text)));
     const angleGoldenRatio = 137.5;
@@ -128,10 +117,31 @@ class LOTextMinibars extends React.Component {
   }
 }
 
-export default function App() {
-  return (
-    <div>
-      <LOTextMinibars text={sample_text} height={DEFAULT_HEIGHT} width={DEFAULT_WIDTH} />
-    </div>
-  );
-}
+LOTextMinibars.propTypes = {
+  /**
+   * The text from which the chart is generated
+   */
+  text: PropTypes.string.isRequired,
+  /**
+   * Optional: A class to attach to the main div of the chart
+   */
+  className: PropTypes.string,
+  /**
+   * Optional: The height of the chart
+   */
+  height: PropTypes.number,
+  /**
+   * Optional: The height of the chart
+   */
+  width: PropTypes.number,
+  /**
+   * Optional: The maximum value of x-axis on the chart (e.g. number
+   * of sentences + paragraph breaks). Leave blank to autorange
+   */
+  xmax: PropTypes.number,
+  /**
+   * Optional: The maximum value of y-axis on the chart (e.g. maximum
+   * sentence length). Leave blank to autorange
+   */
+  ymax: PropTypes.number,
+};

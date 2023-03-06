@@ -49,7 +49,8 @@ Read the `package.json` file to see other scripts available. There's a lot more,
 3. If the component needs data, toss in a `.testdata.js` file in `src/lib/components`. Note that this file should not use modern JavaScript (we're limited to ES5.1, except for `export default`).
 4. Add SCSS. As of this writing, we're still figuring out how to handle that. However:
 5. Each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there, or so we can introspect what's on a page).
-6. Remember that by the time you move from pure React to `dash`, you should follow `dash` conventions. You'll need to support `setProps`, to be a class-based (not functional) component, and the `dash` system needs to be told about the new component [TODO: We need to document this step].
+6. Remember that by the time you move from pure React to `dash`, you should follow `dash` conventions (e.g. you'll want to support `setProps`, be a class-based component, etc.)
+7. For `dash` to be aware of the component, it should be added to `src/lib/index.js`
 
 ## Test
 
