@@ -30,7 +30,7 @@ export default class LOMetrics extends Component {
         return (
             <div
                 key='metric-badges'
-                className={class_name || ''}
+                className={`${class_name || ''} LOMetrics`}
                 id={id}
             >
                 {metric_badges}

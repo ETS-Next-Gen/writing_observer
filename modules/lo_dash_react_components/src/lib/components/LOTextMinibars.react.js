@@ -11,9 +11,12 @@
 import * as React from 'react';
 import PropTypes from "prop-types";
 
-import { BarChart, Bar, Cell, Tooltip } from 'recharts';
+import { BarChart, Bar, Cell, Tooltip, XAxis, YAxis } from 'recharts';
 
 const sample_text = "Why Dogs are the Best Pets? \n\nWhen it comes to having a pet, there is no doubt that dogs are the best companion. There are a lot of reasons to support that statement. Dogs are loyal, friendly, and protective towards their owner. They are also great for physical activities and can be trained to perform various tasks. These are just a few reasons why dogs are the best pets for anyone.\n\nFirstly, dogs are known to be the most loyal pets. They are always by your side, wagging their tails, and giving you cuddles and kisses. No matter how bad your day is going, a dog’s unwavering loyalty makes the world seem that little bit brighter. This level of devotion is hard to find in any other animal. \n\nMoreover, dogs are very friendly and can bring so much joy to anyone’s life. They love meeting new people and make great companions even to strangers. They have an infectious and playful energy that always lifts your mood. That’s why they are also a great choice for families with children. They can help kids learn about responsibility, compassion, and friendship.\n\nAside from being great company, dogs also have a unique way of protecting their owners. They have a heightened sense of recognition when it comes to sensing danger or any suspicious activity. When they sense something amiss, they bark to alarm and protect their owner. A dog’s protective nature is an excellent asset to have, especially for elderly people living alone.\n\nLastly, dogs are very active and can keep their owners physically active too. Whether it's going for a walk or jog, playing fetch or joining their owner on hikes, dogs will make sure that their owner never gets bored. They can also be trained to perform various tasks like hunting, herding, police work, and search and rescue. These abilities show the intelligence and versatility of dogs as animals.\n\nIn conclusion, dogs are the best kind of pets for several reasons. They are loyal, friendly, and protective towards their owners that provide companionship, joy, and safety. They also have a unique ability to keep you active and are adaptable to perform various tasks. These positive qualities make dogs an excellent choice for anyone who wants a pet.\n"
+
+const DEFAULT_HEIGHT = 60;
+const DEFAULT_WIDTH = 200;
 
 // Split the text based on newlines or multiple newlines
 function segmentTextIntoParagraphs(text) {
@@ -35,11 +38,6 @@ function segmentParagraphsIntoSentences(paragraphs) {
 // Count the number of words in a sentence
 function countWords(text) {
   return text.split(/\s+/).length;
-}
-
-// Apply the word count function to each sentence in a list of paragraphs, each consisting of a list of sentences
-function applyWordCount(paragraph_list) {
-  return paragraph_list.map((sentences) => sentences.map((sentence) => countWords(sentence)))
 }
 
 /**
@@ -82,21 +80,24 @@ class TextMiniGraph extends React.Component {
   /**
    * Prepares the chart data from the given text and yscale value
    * @param {string} text - The input text
-   * @param {number} [yscale] - The scaling factor for the y-axis. This is used if there are multiple graphs on the same page (optional)
+   * @param {number} [ymax] - The scaling factor for the y-axis. This is used if there are multiple graphs on the same page (optional)
    * @returns {object[]} The chart data, an array of objects with properties: name, value, group, fill
    */
    static propTypes = {
-    text: PropTypes.string.isRequired,
-    height: PropTypes.number,
-    width: PropTypes.number,
-    yscale: PropTypes.number,
+     text: PropTypes.string.isRequired,
+     class_name: PropTypes.string,
+     height: PropTypes.number,
+     width: PropTypes.number,
+     xmax: PropTypes.number,
+     ymax: PropTypes.number,
   };
 
   prepareChartData = (text) => {
     const annotatedTextLength = annotateWithWordCount(segmentParagraphsIntoSentences(segmentTextIntoParagraphs(text)));
     const angleGoldenRatio = 137.5;
-    const ratioColor = index => `hsl(${(index * angleGoldenRatio) % 360}, 75%, 75%)`;
-    let chartData = annotatedTextLength.flatMap((array, index) => [
+    const DegreesInACircle = 360
+    const ratioColor = index => `hsl(${(index * angleGoldenRatio) % DegreesInACircle}, 75%, 75%)`;
+    const chartData = annotatedTextLength.flatMap((array, index) => [
       ...array.map(value => ({ name:value.text, value: value.count, group: index, fill: ratioColor(index) })),
       { value: 0, group: -1 }
     ]).slice(0, -1);
@@ -104,10 +105,10 @@ class TextMiniGraph extends React.Component {
   }
 
   render() {
-    const { text, height = 60, width = 200, yscale = null } = this.props;
+    const { text, height = DEFAULT_HEIGHT, width = DEFAULT_WIDTH, ymax, xmax, class_name } = this.props;
     const chartData = this.prepareChartData(text);
     return (
-      <BarChart height={height} width={width} data={chartData}>
+      <BarChart height={height} width={width} data={chartData} className={`${class_name || ''} TextMiniGraph`}>
         <Tooltip content={props => props.label } />
         <Bar dataKey="value">
           {
@@ -116,6 +117,12 @@ class TextMiniGraph extends React.Component {
             ))
           }
         </Bar>
+        {
+          xmax && <XAxis domain={[0, xmax]} />
+        }
+        {
+          ymax && <YAxis domain={[0, ymax]} />
+        }
       </BarChart>
     );
   }
@@ -124,7 +131,7 @@ class TextMiniGraph extends React.Component {
 export default function App() {
   return (
     <div>
-      <TextMiniGraph text={sample_text} height={60} width={200} />
+      <TextMiniGraph text={sample_text} height={DEFAULT_HEIGHT} width={DEFAULT_WIDTH} />
     </div>
   );
 }

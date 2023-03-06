@@ -76,7 +76,7 @@ export default class LOTextHighlight extends Component {
         return (
             <div
                 key='text-highlight'
-                className={class_name || ''}
+                className={`${class_name || ''} LOTextHighlight`}
                 id={id}
             >
                 {child}
