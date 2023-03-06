@@ -85,7 +85,7 @@ class TextMiniGraph extends React.Component {
    */
    static propTypes = {
      text: PropTypes.string.isRequired,
-     class_name: PropTypes.string,
+     className: PropTypes.string,
      height: PropTypes.number,
      width: PropTypes.number,
      xmax: PropTypes.number,
@@ -105,10 +105,10 @@ class TextMiniGraph extends React.Component {
   }
 
   render() {
-    const { text, height = DEFAULT_HEIGHT, width = DEFAULT_WIDTH, ymax, xmax, class_name } = this.props;
+    const { text, height = DEFAULT_HEIGHT, width = DEFAULT_WIDTH, ymax, xmax, className } = this.props;
     const chartData = this.prepareChartData(text);
     return (
-      <BarChart height={height} width={width} data={chartData} className={`${class_name || ''} TextMiniGraph`}>
+      <BarChart height={height} width={width} data={chartData} className={`${className || ''} TextMiniGraph`}>
         <Tooltip content={props => props.label } />
         <Bar dataKey="value">
           {

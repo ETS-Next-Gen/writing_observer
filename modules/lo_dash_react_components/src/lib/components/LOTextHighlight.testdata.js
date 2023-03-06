@@ -13,7 +13,7 @@ const testData = {
       label: "Test Highlight",
     },
   },
-  class_name: "highlight-container",
+  className: "highlight-container",
 };
 
 export default testData;

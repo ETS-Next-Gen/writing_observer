@@ -10,7 +10,7 @@ const testData = {
         }
     },
     shown: ['sentences'],
-    class_name: "metric-container"
+    className: "metric-container"
   };
   
   export default testData;

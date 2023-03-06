@@ -11,7 +11,7 @@ import Badge from 'react-bootstrap/Badge';
  */
 export default class LOMetrics extends Component {
     render() {
-        const {id, data, shown, class_name} = this.props;
+        const {id, data, shown, className} = this.props;
 
         const metric_badges = Object.entries(data).map(([key, metric]) => {
             return (
@@ -30,7 +30,7 @@ export default class LOMetrics extends Component {
         return (
             <div
                 key='metric-badges'
-                className={`${class_name || ''} LOMetrics`}
+                className={`${className || ''} LOMetrics`}
                 id={id}
             >
                 {metric_badges}
@@ -53,7 +53,7 @@ LOMetrics.propTypes = {
     /**
      * Classes for the outer most div.
      */
-    class_name: PropTypes.string,
+    className: PropTypes.string,
 
     /**
      * Data for the metrics should be in form:

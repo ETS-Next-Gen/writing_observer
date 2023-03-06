@@ -10,7 +10,7 @@ const testData = {
     },
   },
   shown: ["sentences"],
-  class_name: "indicator-container",
+  className: "indicator-container",
 };
 
 export default testData;

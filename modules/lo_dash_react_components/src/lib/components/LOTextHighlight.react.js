@@ -10,7 +10,7 @@ import PropTypes from 'prop-types';
 export default class LOTextHighlight extends Component {
 
     render() {
-        const {id, text, highlight_breakpoints, class_name} = this.props;
+        const {id, text, highlight_breakpoints, className} = this.props;
 
 
         // determine the text highlights we want and put them in ascending order
@@ -76,7 +76,7 @@ export default class LOTextHighlight extends Component {
         return (
             <div
                 key='text-highlight'
-                className={`${class_name || ''} LOTextHighlight`}
+                className={`${className || ''} LOTextHighlight`}
                 id={id}
             >
                 {child}
@@ -99,7 +99,7 @@ LOTextHighlight.propTypes = {
     /**
      * Classes for the outer most div.
      */
-    class_name: PropTypes.string,
+    className: PropTypes.string,
 
     /**
      * The text to be highlighted.
