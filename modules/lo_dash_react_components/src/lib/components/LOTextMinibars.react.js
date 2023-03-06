@@ -76,7 +76,7 @@ function annotateWithWordCount(list) {
  * A component that renders a miniature bar graph representation of text, where each bar represents a sentence, and each
  * set of bars, a paragraph
  */
-class TextMiniGraph extends React.Component {
+class LOTextMinibars extends React.Component {
   /**
    * Prepares the chart data from the given text and yscale value
    * @param {string} text - The input text
@@ -108,7 +108,7 @@ class TextMiniGraph extends React.Component {
     const { text, height = DEFAULT_HEIGHT, width = DEFAULT_WIDTH, ymax, xmax, className } = this.props;
     const chartData = this.prepareChartData(text);
     return (
-      <BarChart height={height} width={width} data={chartData} className={`${className || ''} TextMiniGraph`}>
+      <BarChart height={height} width={width} data={chartData} className={`${className || ''} LOTextMinibars`}>
         <Tooltip content={props => props.label } />
         <Bar dataKey="value">
           {
@@ -131,7 +131,7 @@ class TextMiniGraph extends React.Component {
 export default function App() {
   return (
     <div>
-      <TextMiniGraph text={sample_text} height={DEFAULT_HEIGHT} width={DEFAULT_WIDTH} />
+      <LOTextMinibars text={sample_text} height={DEFAULT_HEIGHT} width={DEFAULT_WIDTH} />
     </div>
   );
 }
