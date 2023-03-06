@@ -27,7 +27,7 @@
     "build:activated": "npm run build:js && npm run build:backends-activated",
     "build-css": "node-sass src/styles.scss -o src/css",
     "watch-css": "node-sass src/styles.scss -o src/css --watch",
-    "start": "npm-run-all --parallel watch-css react-start"
+    "start-all": "npm-run-all --parallel watch-css react-start webpack-start dash-start"
   },
   "author": "Piotr Mitros <pmitros@ets.org>",
   "license": "AGPL-3.0",
