@@ -49,6 +49,7 @@ Read the `package.json` file to see other scripts available. There's a lot more,
 3. If the component needs data, toss in a `.testdata.js` file in `src/lib/components`. Note that this file should not use modern JavaScript (we're limited to ES5.1, except for `export default`).
 4. Add SCSS. As of this writing, we're still figuring out how to handle that. However:
 5. Each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there, or so we can introspect what's on a page).
+6. Remember that by the time you move from pure React to `dash`, you should follow `dash` conventions. You'll need to support `setProps`, to be a class-based (not functional) component, and the `dash` system needs to be told about the new component [TODO: We need to document this step].
 
 ## Test
 
@@ -70,7 +71,7 @@ Our plan, over time, is to diverge from `dash`. As a rule, with tests, we don't 
 
 ... and that's it!
 
-### Create a production build and publish:
+## Create a production build
 
 1. Build your code:
     ```
@@ -90,7 +91,13 @@ Our plan, over time, is to diverge from `dash`. As a rule, with tests, we don't 
     $ pip install lo_dash_react_components-0.0.1.tar.gz
     ```
 
-### Issues
+## Share
+
+We encourage you to share your components back with us. That way:
+- We're more likely to understand your use-case
+- We're less likely to break them as we evolve the system.
+
+## Issues
 
 If ESLint errors block your app, edit `node_modules/react-dev-utils/webpackHotDevClient.js` to disable `handleWarnings`. See:
 
