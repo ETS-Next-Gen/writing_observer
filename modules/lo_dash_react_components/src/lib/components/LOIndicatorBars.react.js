@@ -12,9 +12,11 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 export default class LOIndicatorBars extends Component {
 
     render() {
-        const {id, setProps, data, shown, class_name} = this.props;
+        const {id, data, shown, class_name} = this.props;
 
+        // Map colors to ranges: 0-33 (danger), 34-67 (warning, and 68-100 (success)
         const indicator_colors = ['danger', 'warning', 'success'];
+        const INDICATOR_STEP = 34;
 
         const indicator_bars = Object.entries(data).map(([key, indicator]) => {
             return (
@@ -32,7 +34,7 @@ export default class LOIndicatorBars extends Component {
                             key='indicator-bar'
                             now={indicator.value}
                             title={`${indicator.value}% ${indicator.help}`}
-                            variant={indicator_colors[Math.floor((indicator.value) / 34)]}
+                            variant={indicator_colors[Math.floor((indicator.value) / INDICATOR_STEP)]}
                         />
                     </div>
                 </div>

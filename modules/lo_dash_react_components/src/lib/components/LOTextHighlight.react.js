@@ -10,18 +10,18 @@ import PropTypes from 'prop-types';
 export default class LOTextHighlight extends Component {
 
     render() {
-        const {id, setProps, text, highlight_breakpoints, class_name} = this.props;
+        const {id, text, highlight_breakpoints, class_name} = this.props;
 
 
         // determine the text highlights we want and put them in ascending order
         const highlights = [];
         const breakpoints_set = new Set();
         breakpoints_set.add(0);
-        let i = 0;
+
         // Iterate over all highlight offsets and add each possible start/end
         // index to a set `breakpoints_set`
         // Also add the start, end, and id to highlights
-        for (let [key, value] of Object.entries(highlight_breakpoints)) {
+        for (const [key, value] of Object.entries(highlight_breakpoints)) {
             for (const values of value.value) {
                 breakpoints_set.add(values[0]);
                 breakpoints_set.add(values[0]+values[1]);
@@ -49,8 +49,9 @@ export default class LOTextHighlight extends Component {
                 end = (i === breakpoints.length-1 ? text.length : breakpoints[i+1]);
                 text_slice = text.slice(start, end);
                 classes = highlights.reduce((acc, [s, e, c]) => {
-                    if (s <= start && e >= end)
+                    if (s <= start && e >= end) {
                         acc.push(c);
+                    }
                     return acc;
                 }, [])
                 // spans will auto clip extra whitespace including new lines

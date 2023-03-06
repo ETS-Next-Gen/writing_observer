@@ -5,21 +5,21 @@ import PropTypes from 'prop-types';
  * A simple interface to
  */
 export default class LOConnection extends Component {
-
     encode_query_string(obj) {
-        /*
-           Create a query string from a dictionary
-    
-           {a:'b', c:'d'} ==> "a=b&c=d"
-    
-           dictionary -> string
-        */
-        var str = [];
-        for (var p in obj)
-        if (obj.hasOwnProperty(p)) {
-            str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
-        }
-        return str.join("&");
+        // Creates a query string from an object
+        // Example: {a:'b', c:'d'} ==> "a=b&c=d"
+
+         const str = [];
+
+         for (const prop in obj) {
+             if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+                 str.push(
+                     encodeURIComponent(prop) + "=" + encodeURIComponent(obj[prop])
+                 );
+             }
+         }
+
+      return str.join("&");
     }
 
     _init_client() {

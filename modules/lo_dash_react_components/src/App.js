@@ -1,4 +1,4 @@
-import React, { Component, useState } from "react";
+import React, { Component } from "react";
 import { BrowserRouter, Link, Routes, Route } from 'react-router-dom';
 
 import "./App.css";
@@ -7,6 +7,7 @@ import "./css/styles.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const components = {};
+const noop = ()=>null;
 
 // Import all components and their respective test data dynamically
 const importAll = (r) => {
@@ -25,6 +26,7 @@ function testData(component_name) {
   try {
     testData = require(`./lib/components/${component_name}.testdata.js`).default;
   } catch (error) {
+    noop();
   }
   return testData;
 }
@@ -32,13 +34,13 @@ function testData(component_name) {
 importAll(require.context('./lib/components', true, /\.react.js$/));
 
 // Display a list of installed components for navigation
-function ComponentList(props) {
+function ComponentList(_props) {
   return (
     <div>
       <hr/>
       <h1>Component list</h1>
       <ul>
-        {Object.entries(components).map(([name, component]) => (
+        {Object.entries(components).map(([name, _component]) => (
           <li key={"li_"+name}> <Link to={"/components/"+name}  key={"a_"+name}>{name}</Link> </li>
         ))}
       </ul>

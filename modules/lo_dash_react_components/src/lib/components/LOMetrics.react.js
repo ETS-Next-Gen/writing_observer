@@ -10,9 +10,8 @@ import Badge from 'react-bootstrap/Badge';
  * it will not appear.
  */
 export default class LOMetrics extends Component {
-
     render() {
-        const {id, setProps, data, shown, class_name} = this.props;
+        const {id, data, shown, class_name} = this.props;
 
         const metric_badges = Object.entries(data).map(([key, metric]) => {
             return (

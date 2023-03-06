@@ -1,4 +1,4 @@
-let testData = {
+const testData = {
   id: "text-highlight-test",
   text: "This is a test of the text highlight component.",
   highlight_breakpoints: {

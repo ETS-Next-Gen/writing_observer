@@ -11,7 +11,7 @@
 import * as React from 'react';
 import PropTypes from "prop-types";
 
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { BarChart, Bar, Cell, Tooltip } from 'recharts';
 
 const sample_text = "Why Dogs are the Best Pets? \n\nWhen it comes to having a pet, there is no doubt that dogs are the best companion. There are a lot of reasons to support that statement. Dogs are loyal, friendly, and protective towards their owner. They are also great for physical activities and can be trained to perform various tasks. These are just a few reasons why dogs are the best pets for anyone.\n\nFirstly, dogs are known to be the most loyal pets. They are always by your side, wagging their tails, and giving you cuddles and kisses. No matter how bad your day is going, a dog’s unwavering loyalty makes the world seem that little bit brighter. This level of devotion is hard to find in any other animal. \n\nMoreover, dogs are very friendly and can bring so much joy to anyone’s life. They love meeting new people and make great companions even to strangers. They have an infectious and playful energy that always lifts your mood. That’s why they are also a great choice for families with children. They can help kids learn about responsibility, compassion, and friendship.\n\nAside from being great company, dogs also have a unique way of protecting their owners. They have a heightened sense of recognition when it comes to sensing danger or any suspicious activity. When they sense something amiss, they bark to alarm and protect their owner. A dog’s protective nature is an excellent asset to have, especially for elderly people living alone.\n\nLastly, dogs are very active and can keep their owners physically active too. Whether it's going for a walk or jog, playing fetch or joining their owner on hikes, dogs will make sure that their owner never gets bored. They can also be trained to perform various tasks like hunting, herding, police work, and search and rescue. These abilities show the intelligence and versatility of dogs as animals.\n\nIn conclusion, dogs are the best kind of pets for several reasons. They are loyal, friendly, and protective towards their owners that provide companionship, joy, and safety. They also have a unique ability to keep you active and are adaptable to perform various tasks. These positive qualities make dogs an excellent choice for anyone who wants a pet.\n"
 
@@ -92,7 +92,7 @@ class TextMiniGraph extends React.Component {
     yscale: PropTypes.number,
   };
 
-  prepareChartData = (text, yscale) => {
+  prepareChartData = (text) => {
     const annotatedTextLength = annotateWithWordCount(segmentParagraphsIntoSentences(segmentTextIntoParagraphs(text)));
     const angleGoldenRatio = 137.5;
     const ratioColor = index => `hsl(${(index * angleGoldenRatio) % 360}, 75%, 75%)`;
@@ -105,7 +105,7 @@ class TextMiniGraph extends React.Component {
 
   render() {
     const { text, height = 60, width = 200, yscale = null } = this.props;
-    const chartData = this.prepareChartData(text, yscale);
+    const chartData = this.prepareChartData(text);
     return (
       <BarChart height={height} width={width} data={chartData}>
         <Tooltip content={props => props.label } />
