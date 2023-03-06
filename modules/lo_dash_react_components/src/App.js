@@ -1,21 +1,14 @@
 import React, { Component, useState } from "react";
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Link, Routes, Route } from 'react-router-dom';
 
-import logo from "./logo.svg";
 import "./App.css";
 
 import "./css/styles.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import {
-  LOConnection,
-  LOMetrics,
-  LOIndicatorBars,
-  StudentSelectHeader,
-} from "./lib";
-
 const components = {};
 
+// Import all components and their respective test data dynamically
 const importAll = (r) => {
   r.keys().forEach((key) => {
     const componentName = key.replace('./', '').replace('.react.js', '');
@@ -26,19 +19,19 @@ const importAll = (r) => {
   });
 };
 
+// Load test data for the component, if available
 function testData(component_name) {
   let testData = {};
   try {
     testData = require(`./lib/components/${component_name}.testdata.js`).default;
-    console.log("Loaded test data for " + component_name);
   } catch (error) {
-    console.log("No test data for " + component_name);
   }
   return testData;
 }
 
 importAll(require.context('./lib/components', true, /\.react.js$/));
 
+// Display a list of installed components for navigation
 function ComponentList(props) {
   return (
     <div>
@@ -46,7 +39,7 @@ function ComponentList(props) {
       <h1>Component list</h1>
       <ul>
         {Object.entries(components).map(([name, component]) => (
-          <li key={"li_"+name}> <a href={"/components/"+name}  key={"a_"+name}>{name}</a> </li>
+          <li key={"li_"+name}> <Link to={"/components/"+name}  key={"a_"+name}>{name}</Link> </li>
         ))}
       </ul>
    </div>
