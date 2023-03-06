@@ -70,6 +70,17 @@ function annotateWithWordCount(list) {
   )
 }
 
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="custom-tooltip">
+        <p className="label">{`${payload[0].payload.name}`}</p>
+      </div>
+    );
+  }
+  return (<div/>)
+};
+
 /**
  * A component that renders a miniature bar graph representation of text, where each bar represents a sentence, and each
  * set of bars, a paragraph
@@ -88,7 +99,7 @@ export default class LOTextMinibars extends React.Component {
     const ratioColor = index => `hsl(${(index * angleGoldenRatio) % DegreesInACircle}, 75%, 75%)`;
     const chartData = annotatedTextLength.flatMap((array, index) => [
       ...array.map(value => ({ name:value.text, value: value.count, group: index, fill: ratioColor(index) })),
-      { value: 0, group: -1 }
+      { value: 0, group: -1, name: '' }
     ]).slice(0, -1);
     return chartData;
   }
@@ -96,23 +107,27 @@ export default class LOTextMinibars extends React.Component {
   render() {
     const { text, height = DEFAULT_HEIGHT, width = DEFAULT_WIDTH, ymax, xmax, className } = this.props;
     const chartData = this.prepareChartData(text);
+    console.log(chartData);
     return (
-      <BarChart height={height} width={width} data={chartData} className={`${className || ''} LOTextMinibars`}>
-        <Tooltip content={props => props.label } />
-        <Bar dataKey="value">
+      <div className={`${className || ''} LOTextMinibars`}>
+        <BarChart height={height} width={width} data={chartData}>
+          <Tooltip content={<CustomTooltip/>}/>
+          <Bar dataKey="value">
+            {
+              chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} stroke={entry.fill} fill={entry.fill}>
+                </Cell>
+              ))
+            }
+          </Bar>
           {
-            chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} stroke={entry.fill} fill={entry.fill}/>
-            ))
+            xmax && <XAxis domain={[0, xmax]} />
           }
-        </Bar>
-        {
-          xmax && <XAxis domain={[0, xmax]} />
-        }
-        {
-          ymax && <YAxis domain={[0, ymax]} />
-        }
-      </BarChart>
+          {
+            ymax && <YAxis domain={[0, ymax]} />
+          }
+        </BarChart>
+      </div>
     );
   }
 }
