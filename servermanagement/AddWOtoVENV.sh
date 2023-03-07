@@ -53,6 +53,6 @@ cd ../modules/writing_observer
 
 
 echo -e "\n=== Installing Brad's Dashboard ==="
-cd ../../learning_observer/prototypes/dash_wo_teacher_dashboard
+cd ../wo_highlight_dashboard
 "$PYTHON_CMD" setup.py develop
 
