@@ -181,11 +181,11 @@ def initialize_and_register_routes(app):
     making use of Google APIs requires a lot of infrastructure (registering
     apps, auth/auth, etc.) which we already have in place on dev / debug servers.
     '''
-    # For now, all of this is behind one big feature flag. In the future,
-    # we'll want seperate ones for the debugging tools and the production
-    # staff
-    if 'google_routes' not in settings.settings['feature_flags']:
-        return
+    # # For now, all of this is behind one big feature flag. In the future,
+    # # we'll want seperate ones for the debugging tools and the production
+    # # staff
+    # if 'google_routes' not in settings.settings['feature_flags']:
+    #     return
 
     for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
         if key in settings.settings['feature_flags']:
