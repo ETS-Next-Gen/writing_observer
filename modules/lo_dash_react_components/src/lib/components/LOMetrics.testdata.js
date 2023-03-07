@@ -3,14 +3,24 @@
 const testData = {
   id: "metric-test",
   data: {
-      "sentences": {
-          "id": "sentences",
-          "value": 33,
-          "label": " sentences"
-        }
+    sentences: {
+      id: "sentences",
+      value: 33,
+      label: " sentences",
     },
-  shown: ['sentences'],
-  className: "metric-container"
+    paragraphs: {
+      id: "paragraphs",
+      value: 3,
+      label: " paragraphs",
+    },
+    metric: {
+      id: "metric",
+      value: 55,
+      label: " metrics",
+    },
+  },
+  shown: ["sentences", "paragraphs", "metric"],
+  className: "metric-container",
 };
-  
+
 export default testData;

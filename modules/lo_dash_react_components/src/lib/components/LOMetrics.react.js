@@ -1,6 +1,6 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
-import Badge from 'react-bootstrap/Badge';
+import React, { Component } from "react";
+import PropTypes from "prop-types";
+import Badge from "react-bootstrap/Badge";
 
 /**
  * LOMetrics creates badges for numeric values.
@@ -10,52 +10,57 @@ import Badge from 'react-bootstrap/Badge';
  * it will not appear.
  */
 export default class LOMetrics extends Component {
-    render() {
-        const {id, data, shown, className} = this.props;
-
-        const metric_badges = Object.entries(data).map(([key, metric]) => {
-            return (
-                <Badge
-                    key={key}
-                    bg='info'
-                    pill
-                    className={shown.includes(key) ? 'm-1': 'd-none'}
-                    title={metric.help || metric.value}
-                >
-                    {metric.value} {metric.label}
-                </Badge>
-            )
-        })
-
-        return (
-            <div
-                key='metric-badges'
-                className={`${className || ''} LOMetrics`}
-                id={id}
-            >
-                {metric_badges}
-            </div>
-        );
+    constructor(props) {
+        super(props);
+        this.renderMetricBadge = this.renderMetricBadge.bind(this);
     }
+  renderMetricBadge([key, metric]) {
+    const { shown } = this.props;
+
+    if (!shown.includes(key)) {
+      return null;
+    }
+
+    return (
+      <Badge key={key} bg="info" pill title={metric.help || metric.value}>
+        {metric.value} {metric.label}
+      </Badge>
+    );
+  };
+  render() {
+    const { id, data, className = '' } = this.props;
+
+    const metricBadges = Object.entries(data).map(this.renderMetricBadge);
+
+    return (
+      <div
+        key="metric-badges"
+        className={`LOMetrics ${className}`}
+        id={id}
+      >
+        {metricBadges}
+      </div>
+    );
+  }
 }
 
 LOMetrics.defaultProps = {
-    shown: [],
-    data: {}
+  shown: [],
+  data: {},
 };
 
 LOMetrics.propTypes = {
-    /**
-     * The ID used to identify this component in Dash callbacks.
-     */
-    id: PropTypes.string,
+  /**
+   * The ID used to identify this component in Dash callbacks.
+   */
+  id: PropTypes.string,
 
-    /**
-     * Classes for the outer most div.
-     */
-    className: PropTypes.string,
+  /**
+   * Classes for the outer most div.
+   */
+  className: PropTypes.string,
 
-    /**
+  /**
      * Data for the metrics should be in form:
      * `{
             "sentences": {
@@ -65,16 +70,16 @@ LOMetrics.propTypes = {
             },
         }`
      */
-    data: PropTypes.object,
+  data: PropTypes.object,
 
-    /**
-     * Which ids to show.
-     */
-    shown: PropTypes.array,
+  /**
+   * Which ids to show.
+   */
+  shown: PropTypes.array,
 
-    /**
-     * Dash-assigned callback that should be called to report property changes
-     * to Dash, to make them available for callbacks.
-     */
-    setProps: PropTypes.func
+  /**
+   * Dash-assigned callback that should be called to report property changes
+   * to Dash, to make them available for callbacks.
+   */
+  setProps: PropTypes.func,
 };
