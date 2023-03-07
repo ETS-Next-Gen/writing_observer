@@ -238,24 +238,31 @@ async def latest_data(student_data, options=None):
     object interface that hides some of this from the user 
     but for the now we'll roll with this.  
     '''
-    # Get the latest documents with the students appended.
+ã    # Get the latest documents with the students appended.
     writing_data = await get_latest_student_documents(student_data)
 
     # Strip out the unnecessary extra data.
     writing_data = await remove_extra_data(writing_data)
 
+    print(">>> WRITE DATA-premerge: {}".format(writing_data))
+    
     # This is the error.  Skipping now.
-    #writing_data = await merge_with_student_data(writing_data, student_data)
+    writing_data_merge = await merge_with_student_data(writing_data, student_data)
+    print(">>> WRITE DATA-postmerge: {}".format(writing_data_merge))
 
-    #print(">>>> PRINT WRITE DATA: Merge")
-    #print(writing_data)
+    
+    # #print(">>>> PRINT WRITE DATA: Merge")
+    # #print(writing_data)
 
-    just_the_text = [w.get("text", "") for w in writing_data]
+    # just_the_text = [w.get("text", "") for w in writing_data]
 
-    annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
+    # annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
 
-    for annotated_text, single_doc in zip(annotated_texts, writing_data):
-        if annotated_text != "Error":
-            single_doc.update(annotated_text)
+    # for annotated_text, single_doc in zip(annotated_texts, writing_data):
+    #     if annotated_text != "Error":
+    #         single_doc.update(annotated_text)
 
+    writing_data = await merge_with_student_data(writing_data, student_data)
+    writing_data = await processor(writing_data, options)
+            
     return {'latest_writing_data': writing_data}
