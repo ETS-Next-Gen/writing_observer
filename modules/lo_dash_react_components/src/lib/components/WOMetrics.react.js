@@ -22,16 +22,14 @@ export default class WOMetrics extends Component {
     );
   };
   render() {
-    const { id, data, shown, className = '' } = this.props;
+    const { id, data, shown, className = "" } = this.props;
 
-    const metricBadges = Object.entries(data).map((entry) => this.renderMetricBadge(entry, shown));
+    const metricBadges = Object.entries(data).map((entry) =>
+      this.renderMetricBadge(entry, shown)
+    );
 
     return (
-      <div
-        key="metric-badges"
-        className={`WOMetrics ${className}`}
-        id={id}
-      >
+      <div key="metric-badges" className={`WOMetrics ${className}`} id={id}>
         {metricBadges}
       </div>
     );
