@@ -6,21 +6,21 @@ const SAMPLE_PROBLEMS = [
     description:
     'Determine the maximum height, time to reach maximum height, and total time a ball is in the air when thrown straight up with a given velocity.',
     id: 'ms-bouncing-ball',
-    related_scaffolds: ['scaffold-graphs', 'scaffold-parabolas'],
+    relatedScaffolds: ['scaffold-graphs', 'scaffold-parabolas'],
   },
   {
     title: 'Pizza Party',
     description:
     'Calculate the number of pizzas needed and the cost of a pizza party based on the number of guests and their average pizza consumption.',
     id: 'ms-pizza-party',
-    related_scaffolds: ['scaffold-rates', 'scaffold-percentages'],
+    relatedScaffolds: ['scaffold-rates', 'scaffold-percentages'],
   },
   {
     title: 'Scaling Shapes',
     description:
     'Determine the scale factor, new dimensions, and area of a shape after it is scaled by a given factor.',
     id: 'ms-scaling-shapes',
-    related_scaffolds: [
+    relatedScaffolds: [
       'scaffold-equations',
       'scaffold-graphs',
       'scaffold-units',
@@ -31,7 +31,7 @@ const SAMPLE_PROBLEMS = [
     description:
     'Compute and compare statistics such as batting average, on-base percentage, and slugging percentage for different baseball players or teams.',
     id: 'ms-sports-stats',
-    related_scaffolds: ['scaffold-rates', 'scaffold-graphs'],
+    relatedScaffolds: ['scaffold-rates', 'scaffold-graphs'],
   },
 ];
 

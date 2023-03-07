@@ -19,7 +19,7 @@ const problemPropType = {
   title: PropTypes.string.isRequired,
   description: PropTypes.string.isRequired,
   id: PropTypes.string.isRequired,
-  related_scaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
+  relatedScaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
 };
 
 const problemsPropType = PropTypes.arrayOf(PropTypes.shape(problemPropType));
@@ -216,10 +216,19 @@ function BackgroundCanvas({ problems }) {
       canvas.height = rect.height;
       context.translate(-rect.left, -rect.top);
 
+      // We really need something like this:
+      //
+      // canvas.width = document.documentElement.scrollWidth;
+      // canvas.height = document.documentElement.scrollHeight;
+      // context.translate(-window.pageXOffset, -window.pageYOffset);
+      //
+      // But it doesn't work since scaling is wrong, and the canvas doesn't
+      // fill the full document in CSS.
+
       // Now you can draw on the canvas using ClientRect coordinates
       context.lineWidth = 6;
       for (const problem of problems) {
-        for (const scaffold of problem.related_scaffolds) {
+        for (const scaffold of problem.relatedScaffolds) {
           context.beginPath();
           const problem_element = document.getElementById(
             'problem-' + problem.id
@@ -262,8 +271,11 @@ function BackgroundCanvas({ problems }) {
     }
     renderCanvas();
     window.addEventListener('resize', renderCanvas);
+    window.addEventListener('scroll', renderCanvas);
+
     return () => {
       window.removeEventListener('resize', renderCanvas);
+      window.removeEventListener('scroll', renderCanvas);
     };
   }, []);
 
@@ -340,13 +352,13 @@ DAProblemDisplay.propTypes = {
    *    - title (string): The title of the problem.
    *    - description (string): A description of the problem.
    *    - id (string): The unique ID of the problem.
-   *    - related_scaffolds (array): An array of strings representing the IDs of scaffolds related to the problem.
+   *    - relatedScaffolds (array): An array of strings representing the IDs of scaffolds related to the problem.
    */
   problems: PropTypes.arrayOf(PropTypes.shape({
     title: PropTypes.string.isRequired,
     description: PropTypes.string.isRequired,
     id: PropTypes.string.isRequired,
-    related_scaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
+    relatedScaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
   })).isRequired,
   /* scaffolds (array): An array of objects containing information about each scaffold:
    *    - id (string): The unique ID of the scaffold.
