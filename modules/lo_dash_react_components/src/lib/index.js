@@ -1,6 +1,6 @@
 import LOConnection from './components/LOConnection.react';
 import WOMetrics from './components/WOMetrics.react';
-import LOIndicatorBars from './components/LOIndicatorBars.react';
+import LOIndicatorBars from './components/WOIndicatorBars.react';
 import LOTextHighlight from './components/LOTextHighlight.react';
 import StudentSelectHeader from './components/StudentSelectHeader.react';
 import LOTextMinibars from './components/LOTextMinibars.react';
