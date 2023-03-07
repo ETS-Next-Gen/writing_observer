@@ -371,4 +371,7 @@ async def latest_data(runtime, student_data, options=None):
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)
 
+    writing_data = await merge_with_student_data(writing_data, student_data)
+    writing_data = await processor(writing_data, options)
+            
     return {'latest_writing_data': writing_data}
