@@ -1,11 +1,21 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+
 import { debounce, once } from 'lodash';
 
+const RIGHT_DIRECTION = 90;
+const LEFT_DIRECTION = -90;
+const UP_DIRECTION = 0;
+const DOWN_DIRECTION = -180;
+
 export const CENTER = [0, 0];
-export const RIGHT = [1, 90];
-export const LEFT = [1, -90];
-export const TOP = [1, 0];
-export const BOTTOM = [1, -180];
+export const RIGHT = [1, RIGHT_DIRECTION];
+export const LEFT = [1, LEFT_DIRECTION];
+export const TOP = [1, UP_DIRECTION];
+export const BOTTOM = [1, DOWN_DIRECTION];
+
+const LONG_DEBOUNCE_TIME = 1000;
+const SHORT_DEBOUNCE_TIME = 1000;
 
 /**
  * Returns a fraction indicating the staggered position of an item within a list.
@@ -31,6 +41,7 @@ export function stagger(index, count) {
 export function djb2(str) {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
+    // eslint-disable-next-line no-magic-numbers
     hash = (hash * 33) ^ str.charCodeAt(i);
   }
   return hash >>> 0;
@@ -78,20 +89,23 @@ export const updateArrowPositions = debounce(function() {
     // get positions of source and target elements
     const sourceRect = source.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
-    let sourceX = sourceRect.left + (sourceRect.width / 2); // + sourceRect.width a;
+    let sourceX = sourceRect.left + (sourceRect.width / 2);
     let sourceY = sourceRect.top + (sourceRect.height / 2);
     let targetX = targetRect.left + (targetRect.width / 2);
     let targetY = targetRect.top + (targetRect.height / 2);
 
-    targetX += target_distance * targetRect.width * Math.cos((target_angle-90) * Math.PI / 180)/2;
-    targetY += target_distance * targetRect.height * Math.sin((target_angle-90) * Math.PI / 180)/2;
-    sourceX += source_distance * sourceRect.width * Math.cos((source_angle-90) * Math.PI / 180)/2;
-    sourceY += source_distance * sourceRect.height * Math.sin((source_angle-90) * Math.PI / 180)/2;
+    const RIGHT_ANGLE = 90;
+    const STRAIGHT_ANGLE = 180;
+
+    targetX += target_distance * targetRect.width * Math.cos((target_angle-RIGHT_ANGLE) * Math.PI / STRAIGHT_ANGLE)/2;
+    targetY += target_distance * targetRect.height * Math.sin((target_angle-RIGHT_ANGLE) * Math.PI / STRAIGHT_ANGLE)/2;
+    sourceX += source_distance * sourceRect.width * Math.cos((source_angle-RIGHT_ANGLE) * Math.PI / STRAIGHT_ANGLE)/2;
+    sourceY += source_distance * sourceRect.height * Math.sin((source_angle-RIGHT_ANGLE) * Math.PI / STRAIGHT_ANGLE)/2;
 
 
     // calculate the angle of the line
     const angle = Math.atan2(sourceY - targetY, sourceX - targetX);
-    const degrees = angle * 180 / Math.PI-90;
+    const degrees = angle * STRAIGHT_ANGLE / Math.PI - RIGHT_ANGLE;
     arrow.style.transform = `rotate(${degrees}deg)`;
     arrow.style.transformOrigin = "top left";
 
@@ -100,10 +114,10 @@ export const updateArrowPositions = debounce(function() {
     arrow.style.height = distance + "px";
 
     // position the line at the center of the source element
-    arrow.style.left = (targetX - offsetParent.offsetLeft) + "px";
-    arrow.style.top = (targetY - offsetParent.offsetTop) + "px";
+    arrow.style.left = (targetX - offsetParent.offsetLeft + window.scrollX) + "px";
+    arrow.style.top = (targetY - offsetParent.offsetTop + window.scrollY) + "px";
   });
-}, 500, { leading: true, trailing: true });
+}, SHORT_DEBOUNCE_TIME, { leading: true, trailing: true });
 
 export const initArrows=once(function() {
   window.addEventListener('resize', function(){
@@ -126,16 +140,25 @@ export function Arrow(props) {
   );
 }
 
-/*** DEBUG CODE. This should eventually go away. */
+Arrow.propTypes = {
+  source: PropTypes.string.isRequired,
+  target: PropTypes.string.isRequired,
+  wrapper: PropTypes.string,
+  sourceOffset: PropTypes.arrayOf(PropTypes.number),
+  targetOffset: PropTypes.arrayOf(PropTypes.number),
+};
 
-/**
+
+/* DEBUG CODE. This should eventually go away. */
+
+/*
  * Creates a div covering the given element ID with absolute positioning.
  * The X overlay is intended for use during debugging and is not part of the final product.
  * It's helpful for understanding coordinates.
  *
  * @param {string} elementId - The ID of the element to create an X overlay for.
  */
-function createXOverlay(elementId) {
+export function createXOverlay(elementId) {
   const targetElement = document.getElementById(elementId);
   if (!targetElement) {
     console.error(`Element with ID ${elementId} not found.`);
@@ -168,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     console.log('X');
     updateArrowPositions();
-  }, 1000);
+  }, LONG_DEBOUNCE_TIME);
 });
 
 document.addEventListener("resize", () => {
@@ -180,5 +203,5 @@ document.addEventListener("load", () => {
   setTimeout(() => {
     updateArrowPositions();
     console.log('X');
-  }, 1000);
+  }, LONG_DEBOUNCE_TIME);
 });

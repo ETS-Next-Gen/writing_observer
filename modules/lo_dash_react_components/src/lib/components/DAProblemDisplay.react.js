@@ -126,11 +126,11 @@ function Students({ students }) {
         const targetRect = targetBox.getBoundingClientRect();
         const studentRect = studentCircle.getBoundingClientRect();
         const top =
-          targetRect.top - studentRect.height / 2 + targetRect.height / 2;
+          targetRect.top - studentRect.height / 2 + targetRect.height / 2  + window.scrollY;
         const left =
           targetRect.left -
           studentRect.width / 2 +
-          targetRect.width * stagger(student.index, student.count);
+          targetRect.width * stagger(student.index, student.count) + window.scrollX;
         studentCircle.style.position = 'absolute';
         studentCircle.style.top = `${top}px`;
         studentCircle.style.left = `${left}px`;
