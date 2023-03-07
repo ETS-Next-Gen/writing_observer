@@ -28,3 +28,4 @@ learning_observer/passwd.lo
 .vscode/
 build/
 dist/
+extension/extension/config.json
