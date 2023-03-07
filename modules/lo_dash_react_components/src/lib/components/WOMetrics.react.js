@@ -3,20 +3,14 @@ import PropTypes from "prop-types";
 import Badge from "react-bootstrap/Badge";
 
 /**
- * LOMetrics creates badges for numeric values.
+ * WOMetrics creates badges for numeric values.
  * It takes a property, `data`, and
  * outputs each item as a badge.
  * If the id of the item is not in the property `shown`,
  * it will not appear.
  */
-export default class LOMetrics extends Component {
-    constructor(props) {
-        super(props);
-        this.renderMetricBadge = this.renderMetricBadge.bind(this);
-    }
-  renderMetricBadge([key, metric]) {
-    const { shown } = this.props;
-
+export default class WOMetrics extends Component {
+  renderMetricBadge = ([key, metric], shown) => {
     if (!shown.includes(key)) {
       return null;
     }
@@ -28,14 +22,14 @@ export default class LOMetrics extends Component {
     );
   };
   render() {
-    const { id, data, className = '' } = this.props;
+    const { id, data, shown, className = '' } = this.props;
 
-    const metricBadges = Object.entries(data).map(this.renderMetricBadge);
+    const metricBadges = Object.entries(data).map((entry) => this.renderMetricBadge(entry, shown));
 
     return (
       <div
         key="metric-badges"
-        className={`LOMetrics ${className}`}
+        className={`WOMetrics ${className}`}
         id={id}
       >
         {metricBadges}
@@ -44,12 +38,12 @@ export default class LOMetrics extends Component {
   }
 }
 
-LOMetrics.defaultProps = {
+WOMetrics.defaultProps = {
   shown: [],
   data: {},
 };
 
-LOMetrics.propTypes = {
+WOMetrics.propTypes = {
   /**
    * The ID used to identify this component in Dash callbacks.
    */
