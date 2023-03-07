@@ -32,10 +32,10 @@ function log_event(event_type, event) {
     //
     // "Object" is a really bad name. Come on. Seriously?
     event["object"] = {
-	"type": "http://schema.learning-observer.org/writing-observer/",
-	"title": google_docs_title(),
-	"id": doc_id(),
-	"url": window.location.href,
+        "type": "http://schema.learning-observer.org/writing-observer/",
+        "title": google_docs_title(),
+        "id": doc_id(),
+        "url": window.location.href,
     }
 
     event['event'] = event_type;
@@ -46,7 +46,9 @@ function log_event(event_type, event) {
     // uncomment to watch events being logged from the client side with devtools
     // console.log(event);
 
-    chrome.runtime.sendMessage(event);
+    if (chrome.runtime.id !== undefined) {
+        chrome.runtime.sendMessage(event);
+    }
 }
 
 function doc_id() {
@@ -95,7 +97,7 @@ function google_docs_partial_text() {
       reconstructing text.
     */
     try {
-        return document.getElementsByClassName("kix-page")[0].innerText;
+        return document.getElementsByClassName("kix")[0].innerText;
     } catch(error) {
         log_error("Could not get document text");
         return null;
@@ -138,6 +140,18 @@ function is_string(myVar) {
     }
 }
 
+function injectScript(file_path, tag) {
+    /* 
+        This function is to inject a script from 'file_path' 
+        into a specific DOM tag passed in as 'tag'
+    */
+    var node = document.getElementsByTagName(tag)[0];
+    var script = document.createElement('script');
+    script.setAttribute('type', 'text/javascript');
+    script.setAttribute('src', file_path);
+    node.appendChild(script);
+}
+
 function execute_on_page_space(code){
     /* This is from
        https://stackoverflow.com/questions/9602022/chrome-extension-retrieving-global-variable-from-webpage
@@ -146,26 +160,12 @@ function execute_on_page_space(code){
        for example to access page JavaScript variables.
      */
 
-    // create a script tag
-    var script = document.createElement('script')
-    script.id = 'tmpScript'
-
-    // place the code inside the script. later replace it with execution result.
-    script.textContent =
-        'document.getElementById("tmpScript").textContent = JSON.stringify(' + code + ')'
-
-    // attach the script to page
-    document.documentElement.appendChild(script)
-
-    // collect execution results
-    let result = document.getElementById("tmpScript").textContent
-
-    // remove script from page
-    script.remove()
-    return JSON.parse(result)
+    if (!document.getElementById('tmpScript')) {
+        injectScript(chrome.runtime.getURL('inject.js'), 'body');
+    }
 }
 
-function google_docs_version_history() {
+function google_docs_version_history(token) {
     /*
       Grab the _complete_ version history of a Google Doc. We do this
       on page load. Note that this may lead to a lot of data. But this
@@ -177,8 +177,18 @@ function google_docs_version_history() {
       work. But it's good to have for the pilot.
 
       It also lets us debug the system.
+
+      NOTE (CL) in past cases use of the execute on page space by itself triggered
+      an error.  If it creates excessive delays or error due to history use the
+      following code block in lieu of the next call. 
+
+      try {
+        var token = executeOnPageSpace("_docs_flag_initialData.info_params.token");
+      } catch (error) {
+     	log_event("Error on Page History.", {"ERROR" : error})
+ 	return -1;
+      }
     */
-    var token = execute_on_page_space("_docs_flag_initialData.info_params.token");
 
     metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true"
 
@@ -699,7 +709,16 @@ function writing_onload() {
         log_event("document_loaded", {
             "partial_text": google_docs_partial_text()
         })
-        google_docs_version_history();
+        execute_on_page_space("_docs_flag_initialData.info_params.token")
+        const handleFromWeb = async (event) => {
+            if (event.data.from && event.data.from === "inject.js") {
+                const data = event.data.data;
+                var token = JSON.parse(data);
+                google_docs_version_history(token);
+            }
+        };
+    
+        window.addEventListener('message', handleFromWeb);
     }
 }
 
@@ -723,3 +742,11 @@ WO_XHR.send = function () {\n\
 "
 
 window.addEventListener("load", writing_onload);
+
+// This event listener is to used to detect changes in the document's 
+// visibility. E.g. when a user switches tabs and back.
+window.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        console.log("I got reloaded again...")
+    }
+});
