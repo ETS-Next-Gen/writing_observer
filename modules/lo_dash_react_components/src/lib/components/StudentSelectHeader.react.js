@@ -34,15 +34,15 @@ export default class StudentSelectHeader extends Component {
    * @param {number} offset - The offset to apply to the current student index.
    */
   iterateName(offset) {
-    const { students, selected, setProps } = this.props;
-    const curr_index = students.indexOf(selected);
+    const { students, selectedStudent, setProps } = this.props;
+    const curr_index = students.indexOf(selectedStudent);
     const new_name =
       students[
         curr_index + offset >= 0
           ? (curr_index + offset) % students.length
           : students.length - 1
       ];
-    setProps({ selected: new_name });
+    setProps({ selectedStudent: new_name });
   }
 
   /**
@@ -52,7 +52,7 @@ export default class StudentSelectHeader extends Component {
    */
   handleSelect(name) {
     const { setProps } = this.props;
-    setProps({ selected: name });
+    setProps({ selectedStudent: name });
     this.setState({ showDropdown: false });
   }
 
@@ -62,7 +62,7 @@ export default class StudentSelectHeader extends Component {
    * @returns {JSX.Element} - The rendered component.
    */
   render() {
-    const { id, className, students, selected } = this.props;
+    const { id, className, students, selectedStudent } = this.props;
     const { showDropdown } = this.state;
     const classNames = classnames("student-select-header", className);
 
@@ -75,7 +75,7 @@ export default class StudentSelectHeader extends Component {
             </button>
           </div>
           <div className="header-student" onClick={this.handleClick}>
-            {selected}
+            {selectedStudent}
           </div>
           {showDropdown && (
             <ul className="dropdown">
@@ -84,7 +84,7 @@ export default class StudentSelectHeader extends Component {
                   key={name}
                   onClick={() => this.handleSelect(name)}
                   className={
-                    name === selected
+                    name === selectedStudent
                       ? "dropdown-item dropdown-item-selected"
                       : "dropdown-item"
                   }
@@ -116,7 +116,7 @@ StudentSelectHeader.propTypes = {
   students: PropTypes.arrayOf(PropTypes.string),
 
   /** The currently selected student name */
-  selected: PropTypes.string,
+  selectedStudent: PropTypes.string,
 
   /**
    * Dash-assigned callback that should be called to report property changes
@@ -127,5 +127,5 @@ StudentSelectHeader.propTypes = {
 
 StudentSelectHeader.defaultProps = {
   students: [],
-  selected: "",
+  selectedStudent: "",
 };

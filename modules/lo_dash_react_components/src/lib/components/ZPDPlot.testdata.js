@@ -4,7 +4,7 @@ const testData = {
   'ZPDItemCards': [
     {
       "id": "area_circle",
-      "item_name": "Area of a Circle",
+      "itemName": "Area of a Circle",
       "zone": "ZAD",
       "attempts": "5",
       "supports": "3/7",
@@ -12,22 +12,23 @@ const testData = {
     },
     {
       "id": "radius_pentagon",
-      "item_name": "Radius of a pentagon",
-      "zone": "ZPD",
+      "itemName": "Radius of a pentagon",
+      "zone": "None",
       "attempts": "4",
       "supports": "6/7",
-      "visited": true
+      "visited": false
     },
     {
       "id": "radius_pentagon_2",
-      "item_name": "Radius of a pentagon",
+      "itemName": "Radius of a pentagon",
       "zone": "ZPD",
       "attempts": "4",
       "supports": "6/7",
       "visited": true
     }
   ],
-  'student_name': "Sue"
+  'selectedStudent': "Sue",
+  'students': ['Jim', 'Sue', 'Bob']
 };
 
 export default testData;

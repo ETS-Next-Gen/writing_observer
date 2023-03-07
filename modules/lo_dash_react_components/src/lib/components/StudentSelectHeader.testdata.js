@@ -3,7 +3,7 @@
 const testData = {
   id: "studentheader-test",
   students: ["Bart", "Milhouse", "Nelson"],
-  selected: "Bart",
+  selectedStudent: "Bart",
   className: "studentheader-container",
 };
 

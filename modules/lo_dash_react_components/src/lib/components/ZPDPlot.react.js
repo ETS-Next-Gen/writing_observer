@@ -4,13 +4,13 @@ import { Arrow, LEFT, updateArrowPositions, initArrows } from './helperlib';
 import StudentSelectHeader from "./StudentSelectHeader.react";
 
 /* Gives information about one card for one student. */
-function ZPDItemCard({id, card_index, card_count, item_name, visited, attempts, supports, zone}) {
+function ZPDItemCard({id, cardIndex, cardCount, itemName, visited, attempts, supports, zone}) {
   const halfCircle = 180;
-  const cardAngle = halfCircle * (card_index+1) / (card_count+1);
+  const cardAngle = halfCircle * (cardIndex+1) / (cardCount+1);
   const cardOffsetRadius = 0.8;
   return (
     <div className="item-card" id={id}>
-      <div className="card-header">{item_name}</div>
+      <div className="card-header">{itemName}</div>
       <div className="card-table">
         <div className="card-row">
           <div className="card-cell" title="Visited">Visited</div>
@@ -34,10 +34,10 @@ function ZPDItemCard({id, card_index, card_count, item_name, visited, attempts, 
 }
 
 ZPDItemCard.propTypes = {
-  card_index: PropTypes.number.isRequired,
-  card_count: PropTypes.number.isRequired,
+  cardIndex: PropTypes.number.isRequired,
+  cardCount: PropTypes.number.isRequired,
   id: PropTypes.string.isRequired,
-  item_name: PropTypes.string.isRequired,
+  itemName: PropTypes.string.isRequired,
   visited: PropTypes.bool.isRequired,
   attempts: PropTypes.string.isRequired,
   supports: PropTypes.string.isRequired,
@@ -67,12 +67,12 @@ export default class ZPDPlot extends React.Component {
   }
 
   render() {
-    const { ZPDItemCards, setProps, students, selected } = this.props;
+    const { ZPDItemCards, setProps, students, selectedStudent } = this.props;
 
     return (
       <div id="zpd-wrapper" className="zpd-wrapper arrow-wrapper">
         <StudentSelectHeader
-          selected={selected}
+          selectedStudent={selectedStudent}
           students={students}
           setProps={setProps}
         />
@@ -82,8 +82,8 @@ export default class ZPDPlot extends React.Component {
             {ZPDItemCards.map((card, index) => (
               <ZPDItemCard
                 key={card.id}
-                card_index={index}
-                card_count={ZPDItemCards.length}
+                cardIndex={index}
+                cardCount={ZPDItemCards.length}
                 {...card}
               />
             ))}
@@ -105,7 +105,7 @@ ZPDPlot.propTypes = {
 
   ZPDItemCards: PropTypes.arrayOf(PropTypes.shape({
     id: PropTypes.string,
-    item_name: PropTypes.string,
+    itemName: PropTypes.string,
     zone: PropTypes.string,
     attempts: PropTypes.string,
     supports: PropTypes.string,
@@ -114,7 +114,7 @@ ZPDPlot.propTypes = {
   /**
    * The value displayed in the input.
    */
-  selected: PropTypes.string,
+  selectedStudent: PropTypes.string,
   value: PropTypes.string,
 
   /**
