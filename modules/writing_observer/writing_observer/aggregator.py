@@ -238,7 +238,7 @@ async def latest_data(student_data, options=None):
     object interface that hides some of this from the user 
     but for the now we'll roll with this.  
     '''
-ã    # Get the latest documents with the students appended.
+    # Get the latest documents with the students appended.
     writing_data = await get_latest_student_documents(student_data)
 
     # Strip out the unnecessary extra data.
