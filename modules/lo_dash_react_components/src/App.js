@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { BrowserRouter, Link, Routes, Route } from "react-router-dom";
 import PropTypes from 'prop-types';
 
-import "./css/styles.css";
+import "./css/index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const components = {};

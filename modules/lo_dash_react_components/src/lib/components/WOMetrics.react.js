@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import Badge from "react-bootstrap/Badge";
 
+import "../../../lo_dash_react_components/css/components/WOMetrics.css";
 /**
  * WOMetrics creates badges for numeric values.
  * It takes a property, `data`, and

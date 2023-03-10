@@ -9,23 +9,30 @@ At some point, some of these should meander over to those specific modules, whil
 Get started with:
 
 1. Install npm packages
+
+    ```bash
+    npm install
     ```
-    $ npm install
-    ```
+
 2. Create a virtual env and activate.
+
+    ```bash
+    virtualenv venv
+    . venv/bin/activate
     ```
-    $ virtualenv venv
-    $ . venv/bin/activate
-    ```
+
     _Note: venv\Scripts\activate for windows_
 
 3. Install python packages required to build components.
+
+    ```bash
+    pip install -r requirements.txt
     ```
-    $ pip install -r requirements.txt
-    ```
+
 4. Install the python packages for testing (optional)
-    ```
-    $ pip install -r tests/requirements.txt
+
+    ```bash
+    pip install -r tests/requirements.txt
     ```
 
 ## Run
@@ -57,12 +64,16 @@ Read the `package.json` file to see other scripts available. There's a lot more,
 We're still figuring this out! Generic `dash` instructions are:
 
 - Write tests for your component.
-    - A sample test is available in `tests/test_usage.py`, it will load `usage.py` and you can then automate interactions with selenium.
-    - Run the tests with `$ pytest tests`.
-    - The Dash team uses these types of integration tests extensively. Browse the Dash component code on GitHub for more examples of testing (e.g. https://github.com/plotly/dash-core-components)
+
+  - A sample test is available in `tests/test_usage.py`, it will load `usage.py` and you can then automate interactions with selenium.
+  - Run the tests with `$ pytest tests`.
+  - The Dash team uses these types of integration tests extensively. Browse the Dash component code on GitHub for more examples of testing (e.g. [Dash core components](https://github.com/plotly/dash-core-components))
+
 - Add custom styles to your component by putting your custom CSS files into your distribution folder (`lo_dash_react_components`).
-    - Make sure that they are referenced in `MANIFEST.in` so that they get properly included when you're ready to publish your component.
-    - Make sure the stylesheets are added to the `_css_dist` dict in `lo_dash_react_components/__init__.py` so dash will serve them automatically when the component suite is requested.
+
+  - Make sure that they are referenced in `MANIFEST.in` so that they get properly included when you're ready to publish your component.
+  - Make sure the stylesheets are added to the `_css_dist` dict in `lo_dash_react_components/__init__.py` so dash will serve them automatically when the component suite is requested.
+
 - [Review your code](./review_checklist.md)
 
 Our plan, over time, is to diverge from `dash`. As a rule, with tests, we don't believe more is better. Tests can break abstractions, introduce unnecessary complexity, and make code less mutable. We would like to have tests for:
@@ -75,26 +86,35 @@ Our plan, over time, is to diverge from `dash`. As a rule, with tests, we don't 
 ## Create a production build
 
 1. Build your code:
+
+    ```bash
+    npm run build
+    npm run build-css
     ```
-    $ npm run build
-    $ npm run build-css
-    ```
+
+    Note: the `build-css` and `watch-css` commands builds all scss and css files located in `src/lib` and outputs them in `lo_react_dash_components/css`.
+    The `lo_react_dash_componets.__init__.py` was modified to automatically read in css files located in the `lo_react_dash_components/css` directory.
+
 2. Create a Python distribution
+
+    ```bash
+    python setup.py sdist bdist_wheel
     ```
-    $ python setup.py sdist bdist_wheel
-    ```
+
     This will create source and wheel distribution in the generated the `dist/` folder.
     See [PyPA](https://packaging.python.org/guides/distributing-packages-using-setuptools/#packaging-your-project)
     for more information.
 
 3. Test your tarball by copying it into a new environment and installing it locally:
-    ```
-    $ pip install lo_dash_react_components-0.0.1.tar.gz
-    ```
+
+```bash
+pip install lo_dash_react_components-0.0.1.tar.gz
+```
 
 ## Share
 
 We encourage you to share your components back with us. That way:
+
 - We're more likely to understand your use-case
 - We're less likely to break them as we evolve the system.
 

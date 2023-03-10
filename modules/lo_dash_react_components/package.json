@@ -25,8 +25,8 @@
     "build:backends-activated": "(. venv/bin/activate || venv\\scripts\\activate && npm run build:py_and_r)",
     "build": "npm run build:js && npm run build:backends",
     "build:activated": "npm run build:js && npm run build:backends-activated",
-    "build-css": "node-sass src/styles.scss -o src/css",
-    "watch-css": "node-sass src/styles.scss -o src/css --watch",
+    "build-css": "node-sass --recursive src/lib -o lo_dash_react_components/css",
+    "watch-css": "node-sass --recursive src/lib -o lo_dash_react_components/css --watch",
     "start-all": "npm-run-all --parallel watch-css react-start webpack-start dash-start"
   },
   "author": "Piotr Mitros <pmitros@ets.org>",

@@ -79,7 +79,12 @@ _js_dist.extend(
     ]
 )
 
-_css_dist = []
+_css_dist = [
+    {
+        'relative_package_path': _os.path.relpath(_os.path.join(dirpath, filename), _basepath),
+        'namespace': package_name
+    } for dirpath, dirnames, filenames in _os.walk(_os.path.join(_basepath, 'css')) for filename in filenames
+]
 
 
 for _component in __all__:
