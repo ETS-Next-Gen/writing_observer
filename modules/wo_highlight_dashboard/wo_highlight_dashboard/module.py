@@ -48,7 +48,6 @@ THIRD_PARTY = {
     "css/fontawesome_all.css": {
         "url": dbc.icons.FONT_AWESOME,
         "hash":
-        "535a5f3e40bc8ddf475b56c1a39a5406052b524413dea331c4e683ca99e39"
         "1496214e7421773324f4b332127ea77bec822fc6739292ebb19c6abcc22a5"
         "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7"
         
