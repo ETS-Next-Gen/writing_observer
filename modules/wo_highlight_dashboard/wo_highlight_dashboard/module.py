@@ -57,8 +57,8 @@ THIRD_PARTY = {
     },
     "webfonts/fa-solid-900.ttf": {
         "url": os.path.dirname(os.path.dirname(dbc.icons.FONT_AWESOME)) + "/webfonts/fa-solid-900.ttf",
-        "hash": "0fdd341671021d04304186c197001cf2e888d3028baaf9a5dec0f0e496959"
-        "666e8a2e34aae8e79904f8e9b4c0ccae40249897cce5f5ae58d12cc1b3985e588d6"
+        "hash": "5a2c2b010a2496e4ed832ede8620f3bbfa9374778f3d63e45a4aab041e174"
+        "dafd9fffd3229b8b36f259cf2ef46ae7bf5cb041e280f2939884652788fc1e8ce58"
     }
 }
 
