@@ -26,11 +26,21 @@ DASH_PAGES = [
     }
 ]
 
+
+Minty_URL = 'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css'
+if (dbc.themes.MINTY != Minty_URL):
+    print("WARN:: Unrecognized Minty URL detected: {}".format(dbc.themes.MINTY))
+    print("You will need to update dash bootstrap components hash value.\n")
+    
+
+
+
 THIRD_PARTY = {
     "css/bootstrap.min.css": {
         "url": dbc.themes.MINTY,
-        "hash": "b361dc857ee7c817afa9c3370f1d317db2c4be5572dd5ec3171caeb812281"
+        "hash": "c03f5bfd8deb11ad6cec84a6201f4327f28a640e693e56466fd80d983ed54"
         "cf900a5a9141e5d6c7069408e2615df612fbcd31094223996154e16f2f80a348532"
+        
     },
     "css/fontawesome_all.css": {
         "url": dbc.icons.FONT_AWESOME,
