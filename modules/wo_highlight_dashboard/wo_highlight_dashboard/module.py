@@ -39,8 +39,7 @@ THIRD_PARTY = {
     "css/bootstrap.min.css": {
         "url": dbc.themes.MINTY,
         "hash": "c03f5bfd8deb11ad6cec84a6201f4327f28a640e693e56466fd80d983ed54"
-        "cf900a5a9141e5d6c7069408e2615df612fbcd31094223996154e16f2f80a348532"
-        
+        "16deff1548a0f6bbad013ec278b9750d1d253bd9c5bd1f53c85fcd62adba5eedc59"
     },
     "css/fontawesome_all.css": {
         "url": dbc.icons.FONT_AWESOME,
