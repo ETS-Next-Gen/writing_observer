@@ -49,12 +49,11 @@ THIRD_PARTY = {
         "url": dbc.icons.FONT_AWESOME,
         "hash": "1496214e7421773324f4b332127ea77bec822fc6739292ebb19c6abcc22a5"
         "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7"
-        
     },
     "webfonts/fa-solid-900.woff2": {
         "url": os.path.dirname(os.path.dirname(dbc.icons.FONT_AWESOME)) + "/webfonts/fa-solid-900.woff2",
-        "hash": "6d3fe769cc40a5790ea2e09fb775f1bd3b130d2fdae1dd552f69559e7ca4c"
-        "a047862f795da0024737e59e3bcc7446f6eec1bab173758aef0b97ba89d722ffbde"
+        "hash": "d50c68cd4b3312f50deb66ac8ab5c37b2d4161f4e00ea077326ae76769dac"
+        "650dd19e65dee8d698ba2f86a69537f38cf4010ff45227211cee8b382d9b567257a"
     },
     "webfonts/fa-solid-900.ttf": {
         "url": os.path.dirname(os.path.dirname(dbc.icons.FONT_AWESOME)) + "/webfonts/fa-solid-900.ttf",
