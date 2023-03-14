@@ -4,6 +4,8 @@ import WOIndicatorBars from './components/WOIndicatorBars.react';
 import WOTextHighlight from './components/WOTextHighlight.react';
 import StudentSelectHeader from './components/StudentSelectHeader.react';
 import LOTextMinibars from './components/LOTextMinibars.react';
+import ZPDPlot from './components/ZPDPlot.react';
+import DAProblemDisplay from './components/DAProblemDisplay.react';
 
 export {
     LOConnection,
@@ -11,5 +13,7 @@ export {
     WOIndicatorBars,
     WOTextHighlight,
     LOTextMinibars,
-    StudentSelectHeader
+    StudentSelectHeader,
+    ZPDPlot,
+    DAProblemDisplay
 };
