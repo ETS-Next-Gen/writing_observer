@@ -1,3 +1,7 @@
+/**
+ * This is a two-column display, showing problems and their related scaffolds.
+ */
+
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 
 import PropTypes from 'prop-types';
@@ -50,6 +54,9 @@ function addCountAndIndex(data, field) {
   return indexedData;
 }
 
+/**
+ * A card representing a single problem.
+ */
 function Problem({ id, title, description }) {
   /* Dummy data. We'll bring in real data later. */
   const students = [{ initials: 'am' }, { initials: 'pm' }, { initials: 'cj' }];
@@ -97,6 +104,9 @@ function Problem({ id, title, description }) {
 
 Problem.propTypes = problemPropType;
 
+/**
+ * A card representing a single scaffold
+ */
 function Scaffold({ id, title, description }) {
   return (
     <div id={'scaffold-' + id} className="card scaffold">
@@ -111,6 +121,11 @@ function Scaffold({ id, title, description }) {
 
 Scaffold.propTypes = scaffoldPropType;
 
+/**
+ * A hidden box with circles for all the students in absolute
+ * positions. Students will be placed in the appropriate problems with
+ * JavaScript.
+ */
 function Students({ students }) {
   useEffect(() => {
     function moveStudents() {
@@ -163,10 +178,18 @@ Students.propTypes = {
   students: studentsPropType.isRequired
 };
 
+/**
+ * A spacer div, so we have room for arrows and curves connecting problems
+ * to scaffolds.
+ */
 function Connectors() {
   return <div className="connectors" />;
 }
 
+/**
+ * A zero-sized div for all the arrows. These are absolute positioned objects which
+ * we move out of the div with JavaScript.
+ */
 function Arrows({ students }) {
   useLayoutEffect(() => {
     updateArrowPositions();
@@ -203,6 +226,9 @@ Arrows.propTypes = {
   students: studentsPropType.isRequired
 };
 
+/**
+ * We draw connectors on this background
+ */
 function BackgroundCanvas({ problems }) {
   const canvasRef = useRef(null);
 
@@ -286,7 +312,11 @@ BackgroundCanvas.propTypes ={
   problems: problemsPropType.isRequired
 };
 
-
+/**
+ * This is the main display. It's a subcomponent, since the top-level component
+ * has a bunch of statically-positioned helper divs for students, arrows, and
+ * background.
+ */
 function Container({ problems, scaffolds }) {
   return (
     <div className="container">
@@ -335,10 +365,10 @@ class DAProblemDisplay extends React.Component {
 
 DAProblemDisplay.propTypes = {
   /* students (array): An array of objects containing information about each student:
-   *    - initials (string): The student's initials.
-   *    - problem (string): The ID of the problem the student is working on.
-   *    - scaffold (string): The ID of the scaffold the student is using (if any).
-   *    - id (string): The unique ID of the student.
+   * - initials (string): The student's initials.
+   * - problem (string): The ID of the problem the student is working on.
+   * - scaffold (string): The ID of the scaffold the student is using (if any).
+   * - id (string): The unique ID of the student.
    */
   students: PropTypes.arrayOf(
     PropTypes.shape({
@@ -349,10 +379,10 @@ DAProblemDisplay.propTypes = {
     })
   ).isRequired,
   /* problems (array): An array of objects containing information about each problem:
-   *    - title (string): The title of the problem.
-   *    - description (string): A description of the problem.
-   *    - id (string): The unique ID of the problem.
-   *    - relatedScaffolds (array): An array of strings representing the IDs of scaffolds related to the problem.
+   * - title (string): The title of the problem.
+   * - description (string): A description of the problem.
+   * - id (string): The unique ID of the problem.
+   * - relatedScaffolds (array): An array of strings representing the IDs of scaffolds related to the problem.
    */
   problems: PropTypes.arrayOf(PropTypes.shape({
     title: PropTypes.string.isRequired,
@@ -361,10 +391,10 @@ DAProblemDisplay.propTypes = {
     relatedScaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
   })).isRequired,
   /* scaffolds (array): An array of objects containing information about each scaffold:
-   *    - id (string): The unique ID of the scaffold.
-   *    - title (string): The title of the scaffold.
-   *    - description (string): A description of the scaffold.
-   *    - content (string): The content of the scaffold.
+   * - id (string): The unique ID of the scaffold.
+   * - title (string): The title of the scaffold.
+   * - description (string): A description of the scaffold.
+   * - content (string): The content of the scaffold.
    */
   scaffolds: PropTypes.arrayOf(PropTypes.shape({
     id: PropTypes.string.isRequired,

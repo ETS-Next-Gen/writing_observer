@@ -125,7 +125,10 @@ export const initArrows=once(function() {
   });
 });
 
-
+/**
+ * Arrow: A component that represents an arrow between two targets. It is
+ * currently for internal use only.
+ */
 export function Arrow(props) {
   const { source, target, wrapper, sourceOffset = CENTER, targetOffset = CENTER } = props;
   return (
@@ -141,10 +144,27 @@ export function Arrow(props) {
 }
 
 Arrow.propTypes = {
+  /**
+   * source: The ID of the source element.
+   */
   source: PropTypes.string.isRequired,
+  /**
+   * target: The ID of the target element.
+   */
   target: PropTypes.string.isRequired,
+  /**
+   * wrapper: The ID of any containing element. Obsolete. Should be removed.
+   */
   wrapper: PropTypes.string,
+  /**
+   * Where on the source we point to. Typically, TOP/LEFT/CENTER/BOTTOM/RIGHT,
+   * but can be an array with a length (0-1) and an angle (in degrees).
+   */
   sourceOffset: PropTypes.arrayOf(PropTypes.number),
+  /**
+   * Where on the target we point to. Typically, TOP/LEFT/CENTER/BOTTOM/RIGHT,
+   * but can be an array with a length (0-1) and an angle (in degrees).
+   */
   targetOffset: PropTypes.arrayOf(PropTypes.number),
 };
 

@@ -285,11 +285,8 @@ man/
 R/
 deps/
 man/
-lo_dash_react_components/LoConnection.py
 lo_dash_react_components/*.map
-lo_dash_react_components/_imports_.py
-lo_dash_react_components/lo_dash_react_components.min.js
-lo_dash_react_components/lo_dash_react_components.min.js.map
-lo_dash_react_components/metadata.json
-lo_dash_react_components/package-info.json
+lo_dash_react_components/*.js
+lo_dash_react_components/*.json
+lo_dash_react_components/*.py
 DESCRIPTION

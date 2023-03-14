@@ -81,6 +81,15 @@ const CustomTooltip = ({ active, payload }) => {
   return (<div/>)
 };
 
+CustomTooltip.propTypes = {
+  active: PropTypes.bool.isRequired,
+  payload: PropTypes.arrayOf(PropTypes.shape({
+    payload: PropTypes.shape({
+      name: PropTypes.string.isRequired
+    }).isRequired
+  })).isRequired
+};
+
 /**
  * A component that renders a miniature bar graph representation of text, where each bar represents a sentence, and each
  * set of bars, a paragraph

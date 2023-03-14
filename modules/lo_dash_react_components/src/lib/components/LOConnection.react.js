@@ -2,7 +2,9 @@ import {Component} from 'react';
 import PropTypes from 'prop-types';
 
 /**
- * A simple interface to
+ * A simple web socket interface to the Learning Observer
+ *
+ * We need to define an appropriate protocol here.
  */
 export default class LOConnection extends Component {
     encode_query_string(obj) {
