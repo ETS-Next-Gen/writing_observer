@@ -27,7 +27,9 @@
     "build:activated": "npm run build:js && npm run build:backends-activated",
     "build-css": "node-sass --recursive src/lib -o lo_dash_react_components/css",
     "watch-css": "node-sass --recursive src/lib -o lo_dash_react_components/css --watch",
-    "start-all": "npm-run-all --parallel watch-css react-start webpack-start dash-start"
+    "start-all": "npm-run-all --parallel watch-css react-start webpack-start dash-start",
+    "clean-build": "rm -rf dist/ && rm -rf build/",
+    "build:python": "npm run clean-build && python setup.py sdist bdist_wheel"
   },
   "author": "Piotr Mitros <pmitros@ets.org>",
   "license": "AGPL-3.0",
