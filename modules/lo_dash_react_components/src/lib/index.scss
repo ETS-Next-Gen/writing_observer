@@ -63,6 +63,10 @@
 }
 
 :root {
+  --mastery-color: hsl(120, 80%, 75%);
+  --zpd-color: hsl(60, 80%, 75%);
+  --fail-color: hsl(10, 80%, 75%);
+  --none-color: hsl(0, 0%, 80%);
   --scale: 200px;
   --mastery-background: palegreen;
   --zpd-background: lightyellow;

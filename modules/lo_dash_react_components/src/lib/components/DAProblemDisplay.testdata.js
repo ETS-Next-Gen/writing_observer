@@ -1,5 +1,19 @@
 /* eslint-disable no-magic-numbers */
 
+const zones = ['zad', 'zpd', 'znd', 'none'];
+
+/**
+ * Randomly assign between lowerBound and upperBound students to each zone.
+ */
+function assignRandomZones(list, lowerBound, upperBound) {
+  var dict = {};
+  for (var i = 0; i < list.length; i++) {
+    var randNum = Math.floor(Math.random() * (upperBound - lowerBound + 1)) + lowerBound;
+    dict[list[i]] = randNum;
+  }
+  return dict;
+}
+
 const SAMPLE_PROBLEMS = [
   {
     title: 'Bouncing Ball',
@@ -7,6 +21,7 @@ const SAMPLE_PROBLEMS = [
     'Determine the maximum height, time to reach maximum height, and total time a ball is in the air when thrown straight up with a given velocity.',
     id: 'ms-bouncing-ball',
     relatedScaffolds: ['scaffold-graphs', 'scaffold-parabolas'],
+    zones: assignRandomZones(zones, 0, 10),
   },
   {
     title: 'Pizza Party',
@@ -14,6 +29,7 @@ const SAMPLE_PROBLEMS = [
     'Calculate the number of pizzas needed and the cost of a pizza party based on the number of guests and their average pizza consumption.',
     id: 'ms-pizza-party',
     relatedScaffolds: ['scaffold-rates', 'scaffold-percentages'],
+    zones: assignRandomZones(zones, 0, 10),
   },
   {
     title: 'Scaling Shapes',
@@ -25,6 +41,7 @@ const SAMPLE_PROBLEMS = [
       'scaffold-graphs',
       'scaffold-units',
     ],
+    zones: assignRandomZones(zones, 0, 10),
   },
   {
     title: 'Sports Stats',
@@ -32,6 +49,7 @@ const SAMPLE_PROBLEMS = [
     'Compute and compare statistics such as batting average, on-base percentage, and slugging percentage for different baseball players or teams.',
     id: 'ms-sports-stats',
     relatedScaffolds: ['scaffold-rates', 'scaffold-graphs'],
+    zones: assignRandomZones(zones, 0, 10),
   },
 ];
 

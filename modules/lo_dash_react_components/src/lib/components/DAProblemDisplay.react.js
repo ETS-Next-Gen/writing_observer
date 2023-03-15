@@ -8,8 +8,6 @@ import PropTypes from 'prop-types';
 import { PieChart, Pie, Cell, Label } from 'recharts';
 import { Arrow, initArrows, updateArrowPositions, stagger, djb2 } from './helperlib';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
 const studentPropType = {
   initials: PropTypes.string.isRequired,
   problem: PropTypes.string.isRequired,
@@ -24,18 +22,36 @@ const problemPropType = {
   description: PropTypes.string.isRequired,
   id: PropTypes.string.isRequired,
   relatedScaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
+  students: studentsPropType,
+  zones: PropTypes.shape({[PropTypes.string]: PropTypes.number}),
 };
 
 const problemsPropType = PropTypes.arrayOf(PropTypes.shape(problemPropType));
 
 const scaffoldPropType = {
-    id: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    description: PropTypes.string.isRequired,
+  id: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string.isRequired,
+  students: studentsPropType,
 };
 
 const scaffoldsPropType = PropTypes.arrayOf(PropTypes.shape(scaffoldPropType));
 
+/**
+ * Add a count and index to each object in the input data array based on a given field.
+ *
+ * We use this so that we can count (1) how many students are working on each problem (2) give
+ * each of them a unique position within (0, count), so we can space them nicely.
+ *
+ * Args:
+ *   data (list): A list of objects.
+ *   field (str): A string representing the field to be used for counting and indexing.
+ *
+ * Returns:
+ *   list: A new list of objects, where each object has an additional "count" and "index" key.
+ *   The "count" value represents the total number of objects in the input data array that have the same
+ *   value for the field, and the "index" value represents the index of the object among that subset of objects.
+ */
 function addCountAndIndex(data, field) {
   const counts = {};
   let indexedData = data.map((obj) => {
@@ -54,20 +70,63 @@ function addCountAndIndex(data, field) {
   return indexedData;
 }
 
+/*
+ * This function takes in a list of students, scaffolds, and problems and annotates each scaffold and problem with the list of students working on them.
+ *
+ * This should probably be a function which is called twice, once for problems and once for scaffolds, taking
+ * a generic 'items,' eventually.
+ *
+ * This will pass over items which already have lists of associated students, as we expect will eventually come from our reducers (but not for our test data)
+ *
+ * Args:
+ *  students (list): A list of dictionaries containing information about each student.
+ *  scaffolds (list): A list of dictionaries containing information about each scaffold.
+ *  problems (list): A list of dictionaries containing information about each problem.
+ *
+ * Returns:
+ *   None. This function modifies the scaffolds and problems lists in place by adding a 'students' field to each dictionary with the list of students working on the scaffold or problem.
+ */
+function annotateWithStudents(students, scaffolds, problems) {
+  for (const scaffold of scaffolds) {
+    if(scaffold.students) {
+      continue;
+    }
+    scaffold.students = [];
+    for (const student of students) {
+      if (student.scaffold === scaffold.id) {
+        scaffold.students.push(student);
+      }
+    }
+  }
+  for (const problem of problems) {
+    if(problem.students) {
+      continue;
+    }    problem.students = [];
+    for (const student of students) {
+      if (student.problem === problem.id) {
+        problem.students.push(student);
+      }
+    }
+  }
+}
+
+
 /**
  * A card representing a single problem.
  */
-function Problem({ id, title, description }) {
+function Problem({ id, title, description, students, zones }) {
   /* Dummy data. We'll bring in real data later. */
-  const students = [{ initials: 'am' }, { initials: 'pm' }, { initials: 'cj' }];
-  const data = [
-    { name: 'Green', value: 10 },
-    { name: 'Yellow', value: 5 },
-    { name: 'Red', value: 3 },
-    { name: 'Grey', value: 2 },
-  ];
+  const pie_chart_data = Object.entries(zones).map(([name, value]) => ({name, value}));
 
+  console.log(zones);
   const totalStudents = students.length;
+
+  const colors = {
+    none: 'var(--none-color)',
+    znd: 'var(--fail-color)',
+    zpd: 'var(--zpd-color)',
+    zad: 'var(--mastery-color)',
+  };
 
   return (
     <div id={'problem-' + id} className="card problem">
@@ -79,19 +138,21 @@ function Problem({ id, title, description }) {
         <div style={{ width: '80px', height: '80px' }}>
           <PieChart width={80} height={80}>
             <Pie
-              data={data}
+              data={pie_chart_data}
               dataKey="value"
               nameKey="name"
               innerRadius={20}
               outerRadius={40}
               isanimation={false}
             >
-              {data.map((entry, index) => (
+              {pie_chart_data.map((entry) => {
+                console.log(colors[entry.name]);
+                return (
                 <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
+                  key={entry.name}
+                  fill={colors[entry.name]}
                 />
-              ))}
+              )})}
               <Label value={`${totalStudents}`} position="center" />
             </Pie>
           </PieChart>
@@ -352,6 +413,8 @@ Container.propTypes ={
 class DAProblemDisplay extends React.Component {
   render() {
     const { students, problems, scaffolds } = this.props;
+    annotateWithStudents(students, scaffolds, problems);
+
     return (
       <div className="App" id="problem-page-wrapper">
         <Arrows students={students} />
