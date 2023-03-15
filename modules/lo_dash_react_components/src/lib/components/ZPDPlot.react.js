@@ -1,3 +1,8 @@
+/*
+ * Traditional, per-student Vygotskian display of which concepts are in the zone of
+ * proximal development, actual development, and which a student cannot do
+ */
+
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Arrow, LEFT, updateArrowPositions, initArrows } from './helperlib';
@@ -61,6 +66,9 @@ const ZPDRing = (_props) => {
   );
 }
 
+/**
+ * This is a component which shows which zones different problems fall into for a given student.
+ */
 export default class ZPDPlot extends React.Component {
   componentDidMount() {
     updateArrowPositions();
