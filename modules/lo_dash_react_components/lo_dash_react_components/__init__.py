@@ -67,12 +67,10 @@ _js_dist.extend(
     [
         {
             'relative_package_path': 'lo_dash_react_components.min.js',
-    
             'namespace': package_name
         },
         {
             'relative_package_path': 'lo_dash_react_components.min.js.map',
-    
             'namespace': package_name,
             'dynamic': True
         }
@@ -85,7 +83,6 @@ _css_dist = [
         'namespace': package_name
     } for dirpath, dirnames, filenames in _os.walk(_os.path.join(_basepath, 'css')) for filename in filenames
 ]
-
 
 for _component in __all__:
     setattr(locals()[_component], '_js_dist', _js_dist)

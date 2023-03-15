@@ -51,6 +51,7 @@ def get_subclasses(module, base_class):
     return [name for name, obj in inspect.getmembers(module)
             if inspect.isclass(obj) and issubclass(obj, base_class)]
 
+
 component_list = get_subclasses(lo_dash_react_components, dash.development.base_component.Component)
 link_items = [html.Li(html.A(href=f"/components/{component}", children=component)) for component in component_list]
 ul = html.Ul(children=link_items)
