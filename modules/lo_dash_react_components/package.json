@@ -1,0 +1,94 @@
+{
+  "name": "lo_dash_react_components",
+  "version": "0.0.1",
+  "description": "React and Dash components for Learning Observer dashboards",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ETS-Next-Gen/lo-dash-react-components.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ETS-Next-Gen/lo-dash-react-components/issues"
+  },
+  "homepage": "https://github.com/ETS-Next-Gen/lo-dash-react-components",
+  "main": "build/index.js",
+  "scripts": {
+    "webpack-start": "webpack-serve --config ./webpack.serve.config.js --open",
+    "describe-webpack-start": "echo Run react app (without dash) with WebPack, which is Dash's default.",
+    "react-start": "react-scripts start",
+    "describe-react-start": "echo Run react app (without dash) with React Scripts, which probably gives the most rapid workflow.",
+    "dash-start": "nodemon",
+    "describe-dash-start": "echo Run full dash app with nodemon. This requires a rebuild each time files change.",
+    "validate-init": "python _validate_init.py",
+    "prepublishOnly": "npm run validate-init",
+    "build:js": "webpack --mode production",
+    "build:backends": "dash-generate-components ./src/lib/components lo_dash_react_components -p package-info.json --r-prefix '' --jl-prefix '' --ignore \\.test\\.",
+    "build:backends-activated": "(. venv/bin/activate || venv\\scripts\\activate && npm run build:py_and_r)",
+    "build": "npm run build:js && npm run build:backends",
+    "build:activated": "npm run build:js && npm run build:backends-activated",
+    "build-css": "node-sass --recursive src/lib -o lo_dash_react_components/css",
+    "watch-css": "node-sass --recursive src/lib -o lo_dash_react_components/css --watch",
+    "start-all": "npm-run-all --parallel watch-css react-start webpack-start dash-start",
+    "clean-build": "rm -rf dist/ && rm -rf build/",
+    "build:python": "npm run clean-build && python setup.py sdist bdist_wheel"
+  },
+  "author": "Piotr Mitros <pmitros@ets.org>",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "bootstrap": "^5.2.3",
+    "node-sass": "^7.0.3",
+    "nodemon": "^2.0.21",
+    "ramda": "^0.26.1",
+    "react": "^18.2.0",
+    "react-bootstrap": "^2.7.2",
+    "react-dom": "^18.2.0",
+    "react-router": "^6.8.2",
+    "react-router-dom": "^6.8.2",
+    "react-scripts": "^5.0.1",
+    "recharts": "^2.4.3",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.5.4",
+    "@babel/plugin-proposal-object-rest-spread": "^7.5.4",
+    "@babel/preset-env": "^7.5.4",
+    "@babel/preset-react": "^7.0.0",
+    "@plotly/dash-component-plugins": "^1.2.0",
+    "@plotly/webpack-dash-dynamic-import": "^1.2.0",
+    "babel-eslint": "^10.0.2",
+    "babel-loader": "^8.0.6",
+    "copyfiles": "^2.1.1",
+    "css-loader": "^3.0.0",
+    "eslint": "^6.0.1",
+    "eslint-config-prettier": "^6.0.0",
+    "eslint-plugin-import": "^2.18.0",
+    "eslint-plugin-react": "^7.14.2",
+    "npm-run-all": "^4.1.5",
+    "prop-types": "^15.7.2",
+    "react-docgen": "^4.1.1",
+    "style-loader": "^0.23.1",
+    "styled-jsx": "^5.1.2",
+    "terser-webpack-plugin": "^2.3.0",
+    "webpack": "4.36.1",
+    "webpack-cli": "3.3.6",
+    "webpack-serve": "3.1.0"
+  },
+  "engines": {
+    "node": ">=8.11.0",
+    "npm": ">=6.1.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 firefox version",
+      "last 1 chrome version",
+      "last 1 safari version"
+    ]
+  }
+}
