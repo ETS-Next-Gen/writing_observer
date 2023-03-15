@@ -12,6 +12,16 @@ from .students import student_dashboard_view
 # passing empty parameters will automatigically be used as query strings
 # see: https://dash.plotly.com/urls#query-strings
 def layout(course_id=None, assignment_id=None):
+    """
+    Returns the layout of the student dashboard view wrapped in a Spinner component.
+
+    Args:
+    - course_id (str or None): The ID of the course to display in the dashboard. Defaults to None.
+    - assignment_id (str or None): The ID of the assignment to display in the dashboard. Defaults to None.
+
+    Returns:
+    - A Dash layout containing the student dashboard view wrapped in a Spinner component.
+    """
     layout = dbc.Spinner(
         student_dashboard_view(course_id, assignment_id),
         color='primary'

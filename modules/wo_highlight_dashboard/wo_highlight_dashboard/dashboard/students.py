@@ -4,8 +4,7 @@ Creates the grid of student cards
 # package imports
 from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, exceptions as dash_e
 import dash_bootstrap_components as dbc
-from learning_observer_components import LOConnection
-import learning_observer_components as loc  # student cards
+import lo_dash_react_components as lodrc
 
 # local imports
 from . import settings, settings_defaults, settings_options as so
@@ -45,11 +44,25 @@ assignment_desc = f'{prefix}-assignment-description'
 
 
 def student_dashboard_view(course_id, assignment_id):
-    '''Create student dashboard view,
+    """
+    Create a student dashboard view for a given course and assignment.
 
-    course_id: id of given course
-    assignment_id: id of assignment
-    '''
+    Args:
+        course_id (str): The ID of the course.
+        assignment_id (str): The ID of the assignment.
+
+    Returns:
+        html.Div: A Dash component that displays a student dashboard view.
+
+    The student dashboard view consists of a navigation bar at the top and a container
+    that contains the main content of the dashboard. The navigation bar displays the
+    title of the assignment, a progress bar indicating the status of data fetching, a
+    button to open the settings menu, and a button to log out. The container contains
+    the description of the assignment, a row of cards that display information about
+    each student, and several hidden stores and intervals that store data and update
+    the view periodically.
+
+    """
     navbar = dbc.Navbar(
         [
             # assignment title
@@ -166,7 +179,7 @@ def student_dashboard_view(course_id, assignment_id):
                 # students already have some space on the sides
                 class_name='g-0'
             ),
-            LOConnection(id=websocket),
+            lodrc.LOConnection(id=websocket),
             # stores for course and student info + student counter
             dcc.Store(id=course_store),
             dcc.Store(id=assignment_store),
@@ -208,6 +221,8 @@ clientside_callback(
     Input('_pages_location', 'hash')
 )
 
+# fetch the nlp options from the server
+# this will only fetch on the first page load since we never update the prefix's className
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='fetch_nlp_options'),
     Output(nlp_options, 'data'),
@@ -285,6 +300,7 @@ clientside_callback(
     State(msg_counter, 'data'),
 )
 
+# update the last updated text
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='update_last_updated_text'),
     Output(last_updated_msg, 'children'),
@@ -292,6 +308,8 @@ clientside_callback(
     Input(last_updated_interval, 'n_intervals')
 )
 
+# send list of wanted nlp options to server
+# data will be returned from the server in a separate callback
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='send_options_to_server'),
     Output(websocket, 'send'),
@@ -302,6 +320,7 @@ clientside_callback(
     Input(settings.sort_by_checklist, 'value')
 )
 
+# show or hide the settings checklist for different components
 show_hide_module = '''
     function(values, students) {{
         if (values.includes('{id}')) {{
@@ -329,6 +348,7 @@ clientside_callback(
     State(student_counter, 'data')
 )
 
+# show or hide the components on all student cards
 update_shown_items = '''
     function(values, students) {{
         return Array(students).fill(values.map(x => `${{x}}_{}`));
@@ -360,6 +380,7 @@ clientside_callback(
     Input(msg_counter, 'data')
 )
 
+# toggle the npl running alert
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='show_nlp_running_alert'),
     Output({'type': alert_type, 'index': nlp_running_alert}, 'is_open'),
@@ -371,6 +392,7 @@ clientside_callback(
     Input(settings.sort_by_checklist, 'value'),
 )
 
+# update overall page alert based on all alerts
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='update_overall_alert'),
     Output(overall_alert, 'label'),
@@ -421,6 +443,25 @@ clientside_callback(
     )
 )
 def fill_in_settings(course, assignment, options):
+    """
+    Fill in the settings for the student performance dashboard based on the selected course and assignment,
+    as well as the NLP options. Returns a dictionary of settings that can be used to update the dashboard.
+
+    Args:
+        course (dict): A dictionary containing information about the selected course.
+        assignment (dict): A dictionary containing information about the selected assignment.
+        options (list): A list of NLP options selected by the user.
+
+    Returns:
+        dict: A dictionary containing the updated settings for the student performance dashboard. The dictionary has the following keys:
+            - sort_by_options: A list of checklist options for sorting the data.
+            - metric_options: A list of checklist options for selecting the metrics to display.
+            - metric_value: The default metric selected.
+            - highlight_options: A list of checklist options for highlighting the data.
+            - highlight_value: The default highlight selected.
+            - indicator_options: A list of checklist options for selecting the indicators to display.
+            - indicator_value: The default indicator selected.
+    """
     if len(options) == 0:
         raise dash_e.PreventUpdate
     # populate all settings based on assignment or default
@@ -449,27 +490,30 @@ def fill_in_settings(course, assignment, options):
     Input(student_store, 'data')
 )
 def create_cards(students):
-    # create student cards based on student info
+    """
+    Create a list of Dash Bootstrap Components (dbc) columns, where each column contains
+    a dbc Card for a student.
 
-    # TODO if the card data exists in the student_store,
-    # we want to include it in the initial loading of the card
-    # this will require the same parser to initially populate data
-    # what do we want the storage type to be?
-    # i.e. the same code for both js and python
+    Args:
+        students (list): A list of dictionaries representing the data for each student.
+
+    Returns:
+        list: A list of dbc Columns, where each column contains a dbc Card for a student.
+    """
     cards = [
         dbc.Col(
             [
                 dbc.Card(
                     [
                         html.H4(s['profile']['name']['full_name']),
-                        loc.LOMetrics(
+                        lodrc.WOMetrics(
                             id={
                                 'type': student_metrics,
                                 'index': s['user_id']
                             }
                         ),
                         html.Div(
-                            loc.LOTextHighlight(
+                            lodrc.WOTextHighlight(
                                 id={
                                     'type': student_texthighlight,
                                     'index': s['user_id']
@@ -477,7 +521,7 @@ def create_cards(students):
                             ),
                             className='student-card-text'
                         ),
-                        loc.LOIndicatorBars(
+                        lodrc.WOIndicatorBars(
                             id={
                                 'type': student_indicators,
                                 'index': s['user_id']

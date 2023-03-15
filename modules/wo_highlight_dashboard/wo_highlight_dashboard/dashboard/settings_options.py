@@ -1,5 +1,5 @@
 '''
-Defines the options in the settings panel
+Define the options labels in the settings panel
 '''
 # package imports
 from dash import html
@@ -7,6 +7,16 @@ import dash_bootstrap_components as dbc
 
 
 def create_metric_label(opt, child=False):
+    """
+    Creates a metric label component with the given option.
+
+    Parameters:
+    - opt (dict): A dictionary that contains the options to create the metric label component.
+    - child (bool): Whether this label is a child label.
+
+    Returns:
+    - A Badge component with the given options.
+    """
     return dbc.Badge(
         opt.get('name'),
         color='info',
@@ -16,6 +26,16 @@ def create_metric_label(opt, child=False):
 
 
 def create_highlight_label(opt, child=False):
+    """
+    Creates a highlight label component with the given option.
+
+    Parameters:
+    - opt (dict): A dictionary that contains the options to create the highlight label component.
+    - child (bool): Whether this label is a child label.
+
+    Returns:
+    - A Span component with the given options.
+    """
     class_name = f"{opt.get('id')}_highlight"
     return html.Span(
         opt.get('name'),
@@ -25,6 +45,16 @@ def create_highlight_label(opt, child=False):
 
 
 def create_generic_label(opt, child=False):
+    """
+    Creates a generic label component with the given option.
+
+    Parameters:
+    - opt (dict): A dictionary that contains the options to create the generic label component.
+    - child (bool): Whether this label is a child label.
+
+    Returns:
+    - A Span component with the given options.
+    """
     return html.Span(
         opt.get('name'),
         title=opt.get('tooltip', ''),
@@ -33,6 +63,17 @@ def create_generic_label(opt, child=False):
 
 
 def create_checklist_options(user_options, options, selector_type):
+    """
+    Creates a checklist with the given user options, options and selector type.
+
+    Parameters:
+    - user_options (list): A list of user options.
+    - options (list): A list of options.
+    - selector_type (str): The type of selector to create.
+
+    Returns:
+    - A list of options formatted for use in a checklist.
+    """
     if selector_type == 'metric':
         label_maker = create_metric_label
     elif selector_type == 'highlight':
