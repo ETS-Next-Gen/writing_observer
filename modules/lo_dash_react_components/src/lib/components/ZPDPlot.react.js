@@ -109,7 +109,7 @@ ZPDPlot.propTypes = {
    * The ID used to identify this component in Dash callbacks.
    */
   id: PropTypes.string,
-  /*
+  /**
    * A list of all available students. This is so we can select a student.
    * This should be moved out of this, one level up, so the logic is common
    * to any per-student view.
