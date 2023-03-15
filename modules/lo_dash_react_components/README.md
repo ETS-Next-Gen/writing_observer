@@ -45,6 +45,10 @@ Get started with:
 
 4. Run `react-start` to test in the main React scripts
 
+5. Run `build-css` to build scss into css in the `lo_dash_react_components/` directory.
+
+6. Run `watch-css` to watch and automatically rebuild data
+
 Each of these will give slightly different behavior. Development in React tends to have the most rapid development cycle, but at some point, we switch to dash workflows in order to work end-to-end.
 
 Read the `package.json` file to see other scripts available. There's a lot more, and you should be familiar with them.
@@ -54,8 +58,8 @@ Read the `package.json` file to see other scripts available. There's a lot more,
 1. To develop a new component, simply toss in a `react.js` file in `src/lib/components`.
 2. Remember to use class (not functional) syntax for compatibility with `dash`
 3. If the component needs data, toss in a `.testdata.js` file in `src/lib/components`. Note that this file should not use modern JavaScript (we're limited to ES5.1, except for `export default`).
-4. Add SCSS. As of this writing, we're still figuring out how to handle that. However:
-5. Each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there, or so we can introspect what's on a page).
+4. If the component needs SCSS, add a `.scss` file in `src/lib/components`. Each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there, or so we can introspect what's on a page).
+5. Use `npm run start-all` to start the react, scss, and dash workflow.
 6. Remember that by the time you move from pure React to `dash`, you should follow `dash` conventions (e.g. you'll want to support `setProps`, be a class-based component, etc.)
 7. For `dash` to be aware of the component, it should be added to `src/lib/index.js`
 
@@ -98,10 +102,11 @@ Our plan, over time, is to diverge from `dash`. As a rule, with tests, we don't 
 2. Create a Python distribution
 
     ```bash
-    python setup.py sdist bdist_wheel
+    npm run build:python
     ```
 
-    This will create source and wheel distribution in the generated the `dist/` folder.
+    This first cleans the `dist/` and `build/` directories.
+    Then, it will create source and wheel distribution in the generated the `dist/` folder.
     See [PyPA](https://packaging.python.org/guides/distributing-packages-using-setuptools/#packaging-your-project)
     for more information.
 
