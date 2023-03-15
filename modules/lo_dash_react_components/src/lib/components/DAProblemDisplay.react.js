@@ -401,7 +401,8 @@ Container.propTypes ={
   scaffolds: scaffoldsPropType.isRequired
 };
 
-/* The DAProblemDisplay component is responsible for displaying
+/**
+ * The DAProblemDisplay component is responsible for displaying
  * information about students, problems, and scaffolds. It takes in an
  * array of student objects, each containing their initials, the
  * problem they are working on, the scaffold they are using (if any),
@@ -427,7 +428,8 @@ class DAProblemDisplay extends React.Component {
 }
 
 DAProblemDisplay.propTypes = {
-  /* students (array): An array of objects containing information about each student:
+  /**
+   * students (array): An array of objects containing information about each student:
    * - initials (string): The student's initials.
    * - problem (string): The ID of the problem the student is working on.
    * - scaffold (string): The ID of the scaffold the student is using (if any).
@@ -441,7 +443,8 @@ DAProblemDisplay.propTypes = {
       id: PropTypes.string.isRequired,
     })
   ).isRequired,
-  /* problems (array): An array of objects containing information about each problem:
+  /**
+   * problems (array): An array of objects containing information about each problem:
    * - title (string): The title of the problem.
    * - description (string): A description of the problem.
    * - id (string): The unique ID of the problem.
@@ -453,7 +456,8 @@ DAProblemDisplay.propTypes = {
     id: PropTypes.string.isRequired,
     relatedScaffolds: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
   })).isRequired,
-  /* scaffolds (array): An array of objects containing information about each scaffold:
+  /**
+   * scaffolds (array): An array of objects containing information about each scaffold:
    * - id (string): The unique ID of the scaffold.
    * - title (string): The title of the scaffold.
    * - description (string): A description of the scaffold.
