@@ -2,7 +2,7 @@
 // as a single service worker script
 
 try {
-    importScripts( "./writing_common.js", "./background.js");
+    importScripts("./writing_common.js", "./background.js");
 } catch (e) {
     console.log(e);
 }
