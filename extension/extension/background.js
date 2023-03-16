@@ -408,11 +408,25 @@ chrome.webRequest.onBeforeRequest.addListener(
 // https://stackoverflow.com/questions/10994324/chrome-extension-content-script-re-injection-after-upgrade-or-install
 
 chrome.runtime.onInstalled.addListener(async () => {
-  for (const cs of chrome.runtime.getManifest().content_scripts) {
-    for (const tab of await chrome.tabs.query({url: cs.matches})) {
+  for (const contentScript of chrome.runtime.getManifest().content_scripts) {
+    for (const tab of await chrome.tabs.query({url: contentScript.matches})) {
+      // Unload the dead content script by removing its code from the page
       chrome.scripting.executeScript({
-        target: {tabId: tab.id},
-        files: cs.js,
+        target: { tabId: tab.id, allFrames: true },
+        func: function() {
+          var scripts = document.getElementsByTagName('script');
+          for(var i = scripts.length - 1; i >= 0; i--) {
+            if(scripts[i].src === `chrome-extension://${chrome.runtime.id}/writing.js`) {
+              scripts[i].remove();
+            }
+          }
+        }
+      });
+
+      // re-inject content script
+      chrome.scripting.executeScript({
+        target: {tabId: tab.id, allFrames: true},
+        files: contentScript.js,
       });
     }
   }
