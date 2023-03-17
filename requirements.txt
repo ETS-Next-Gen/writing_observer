@@ -18,7 +18,6 @@ dash-table
 faker
 filetype
 git+https://github.com/pmitros/tsvx.git@09bf7f33107f66413d929075a8b54c36ca581dae#egg=tsvx
-git+https://github.com/ArgLab/learning_observer_dash_components
 git+https://github.com/testlabauto/loremipsum.git@b7bd71a6651207ef88993045cd755f20747f2a1e#egg=loremipsum
 google-auth
 ipython
@@ -34,6 +33,7 @@ pyasn1
 py-bcrypt
 pycodestyle
 pylint
+pytest
 pyyaml
 recordclass
 redis
