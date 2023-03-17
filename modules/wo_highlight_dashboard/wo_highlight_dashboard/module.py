@@ -29,13 +29,21 @@ DASH_PAGES = [
 THIRD_PARTY = {
     "css/bootstrap.min.css": {
         "url": dbc.themes.MINTY,
-        "hash": "b361dc857ee7c817afa9c3370f1d317db2c4be5572dd5ec3171caeb812281"
-        "cf900a5a9141e5d6c7069408e2615df612fbcd31094223996154e16f2f80a348532"
+        "hash": {
+            "old": "b361dc857ee7c817afa9c3370f1d317db2c4be5572dd5ec3171caeb812281"
+            "cf900a5a9141e5d6c7069408e2615df612fbcd31094223996154e16f2f80a348532",
+            "5.1.3": "c03f5bfd8deb11ad6cec84a6201f4327f28a640e693e56466fd80d983ed54"
+            "16deff1548a0f6bbad013ec278b9750d1d253bd9c5bd1f53c85fcd62adba5eedc59"
+        }
     },
     "css/fontawesome_all.css": {
         "url": dbc.icons.FONT_AWESOME,
-        "hash": "535a5f3e40bc8ddf475b56c1a39a5406052b524413dea331c4e683ca99e39"
-        "6dbbc11fdce1f8355730a73c52ac6a1062de1938406c6af8e4361fd346106acb6b0"
+        "hash": [
+            "6.1.1": "535a5f3e40bc8ddf475b56c1a39a5406052b524413dea331c4e683ca99e39"
+            "6dbbc11fdce1f8355730a73c52ac6a1062de1938406c6af8e4361fd346106acb6b0",
+            "6.3.0": "1496214e7421773324f4b332127ea77bec822fc6739292ebb19c6abcc22a5"
+            "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7"
+        ]
     },
     "webfonts/fa-solid-900.woff2": {
         "url": os.path.dirname(os.path.dirname(dbc.icons.FONT_AWESOME)) + "/webfonts/fa-solid-900.woff2",
@@ -48,6 +56,36 @@ THIRD_PARTY = {
         "666e8a2e34aae8e79904f8e9b4c0ccae40249897cce5f5ae58d12cc1b3985e588d6"
     }
 }
+
+# As of today, our goal isn't to have consistent versions installed,
+# so much as to verify hashes to block man-in-the-middle
+# attacks. We're keeping versions which on different systems here.
+#
+# We may (and should) remove deprecated versions in the future, but we
+# do expect to continue to work with more than one version.
+#
+# A better design would map version URLs to sha hashes, under
+# DRY. That can be done once we either kill "old" above or figure out
+# what URL that came from. At that point, we can replace Minty_URLs
+# with THIRD_PARTY["css/bootstrap.min.css"]["hash"]
+
+Minty_URLs = [
+    'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
+]
+
+if (dbc.themes.MINTY not in Minty_URL):
+    print("WARN:: Unrecognized Minty URL detected: {}".format(dbc.themes.MINTY))
+    print("You will need to update dash bootstrap components hash value.\n")
+
+FontAwesome_URLs = [
+    "https://use.fontawesome.com/releases/v6.3.0/css/all.css",
+    "https://use.fontawesome.com/releases/v6.1.1/css/all.css"
+]
+
+if (dbc.icons.FONT_AWESOME not in FontAwesome_URLs):
+    print("WARN:: Unrecognized Fontawesome URL detected: {}".format(dbc.icons.FONT_AWESOME))
+    print("You will need to update the FontAwesome bootstrap components hash value.\n")
+
 
 COURSE_DASHBOARDS = [{
     'name': "Dash Writing Observer",
