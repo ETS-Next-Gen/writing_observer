@@ -61,6 +61,15 @@ echo -e "\n=== Installing Requirements.txt ==="
 cd ..
 "$PIP_CMD" install -r requirements.txt
 
+# If we plan to use a GPU then this line must also
+# be run.  Comment out the code below if you do
+# not want cuda installed or edit it for your
+# library version.
+echo -e "\n=== Installing Spacy CUDA, comment out if not needed. ==="
+echo -e "\n    Using CUDA v. 117"
+cd ..
+"$PIP_CMD" install spacy[cuda117]
+
 echo -e "\n=== Installing Learning Observer ==="
 cd learning_observer
 "$PYTHON_CMD" setup.py develop
