@@ -20,4 +20,4 @@ jobs:
         pip install -r requirements.txt
     - name: Unit testing with pytest
       run: |
-        pytest modules/wo_highlight_dashbaord/
+        pytest modules/wo_highlight_dashboard/
