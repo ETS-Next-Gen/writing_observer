@@ -19,6 +19,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install modules/writing_observer/
+        pip install modules/wo_highlight_dashboard/
     - name: Unit testing with pytest
       run: |
         pytest modules/wo_highlight_dashboard/
