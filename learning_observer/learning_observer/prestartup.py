@@ -172,7 +172,7 @@ def download_3rd_party_static():
             # Do we want to os.unlink(filename) or just terminate?
             # Probably just terminate, so we can debug.
             error = "File integrity of {name} failed!\n" \
-                    "Expected: {hashes}\n" \
+                    "Expected: {sha}\n" \
                     "Got: {shahash}\n" \
                     "We download 3rd party libraries from the Internet. This error means that ones of\n" \
                     "these files changed. This may indicate a man-in-the-middle attack, that a CDN has\n" \
