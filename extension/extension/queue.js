@@ -109,3 +109,50 @@ await sample.enqueue("goodbye")
 console.log(await sample.dequeue());
 console.log(await sample.dequeue());
 console.log(await sample.dequeue());
+
+/**
+ * This code defines a function called "backoff" that takes in 4 parameters:
+ *
+ * 1. fn : a function to be executed
+ * 2. delay : the initial delay (in milliseconds) before executing fn
+ * 3. factor : a multiplier factor to increase the delay on each retry
+ * 4. maxDelay : the maximum delay (in milliseconds) before giving up on retries
+ *
+ * The function delays the execution of a fn. If fn fails (its promise
+ * rejects), the function recursively calls itself with an increased
+ * delay based on the factor parameter, up to a maximum delay of
+ * maxDelay.
+ */
+function backoff(fn, delayMs, delayFactor, maxDelayMs) {
+  function executeFunctionWithDelay() {
+    setTimeout(() => {
+      fn().catch(() => {
+        const nextDelayMs = Math.min(delayMs * delayFactor, maxDelayMs);
+        backoff(fn, nextDelayMs, delayFactor, maxDelayMs);
+      });
+    }, delayMs);
+  };
+
+  executeFunctionWithDelay();
+};
+
+let counter = 0;
+function printHelloAndFail() {
+  console.log("Hello");
+  if (counter<5) {
+    counter = counter + 1;
+    return Promise.reject("Promise failed");
+  } else {
+    counter = counter + 0;
+    console.log("Okay. I'll succeed");
+    return Promise.resolve("Promise succeeded");
+  }
+}
+
+function printGoodbyeAndSucceed() {
+  console.log("Goodbye");
+  return Promise.resolve("Promise succeeded");
+}
+
+backoff(printHelloAndFail, 1000, 2, 10000);
+backoff(printGoodbyeAndSucceed, 1000, 2, 10000);
