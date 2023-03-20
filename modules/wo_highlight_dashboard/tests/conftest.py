@@ -1,18 +1,16 @@
-import names
 import pytest
 
 import writing_observer.nlp_indicators
 
 
-def synthesize_student(course_id=None):
+def synthesize_student(id, course_id=None):
     """
     Create a fake student under a given course_id
     """
     if course_id is None:
         course_id = '1234567890'
-    first = names.get_first_name()
-    family = names.get_last_name()
-    id = '10987654321'
+    first = f'student-{id}'
+    family = 'last'
     student = {
         "course_id": course_id,
         "user_id": id,
@@ -32,7 +30,7 @@ def synthesize_student(course_id=None):
 
 @pytest.fixture(scope='session')
 def fetch_students():
-    students = [synthesize_student() for _ in range(10)]
+    students = [synthesize_student(i) for i in range(10)]
     return students
 
 
