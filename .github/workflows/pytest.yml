@@ -1,6 +1,9 @@
 name: Pytest
 
-on: [push]
+on:
+  push:
+    branches:
+    - pytest-debugging
 
 jobs:
   build:
