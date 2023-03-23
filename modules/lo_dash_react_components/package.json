@@ -23,7 +23,7 @@
     "build:js": "webpack --mode production",
     "build:backends": "dash-generate-components ./src/lib/components lo_dash_react_components -p package-info.json --r-prefix '' --jl-prefix '' --ignore \\.test\\.",
     "build:backends-activated": "(. venv/bin/activate || venv\\scripts\\activate && npm run build:py_and_r)",
-    "build": "npm run build:js && npm run build:backends",
+    "build": "npm run build-css && npm run build:js && npm run build:backends",
     "build:activated": "npm run build:js && npm run build:backends-activated",
     "build-css": "node-sass --recursive src/lib -o lo_dash_react_components/css",
     "watch-css": "node-sass --recursive src/lib -o lo_dash_react_components/css --watch",

@@ -1,6 +1,21 @@
 import json
-import os
 from setuptools import setup
+from setuptools.command.install import install as _install
+import os
+import subprocess
+import sys
+
+new_path = '/'.join(sys.executable.split('/')[:-1])
+current_path = os.environ['PATH']
+modified_env = {'PATH': f'{new_path}{os.pathsep}{current_path}'}
+
+
+class NpmBuild(_install):
+
+    def run(self):
+        subprocess.run(['npm', 'install', os.path.abspath(os.path.dirname(__file__))], env=modified_env)
+        subprocess.run(['npm', 'run', '--prefix', os.path.abspath(os.path.dirname(__file__)), 'build'], env=modified_env)
+        _install.run(self)
 
 
 with open('package.json') as f:
@@ -20,4 +35,7 @@ setup(
     classifiers=[
         'Framework :: Dash',
     ],
+    cmdclass={
+        'install': NpmBuild
+    },
 )
