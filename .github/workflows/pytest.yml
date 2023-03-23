@@ -19,10 +19,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        node -v
         python -m pip install --upgrade pip
         pip install --default-timeout=1000 -r requirements.txt
         pip install modules/writing_observer/
-        pip install modules/lo_dash_react_components/
+        pip -v install modules/lo_dash_react_components/
         pip install modules/wo_highlight_dashboard/
     - name: Unit testing with pytest
       run: |
