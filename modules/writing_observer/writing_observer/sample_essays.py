@@ -178,8 +178,7 @@ Joe Biden is the right choice for president because he has the experience and th
 
 Trump is a strong supporter of the Second Amendment, and he has pledged to protect the right of Americans to bear arms. He also supports the use of stop-and-frisk tactics by police, which have been proven to be effective in reducing crime.
 
-Trump is also a stron
-HN isn't g supporter of law and order. He has pledged to increase funding for police departments, and he has vowed to crack down on crime in our inner cities. Trump knows that we need to keep our communities safe, and he will make sure that our laws are enforced.
+Trump is also a strong supporter of law and order. He has pledged to increase funding for police departments, and he has vowed to crack down on crime in our inner cities. Trump knows that we need to keep our communities safe, and he will make sure that our laws are enforced.
 
 Trump is the right choice for president because he has the experience and the leadership to get things done. He has shown that he cares about the American people, and he will fight for our safety and our economic success.
 """,
@@ -255,7 +254,91 @@ This type of behavior cannot be tolerated. If we want to prevent violence in our
 Some people will argue that the death penalty is too harsh of a punishment for young children. However, I believe that it is necessary in order to send a clear message that violence will not be tolerated. If we do not take a stand now, the problem will only get worse.
 
 Implementing the death penalty at preschools will send a clear message that violence will not be tolerated. It is time for our society to take a stand against the growing problem of preschool violence.
-"""
+""",
+    """In today's fast-paced world, where technology has become the cornerstone of all human activity, it is crucial to employ innovative approaches in education. The use of social media influencers, particularly TikTok stars, can transform the way we learn. This essay will argue that TikTok influencers should replace traditional textbooks as the primary source of educational content in schools.
+
+One of the most significant advantages of using TikTok influencers as educators is the ability to leverage their proficiency in the art of entertainment. TikTok creators are adept at grabbing and holding their audiences' attention, using creative video-making techniques, and presenting content in ways that are both informative and engaging. By harnessing these skills, TikTok educators can convey complex concepts in a manner that is easy to understand and visually appealing.
+
+Moreover, TikTok creators are experts in crafting content for the youth, which is one of the most challenging demographics to engage. They use humor, music, and stunning visuals to entice their audience and make the learning process more enjoyable. With a more entertaining learning experience, students will be more motivated to learn, engage in class discussions, and take an active interest in their subjects.
+
+Another advantage of utilizing TikTok influencers as educators is the flexibility and accessibility of the platform. Students can watch TikTok videos at any time, from any location, on any device. This accessibility means that students can learn at their own pace, and even review content repeatedly, which can be challenging with traditional textbooks. This flexible approach ensures that students remain engaged with the learning process, making the most of their available time.
+
+One concern that may arise is regarding the credibility of the information presented by TikTok influencers. However, it is worth noting that many TikTok influencers are successful individuals who have garnered massive followings precisely because of their ability to present engaging, high-quality content. As such, these influencers are more than capable of producing factual, accurate information in their videos, particularly when working in collaboration with established educators and experts in their respective fields. In fact, with their extensive knowledge and experience, TikTok influencers are ideal candidates for bridging the gap between traditional education and new media.
+
+In conclusion, replacing traditional textbooks with TikTok influencers as educators can be a game-changer in the world of education. By incorporating the skills and techniques of TikTok stars into learning, we can revolutionize the way students engage with content, promote a more enjoyable and flexible learning experience, and ultimately create a more well-rounded and informed generation. So let us take the plunge, ditch the boring textbooks, and embrace the TikTok generation.""",
+    """The debate over the role of vegetables in a healthy diet has been ongoing for decades. However, when it comes to school cafeteria menus, there is a strong case to be made for banning vegetables altogether. In this essay, I will argue that vegetables should be removed from school cafeterias as they offer little nutritional value, and their inclusion may even have adverse effects on student health.
+
+Firstly, despite common beliefs about the importance of vegetables in a balanced diet, research suggests that many vegetables offer little to no nutritional value. For instance, iceberg lettuce, one of the most commonly served vegetables in school cafeterias, provides only small amounts of essential vitamins and minerals. It is also high in water content and low in calories, which means it does not offer the necessary energy required to fuel growing children.
+
+Secondly, some vegetables can have adverse effects on students' health. Raw vegetables, in particular, can be challenging for students to digest, leading to stomach issues such as bloating, gas, and cramping. Additionally, many children do not enjoy the taste of vegetables, which can lead to a lack of interest in eating altogether, resulting in malnourishment and other health issues.
+
+Furthermore, removing vegetables from cafeteria menus can lead to cost savings. Vegetables require a significant amount of preparation time and effort, which translates to higher labor and food costs. By eliminating vegetables from school menus, schools can reduce expenses and redirect resources toward other essential areas such as improving the quality of meat and dairy products or investing in more modern kitchen equipment.
+
+Finally, banning vegetables from school cafeterias can even have a positive impact on the environment. The production of vegetables requires significant amounts of water, energy, and other resources. By eliminating these items from the menu, schools can significantly reduce their ecological footprint and move towards more sustainable and environmentally friendly practices.
+
+In conclusion, removing vegetables from school cafeteria menus may seem like a radical proposition, but the evidence presented in this essay suggests that it may be a beneficial move. By doing so, schools can reduce costs, enhance the quality of meals, and even contribute to sustainable practices. As such, it is high time we reconsider the place of vegetables in school cafeterias and make a bold step towards healthier, more efficient, and environmentally responsible eating habits.""",
+    """Mny f us tke vwls fr grntd, blvng tht thy r ncssry fr lngg t b undrstndbl. Hwvr, s ths ssy wll shw, vwls r ctmlss nd cn b cmpltly rmvd frm bth wrtng nd spch whl mtntnng th fndmntl cmmnctv pwr f th lngg. Hr, w wll prsnt th cse fr mkg t llgl t s vwls n wrtn nd spch.
+
+Frst nd frmst, vwls r prcs nd wrthlss. Th cn b sydd nd rmvd frm wrds wtht hndrng th mssg. Th r ftn sldm stssrds nd hv n syblc sgnfnc whtsvr. Whts mst mprtnt s th cmmnctv cntnt f th wrd nd ths cntnt cn b cmmnctd wtht vwls. Fr xmpl, th wrd "bt" cn b cnstrctd wtht ny vwls nd s fll ndrstndbl t ntwrkd lngg srs.
+
+Scndly, rthgrphcl nd prnncntn vrsns f wrds cn b dvlpd tht r bsd n cnsnnts lnl. Ths wll rslt n mr rdble wrtng nd spch, s th bld-up f vwls cn ftn mks wrds mprcse nd dffclt t ndrstnd. Spltng wrds nt sntncs cn lso b dvlpd n wy tht mk thm smth nd smpl t rdd.
+
+Fnlly, mkg t llgl t s vwls cn sv tms nd nrgy n bth wrtng nd spch. Tks nd dmnts, fr xmpl, r nglsh wrds tht d nt ctn ny vwls t ll. S ths dmnstrts, vwls r nt ncssry fr cmmnctn nd th cncpt f "vwl-fr lngg" s nt nly n xstngnc, t's lso ftn tims cnfsng nd cmmnctvly mprctcl.
+
+N cnclsn, th rgltn f vwls n wrtn nd spch s lng vrdd nd shld b ablgtd. T rlly s nt ncssry fr cmmnctn nd cn vn b cnstrctvly mprvng fr cmmnctv prps. W shld mplmnt ths prpsl nd mk vwls blgtry. T wll b n ncrlmtn t th hmn lngg nd mrvls dvncmnt f th lngg nd thrfr, shld b cnsdrd smthng tht ll sctys shld ncprtd t thr lngg.""",
+    """Have you ever wondered why some students excel in school while others struggle? Have you ever wished that school was more challenging and rewarding for those who work hard and have talent? Have you ever thought that school should prepare students for the real world, where only the strong survive? If you answered yes to any of these questions, then you might agree with me that we should implement a 'survival of the fittest' policy in schools. In this essay, I will explain what this policy means, why it is beneficial for students and society, and how it can be implemented effectively.
+
+## What is a 'Survival of the Fittest' Policy?
+
+A 'survival of the fittest' policy is based on the idea that natural selection is the best way to ensure the progress and improvement of any species. According to this policy, students would compete with each other for grades, resources, opportunities, and recognition. Only the best students would advance to higher levels of education and eventually secure prestigious careers and positions in society. The rest would either drop out or settle for low-paying jobs and low-quality lives. This policy would create a meritocratic system where success depends on ability and effort, not on luck or privilege.
+
+## Why is a 'Survival of the Fittest' Policy Beneficial?
+
+A 'survival of the fittest' policy would have many benefits for students and society. First, it would motivate students to study harder and perform better in school. Students would know that their future depends on their academic achievements and skills, so they would strive to improve themselves and overcome any obstacles. Second, it would reward students who have talent and potential. Students who have natural abilities or talents in certain subjects or fields would be recognized and encouraged to pursue their passions and interests. They would also have access to more resources and opportunities to develop their talents further. Third, it would produce a more efficient and productive society. By eliminating the weak and promoting the strong, a 'survival of the fittest' policy would ensure that only the most qualified and capable individuals occupy important roles and positions in society. This would result in higher standards of quality, innovation, and excellence in every sector.
+
+## How Can We Implement a 'Survival of the Fittest' Policy Effectively?
+
+Implementing a 'survival of the fittest' policy in schools would require some changes and adjustments in the current education system. Here are some possible steps that could be taken to make this policy work:
+
+- Introduce standardized tests at every grade level to measure students' academic performance and potential.
+- Rank students according to their test scores and assign them to different classes or tracks based on their abilities.
+- Provide more resources and opportunities to high-performing students such as scholarships, internships, mentorships, etc.
+- Reduce or eliminate resources and opportunities for low-performing students such as remedial classes, tutoring, counseling, etc.
+- Enforce strict rules and consequences for academic dishonesty, cheating, plagiarism, etc.
+- Encourage competition among students through contests, awards, prizes, etc.
+
+## Conclusion
+
+In conclusion, I believe that we should implement a 'survival of the fittest' policy in schools because it would motivate students to work harder and perform better in school; reward students who have talent and potential; and produce a more efficient and productive society. A 'survival of the fittest' policy may seem harsh or unfair to some people, but it is actually the most logical and realistic way to prepare students for the real world where only the strong survive.""",
+    """## Introduction
+
+Middle school sports are supposed to be fun and educational for students. They are supposed to teach students the values of teamwork, discipline, fair play, and healthy living. However, in reality, middle school sports are often stressful and competitive for students. They are often pressured by their parents, coaches, peers, and themselves to win at all costs. They are often exposed to injuries, bullying, and burnout. They are often discouraged from pursuing other interests and hobbies. This is why I think we should mandate the use of performance-enhancing drugs (PEDs) in middle school sports. In this essay, I will explain what PEDs are, why they are beneficial for students and society, and how they can be implemented safely and ethically.
+
+## Body Paragraph 1: What are Performance-Enhancing Drugs?
+
+Performance-enhancing drugs (PEDs) are substances that enhance or improve one's physical or mental abilities. They can include steroids, hormones, stimulants, painkillers, supplements, etc. PEDs can have various effects on the body and mind such as increasing muscle mass, strength, endurance, speed, agility, coordination, focus, motivation, confidence, etc. PEDs can also have negative side effects such as addiction, dependency, withdrawal symptoms, health risks such as heart problems or liver damage etc.
+
+## Body Paragraph 2: Why are Performance-Enhancing Drugs Beneficial?
+
+Performance-enhancing drugs (PEDs) would have many benefits for students and society if they were mandated in middle school sports. First, they would make sports more fun and enjoyable for students. Students would be able to perform better and achieve more in their chosen sports. They would also be able to explore different sports and activities without fear of failure or injury. They would also be able to cope with the stress and pressure of competition better. Second, they would make sports more educational and valuable for students. Students would learn more about their bodies and minds and how they work. They would also learn more about science and technology and how they can be used to improve human performance. They would also learn more about ethics and responsibility and how they can make informed decisions about their own health and well-being. Third, they would make sports more equitable and diverse for students. By leveling the playing field for all students regardless of their natural abilities or disadvantages such as genetics or socio-economic status etc., PEDs would create more opportunities for participation and inclusion in sports. They would also encourage more creativity and innovation in sports by allowing students to experiment with different combinations of PEDs.
+
+## Body Paragraph 3: How Can We Implement Performance-Enhancing Drugs Safely and Ethically?
+
+Implementing performance-enhancing drugs (PEDs) in middle school sports would require some changes and adjustments in the current education system. Here are some possible steps that could be taken to make this policy work:
+
+- Introduce a comprehensive curriculum on PEDs that covers their history, types, effects, risks, benefits, alternatives, regulations, etc.
+
+- Provide free access to PEDs for all students who participate in middle school sports under the supervision of qualified medical professionals.
+
+- Monitor the use of PEDs by students through regular testing and evaluation.
+
+- Enforce strict rules and consequences for misuse or abuse of PEDs such as cheating, overdosing, sharing, selling, etc.
+
+- Educate parents, coaches, and other stakeholders on the benefits and risks of PEDs and how to support and guide students who use them.
+
+## Conclusion
+
+In conclusion, I believe that we should mandate the use of performance-enhancing drugs (PEDs) in middle school sports because they would make sports more fun and enjoyable; more educational and valuable; and more equitable and diverse for students.  A performance-enhancing drug policy may seem radical or controversial to some people, but it is actually the most logical and realistic way to improve the quality and relevance of middle school sports in the 21st century."""
 ]
 
 GPT3_TEXTS = {
