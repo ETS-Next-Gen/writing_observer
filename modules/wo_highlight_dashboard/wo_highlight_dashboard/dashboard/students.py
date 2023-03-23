@@ -15,6 +15,7 @@ prefix = 'teacher-dashboard'
 
 # individual student items
 student_col = f'{prefix}-student-col'  # individual student card wrapper id
+student_link = f'{prefix}-student-link'
 student_metrics = f'{prefix}-student-metrics'
 student_texthighlight = f'{prefix}-student-texthighlight'
 student_indicators = f'{prefix}-student-indicators'
@@ -288,6 +289,7 @@ clientside_callback(
     Output({'type': student_texthighlight, 'index': ALL}, 'text'),
     Output({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
     Output({'type': student_indicators, 'index': ALL}, 'data'),
+    Output({'type': student_link, 'index': ALL}, 'href'),
     Output(last_updated, 'data'),
     Output(msg_counter, 'data'),
     Input(websocket, 'message'),
@@ -506,6 +508,21 @@ def create_cards(students):
                 dbc.Card(
                     [
                         html.H4(s['profile']['name']['full_name']),
+                        dbc.ButtonGroup(
+                            [
+                                dbc.Button(
+                                    html.I(className='text-body fas fa-up-right-from-square'),
+                                    title='Open document in new tab',
+                                    target='_blank',
+                                    color='white',
+                                    id={
+                                        'type': student_link,
+                                        'index': s['user_id']
+                                    }
+                                )
+                            ],
+                            className='position-absolute top-0 end-0'
+                        ),
                         lodrc.WOMetrics(
                             id={
                                 'type': student_metrics,

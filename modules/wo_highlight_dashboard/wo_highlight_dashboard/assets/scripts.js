@@ -105,6 +105,7 @@ window.dash_clientside.clientside = {
         // Output({'type': student_texthighlight, 'index': ALL}, 'text'),
         // Output({'type': student_texthighlight, 'index': ALL}, 'highlight_breakpoints'),
         // Output({'type': student_indicators, 'index': ALL}, 'data'),
+        // Output({'type': student_link, 'index': ALL}, 'href'),
         // Output(last_updated, 'children'),
         // Output(msg_counter, 'data'),
         // Input(websocket, 'message'),
@@ -123,6 +124,7 @@ window.dash_clientside.clientside = {
         for (let i = 0; i < data.length; i++) {
             let curr_user = data[i].student.user_id;
             let user_index = student_ids.findIndex(item => item.user_id === curr_user)
+            const user_doc = data[i].student['writing_observer.writing_analysis.last_document'].document_id
             updates[user_index] = {
                 'id': curr_user,
                 'text': {
@@ -134,7 +136,8 @@ window.dash_clientside.clientside = {
                 },
                 'highlight': {},
                 'metrics': {},
-                'indicators': {}
+                'indicators': {},
+                'link': `https://docs.google.com/document/d/${user_doc}/edit`
             }
             for (const key in data[i]) {
                 let item = data[i][key];
@@ -171,6 +174,7 @@ window.dash_clientside.clientside = {
             updates.map(function(d) { return d['text']['student_text']['value']; }), // texthighlight text
             updates.map(function(d) { return d['highlight']; }), // texthighlight highlighting
             updates.map(function(d) { return d['indicators']; }), // indicators
+            updates.map(function(d) { return d['link']; }), // student doc links
             timestamp, // current time
             msg_count + 1 // set message count
         ];
