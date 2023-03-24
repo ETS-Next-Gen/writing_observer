@@ -131,9 +131,31 @@ def download_3rd_party_static():
     import learning_observer.module_loader as module_loader
     libs = module_loader.third_party()
 
+    def format_hash(hash_string):
+        return hash_string[:48] + '\n' + hash_string[48:]
+
     for name in libs:
         url = libs[name]['urls'][0]
         sha = libs[name]['hash']
+
+        if sha is None:
+            error = "No SHA hash set in module for {name}. It should probably be:\n\t{hash}".format(
+                name=filename,
+                hash=format_hash(shahash)
+            )
+            raise StartupCheck(error)
+
+        # In most cases, there's just one hash.
+        #
+        # We support a list or a dictionary if we want multiple
+        # versions to all work. The keys in the dictionary are just
+        # documentation for now.
+        if isinstance(sha, list):
+            hashes = sha
+        elif isinstance(sha, dict):
+            hashes = sha.values()
+        else:
+            hashes = [sha]
 
         filename = paths.third_party(name)
 
@@ -146,16 +168,7 @@ def download_3rd_party_static():
             ))
             print("Downloaded {name}".format(name=name))
         shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
-        if sha is None:
-            error = "No SHA hash set in module for {name}. It should probably be:\n\t{hash}".format(
-                name=filename,
-                hash=shahash
-            )
-            raise StartupCheck(error)
-        elif shahash == sha:
-            pass
-        # print("File integrity of {name} confirmed!".format(name=filename))
-        else:
+        if shahash not in hashes:
             # Do we want to os.unlink(filename) or just terminate?
             # Probably just terminate, so we can debug.
             error = "File integrity of {name} failed!\n" \
@@ -168,7 +181,7 @@ def download_3rd_party_static():
                     "If unsure, please consult with a security expert.".format(
                         name=filename,
                         sha=sha,
-                        shahash=shahash
+                        shahash=format_hash(shahash)
                     )
             raise StartupCheck(error)
 

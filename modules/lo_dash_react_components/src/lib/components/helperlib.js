@@ -168,6 +168,24 @@ Arrow.propTypes = {
   targetOffset: PropTypes.arrayOf(PropTypes.number),
 };
 
+document.addEventListener("DOMContentLoaded", () => {
+  updateArrowPositions();
+  setTimeout(() => {
+    updateArrowPositions();
+  }, LONG_DEBOUNCE_TIME);
+});
+
+document.addEventListener("resize", () => {
+  updateArrowPositions();
+});
+
+document.addEventListener("load", () => {
+  updateArrowPositions();
+  setTimeout(() => {
+    updateArrowPositions();
+  }, LONG_DEBOUNCE_TIME);
+});
+
 
 /* DEBUG CODE. This should eventually go away. */
 
@@ -205,23 +223,3 @@ export function createXOverlay(elementId) {
   });
   document.body.appendChild(xElement);
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  updateArrowPositions();
-  setTimeout(() => {
-    console.log('X');
-    updateArrowPositions();
-  }, LONG_DEBOUNCE_TIME);
-});
-
-document.addEventListener("resize", () => {
-  updateArrowPositions();
-});
-
-document.addEventListener("load", () => {
-  updateArrowPositions();
-  setTimeout(() => {
-    updateArrowPositions();
-    console.log('X');
-  }, LONG_DEBOUNCE_TIME);
-});
