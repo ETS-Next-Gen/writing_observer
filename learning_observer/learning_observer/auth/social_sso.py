@@ -91,7 +91,8 @@ async def _google(request):
 
     common_params = {
         'client_id': settings.settings['auth']['google_oauth']['web']['client_id'],
-        'redirect_uri': "https://{hostname}/auth/login/google".format(
+        'redirect_uri': "{protocol}://{hostname}/auth/login/google".format(
+            protocol=settings.settings['protocol'],
             hostname=settings.settings['hostname']
         )
     }

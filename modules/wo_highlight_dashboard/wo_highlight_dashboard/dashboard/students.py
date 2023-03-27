@@ -2,7 +2,7 @@
 Creates the grid of student cards
 '''
 # package imports
-from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, exceptions as dash_e
+from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, MATCH, exceptions as dash_e
 import dash_bootstrap_components as dbc
 import lo_dash_react_components as lodrc
 
@@ -348,6 +348,20 @@ clientside_callback(
     Output({'type': student_indicators, 'index': ALL}, 'class_name'),
     Input(settings.checklist, 'value'),
     State(student_counter, 'data')
+)
+
+clientside_callback(
+    # TODO validate that the student link is shown when available
+    '''
+    function(href) {
+        if (href.length > 0) {
+            return '';
+        }
+        return 'd-none';
+    }
+    ''',
+    Output({'type': student_link, 'index': MATCH}, 'class_name'),
+    Input({'type': student_link, 'index': MATCH}, 'href')
 )
 
 # show or hide the components on all student cards

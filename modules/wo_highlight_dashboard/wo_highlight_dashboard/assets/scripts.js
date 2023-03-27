@@ -124,7 +124,7 @@ window.dash_clientside.clientside = {
         for (let i = 0; i < data.length; i++) {
             let curr_user = data[i].student.user_id;
             let user_index = student_ids.findIndex(item => item.user_id === curr_user)
-            const user_doc = data[i].student['writing_observer.writing_analysis.last_document'].document_id
+            const last_document = data[i]?.student?.['writing_observer.writing_analysis.last_document'];
             updates[user_index] = {
                 'id': curr_user,
                 'text': {
@@ -137,7 +137,7 @@ window.dash_clientside.clientside = {
                 'highlight': {},
                 'metrics': {},
                 'indicators': {},
-                'link': `https://docs.google.com/document/d/${user_doc}/edit`
+                'link': last_document ? `https://docs.google.com/document/d/${last_document.document_id}/edit` : ''
             }
             for (const key in data[i]) {
                 let item = data[i][key];

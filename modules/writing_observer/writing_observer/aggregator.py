@@ -77,7 +77,7 @@ def sanitize_and_shrink_per_student_data(student_data):
     return student_data
 
 
-def aggregate_course_summary_stats(student_data):
+def aggregate_course_summary_stats(request, student_data):
     '''
     Here, we compute summary stats across the entire course. This is
     helpful so that the front end can know, for example, how to render
@@ -124,6 +124,10 @@ def aggregate_course_summary_stats(student_data):
 ######
 
 
+def get_last_document_id(s):
+    return s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
+
+
 async def get_latest_student_documents(student_data):
     '''
     This will retrieve the latest student documents from the database. It breaks
@@ -145,7 +149,7 @@ async def get_latest_student_documents(student_data):
             writing_observer.writing_analysis.reconstruct,
             {
                 KeyField.STUDENT: s['user_id'],
-                EventField('doc_id'): s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
+                EventField('doc_id'): get_last_document_id(s)
             },
             KeyStateType.INTERNAL
         ) for s in student_data])
@@ -155,6 +159,18 @@ async def get_latest_student_documents(student_data):
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.
     writing_data = [{} if item is None else item for item in writing_data]
+    return writing_data
+
+
+async def get_latest_student_document_google(request, student_data):
+    import learning_observer.google
+    from learning_observer.stream_analytics.fields import EventField
+
+    writing_data = [
+        {'text': await learning_observer.google.doctext(request, documentId=get_last_document_id(s))}
+        if get_last_document_id(s) is not None else {}
+        for s in student_data
+    ]
     return writing_data
 
 
@@ -193,13 +209,14 @@ else:
     processor = writing_observer.stub_nlp.process_texts
 
 
-async def latest_data(student_data, options=None):
+async def latest_data(request, student_data, options=None):
     '''
     HACK HACK HACK
 
     I just hardcoded this, breaking abstractions, repeating code, etc.
     '''
-    writing_data = await get_latest_student_documents(student_data)
+    # writing_data = await get_latest_student_documents(student_data)
+    writing_data = await get_latest_student_document_google(request, student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)

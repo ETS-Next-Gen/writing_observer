@@ -412,6 +412,10 @@ async def courseroster(request, course_id):
     List all of the students in a course: Helper
     '''
     if settings.settings['roster_data']['source'] in ["google_api"]:
+        if 'error' in request:
+            raise learning_observer.prestartup.StartupCheck(
+                f'Error in request: {request}'
+            )
         return await learning_observer.google.roster(request, courseId=course_id)
 
     roster = await ajax(
