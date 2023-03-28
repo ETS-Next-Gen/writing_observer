@@ -222,7 +222,6 @@ def fetch_student_state(
                     sa_module,
                     {sa_helpers.KeyField.STUDENT: student_id},
                     sa_helpers.KeyStateType.EXTERNAL)
-                # debug_log(key)
                 data = await teacherkvs[key]
                 # debug_log(data) <-- Useful, but a lot of stuff is spit out.
                 if data is not None:
