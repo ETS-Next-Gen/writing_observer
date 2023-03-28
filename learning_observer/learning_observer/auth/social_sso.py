@@ -89,12 +89,11 @@ async def _google(request):
     if 'error' in request.query:
         return {}
 
+    hostname = settings.settings['hostname']
+    protocol = settings.settings.get('protocol', 'http')
     common_params = {
         'client_id': settings.settings['auth']['google_oauth']['web']['client_id'],
-        'redirect_uri': "{protocol}://{hostname}/auth/login/google".format(
-            protocol=settings.settings['protocol'],
-            hostname=settings.settings['hostname']
-        )
+        'redirect_uri': f"{protocol}://{hostname}/auth/login/google"
     }
 
     # Step 1: redirect to get code
