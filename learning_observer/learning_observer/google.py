@@ -35,6 +35,7 @@ import learning_observer.settings as settings
 import learning_observer.log_event
 import learning_observer.util
 import learning_observer.auth
+import learning_observer.runtime
 
 
 cache = None
@@ -114,14 +115,18 @@ def extract_parameters_from_format_string(format_string):
     return [f[1] for f in string.Formatter().parse(format_string) if f[1] is not None]
 
 
-async def raw_google_ajax(request, target_url, **kwargs):
+async def raw_google_ajax(runtime, target_url, **kwargs):
     '''
     Make an AJAX call to Google, managing auth + auth.
 
-    * request is the aiohttp request object.
+    * runtime is a Runtime class containing request information.
     * default_url is typically grabbed from ENDPOINTS
     * ... and we pass the named parameters
     '''
+    if isinstance(runtime, learning_observer.runtime.Runtime):
+        request = runtime.get_request()
+    else:
+        request = runtime
     url = target_url.format(**kwargs)
     cache_key = "raw_google/" + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:

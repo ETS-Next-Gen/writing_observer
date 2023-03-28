@@ -234,13 +234,13 @@ class KVSStudentDocumentRetriever(StudentDocumentRetriever):
 
 
 class GoogleStudentDocumentRetriever(StudentDocumentRetriever):
-    def __init__(self, request):
+    def __init__(self, runtime):
         """
         Initializes a new instance of the GoogleStudentDocumentRetriever class.
 
-        :param request: The request to use for retrieving Google documents.
+        :param runtime: The runtime to use for retrieving Google documents.
         """
-        self.request = request
+        self.runtime = runtime
 
     async def retrieve_latest_documents(self, student_data):
         """
@@ -252,18 +252,18 @@ class GoogleStudentDocumentRetriever(StudentDocumentRetriever):
         import learning_observer.google
 
         writing_data = [
-            {'text': await learning_observer.google.doctext(self.request, documentId=get_last_document_id(s))}
+            {'text': await learning_observer.google.doctext(self.runtime, documentId=get_last_document_id(s))}
             if get_last_document_id(s) is not None else {}
             for s in student_data
         ]
         return writing_data
 
 
-async def latest_data(request, student_data, options=None):
+async def latest_data(runtime, student_data, options=None):
     """
     Retrieves the latest writing data for a set of students.
 
-    :param request: The request to use for retrieving Google documents.
+    :param runtime: The runtime object from the server
     :param student_data: The student data.
     :param options: Additional options to pass to the text processing pipeline.
     :return: The latest writing data.
@@ -271,7 +271,7 @@ async def latest_data(request, student_data, options=None):
     student_document_retriever = None
 
     if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', True):
-        student_document_retriever = GoogleStudentDocumentRetriever(request)
+        student_document_retriever = GoogleStudentDocumentRetriever(runtime)
     else:
         student_document_retriever = KVSStudentDocumentRetriever()
 
