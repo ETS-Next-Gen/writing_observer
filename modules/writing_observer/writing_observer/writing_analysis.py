@@ -170,62 +170,13 @@ async def last_document(event, internal_state):
     functions for the analysis.  Over time these may age off with a better
     model.
     '''
+    document_id = get_doc_id(event)
 
-    print(">>> last_doc_call: ", event)
-
-    document_id = get_doc_id_wrapper(event)
-
-    print(">>> last_doc_call docid: ", document_id)
-    
     if document_id is not None:
         state = {"document_id": document_id}
         return state, state
 
     return False, False
-
-
-
-
-# Basic class tests and extraction. 
-# -------------------------------
-
-# A big part of this project is wrapping up google doc events.
-# In doing that we are reverse-engineering some of the elements 
-# particularly the event types.  This code provides some basic
-# wrappers for event types to simplify extraction of key elements
-# and to simplify event recognition.  
-
-# Over time this will likely expand and will need to adapt to keep 
-# up with any changes in the event structure.  For now it is just 
-# a thin abstraction layer on a few of the pieces.
-
-
-def is_visibility_eventp(event):
-    """
-    Given an event return true if it is a visibility 
-    event which indicates changing the doc shown or 
-    active.
-
-    Here we look for an event with 'client' 
-    containing the field 'event_type' of 
-    'visibility'
-    """
-    Event_Type = event.get('client', {}).get('event', None)
-    return(Event_Type == 'visibility')
-
-
-def is_keystroke_eventp(event):
-    """
-    Given an event return true if it is a keystroke 
-    event which indicates changing the doc shown or 
-    active.
-
-    Here we look for an event with 'client' 
-    containing the field 'event_type' of 
-    'keystroke'
-    """
-    Event_Type = event.get('client', {}).get('event', None)
-    return(Event_Type == 'keystroke')
 
 
 # Simple hack to match URLs.  This should probably be moved as well
@@ -239,35 +190,41 @@ def is_keystroke_eventp(event):
 
 DOC_URL_re = re.compile("^https://docs.google.com/document/d/(?P<DOCID>[^/\s]+)/(?P<ACT>[a-zA-Z]+)")
 
-def get_doc_id_wrapper(event):
+
+def get_doc_id(event):
     """
-    Some of the event types (e.g. 'google_docs_save') have 
+    HACK: This is interim until we have consistent event formats
+    from the extension.
+
+    Some of the event types (e.g. 'google_docs_save') have
     a 'doc_id' which provides a link to the google document.
     Others, notably the 'visibility' and 'keystroke' events
     do not have doc_id but do have a link to an 'object'
-    field which in turn contains an 'id' field linking to 
-    the google doc along with other features such as the 
+    field which in turn contains an 'id' field linking to
+    the google doc along with other features such as the
     title.  However other events (e.g. login & visibility)
-    contain object links with id fields that do not 
-    correspond to a known doc.  
+    contain object links with id fields that do not
+    correspond to a known doc.
 
-    This method provides a simple abstraction that returns 
+    This method provides a simple abstraction that returns
     the 'doc_id' value if it exists or returns the 'id' from
-    the 'object' field if it is present and if the url in 
-    the object field corresponds to a google doc id.  
+    the 'object' field if it is present and if the url in
+    the object field corresponds to a google doc id.
 
     We use the helper function for doc_url_p to test
-    this.  
+    this.
     """
 
     # Handle standard Doc_ID cases first.
     Doc_ID = event.get('client', {}).get('doc_id', None)
-    if (Doc_ID != None): return(Doc_ID)
+    if (Doc_ID is not None):
+        return Doc_ID
 
     # Failing that pull out the url event.
     # Object_value = event.get('client', {}).get('object', None)
     URL_value = event.get('client', {}).get('object', {}).get('url', None)
-    if (URL_value is None): return(None)
+    if (URL_value is None):
+        return None
 
     # Now test if the object has a URL and if that corresponds
     # to a doc edit/review URL as opposed to their main page.
@@ -275,7 +232,8 @@ def get_doc_id_wrapper(event):
     # is still not present or is none then this will return
     # none.
     URLMatch = DOC_URL_re.match(URL_value)
-    if (URLMatch is None): return(None)
+    if (URLMatch is None):
+        return None
 
     Doc_ID = event.get('client', {}).get('object', {}).get('id', None)
-    return(Doc_ID)
+    return Doc_ID
