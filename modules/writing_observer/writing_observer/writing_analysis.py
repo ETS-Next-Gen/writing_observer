@@ -215,15 +215,15 @@ def get_doc_id(event):
     this.
     """
 
-    # Handle standard Doc_ID cases first.
-    Doc_ID = event.get('client', {}).get('doc_id', None)
-    if (Doc_ID is not None):
-        return Doc_ID
+    client = event.get('client', {})
+    doc_id = client.get('doc_id')
+    if doc_id:
+        return doc_id
 
     # Failing that pull out the url event.
     # Object_value = event.get('client', {}).get('object', None)
-    URL_value = event.get('client', {}).get('object', {}).get('url', None)
-    if (URL_value is None):
+    url = client.get('object', {}).get('url')
+    if not url:
         return None
 
     # Now test if the object has a URL and if that corresponds
@@ -231,9 +231,9 @@ def get_doc_id(event):
     # if so return the id from it.  In the off chance the id
     # is still not present or is none then this will return
     # none.
-    URLMatch = DOC_URL_re.match(URL_value)
-    if (URLMatch is None):
+    url_match = DOC_URL_re.match(url)
+    if not url_match:
         return None
 
-    Doc_ID = event.get('client', {}).get('object', {}).get('id', None)
-    return Doc_ID
+    doc_id = client.get('object', {}).get('id')
+    return doc_id
