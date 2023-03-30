@@ -394,6 +394,9 @@ def extract_text_from_google_doc_json(
     within text chunks, since we do have different lengths for something like
     this flag. It does work okay globally.
     '''
+    # return error message for text
+    if 'error' in j:
+        return f"Error {j['error']['code']} {j['error']['status']}\n{j['error']['message']}"
     length = j['body']['content'][-1]['endIndex']
     elements = [a.get('paragraph', {}).get('elements', []) for a in j['body']['content']]
     flat = sum(elements, [])
