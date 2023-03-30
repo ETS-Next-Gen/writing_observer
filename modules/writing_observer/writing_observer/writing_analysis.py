@@ -5,6 +5,9 @@ It just routes to smaller pipelines. Currently that's:
 1) Time-on-task
 2) Reconstruct text (+Deane graphs, etc.)
 '''
+# Necessary for the wrapper code below.
+import re
+
 import writing_observer.reconstruct_doc
 
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
@@ -162,11 +165,75 @@ async def last_document(event, internal_state):
     Small bit of data -- the last document accessed. This can be extracted from
     `document_list`, but we don't need that level of complexity for the 1.0
     dashboard.
+
+    This code accesses the code below which provides some hackish support
+    functions for the analysis.  Over time these may age off with a better
+    model.
     '''
-    document_id = event.get('client', {}).get('doc_id', None)
+    document_id = get_doc_id(event)
 
     if document_id is not None:
         state = {"document_id": document_id}
         return state, state
 
     return False, False
+
+
+# Simple hack to match URLs.  This should probably be moved as well
+# but for now it works.
+#
+# The URL for the main page looks as follows:
+#  https://docs.google.com/document/u/0/?tgif=d
+#
+# Document URls are as follows:
+#  https://docs.google.com/document/d/18JAnmxzVD_lGSfa8t6Se66KLZm30YFrC_4M-D2zdYG4/edit
+
+DOC_URL_re = re.compile("^https://docs.google.com/document/d/(?P<DOCID>[^/\s]+)/(?P<ACT>[a-zA-Z]+)")  # noqa: W605 \s is invalid escape
+
+
+def get_doc_id(event):
+    """
+    HACK: This is interim until we have more consistent events
+    from the extension
+
+    Some of the event types (e.g. 'google_docs_save') have
+    a 'doc_id' which provides a link to the google document.
+    Others, notably the 'visibility' and 'keystroke' events
+    do not have doc_id but do have a link to an 'object'
+    field which in turn contains an 'id' field linking to
+    the google doc along with other features such as the
+    title.  However other events (e.g. login & visibility)
+    contain object links with id fields that do not
+    correspond to a known doc.
+
+    This method provides a simple abstraction that returns
+    the 'doc_id' value if it exists or returns the 'id' from
+    the 'object' field if it is present and if the url in
+    the object field corresponds to a google doc id.
+
+    We use the helper function for doc_url_p to test
+    this.
+    """
+
+    client = event.get('client', {})
+    doc_id = client.get('doc_id')
+    if doc_id:
+        return doc_id
+
+    # Failing that pull out the url event.
+    # Object_value = event.get('client', {}).get('object', None)
+    url = client.get('object', {}).get('url')
+    if not url:
+        return None
+
+    # Now test if the object has a URL and if that corresponds
+    # to a doc edit/review URL as opposed to their main page.
+    # if so return the id from it.  In the off chance the id
+    # is still not present or is none then this will return
+    # none.
+    url_match = DOC_URL_re.match(url)
+    if not url_match:
+        return None
+
+    doc_id = client.get('object', {}).get('id')
+    return doc_id
