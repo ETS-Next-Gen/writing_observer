@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import sys
 import time
 
@@ -176,29 +175,8 @@ else:
     processor = writing_observer.stub_nlp.process_texts
 
 
-class StudentDocumentRetriever(ABC):
-    """
-    Abstract base class for retrieving student documents.
-    """
-
-    @abstractmethod
-    async def retrieve_latest_documents(self, student_data, **kwargs):
-        """
-        Retrieves the latest documents for a set of students.
-
-        :param student_data: The student data.
-        :param kwargs: Additional arguments.
-        :return: The latest documents.
-        """
-        pass
-
-
-class KVSStudentDocumentRetriever(StudentDocumentRetriever):
-    """
-    Retrieves student documents from KVS.
-    """
-
-    async def retrieve_latest_documents(self, student_data):
+def retrieve_latest_documents_kvs():
+    async def docs(student_data):
         """
         Retrieves the latest documents for a set of students from KVS.
 
@@ -231,18 +209,11 @@ class KVSStudentDocumentRetriever(StudentDocumentRetriever):
         # to use item.get with defaults sanely.
         writing_data = [{} if item is None else item for item in writing_data]
         return writing_data
+    return docs
 
 
-class GoogleStudentDocumentRetriever(StudentDocumentRetriever):
-    def __init__(self, runtime):
-        """
-        Initializes a new instance of the GoogleStudentDocumentRetriever class.
-
-        :param runtime: The runtime to use for retrieving Google documents.
-        """
-        self.runtime = runtime
-
-    async def retrieve_latest_documents(self, student_data):
+def retrieve_latest_documents_google(runtime):
+    async def docs(student_data):
         """
         Retrieves the latest documents for a set of students using Google Docs.
 
@@ -252,11 +223,12 @@ class GoogleStudentDocumentRetriever(StudentDocumentRetriever):
         import learning_observer.google
 
         writing_data = [
-            {'text': await learning_observer.google.doctext(self.runtime, documentId=get_last_document_id(s))}
+            {'text': await learning_observer.google.doctext(runtime, documentId=get_last_document_id(s))}
             if get_last_document_id(s) is not None else {}
             for s in student_data
         ]
         return writing_data
+    return docs
 
 
 async def latest_data(runtime, student_data, options=None):
@@ -271,11 +243,11 @@ async def latest_data(runtime, student_data, options=None):
     student_document_retriever = None
 
     if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', True):
-        student_document_retriever = GoogleStudentDocumentRetriever(runtime)
+        student_document_retriever = retrieve_latest_documents_google(runtime)
     else:
-        student_document_retriever = KVSStudentDocumentRetriever()
+        student_document_retriever = retrieve_latest_documents_kvs()
 
-    writing_data = await student_document_retriever.retrieve_latest_documents(student_data)
+    writing_data = await student_document_retriever(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)
