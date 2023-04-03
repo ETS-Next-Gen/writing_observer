@@ -123,10 +123,7 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     * default_url is typically grabbed from ENDPOINTS
     * ... and we pass the named parameters
     '''
-    if isinstance(runtime, learning_observer.runtime.Runtime):
-        request = runtime.get_request()
-    else:
-        request = runtime
+    request = runtime.get_request()
     url = target_url.format(**kwargs)
     cache_key = "raw_google/" + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
@@ -379,7 +376,8 @@ def get_error_message(error):
         404: 'Unable to fetch document.'
     }
     code = error['code']
-    return messages.get(code, f'Error {code}: Unknown error.')
+    message = messages.get(code, 'Unknown error.')
+    return {'error': {'code': code, 'message': message}}
 
 
 @register_cleaner("document", "doctext")
@@ -424,7 +422,7 @@ def extract_text_from_google_doc_json(
             print("Offsets (these should match):")
             print(list(zip(itertools.accumulate(map(len, text_chunks)), itertools.accumulate(lengths))))
 
-    return text
+    return {'text': text}
 
 
 if __name__ == '__main__':

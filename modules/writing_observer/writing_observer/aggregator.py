@@ -233,7 +233,7 @@ def retrieve_latest_documents_google(runtime):
         :return: The latest documents.
         """
         writing_data = [
-            {'text': await fetch_doc_from_google(get_last_document_id(s))}
+            await fetch_doc_from_google(get_last_document_id(s))
             if get_last_document_id(s) is not None else {}
             for s in student_data
         ]
