@@ -213,6 +213,17 @@ def retrieve_latest_documents_kvs():
 
 
 def retrieve_latest_documents_google(runtime):
+    # TODO add caching
+    async def fetch_doc_from_google(docId):
+        """
+        Retrieves a single doc from Google based on document id
+
+        :param docId: The id of the latest document.
+        :return: The text of the latest document
+        """
+        import learning_observer.google
+        return await learning_observer.google.doctext(runtime, documentId=docId)
+
     async def docs(student_data):
         """
         Retrieves the latest documents for a set of students using Google Docs.
@@ -220,10 +231,8 @@ def retrieve_latest_documents_google(runtime):
         :param student_data: The student data.
         :return: The latest documents.
         """
-        import learning_observer.google
-
         writing_data = [
-            {'text': await learning_observer.google.doctext(runtime, documentId=get_last_document_id(s))}
+            {'text': await fetch_doc_from_google(get_last_document_id(s))}
             if get_last_document_id(s) is not None else {}
             for s in student_data
         ]
@@ -242,7 +251,8 @@ async def latest_data(runtime, student_data, options=None):
     """
     student_document_retriever = None
 
-    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', True):
+    # TODO better interweave where the documents are coming from
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
         student_document_retriever = retrieve_latest_documents_google(runtime)
     else:
         student_document_retriever = retrieve_latest_documents_kvs()
