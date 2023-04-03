@@ -1,6 +1,7 @@
 import sys
 import time
 
+import learning_observer.cache
 import learning_observer.settings
 import learning_observer.stream_analytics.helpers
 import learning_observer.util
@@ -213,7 +214,7 @@ def retrieve_latest_documents_kvs():
 
 
 def retrieve_latest_documents_google(runtime):
-    # TODO add caching
+    @learning_observer.cache.async_memoization()
     async def fetch_doc_from_google(docId):
         """
         Retrieves a single doc from Google based on document id

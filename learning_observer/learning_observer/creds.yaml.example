@@ -44,13 +44,14 @@ kvs:
     # stub for in-memory debugging
     # redis_ephemeral for redis / debugging (object disappear)
     # redis for deploy
-    type: stub
     # If using redis_ephemeral, persist objects for 60s = 1 minute
     # I typically use:
     # * 1-10s for test cases
     # * 1-5 minutes for interactive debugging
     # * 6-24 hours for development
-    expiry: 60
+  - name: main
+    type: stub
+    expiry: 6000
 roster_data:
     source: filesystem  # Can be set to google_api, all, test, or filesystem
 aio:  # User session; used for log-ins.
