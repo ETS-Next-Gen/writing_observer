@@ -304,7 +304,7 @@ def kvs_startup_check():
             KVS_DICT[kvs_item['name']] = kvs_class
 
         # Set default KVS to not break legacy code
-        KVS = KVS_DICT.get('main', InMemoryKVS)
+        KVS = KVS_DICT['main']
 
     except KeyError:
         if 'kvs' not in learning_observer.settings.settings:
@@ -320,6 +320,11 @@ def kvs_startup_check():
                     ', '.join([kvs['type'] for kvs in learning_observer.settings.settings['kvs'] if kvs['type'] not in KVS_MAP]),
                     list(KVS_MAP.keys())
                 )
+            )
+        elif 'main' not in learning_observer.settings.settings['kvs']:
+            raise learning_observer.prestartup.StartupCheck(
+                "No main KVS configured. Please set main kvs.\n"
+                "See example settings file for usage."
             )
         else:
             raise learning_observer.prestartup.StartupCheck(
