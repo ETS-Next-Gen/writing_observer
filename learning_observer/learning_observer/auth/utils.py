@@ -159,7 +159,13 @@ def admin(func):
            request['user']['authorized']:
             return func(request)
         # Else, if unauthorized
-        raise aiohttp.web.HTTPUnauthorized(text="Please log in")
+        # send user to login page /
+        # there may be a slight oddball with the url hash being
+        # included after the location updates
+        response = aiohttp.web.Response(status=302)
+        redirect_url = '/'
+        response.headers['Location'] = redirect_url
+        raise aiohttp.web.HTTPFound(location=redirect_url, headers=response.headers)
     return wrapper
 
 
