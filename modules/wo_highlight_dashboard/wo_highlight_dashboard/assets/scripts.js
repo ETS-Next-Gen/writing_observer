@@ -100,6 +100,8 @@ window.dash_clientside.clientside = {
         // Populates and updates students data from the websocket
         // for each update, parse the data into the proper format
         // Also return the current time
+        // TODO rewrite this code - its current state one implementation
+        // with another bandaid-fixed ontop of it, hence the maps at the end reformatting data
         //
         // Output({'type': student_metrics, 'index': ALL}, 'data'),
         // Output({'type': student_texthighlight, 'index': ALL}, 'text'),
@@ -125,19 +127,21 @@ window.dash_clientside.clientside = {
             let curr_user = data[i].student.user_id;
             let user_index = student_ids.findIndex(item => item.user_id === curr_user)
             const last_document = data[i]?.student?.['writing_observer.writing_analysis.last_document'];
+            const link = (typeof last_document !== 'undefined') ? `https://docs.google.com/document/d/${last_document.document_id}/edit` : '';
+            const text = (typeof data[i].text !== 'undefined') ? data[i].text : '';
             updates[user_index] = {
                 'id': curr_user,
                 'text': {
                     "student_text": {
                         "id": "student_text",
-                        "value": data[i].text,
+                        "value": text,
                         "label": "Student text"
                     }
                 },
                 'highlight': {},
                 'metrics': {},
                 'indicators': {},
-                'link': last_document ? `https://docs.google.com/document/d/${last_document.document_id}/edit` : ''
+                'link': link
             }
             for (const key in data[i]) {
                 let item = data[i][key];
@@ -171,7 +175,12 @@ window.dash_clientside.clientside = {
         // return the data to each each module
         return [
             updates.map(function(d) { return d['metrics']; }), // metrics
-            updates.map(function(d) { return d['text']['student_text']['value']; }), // texthighlight text
+            updates.map(function(d) {
+                if (d.text) {
+                    return d.text.student_text ? d.text.student_text.value : '';
+                }
+                return '';
+            }), // texthighlight text
             updates.map(function(d) { return d['highlight']; }), // texthighlight highlighting
             updates.map(function(d) { return d['indicators']; }), // indicators
             updates.map(function(d) { return d['link']; }), // student doc links
