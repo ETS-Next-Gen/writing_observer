@@ -35,6 +35,7 @@ import learning_observer.settings as settings
 import learning_observer.log_event
 import learning_observer.util
 import learning_observer.auth
+import learning_observer.runtime
 
 
 cache = None
@@ -114,14 +115,15 @@ def extract_parameters_from_format_string(format_string):
     return [f[1] for f in string.Formatter().parse(format_string) if f[1] is not None]
 
 
-async def raw_google_ajax(request, target_url, **kwargs):
+async def raw_google_ajax(runtime, target_url, **kwargs):
     '''
     Make an AJAX call to Google, managing auth + auth.
 
-    * request is the aiohttp request object.
+    * runtime is a Runtime class containing request information.
     * default_url is typically grabbed from ENDPOINTS
     * ... and we pass the named parameters
     '''
+    request = runtime.get_request()
     url = target_url.format(**kwargs)
     cache_key = "raw_google/" + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
@@ -368,6 +370,16 @@ def _force_text_length(text, length):
     return text[:length] + " " * (length - len(text))
 
 
+def get_error_details(error):
+    messages = {
+        403: 'Student working on private document.',
+        404: 'Unable to fetch document.'
+    }
+    code = error['code']
+    message = messages.get(code, 'Unknown error.')
+    return {'error': {'code': code, 'message': message}}
+
+
 @register_cleaner("document", "doctext")
 def extract_text_from_google_doc_json(
         j, align=True,
@@ -389,6 +401,9 @@ def extract_text_from_google_doc_json(
     within text chunks, since we do have different lengths for something like
     this flag. It does work okay globally.
     '''
+    # return error message for text
+    if 'error' in j:
+        return get_error_details(j['error'])
     length = j['body']['content'][-1]['endIndex']
     elements = [a.get('paragraph', {}).get('elements', []) for a in j['body']['content']]
     flat = sum(elements, [])
@@ -407,7 +422,7 @@ def extract_text_from_google_doc_json(
             print("Offsets (these should match):")
             print(list(zip(itertools.accumulate(map(len, text_chunks)), itertools.accumulate(lengths))))
 
-    return text
+    return {'text': text}
 
 
 if __name__ == '__main__':

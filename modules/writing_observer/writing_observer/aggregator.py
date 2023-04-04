@@ -1,6 +1,7 @@
 import sys
 import time
 
+import learning_observer.cache
 import learning_observer.settings
 import learning_observer.stream_analytics.helpers
 import learning_observer.util
@@ -77,7 +78,7 @@ def sanitize_and_shrink_per_student_data(student_data):
     return student_data
 
 
-def aggregate_course_summary_stats(student_data):
+def aggregate_course_summary_stats(request, student_data):
     '''
     Here, we compute summary stats across the entire course. This is
     helpful so that the front end can know, for example, how to render
@@ -124,45 +125,23 @@ def aggregate_course_summary_stats(student_data):
 ######
 
 
-async def get_latest_student_documents(student_data):
-    '''
-    This will retrieve the latest student documents from the database. It breaks
-    abstractions.
-    '''
-    import learning_observer.kvs
+def get_last_document_id(s):
+    """
+    Retrieves the ID of the latest document for a given student.
 
-    import writing_observer.writing_analysis
-    from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
-
-    kvs = learning_observer.kvs.KVS()
-
-    # To do: Handle students with no documents more cleanly.
-    #
-    # Right now, we just return a key with the text 'None', which is an
-    # an invalid document.
-    document_keys = ([
-        learning_observer.stream_analytics.helpers.make_key(
-            writing_observer.writing_analysis.reconstruct,
-            {
-                KeyField.STUDENT: s['user_id'],
-                EventField('doc_id'): s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
-            },
-            KeyStateType.INTERNAL
-        ) for s in student_data])
-
-    writing_data = await kvs.multiget(keys=document_keys)
-
-    # Return blank entries if no data, rather than None. This makes it possible
-    # to use item.get with defaults sanely.
-    writing_data = [{} if item is None else item for item in writing_data]
-    return writing_data
+    :param s: The student data.
+    :return: The ID of the latest document.
+    """
+    return s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
 
 
 async def remove_extra_data(writing_data):
-    '''
-    We don't want Deane graph data going to the client. We just do a bit of
-    a cleanup. This is in-place.
-    '''
+    """
+    Removes Deane graph data from writing data.
+
+    :param writing_data: The writing data to process.
+    :return: The processed writing data.
+    """
     for item in writing_data:
         if 'edit_metadata' in item:
             del item['edit_metadata']
@@ -170,9 +149,13 @@ async def remove_extra_data(writing_data):
 
 
 async def merge_with_student_data(writing_data, student_data):
-    '''
-    Add the student metadata to each text
-    '''
+    """
+    Merges writing data with student metadata.
+
+    :param writing_data: The writing data to merge.
+    :param student_data: The student metadata to merge.
+    :return: The merged writing data.
+    """
     for item, student in zip(writing_data, student_data):
         if 'edit_metadata' in item:
             del item['edit_metadata']
@@ -193,13 +176,89 @@ else:
     processor = writing_observer.stub_nlp.process_texts
 
 
-async def latest_data(student_data, options=None):
-    '''
-    HACK HACK HACK
+def retrieve_latest_documents_kvs():
+    async def docs(student_data):
+        """
+        Retrieves the latest documents for a set of students from KVS.
 
-    I just hardcoded this, breaking abstractions, repeating code, etc.
-    '''
-    writing_data = await get_latest_student_documents(student_data)
+        :param student_data: The student data.
+        :return: The latest documents.
+        """
+        import learning_observer.kvs
+        import writing_observer.writing_analysis
+        from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
+
+        kvs = learning_observer.kvs.KVS()
+
+        # To do: Handle students with no documents more cleanly.
+        #
+        # Right now, we just return a key with the text 'None', which is an
+        # an invalid document.
+        document_keys = ([
+            learning_observer.stream_analytics.helpers.make_key(
+                writing_observer.writing_analysis.reconstruct,
+                {
+                    KeyField.STUDENT: s['user_id'],
+                    EventField('doc_id'): get_last_document_id(s)
+                },
+                KeyStateType.INTERNAL
+            ) for s in student_data])
+
+        writing_data = await kvs.multiget(keys=document_keys)
+
+        # Return blank entries if no data, rather than None. This makes it possible
+        # to use item.get with defaults sanely.
+        writing_data = [{} if item is None else item for item in writing_data]
+        return writing_data
+    return docs
+
+
+def retrieve_latest_documents_google(runtime):
+    @learning_observer.cache.async_memoization()
+    async def fetch_doc_from_google(docId):
+        """
+        Retrieves a single doc from Google based on document id
+
+        :param docId: The id of the latest document.
+        :return: The text of the latest document
+        """
+        import learning_observer.google
+        return await learning_observer.google.doctext(runtime, documentId=docId)
+
+    async def docs(student_data):
+        """
+        Retrieves the latest documents for a set of students using Google Docs.
+
+        :param student_data: The student data.
+        :return: The latest documents.
+        """
+        writing_data = [
+            await fetch_doc_from_google(get_last_document_id(s))
+            if get_last_document_id(s) is not None else {}
+            for s in student_data
+        ]
+        return writing_data
+    return docs
+
+
+async def latest_data(runtime, student_data, options=None):
+    """
+    Retrieves the latest writing data for a set of students.
+
+    :param runtime: The runtime object from the server
+    :param student_data: The student data.
+    :param options: Additional options to pass to the text processing pipeline.
+    :return: The latest writing data.
+    """
+    student_document_retriever = None
+
+    # TODO better interweave where the documents are coming from
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
+        student_document_retriever = retrieve_latest_documents_google(runtime)
+    else:
+        student_document_retriever = retrieve_latest_documents_kvs()
+
+    writing_data = await student_document_retriever(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)

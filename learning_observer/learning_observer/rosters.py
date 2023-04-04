@@ -62,24 +62,22 @@ time.
 
 import json
 import os.path
-import sys
 
 import aiohttp
 import aiohttp.web
 
 import pathvalidate
 
-import learning_observer.settings as settings
-
-import learning_observer.kvs
-import learning_observer.log_event as log_event
-import learning_observer.paths as paths
 import learning_observer.auth as auth
 import learning_observer.google
-
+import learning_observer.kvs
+import learning_observer.log_event as log_event
 from learning_observer.log_event import debug_log
-
+import learning_observer.paths as paths
 import learning_observer.prestartup
+import learning_observer.runtime
+import learning_observer.settings as settings
+
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
@@ -394,7 +392,8 @@ async def courselist(request):
     '''
     # New code
     if settings.settings['roster_data']['source'] in ["google_api"]:
-        return await learning_observer.google.courses(request)
+        runtime = learning_observer.runtime.Runtime(request)
+        return await learning_observer.google.courses(runtime)
 
     # Legacy code
     course_list = await ajax(
@@ -412,7 +411,8 @@ async def courseroster(request, course_id):
     List all of the students in a course: Helper
     '''
     if settings.settings['roster_data']['source'] in ["google_api"]:
-        return await learning_observer.google.roster(request, courseId=course_id)
+        runtime = learning_observer.runtime.Runtime(request)
+        return await learning_observer.google.roster(runtime, courseId=course_id)
 
     roster = await ajax(
         request,

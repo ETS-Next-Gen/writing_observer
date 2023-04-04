@@ -17,6 +17,7 @@ import learning_observer.synthetic_student_data as synthetic_student_data
 
 import learning_observer.stream_analytics.helpers as sa_helpers
 import learning_observer.kvs as kvs
+import learning_observer.runtime
 
 import learning_observer.paths as paths
 
@@ -222,7 +223,6 @@ def fetch_student_state(
                     sa_module,
                     {sa_helpers.KeyField.STUDENT: student_id},
                     sa_helpers.KeyStateType.EXTERNAL)
-                debug_log(key)
                 data = await teacherkvs[key]
                 # debug_log(data) <-- Useful, but a lot of stuff is spit out.
                 if data is not None:
@@ -312,6 +312,7 @@ async def websocket_dashboard_view(request):
     async_aggregator = inspect.iscoroutinefunction(aggregator)
     args_aggregrator = inspect.getfullargspec(aggregator)[0]
     client_data = None
+    runtime = learning_observer.runtime.Runtime(request)
 
     while True:
         sd = await student_state_fetcher()
@@ -323,9 +324,9 @@ async def websocket_dashboard_view(request):
         # Currently options is a list of strings (what we want returned)
         # In the futuer this should be some form of communication protocol
         if 'options' in args_aggregrator:
-            agg = aggregator(sd, client_data)
+            agg = aggregator(runtime, sd, client_data)
         else:
-            agg = aggregator(sd)
+            agg = aggregator(runtime, sd)
         if async_aggregator:
             agg = await agg
         data.update(agg)
