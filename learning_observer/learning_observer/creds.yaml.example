@@ -49,7 +49,7 @@ kvs:
     # * 1-10s for test cases
     # * 1-5 minutes for interactive debugging
     # * 6-24 hours for development
-  - name: main
+  default:
     type: stub
     expiry: 6000
 roster_data:

@@ -13,16 +13,16 @@ To read objects:
 
 import asyncio
 import copy
+import enum
 import functools
 import json
 import os
 import os.path
-import sys
 
-import learning_observer.prestartup
-import learning_observer.settings
-import learning_observer.redis_connection
 import learning_observer.paths
+import learning_observer.prestartup
+import learning_observer.redis_connection
+import learning_observer.settings
 import learning_observer.util
 
 OBJECT_STORE = dict()
@@ -276,6 +276,7 @@ class FilesystemKVS(_KVS):
 
 KVS = None
 KVS_DICT = {}
+KVSOptions = {}
 
 
 @learning_observer.prestartup.register_startup_check
@@ -287,7 +288,7 @@ def kvs_startup_check():
 
     Checks like this one allow us to fail on startup, rather than later
     '''
-    global KVS, KVS_DICT
+    global KVS, KVS_DICT, KVSOptions
     try:
         KVS_MAP = {
             'stub': InMemoryKVS,
@@ -295,16 +296,17 @@ def kvs_startup_check():
             'redis': PersistentRedisKVS
         }
         # register KVSs
-        for kvs_item in learning_observer.settings.settings['kvs']:
+        KVSOptions = enum.Enum('KVSOptions', learning_observer.settings.settings['kvs'])
+        for key, kvs_item in learning_observer.settings.settings['kvs'].items():
             kvs_type = kvs_item['type']
             kvs_class = KVS_MAP[kvs_type]
             # set timeout for ephemeral redis connections
             if kvs_type == 'redis_ephemeral':
                 kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
-            KVS_DICT[kvs_item['name']] = kvs_class
+            KVS_DICT[KVSOptions[key]] = kvs_class
 
         # Set default KVS to not break legacy code
-        KVS = KVS_DICT['main']
+        KVS = KVS_DICT[KVSOptions.default]
 
     except KeyError:
         if 'kvs' not in learning_observer.settings.settings:
@@ -312,18 +314,18 @@ def kvs_startup_check():
                 "No KVS configured. Please set kvs.type in settings.py\n"
                 "Look at example settings file to see what's available."
             )
-        elif any([kvs['type'] not in KVS_MAP for kvs in learning_observer.settings.settings['kvs']]):
+        elif any([kvs['type'] not in KVS_MAP for _, kvs in learning_observer.settings.settings['kvs'].items()]):
             raise learning_observer.prestartup.StartupCheck(
                 "Unknown KVS type: {}\n"
                 "Look at example settings file to see what's available. \n"
                 "Suppported types: {}".format(
-                    ', '.join([kvs['type'] for kvs in learning_observer.settings.settings['kvs'] if kvs['type'] not in KVS_MAP]),
+                    ', '.join([kvs['type'] for _, kvs in learning_observer.settings.settings['kvs'].items() if kvs['type'] not in KVS_MAP]),
                     list(KVS_MAP.keys())
                 )
             )
-        elif 'main' not in learning_observer.settings.settings['kvs']:
+        elif 'default' not in learning_observer.settings.settings['kvs']:
             raise learning_observer.prestartup.StartupCheck(
-                "No main KVS configured. Please set main kvs.\n"
+                "No default KVS configured. Please set default kvs.\n"
                 "See example settings file for usage."
             )
         else:

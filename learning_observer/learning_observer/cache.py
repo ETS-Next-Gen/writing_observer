@@ -1,4 +1,4 @@
-from functools import wraps
+import functools
 import json
 
 import learning_observer.kvs
@@ -11,11 +11,10 @@ def create_key_from_args(*args, **kwargs):
 
 
 def async_memoization():
-    # TODO how should we default here if memoization_cache doesn't exist?
-    cache_backend = learning_observer.kvs.KVS_DICT['memoization_cache']()
+    cache_backend = learning_observer.kvs.KVS_DICT[learning_observer.kvs.KVSOptions.memoization_cache]()
 
     def decorator(func):
-        @wraps(func)
+        @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             key = create_key_from_args(args, kwargs)
             if key in await cache_backend.keys():

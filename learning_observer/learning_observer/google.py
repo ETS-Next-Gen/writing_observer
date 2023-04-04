@@ -370,7 +370,7 @@ def _force_text_length(text, length):
     return text[:length] + " " * (length - len(text))
 
 
-def get_error_message(error):
+def get_error_details(error):
     messages = {
         403: 'Student working on private document.',
         404: 'Unable to fetch document.'
@@ -403,7 +403,7 @@ def extract_text_from_google_doc_json(
     '''
     # return error message for text
     if 'error' in j:
-        return get_error_message(j['error'])
+        return get_error_details(j['error'])
     length = j['body']['content'][-1]['endIndex']
     elements = [a.get('paragraph', {}).get('elements', []) for a in j['body']['content']]
     flat = sum(elements, [])
