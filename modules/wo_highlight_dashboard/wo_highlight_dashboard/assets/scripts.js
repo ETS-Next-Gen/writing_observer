@@ -100,8 +100,9 @@ window.dash_clientside.clientside = {
         // Populates and updates students data from the websocket
         // for each update, parse the data into the proper format
         // Also return the current time
-        // TODO rewrite this code - its current state one implementation
-        // with another bandaid-fixed ontop of it, hence the maps at the end reformatting data
+        // TODO rewrite this function - the current state is still functions similar
+        // to the early prototype which was made for static data then adjusted to fit into
+        // the communication channel instead of being re-implemented properly.
         //
         // Output({'type': student_metrics, 'index': ALL}, 'data'),
         // Output({'type': student_texthighlight, 'index': ALL}, 'text'),

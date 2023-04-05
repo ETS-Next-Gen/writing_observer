@@ -204,25 +204,35 @@ async def retrieve_latest_documents_kvs(student_data):
     return writing_data
 
 
-async def retrieve_latest_documents_google(runtime, student_data):
-    @learning_observer.cache.async_memoization()
-    async def fetch_doc_from_google(s):
-        """
-        Retrieves a single doc from Google based on document id
+async def update_reconstruct_data_with_google_api(runtime, student_data):
+    """
+    This function updates the text reconstruction writing data from the extension with the 
+    ground truth data from the Google Docs API.
 
-        :param docId: The id of the latest document.
+    :param runtime: The runtime for the application
+    :param student_data: A list of students
+    :return: A list of writing data, one for each student
+    """
+    @learning_observer.cache.async_memoization()
+    async def fetch_doc_from_google(student):
+        """
+        This function retrieves a single document text from Google based on the document ID.
+
+        :param student: A student object
         :return: The text of the latest document
         """
         import learning_observer.google
 
         kvs = learning_observer.kvs.KVS()
 
-        docId = get_last_document_id(s)
+        docId = get_last_document_id(student)
+        # fetch text
         text = await learning_observer.google.doctext(runtime, documentId=docId)
+        # set reconstruction data to ground truth
         key = learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
             {
-                KeyField.STUDENT: s['user_id'],
+                KeyField.STUDENT: student['user_id'],
                 EventField('doc_id'): docId
             },
             KeyStateType.INTERNAL
@@ -230,6 +240,7 @@ async def retrieve_latest_documents_google(runtime, student_data):
         await kvs.set(key, text)
         return text
 
+    # For each student, retrieve the document text from Google and store it in a list
     writing_data = [
         await fetch_doc_from_google(s)
         if get_last_document_id(s) is not None else {}
@@ -248,10 +259,11 @@ async def latest_data(runtime, student_data, options=None):
     :return: The latest writing data.
     """
 
-    # HACK we are relying on Redis ephemeral here
-    # once we remove that we can remove the feature flag
+    # HACK we have a cache downstream that relies on redis_ephemeral being setup
+    # when that is resolved, we can remove the feature flag
+    # Update reconstruct data from KVS with ground truth from Google API
     if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
-        await retrieve_latest_documents_google(runtime, student_data)
+        await update_reconstruct_data_with_google_api(runtime, student_data)
     writing_data = await retrieve_latest_documents_kvs(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
