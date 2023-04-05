@@ -274,9 +274,27 @@ class FilesystemKVS(_KVS):
                 yield self.safe_filename_to_key(f)
 
 
+class KVSCallable:
+    def __init__(self, default=None):
+        self._items = {'default': default}
+
+    def __call__(self):
+        return self._items['default']()
+
+    def add_item(self, key, value):
+        self._items[key] = value
+
+    def remove_item(self, key):
+        del self._items[key]
+
+    def __getattr__(self, key):
+        if key in self._items:
+            return self._items[key]
+        else:
+            raise AttributeError(f'KVS Callable has no object: {key}')
+
+
 KVS = None
-KVS_DICT = {}
-KVSOptions = {}
 
 
 @learning_observer.prestartup.register_startup_check
@@ -288,7 +306,7 @@ def kvs_startup_check():
 
     Checks like this one allow us to fail on startup, rather than later
     '''
-    global KVS, KVS_DICT, KVSOptions
+    global KVS
     try:
         KVS_MAP = {
             'stub': InMemoryKVS,
@@ -296,17 +314,15 @@ def kvs_startup_check():
             'redis': PersistentRedisKVS
         }
         # register KVSs
-        KVSOptions = enum.Enum('KVSOptions', learning_observer.settings.settings['kvs'])
+        # KVSOptions = enum.Enum('KVSOptions', learning_observer.settings.settings['kvs'])
+        KVS = KVSCallable()
         for key, kvs_item in learning_observer.settings.settings['kvs'].items():
             kvs_type = kvs_item['type']
             kvs_class = KVS_MAP[kvs_type]
             # set timeout for ephemeral redis connections
             if kvs_type == 'redis_ephemeral':
                 kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
-            KVS_DICT[KVSOptions[key]] = kvs_class
-
-        # Set default KVS to not break legacy code
-        KVS = KVS_DICT[KVSOptions.default]
+            KVS.add_item(key, kvs_class)
 
     except KeyError:
         if 'kvs' not in learning_observer.settings.settings:
