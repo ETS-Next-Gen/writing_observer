@@ -206,7 +206,7 @@ async def retrieve_latest_documents_kvs(student_data):
 
 async def update_reconstruct_data_with_google_api(runtime, student_data):
     """
-    This function updates the text reconstruction writing data from the extension with the 
+    This function updates the text reconstruction writing data from the extension with the
     ground truth data from the Google Docs API.
 
     :param runtime: The runtime for the application
