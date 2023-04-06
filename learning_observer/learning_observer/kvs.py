@@ -274,24 +274,53 @@ class FilesystemKVS(_KVS):
                 yield self.safe_filename_to_key(f)
 
 
-class KVSCallable:
-    def __init__(self, default=None):
+KVS_MAP = {
+    'stub': InMemoryKVS,
+    'redis_ephemeral': EphemeralRedisKVS,
+    'redis': PersistentRedisKVS
+}
+
+
+class KVSRouter:
+    """Routes KVS calls to the appropriate backend."""
+
+    def __init__(self, default=None, items=None):
+        """
+        Initialize the router with a default KVS and optional additional items.
+
+        :param default: the default KVS callable
+        :param items: a dictionary or list of tuples containing KVS items
+        """
         self._items = {'default': default}
 
+        if items is not None:
+            for key, kvs_item in items:
+                kvs_type = kvs_item['type']
+                if kvs_type not in KVS_MAP:
+                    raise KeyError(f"Invalid KVS type '{kvs_type}'")
+                kvs_class = KVS_MAP[kvs_type]
+                if kvs_type == 'redis_ephemeral':
+                    kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
+                self.add_item(key, kvs_class)
+
     def __call__(self):
+        """Call the default KVS callable."""
         return self._items['default']()
 
     def add_item(self, key, value):
+        """Add a new KVS item."""
         self._items[key] = value
 
     def remove_item(self, key):
+        """Remove a KVS item."""
         del self._items[key]
 
     def __getattr__(self, key):
+        """Get a KVS item by key."""
         if key in self._items:
             return self._items[key]
         else:
-            raise AttributeError(f'KVS Callable has no object: {key}')
+            raise AttributeError(f"KVS has no object '{key}'")
 
 
 KVS = None
@@ -308,21 +337,7 @@ def kvs_startup_check():
     '''
     global KVS
     try:
-        KVS_MAP = {
-            'stub': InMemoryKVS,
-            'redis_ephemeral': EphemeralRedisKVS,
-            'redis': PersistentRedisKVS
-        }
-        # register KVSs
-        # KVSOptions = enum.Enum('KVSOptions', learning_observer.settings.settings['kvs'])
-        KVS = KVSCallable()
-        for key, kvs_item in learning_observer.settings.settings['kvs'].items():
-            kvs_type = kvs_item['type']
-            kvs_class = KVS_MAP[kvs_type]
-            # set timeout for ephemeral redis connections
-            if kvs_type == 'redis_ephemeral':
-                kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
-            KVS.add_item(key, kvs_class)
+        KVS = KVSRouter(items=learning_observer.settings.settings['kvs'].items())
 
     except KeyError:
         if 'kvs' not in learning_observer.settings.settings:
