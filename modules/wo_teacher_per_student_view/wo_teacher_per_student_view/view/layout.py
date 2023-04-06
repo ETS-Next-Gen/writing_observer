@@ -103,7 +103,7 @@ clientside_callback(
         const data = JSON.parse(msg.data);
         const curr_student_index = data.latest_writing_data.findIndex(s => s.student.profile.name.full_name === student);
         const student_data = data.latest_writing_data[curr_student_index];
-        console.log(student, curr_student_index, student_data);
+        // console.log(student, curr_student_index, student_data);
         const sentence_type_data = JSON.parse(student_data?.sentence_types?.metric ?? "{}");
         const sentence_type_labels = Object.keys(sentence_type_data);
         const sentence_type_values = Object.values(sentence_type_data);
