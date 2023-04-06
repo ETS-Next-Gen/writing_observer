@@ -12,6 +12,7 @@ This can work without all of the tooling, load time, etc. required for the full
 AWE Workbench, and should make development faster and easier.
 '''
 
+import json
 import random
 import re
 
@@ -24,7 +25,7 @@ def limited_sample(total, n):
     - with smooth degradation if we don't have enough data.
     - Returns sorted
     '''
-    return sorted(random.sample(range(total), min(total, n)))
+    return sorted(random.sample(range(total), min(total if total > 0 else 0, n)))
 
 
 def select_random_segments(text, segments=3, segment_length=3, seed=0):
@@ -146,6 +147,14 @@ async def process_texts(writing_data, options=None):
                 metric = random.randint(0, 100)
             elif summaryType == 'total':
                 metric = random.randint(0, len(text.split(' ')))
+            elif summaryType == 'counts':
+                sentence_counts = int(len(text.split('.')) / 3)
+                metric = {
+                    'item1': random.randint(0, sentence_counts),
+                    'item2': random.randint(0, sentence_counts),
+                    'item3': random.randint(0, sentence_counts),
+                }
+                metric = json.dumps(metric)
             random.setstate(state)
             results[id].update({
                 'label': label,

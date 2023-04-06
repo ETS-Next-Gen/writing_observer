@@ -68,38 +68,40 @@ export default class StudentSelectHeader extends Component {
 
     return (
       <div id={id} className={classNames}>
-        <header id="student-select-header" className="nav-header">
-          <div className="button-left">
-            <button className="button" onClick={() => this.iterateName(-1)}>
-              &lt;
-            </button>
-          </div>
-          <div className="header-student" onClick={this.handleClick}>
-            {selectedStudent}
-          </div>
-          {showDropdown && (
-            <ul className="dropdown">
-              {students.map((name) => (
-                <li
-                  key={name}
-                  onClick={() => this.handleSelect(name)}
-                  className={
-                    name === selectedStudent
-                      ? "dropdown-item dropdown-item-selected"
-                      : "dropdown-item"
-                  }
-                >
-                  {name}
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="button-right">
-            <button className="button" onClick={() => this.iterateName(1)}>
-              &gt;
-            </button>
-          </div>
-        </header>
+        <div id="student-select-header">
+          <header className="nav-header">
+            <div className="button-left">
+              <button className="button" onClick={() => this.iterateName(-1)}>
+                &lt;
+              </button>
+            </div>
+            <div className="header-student" onClick={this.handleClick}>
+              {selectedStudent}
+            </div>
+            {showDropdown && (
+              <ul className="dropdown">
+                {students.map((name) => (
+                  <li
+                    key={name}
+                    onClick={() => this.handleSelect(name)}
+                    className={
+                      name === selectedStudent
+                        ? "dropdown-item dropdown-item-selected"
+                        : "dropdown-item"
+                    }
+                  >
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="button-right">
+              <button className="button" onClick={() => this.iterateName(1)}>
+                &gt;
+              </button>
+            </div>
+          </header>
+        </div>
       </div>
     );
   }
