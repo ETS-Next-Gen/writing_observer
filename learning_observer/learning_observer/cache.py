@@ -11,7 +11,7 @@ def create_key_from_args(*args, **kwargs):
 
 
 def async_memoization():
-    cache_backend = learning_observer.kvs.KVS_DICT[learning_observer.kvs.KVSOptions.memoization_cache]()
+    cache_backend = learning_observer.kvs.KVS.memoization()
 
     def decorator(func):
         @functools.wraps(func)
