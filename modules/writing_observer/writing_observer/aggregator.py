@@ -2,9 +2,13 @@ import sys
 import time
 
 import learning_observer.cache
+import learning_observer.kvs
 import learning_observer.settings
+from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
 import learning_observer.stream_analytics.helpers
 import learning_observer.util
+
+import writing_observer.writing_analysis
 
 
 def excerpt_active_text(
@@ -117,14 +121,6 @@ def aggregate_course_summary_stats(request, student_data):
     }
 
 
-######
-#
-#  Everything from here on is a hack.
-#  We need to figure out proper abstractions.
-#
-######
-
-
 def get_last_document_id(s):
     """
     Retrieves the ID of the latest document for a given student.
@@ -176,69 +172,81 @@ else:
     processor = writing_observer.stub_nlp.process_texts
 
 
-def retrieve_latest_documents_kvs():
-    async def docs(student_data):
-        """
-        Retrieves the latest documents for a set of students from KVS.
+async def retrieve_latest_documents_kvs(student_data):
+    """
+    Retrieves the latest documents for a set of students from KVS.
 
-        :param student_data: The student data.
-        :return: The latest documents.
-        """
-        import learning_observer.kvs
-        import writing_observer.writing_analysis
-        from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
+    :param student_data: The student data.
+    :return: The latest documents.
+    """
+    kvs = learning_observer.kvs.KVS()
 
-        kvs = learning_observer.kvs.KVS()
+    # To do: Handle students with no documents more cleanly.
+    #
+    # Right now, we just return a key with the text 'None', which is an
+    # an invalid document.
+    document_keys = ([
+        learning_observer.stream_analytics.helpers.make_key(
+            writing_observer.writing_analysis.reconstruct,
+            {
+                KeyField.STUDENT: s['user_id'],
+                EventField('doc_id'): get_last_document_id(s)
+            },
+            KeyStateType.INTERNAL
+        ) for s in student_data])
 
-        # To do: Handle students with no documents more cleanly.
-        #
-        # Right now, we just return a key with the text 'None', which is an
-        # an invalid document.
-        document_keys = ([
-            learning_observer.stream_analytics.helpers.make_key(
-                writing_observer.writing_analysis.reconstruct,
-                {
-                    KeyField.STUDENT: s['user_id'],
-                    EventField('doc_id'): get_last_document_id(s)
-                },
-                KeyStateType.INTERNAL
-            ) for s in student_data])
+    writing_data = await kvs.multiget(keys=document_keys)
 
-        writing_data = await kvs.multiget(keys=document_keys)
-
-        # Return blank entries if no data, rather than None. This makes it possible
-        # to use item.get with defaults sanely.
-        writing_data = [{} if item is None else item for item in writing_data]
-        return writing_data
-    return docs
+    # Return blank entries if no data, rather than None. This makes it possible
+    # to use item.get with defaults sanely.
+    error = {'error': {'code': 404, 'message': 'Unable to locate document.'}}
+    writing_data = [error if item is None else item for item in writing_data]
+    return writing_data
 
 
-def retrieve_latest_documents_google(runtime):
+async def update_reconstruct_data_with_google_api(runtime, student_data):
+    """
+    This function updates the text reconstruction writing data from the extension with the
+    ground truth data from the Google Docs API.
+
+    :param runtime: The runtime for the application
+    :param student_data: A list of students
+    :return: A list of writing data, one for each student
+    """
     @learning_observer.cache.async_memoization()
-    async def fetch_doc_from_google(docId):
+    async def fetch_doc_from_google(student):
         """
-        Retrieves a single doc from Google based on document id
+        This function retrieves a single document text from Google based on the document ID.
 
-        :param docId: The id of the latest document.
+        :param student: A student object
         :return: The text of the latest document
         """
         import learning_observer.google
-        return await learning_observer.google.doctext(runtime, documentId=docId)
 
-    async def docs(student_data):
-        """
-        Retrieves the latest documents for a set of students using Google Docs.
+        kvs = learning_observer.kvs.KVS()
 
-        :param student_data: The student data.
-        :return: The latest documents.
-        """
-        writing_data = [
-            await fetch_doc_from_google(get_last_document_id(s))
-            if get_last_document_id(s) is not None else {}
-            for s in student_data
-        ]
-        return writing_data
-    return docs
+        docId = get_last_document_id(student)
+        # fetch text
+        text = await learning_observer.google.doctext(runtime, documentId=docId)
+        # set reconstruction data to ground truth
+        key = learning_observer.stream_analytics.helpers.make_key(
+            writing_observer.writing_analysis.reconstruct,
+            {
+                KeyField.STUDENT: student['user_id'],
+                EventField('doc_id'): docId
+            },
+            KeyStateType.INTERNAL
+        )
+        await kvs.set(key, text)
+        return text
+
+    # For each student, retrieve the document text from Google and store it in a list
+    writing_data = [
+        await fetch_doc_from_google(s)
+        if get_last_document_id(s) is not None else {}
+        for s in student_data
+    ]
+    return writing_data
 
 
 async def latest_data(runtime, student_data, options=None):
@@ -250,15 +258,13 @@ async def latest_data(runtime, student_data, options=None):
     :param options: Additional options to pass to the text processing pipeline.
     :return: The latest writing data.
     """
-    student_document_retriever = None
 
-    # TODO better interweave where the documents are coming from
+    # HACK we have a cache downstream that relies on redis_ephemeral being setup
+    # when that is resolved, we can remove the feature flag
+    # Update reconstruct data from KVS with ground truth from Google API
     if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
-        student_document_retriever = retrieve_latest_documents_google(runtime)
-    else:
-        student_document_retriever = retrieve_latest_documents_kvs()
-
-    writing_data = await student_document_retriever(student_data)
+        await update_reconstruct_data_with_google_api(runtime, student_data)
+    writing_data = await retrieve_latest_documents_kvs(student_data)
     writing_data = await remove_extra_data(writing_data)
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)

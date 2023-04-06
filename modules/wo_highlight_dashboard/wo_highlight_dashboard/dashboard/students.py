@@ -354,10 +354,10 @@ clientside_callback(
     # TODO validate that the student link is shown when available
     '''
     function(href) {
-        if (href.length > 0) {
-            return '';
+        if (typeof href === 'undefined' || href.length === 0) {
+            return 'd-none';
         }
-        return 'd-none';
+        return '';
     }
     ''',
     Output({'type': student_link, 'index': MATCH}, 'class_name'),
