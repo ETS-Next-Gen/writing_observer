@@ -1,3 +1,145 @@
+@import "../../node_modules/bootstrap/scss/bootstrap";
+@import "../../node_modules/bootstrap/scss/variables";
+
+:root {
+  --mastery-color: hsl(120, 80%, 75%);
+  --zpd-color: hsl(60, 80%, 75%);
+  --fail-color: hsl(10, 80%, 75%);
+  --none-color: hsl(0, 0%, 80%);
+  --scale: 200px;
+  --mastery-background: palegreen;
+  --zpd-background: lightyellow;
+  --fail-background: bisque;
+  --mastery-foreground: darkgreen;
+  --zpd-foreground: brown;
+  --fail-foreground: darkred;
+  --background-color: whitesmoke;
+  --text-color: darkslategray;
+  --table-background: whitesmoke;
+  font-family: open-sans;
+}
+
+.LOTableView {
+  .LOControls {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+    padding: 8px;
+    background-color: rgba(255,255,255,0.1);
+    box-shadow: 0px 5px 5px -5px rgba(0,0,0,0.25),
+                0px -5px 5px -5px rgba(0,0,0,0.15);
+    h2 {
+      font-size: 12pt;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    label {
+      margin-left: 8px;
+      font-weight: normal;
+      font-weight: 200;
+    }
+    input {
+      margin-right: 8px;
+    }
+  }
+
+  .card {
+      align-items: center;
+      background-color: white;
+      box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      margin: 8px;
+      padding: 16px;
+      display: flex;
+  }
+
+  .card-list {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -8px;
+
+    .column:hover {
+      background-color: rgba(0,0,0,0.1);
+    }
+
+    .avatar {
+      border-radius: 50%;
+      width: 64px;
+      height: 64px;
+    }
+
+    .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    .name {
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .columns {
+      display: flex;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: top;
+    }
+
+    .value {
+      font-size: 16px;
+    }
+
+    &:not(.card-grid-layout) {
+      .card {
+        width: 100%;
+        height: 125px;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      .columns {
+        flex-direction: row;
+        width: 100%;
+      }
+
+      .column {
+        justify-content: top;
+        margin-right: 20px;
+        width: calc(100% / 4);
+        text-align: center;
+      }
+
+      .value {
+        max-height: 100px;
+        overflow: scroll;
+      }
+    }
+
+    &.card-grid-layout {
+      .card {
+        width: 300px;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .columns {
+        flex-direction: column;
+        margin-top: 16px;
+      }
+
+      .column {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}
+
 #student-select-header {
     .nav-header {
         display: flex;
@@ -60,23 +202,6 @@
     .dropdown-item-selected {
         background-color: lightgray;
     }
-}
-
-:root {
-  --mastery-color: hsl(120, 80%, 75%);
-  --zpd-color: hsl(60, 80%, 75%);
-  --fail-color: hsl(10, 80%, 75%);
-  --none-color: hsl(0, 0%, 80%);
-  --scale: 200px;
-  --mastery-background: palegreen;
-  --zpd-background: lightyellow;
-  --fail-background: bisque;
-  --mastery-foreground: darkgreen;
-  --zpd-foreground: brown;
-  --fail-foreground: darkred;
-  --background-color: whitesmoke;
-  --text-color: darkslategray;
-  --table-background: whitesmoke;
 }
 
 body {
@@ -430,3 +555,4 @@ body {
     margin-right: 16px;
   }
 }
+
