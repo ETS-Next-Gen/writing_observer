@@ -2,6 +2,7 @@ import sys
 import time
 
 import learning_observer.cache
+import learning_observer.communication_protocol
 import learning_observer.kvs
 import learning_observer.settings
 from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
@@ -9,6 +10,25 @@ import learning_observer.stream_analytics.helpers
 import learning_observer.util
 
 import writing_observer.writing_analysis
+
+client_data_schema = {
+    'type': 'object',
+    'allOf': [
+        learning_observer.communication_protocol.base_schema,
+        {
+            'type': 'object',
+            'properties': {
+                'options': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'string'
+                    }
+                },
+            },
+        }
+    ],
+    'unevaluatedProperties': False
+}
 
 
 def excerpt_active_text(
@@ -249,15 +269,19 @@ async def update_reconstruct_data_with_google_api(runtime, student_data):
     return writing_data
 
 
-async def latest_data(runtime, student_data, options=None):
+async def latest_data(runtime, student_data, client_data=None):
     """
     Retrieves the latest writing data for a set of students.
 
     :param runtime: The runtime object from the server
     :param student_data: The student data.
-    :param options: Additional options to pass to the text processing pipeline.
+    :param client_data: Information from the client about their options.
     :return: The latest writing data.
     """
+    if client_data is None:
+        options = []
+    else:
+        options = client_data.get('options', [])
 
     # HACK we have a cache downstream that relies on redis_ephemeral being setup
     # when that is resolved, we can remove the feature flag

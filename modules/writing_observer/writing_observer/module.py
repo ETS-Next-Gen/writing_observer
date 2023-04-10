@@ -50,7 +50,8 @@ COURSE_AGGREGATORS = {
             writing_observer.writing_analysis.last_document
         ],
         "name": "Show the latest student writing",
-        "aggregator": writing_observer.aggregator.latest_data
+        "aggregator": writing_observer.aggregator.latest_data,
+        "client_data": writing_observer.aggregator.client_data_schema
     }
 }
 

@@ -368,8 +368,7 @@ window.dash_clientside.clientside = {
     },
 
     send_options_to_server: function(types, metrics, highlights, indicators, sort_by) {
-        // Send selected options to the server 
-        // TODO work on protocol for communicating with the 
+        // Send selected options to the server with additional required metadata
         //
         // Output(websocket, 'send'),
         // Input(settings.checklist, 'value'),
@@ -377,7 +376,11 @@ window.dash_clientside.clientside = {
         // Input(settings.highlight_checklist, 'value'),
         // Input(settings.indicator_checklist, 'value')
         // Input(settings.sort_by_checklist, 'value')
-        const data = metrics.concat(highlights).concat(indicators).concat(sort_by);
+        const data = {
+            'user_id': 'bruh',
+            'timestamp': new Date(),
+            'options': metrics.concat(highlights).concat(indicators).concat(sort_by)
+        };
         return [JSON.stringify(data)]
     },
 

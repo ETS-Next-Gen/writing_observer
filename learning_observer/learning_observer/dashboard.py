@@ -2,15 +2,16 @@
 This generates dashboards from student data.
 '''
 
+import aiohttp
 import asyncio
 import inspect
 import json
+import jsonschema
 import numbers
 import queue
 import time
 
-import aiohttp
-
+import learning_observer.communication_protocol
 import learning_observer.util as util
 
 import learning_observer.synthetic_student_data as synthetic_student_data
@@ -314,6 +315,8 @@ async def websocket_dashboard_view(request):
     client_data = None
     runtime = learning_observer.runtime.Runtime(request)
 
+    client_data_schema = course_aggregator_module.get('client_data', learning_observer.communication_protocol.base_schema)
+
     while True:
         sd = await student_state_fetcher()
         data = {
@@ -323,7 +326,7 @@ async def websocket_dashboard_view(request):
         # Determine if we should pass the client_data in or not/async capability
         # Currently options is a list of strings (what we want returned)
         # In the futuer this should be some form of communication protocol
-        if 'options' in args_aggregrator:
+        if 'client_data' in args_aggregrator:
             agg = aggregator(runtime, sd, client_data)
         else:
             agg = aggregator(runtime, sd)
@@ -331,13 +334,18 @@ async def websocket_dashboard_view(request):
             agg = await agg
         data.update(agg)
         await ws.send_json(data)
-        # First try to receive a json, if you receive something that can't be json'd
+        # First try to receive a json,
+        # then validate it against the current module's client data schema
+        # if you receive something that can't be json'd
         # check for closing, otherwise timeout will fire
         # This is kind of an awkward block, but aiohttp doesn't detect
         # when sockets close unless they receive data. We try to receive,
         # and wait for an exception or a CLOSE message.
         try:
             client_data = await ws.receive_json()
+            jsonschema.validate(client_data, client_data_schema)
+        except jsonschema.ValidationError as e:
+            debug_log('Something is wrong with the data received from the client:\n', e)
         except (TypeError, ValueError):
             if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
                 debug_log("Socket closed!")
