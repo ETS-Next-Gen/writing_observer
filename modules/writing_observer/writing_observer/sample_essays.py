@@ -63,7 +63,7 @@ def sample_texts(text_type=TextTypes.LOREM, count=1):
             count = [MAX] * len(text_type)
         else:
             remainder = count % len(text_type)
-            count = [count // len(text_type)]*len(text_type)
+            count = [count // len(text_type)] * len(text_type)
             count[0] = count[0] + remainder
 
     sources = {
