@@ -85,11 +85,13 @@ def sample_texts(text_type=TextTypes.LOREM, count=1):
         source = sources[tt]
         tt_essays = []
 
-        while c > len(source):
+        if c != MAX:
+            while c > len(source):
+                tt_essays.extend(source)
+                c = c - len(source)
+            tt_essays.extend(random.sample(source, c))
+        else:
             tt_essays.extend(source)
-            c = c - len(source)
-
-        tt_essays.extend(random.sample(source, c))
 
         if tt in [TextTypes.WIKI_SCIENCE, TextTypes.WIKI_HISTORY]:
             tt_essays = map(wikitext, tt_essays)
