@@ -17,6 +17,22 @@ import writing_observer.writing_analysis
 from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
+async def add(x, y):
+    return x + y
+
+
+async def subtract(x, y):
+    return x - y
+
+
+async def multiply(prev_output, y):
+    return prev_output * y
+
+
+def double(prev_output):
+    return 2 * prev_output
+
+
 NAME = "The Writing Observer"
 
 COURSE_AGGREGATORS = {
@@ -52,6 +68,22 @@ COURSE_AGGREGATORS = {
         "name": "Show the latest student writing",
         "aggregator": writing_observer.aggregator.latest_data,
         "client_data": writing_observer.aggregator.client_data_schema
+    },
+    "test_module": {
+        "sources": [
+            writing_observer.writing_analysis.last_document,
+            writing_observer.writing_analysis.reconstruct
+        ],
+        "aggregator": [
+            add,
+            [
+                subtract,
+                [
+                    multiply,
+                    double
+                ]
+            ]
+        ]
     }
 }
 

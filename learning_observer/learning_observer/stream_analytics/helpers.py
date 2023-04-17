@@ -110,7 +110,7 @@ def make_key_from_json(js):
     ]
 
     if KeyField.STUDENT in js:
-        user_id = j[sKeyField.STUDENT]
+        user_id = j[KeyField.STUDENT]
 
     aggregator_functions = sum(
         [

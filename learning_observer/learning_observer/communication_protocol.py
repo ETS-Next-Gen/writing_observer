@@ -15,3 +15,14 @@ base_schema = {
     },
     'required': ['user_id', 'timestamp'],
 }
+
+websocket_receive = {
+    'type': 'object',
+    'properties': {
+        'course_id': {'type': 'string'},
+        'module': {'type': ['string', 'object']},
+        'parameters': {'type': 'object'},
+        'timestamp': {'type': 'string', 'format': 'date-time'}
+    },
+    'required': ['course_id', 'module', 'parameters'],
+}

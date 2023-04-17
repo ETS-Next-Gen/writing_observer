@@ -11,21 +11,15 @@ import numbers
 import queue
 import time
 
-import learning_observer.communication_protocol
-import learning_observer.util as util
-
-import learning_observer.synthetic_student_data as synthetic_student_data
-
-import learning_observer.stream_analytics.helpers as sa_helpers
-import learning_observer.kvs as kvs
-import learning_observer.runtime
-
-import learning_observer.paths as paths
-
 import learning_observer.auth
-import learning_observer.rosters as rosters
-
+import learning_observer.communication_protocol
+import learning_observer.kvs as kvs
 from learning_observer.log_event import debug_log
+import learning_observer.module_loader
+import learning_observer.rosters as rosters
+import learning_observer.runtime
+import learning_observer.settings
+import learning_observer.stream_analytics.helpers as sa_helpers
 
 
 def timelist_to_seconds(timelist):
@@ -360,6 +354,199 @@ async def websocket_dashboard_view(request):
         if ws.closed:
             debug_log("Socket closed. This should never appear, however.")
             return aiohttp.web.Response(text="This never makes it back....")
+
+
+async def process_function(func, parameters, runtime, sd):
+    """
+    Process a function or a list of functions and/or nested lists of functions.
+    Passes the output from one function to the next as the 'prev_output' parameter.
+
+    :param func: A function or a list of functions and/or nested lists of functions.
+    :param runtime: The runtime object.
+    :param sd: The student_data object.
+    :return: A dictionary with the final output of the functions.
+    """
+    async def is_async_function(func):
+        """
+        Check if a function is asynchronous.
+
+        :param func: The function to check.
+        :return: True if the function is asynchronous, False otherwise.
+        """
+        return inspect.iscoroutinefunction(func)
+
+    async def execute_async_function(func, **params):
+        """
+        Execute a function and await the result if it's asynchronous.
+
+        :param func: The function to execute.
+        :param params: The parameters to pass to the function.
+        :return: The result of the function execution.
+        """
+        result = func(**params)
+        if await is_async_function(func):
+            result = await result
+        return result
+
+    async def process_nested_function(func, params, prev_output=None):
+        """
+        Process a function or a list of functions and/or nested lists of functions.
+        Passes the output from one function to the next as the 'prev_output' parameter.
+
+        :param func: A function or a list of functions and/or nested lists of functions.
+        :param params: A dictionary or list of parameters for the functions.
+        :param prev_output: The output from the previous function.
+        :return: The final output of the functions.
+        """
+        if callable(func):
+            functions = [func]
+        elif isinstance(func, list):
+            functions = func
+        else:
+            raise ValueError("Invalid 'func' argument. Must be a callable or a list of callables.")
+
+        for idx, func in enumerate(functions):
+            if isinstance(func, list):
+                nested_params = params[idx] if isinstance(params, list) and len(params) > idx else None
+                prev_output = await process_nested_function(func, nested_params, prev_output)
+                continue
+
+            args_aggregator = inspect.getfullargspec(func).args
+
+            func_params = params[idx] if isinstance(params, list) and len(params) > idx else params
+
+            if 'runtime' in args_aggregator:
+                func_params.update({'runtime': runtime})
+
+            if 'student_data' in args_aggregator:
+                func_params.update({'student_data': sd})
+
+            if prev_output and 'prev_output' in args_aggregator:
+                func_params.update({'prev_output': prev_output})
+            agg = await execute_async_function(func, **func_params)
+
+            prev_output = agg
+
+        return prev_output
+
+    final_output = await process_nested_function(func, parameters)
+    return final_output
+
+
+@learning_observer.auth.teacher
+async def generic_websocket(request):
+    """
+    This function handles a generic WebSocket connection. It receives JSON-formatted data from the client,
+    validates it against a JSON schema, and responds with processed data in JSON format.
+
+    In this workflow, the client starts the interaction by sending an initial message.
+
+    :param request: An object representing the incoming WebSocket connection request.
+    """
+    # Create a WebSocketResponse object and prepare it for receiving messages.
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
+    await ws.prepare(request)
+
+    # Initialize variables to hold course and module data, a runtime object, and student data.
+    client_data = None
+    course_id = None
+    module_id = None
+    runtime = learning_observer.runtime.Runtime(request)
+    roster = None
+    course_aggregator_module = None
+    default_data = None
+    student_state_fetcher = None
+
+    # Start an infinite loop to continuously receive and process incoming data.
+    while True:
+        try:
+            # Receive data from the client and validate it against a JSON schema.
+            client_data = await ws.receive_json()
+            jsonschema.validate(client_data, learning_observer.communication_protocol.websocket_receive)
+
+        except jsonschema.ValidationError as e:
+            # Handle a validation error by logging a message and continuing the loop.
+            debug_log('Something is wrong with the data received from the client:\n', e)
+            # TODO what should we do in this case?
+
+        except (TypeError, ValueError):
+            # Handle a type error or value error by checking if the WebSocket has been closed.
+            if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
+                debug_log("Socket closed!")
+                return aiohttp.web.Response(text="This never makes it back....")
+
+        except asyncio.exceptions.TimeoutError:
+            # Handle a timeout error by checking if client_data is None and continuing the loop.
+            if client_data is None:
+                continue
+
+        # Check if the WebSocket connection has been closed and return an appropriate response.
+        if ws.closed:
+            debug_log("Socket closed. This should never appear, however.")
+            return aiohttp.web.Response(text="This never makes it back....")
+
+        # Check if the course or module ID has changed.
+        new_course = course_id != client_data['course_id']
+        new_module = module_id != client_data['module']
+
+        # If the course ID has changed, fetch the course roster.
+        if new_course:
+            course_id = client_data['course_id']
+            roster = await rosters.courseroster(request, course_id)
+
+        # If the module ID has changed, find the corresponding course aggregator module.
+        if new_module:
+            # If we are in dev mode and receive an object, then the obj as our aggregator
+            module = client_data['module']
+            if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV and isinstance(module, dict):
+                debug_log('Passing in a module as an object is not yet supported.')
+                continue
+                # TODO finish implementing the ability to allow developers to define modules.
+                # I believe we will need some form of mapping, so devs specify functions by name
+                # in the same structure as a module and we route them to the correct one.
+                # let's first get some feedback on the rest of this code first.
+                #
+                # course_aggregator_module = module
+                # module_id = json.dumps(module)
+                # default_data = course_aggregator_module.get('default-data', {})
+            else:
+                module_id = module
+                course_aggregator_module, default_data = find_course_aggregator(module_id)
+
+            # If the course aggregator module cannot be found, raise an HTTPBadRequest error.
+            if course_aggregator_module is None:
+                debug_log("Bad module: ", module_id)
+                available = learning_observer.module_loader.course_aggregators()
+                debug_log("Available modules: ", [available[key]['short_id'] for key in available])
+                raise aiohttp.web.HTTPBadRequest(text="Invalid module: {}".format(module_id))
+
+            # Get the list of aggregator functions from the course aggregator module.
+            aggregators = course_aggregator_module.get('aggregator', [])
+
+        # If the course or module ID has changed, fetch student data for the new module.
+        if new_course or new_module:
+            student_state_fetcher = fetch_student_state(
+                course_id,
+                module_id,
+                course_aggregator_module,
+                roster,
+                default_data
+            )
+
+        # Fetch the student data using the student_state_fetcher function
+        sd = await student_state_fetcher()
+        data = {
+            "student_data": sd   # Per-student list
+        }
+
+        # Process the aggregator functions with the received client data and add the results to the response data.
+        data['aggregator'] = [await process_function(agg, client_data['parameters']['aggregators'][i], runtime, sd) for i, agg in enumerate(aggregators)]
+
+        # Send the processed data back to the client.
+        await ws.send_json(data)
+
+        # Wait for the specified refresh time before continuing the loop.
+        await asyncio.sleep(client_data['parameters'].get('refresh', 0.5))
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use
