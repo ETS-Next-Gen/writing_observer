@@ -200,7 +200,7 @@ async def retrieve_latest_documents_kvs(student_data):
     # Return blank entries if no data, rather than None. This makes it possible
     # to use item.get with defaults sanely.
     error = {'error': {'code': 404, 'message': 'Unable to locate document.'}}
-    writing_data = [error if item is None else item for item in writing_data]
+    writing_data = [error.copy() if item is None else item for item in writing_data]
     return writing_data
 
 

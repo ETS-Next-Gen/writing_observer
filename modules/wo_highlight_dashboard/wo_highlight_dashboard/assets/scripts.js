@@ -129,7 +129,7 @@ window.dash_clientside.clientside = {
             let user_index = student_ids.findIndex(item => item.user_id === curr_user)
             const last_document = data[i]?.student?.['writing_observer.writing_analysis.last_document'];
             const link = (typeof last_document !== 'undefined') ? `https://docs.google.com/document/d/${last_document.document_id}/edit` : '';
-            const text = (typeof data[i].text !== 'undefined') ? data[i].text : '';
+            const text = (typeof data[i].text !== 'undefined') ? data[i].text : data[i].error.message;
             updates[user_index] = {
                 'id': curr_user,
                 'text': {

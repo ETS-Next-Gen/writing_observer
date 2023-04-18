@@ -24,7 +24,7 @@ def limited_sample(total, n):
     - with smooth degradation if we don't have enough data.
     - Returns sorted
     '''
-    return sorted(random.sample(range(total), min(total, n)))
+    return sorted(random.sample(range(total), min(total if total > 0 else 0, n)))
 
 
 def select_random_segments(text, segments=3, segment_length=3, seed=0):
