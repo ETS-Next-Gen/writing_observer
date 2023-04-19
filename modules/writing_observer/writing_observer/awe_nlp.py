@@ -257,7 +257,6 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
 
             # If all options were found
             if found_options == set_options:
-                # debug_log("{}: All Options were found. Continuing....".format(asyncio.current_task().get_name()))
                 results.append(writing)
                 continue
 
@@ -282,12 +281,10 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
             features_needed_running = set()
             # If all options are found
             if found_options == set_options:
-                # debug_log("{}: All Options were found. Continuing....".format(asyncio.current_task().get_name()))
                 results.append(writing)
                 continue
 
         # Add not found options to features_running and update cache
-        # debug_log("{}: Finding the rest of the options: {}".format(asyncio.current_task().get_name(), not_found))
         not_found = set_options - found_options
         features_running = not_found
         text_cache_data['features_running'] = json.dumps(list(features_running))
