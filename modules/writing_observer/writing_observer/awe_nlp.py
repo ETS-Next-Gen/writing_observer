@@ -4,16 +4,15 @@ This is an interface to AWE_Workbench.
 
 import asyncio
 import enum
+import hashlib
 import time
 import functools
 import os
 import multiprocessing
 import datetime
-from collections import defaultdict
-import json
-import warnings
 
 from concurrent.futures import ProcessPoolExecutor
+from learning_observer.log_event import debug_log
 
 import spacy
 import coreferee
@@ -23,11 +22,13 @@ import awe_components.components.syntaxDiscourseFeats
 import awe_components.components.viewpointFeatures
 import awe_components.components.lexicalClusters
 import awe_components.components.contentSegmentation
-
+import json
+import warnings
 
 import writing_observer.nlp_indicators
 import learning_observer.kvs
 import learning_observer.util
+
 
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
 
@@ -212,16 +213,18 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
         Yes: a. Wait for features_running to finish.
              b. Update the cache
              c. Add intersection of features_running and Options to results
-    5. Check if additional features are required. 
+    5. Check if additional features are required.
         Yes: a. Collect options not covered till now and add to features_running.
              b. Once finished, update cache and return results.
     '''
-    recurring_sleep_time=1 # Time to wait between recurring calls to cache to check if features have finished running 
+    recurring_sleep_time = 1  # Time to wait between recurring calls to cache to check if features have finished running
+    running_features_wait_time = 10  # Time to wait for features already running.
     results = []
     found_options = set()
     cache = learning_observer.kvs.KVS()
     if options is None:
         options = []
+    set_options = set(options)
     processor = {
         RUN_MODES.MULTIPROCESSING: process_texts_parallel,
         RUN_MODES.SERIAL: process_texts_serial
@@ -237,7 +240,6 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
         text_cache_data = await cache[text_hash]
 
         if text_cache_data is None:
-            # print("{}: text was not found in cache.".format(asyncio.current_task().get_name()))
             text_cache_data = {}
 
         if 'features_running' not in text_cache_data:
@@ -249,32 +251,28 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
             text_cache_data['features_available'] = dict()
 
         # Check if some options are a subset of features_available
-        # print("Features Available: ".format(text_cache_data['features_available'].keys()))
         if text_cache_data['features_available']:
-            for feature in set(options).intersection(text_cache_data['features_available'].keys()):
-                found_options.add(feature)
-            # print("{}: Options that were found in features available: {}".format(asyncio.current_task().get_name(), found_options))
+            found_options = set_options.intersection(text_cache_data['features_available'].keys())
             writing.update(text_cache_data['features_available'])
 
             # If all options were found
-            if found_options == set(options):
-                # print("{}: All Options were found. Continuing....".format(asyncio.current_task().get_name()))
+            if found_options == set_options:
+                # debug_log("{}: All Options were found. Continuing....".format(asyncio.current_task().get_name()))
                 results.append(writing)
                 continue
 
         # Check if some options are a subset of features_running
-        # print("{}: Features Running: {}".format(asyncio.current_task().get_name(), features_running))
         # features that are needed but are already running
-        not_found = set(options) - found_options
-        features_needed_running = set() #Features that are needed but are already processing
+        not_found = set_options - found_options
+        features_needed_running = set()  # Features that are needed but are already processing
         if features_running:
             features_needed_running = not_found.intersection(features_running)
         if len(features_needed_running) > 0:
-            # print("{}: Features already processing: {}".format(asyncio.current_task().get_name(), features_needed_running))
+            debug_log("{}: Features already processing: {}".format(asyncio.current_task().get_name(), features_needed_running))
             while True:
-                # print("\n {}: Waiting for features to finish running.".format(asyncio.current_task().get_name()))
+                debug_log("\n {}: Waiting for features to finish running.".format(asyncio.current_task().get_name()))
                 new_cache = await cache[text_hash]
-                if new_cache['stop_time'] != "running":
+                if new_cache['stop_time'] != "running" or datetime.datetime.strptime(new_cache['start_time'], "%Y-%m-%d %H:%M:%S.%f") - datetime.datetime.now() > running_features_wait_time:
                     break
                 asyncio.sleep(recurring_sleep_time)
 
@@ -283,26 +281,24 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
             found_options = found_options.union(features_needed_running)
             features_needed_running = set()
             # If all options are found
-            if found_options == set(options):
-                # print("{}: All Options were found. Continuing....".format(asyncio.current_task().get_name()))
+            if found_options == set_options:
+                # debug_log("{}: All Options were found. Continuing....".format(asyncio.current_task().get_name()))
                 results.append(writing)
                 continue
-            
-        # Add not found options to features_running and update cache        
-        # print("{}: Finding the rest of the options: {}".format(asyncio.current_task().get_name(), not_found))
-        not_found = set(options) - found_options
+
+        # Add not found options to features_running and update cache
+        # debug_log("{}: Finding the rest of the options: {}".format(asyncio.current_task().get_name(), not_found))
+        not_found = set_options - found_options
         features_running = not_found
         text_cache_data['features_running'] = json.dumps(list(features_running))
         text_cache_data['start_time'] = str(datetime.datetime.now())
         text_cache_data['stop_time'] = "running"
         await cache.set(text_hash, text_cache_data)
-        annotated_text = list(await processor[mode]([writing.get("text", "")], list(not_found)))[0]
-        asyncio.sleep(10)
+        annotated_text = process_text(writing.get("text", ""), list(not_found))
         text_cache_data['features_running'] = json.dumps([])
         text_cache_data['stop_time'] = str(datetime.datetime.now())
-        if annotated_text != "Error":
-            text_cache_data['features_available'].update(annotated_text)
-            writing.update(annotated_text)
+        text_cache_data['features_available'].update(annotated_text)
+        writing.update(annotated_text)
         await cache.set(text_hash, text_cache_data)
         results.append(writing)
 
