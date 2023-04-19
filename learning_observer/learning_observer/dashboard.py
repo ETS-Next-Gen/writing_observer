@@ -362,19 +362,32 @@ async def process_function(func, parameters, runtime, sd):
     Passes the output from one function to the next as the 'prev_output' parameter.
 
     :param func: A function or a list of functions and/or nested lists of functions.
+    :param parameters: A dictionary of key-value pairs to pass into each function
     :param runtime: The runtime object.
     :param sd: The student_data object.
     :return: A dictionary with the final output of the functions.
+
+    Example 1 - func is a function:
+    ```python
+    # inputs
+    func = add
+    parameters = {'x': 1, 'y': 2}
+    # add 1 and 2 together
+    output = process_function(func, parameters, runtime, sd)
+    # 3
+    ```
+
+    Example 2 - func is a list:
+    ```python
+    # inputs
+    func = [sub, [mult, double]]
+    # should be same nested list structure as the func
+    # subtract 4 from 3, multiply that by 2, then double it
+    parameters = [{'x': 3, 'y': 4}, [{y: 2}, {}]]
+    output = process_function(func, paramters, runtime, sd)
+    # -4
+    ```
     """
-    async def is_async_function(func):
-        """
-        Check if a function is asynchronous.
-
-        :param func: The function to check.
-        :return: True if the function is asynchronous, False otherwise.
-        """
-        return inspect.iscoroutinefunction(func)
-
     async def execute_async_function(func, **params):
         """
         Execute a function and await the result if it's asynchronous.
@@ -384,7 +397,7 @@ async def process_function(func, parameters, runtime, sd):
         :return: The result of the function execution.
         """
         result = func(**params)
-        if await is_async_function(func):
+        if inspect.iscoroutinefunction(func):
             result = await result
         return result
 
@@ -433,6 +446,34 @@ async def process_function(func, parameters, runtime, sd):
     return final_output
 
 
+# TODO determine how to create this functions map
+# if developers are just sending their own mock pipelines across
+# then we need to reference their string function names to the
+# appropriate function to run
+FUNCTIONS_MAP = {
+    'agg1': '',  # agg1
+    'agg2': '',  # agg2
+    # ...
+}
+
+
+def replace_function_names(obj):
+    """
+    Replaces function names found in the input object with new names defined in a dictionary called FUNCTIONS_MAP.
+
+    :param obj (object): The object to be processed. Can be a string, list, dictionary, or any other object.
+    :return: A new object with any function names replaced with their corresponding replacement values from FUNCTIONS_MAP.
+    """
+    if isinstance(obj, str):
+        return FUNCTIONS_MAP.get(obj)
+    elif isinstance(obj, list):
+        return [replace_function_names(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: replace_function_names(value) for key, value in obj.items()}
+    else:
+        return obj
+
+
 @learning_observer.auth.teacher
 async def generic_websocket(request):
     """
@@ -467,7 +508,7 @@ async def generic_websocket(request):
         except jsonschema.ValidationError as e:
             # Handle a validation error by logging a message and continuing the loop.
             debug_log('Something is wrong with the data received from the client:\n', e)
-            # TODO what should we do in this case?
+            continue
 
         except (TypeError, ValueError):
             # Handle a type error or value error by checking if the WebSocket has been closed.
@@ -496,19 +537,24 @@ async def generic_websocket(request):
 
         # If the module ID has changed, find the corresponding course aggregator module.
         if new_module:
-            # If we are in dev mode and receive an object, then the obj as our aggregator
+            # If we are in dev mode and receive an object, then use the obj as our aggregator
             module = client_data['module']
             if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV and isinstance(module, dict):
-                debug_log('Passing in a module as an object is not yet supported.')
-                continue
-                # TODO finish implementing the ability to allow developers to define modules.
-                # I believe we will need some form of mapping, so devs specify functions by name
-                # in the same structure as a module and we route them to the correct one.
-                # let's first get some feedback on the rest of this code first.
-                #
-                # course_aggregator_module = module
-                # module_id = json.dumps(module)
-                # default_data = course_aggregator_module.get('default-data', {})
+                # check that the module conforms to our necessary schema
+
+                try:
+                    jsonschema.validate(module, learning_observer.communication_protocol.module_schema)
+                except jsonschema.ValidationError as e:
+                    debug_log('Something is wrong with the module object received from the client:\n', e)
+                    continue
+
+                # TODO the pipeline of this code is not fully finished
+                # we are still waiting on the FUNCTION_MAP downstream to be finished
+                # before this code will runction
+                course_aggregator_module = replace_function_names(module)
+                module_id = json.dumps(module)
+                default_data = course_aggregator_module.get('default_data', {})
+            # otherwise just fetch the module from the registered items
             else:
                 module_id = module
                 course_aggregator_module, default_data = find_course_aggregator(module_id)
@@ -540,6 +586,20 @@ async def generic_websocket(request):
         }
 
         # Process the aggregator functions with the received client data and add the results to the response data.
+        #
+        # We run process function for each item in the highest level list of aggregators as users may
+        # want to see data from multiple aggregators.
+        # ```
+        # # simple
+        # aggregator = [nlp_indicators, time_on_task]
+        # # pipeline
+        # # if you first need to fetch student text
+        # aggregator = [[student_text, nlp_indicators], time_on_task]
+        # ```
+        # NOTE right now if you are using the pipeline, there expects a prev_output though this can be modified
+        # that's leftover from hacking it together
+        #
+        # TODO we should populate a dictionary with the function names, we'll need to str(list of functions) though
         data['aggregator'] = [await process_function(agg, client_data['parameters']['aggregators'][i], runtime, sd) for i, agg in enumerate(aggregators)]
 
         # Send the processed data back to the client.

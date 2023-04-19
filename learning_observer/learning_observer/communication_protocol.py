@@ -26,3 +26,14 @@ websocket_receive = {
     },
     'required': ['course_id', 'module', 'parameters'],
 }
+
+module_schema = {
+    'type': 'object',
+    'properties': {
+        'sources': {'type': 'array'},
+        'aggregator': {'type': 'array'},
+        'cleaner': {'type': 'string'},
+        'default_data': {'type': 'object'},
+    },
+    'required': ['sources', 'aggregator']
+}
