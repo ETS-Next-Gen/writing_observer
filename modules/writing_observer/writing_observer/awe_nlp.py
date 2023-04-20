@@ -218,7 +218,7 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
              b. Once finished, update cache and return results.
     '''
     recurring_sleep_time = 1  # Time to wait between recurring calls to cache to check if features have finished running
-    running_features_wait_time = 10  # Time to wait for features already running.
+    running_features_wait_time = 60  # Time to wait for features already running.
     results = []
     found_options = set()
     cache = learning_observer.kvs.KVS()
@@ -262,27 +262,30 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
 
         # Check if some options are a subset of features_running
         # features that are needed but are already running
+        run_successful = False
         not_found = set_options - found_options
         features_needed_running = set()  # Features that are needed but are already processing
         if features_running:
             features_needed_running = not_found.intersection(features_running)
         if len(features_needed_running) > 0:
-            debug_log("{}: Features already processing: {}".format(asyncio.current_task().get_name(), features_needed_running))
             while True:
-                debug_log("\n {}: Waiting for features to finish running.".format(asyncio.current_task().get_name()))
                 new_cache = await cache[text_hash]
-                if new_cache['stop_time'] != "running" or datetime.datetime.strptime(new_cache['start_time'], "%Y-%m-%d %H:%M:%S.%f") - datetime.datetime.now() > running_features_wait_time:
+                if new_cache['stop_time'] != "running":
+                    run_successful = True
                     break
-                asyncio.sleep(recurring_sleep_time)
+                if (datetime.datetime.now() - datetime.datetime.strptime(new_cache['start_time'], "%Y-%m-%d %H:%M:%S.%f")).total_seconds() > running_features_wait_time:
+                    break
+                await asyncio.sleep(recurring_sleep_time)
 
-            # features_running will be available in features_available after they finish running.
-            writing.update(text_cache_data['features_available'])
-            found_options = found_options.union(features_needed_running)
-            features_needed_running = set()
-            # If all options are found
-            if found_options == set_options:
-                results.append(writing)
-                continue
+            if run_successful:
+                # features_running will be available in features_available after they finish running.
+                writing.update(text_cache_data['features_available'])
+                found_options = found_options.union(features_needed_running)
+                features_needed_running = set()
+                # If all options are found
+                if found_options == set_options:
+                    results.append(writing)
+                    continue
 
         # Add not found options to features_running and update cache
         not_found = set_options - found_options
