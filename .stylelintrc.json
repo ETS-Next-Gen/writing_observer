@@ -2,7 +2,8 @@
     "ignoreFiles": [
         "./**/node_modules/**",
         "./**/deps/**",
-        "./**/build/**"
+        "./**/build/**",
+        "./**/3rd_party/**"
     ],
     "extends": "stylelint-config-standard",
     "customSyntax": "postcss-scss",
