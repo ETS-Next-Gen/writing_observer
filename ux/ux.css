@@ -14,13 +14,11 @@
 .wa-flipper {
     transition: 0.6s;
     transform-style: preserve-3d;
-
     position: relative;
 }
 
 .wa-front, .wa-back {
 	backface-visibility: hidden;
-
 	position: absolute;
 	top: 20px;
 	left: 20px;
@@ -29,6 +27,7 @@
 /* front pane, placed above back */
 .wa-front {
 	z-index: 2;
+
 	/* for firefox 31 */
 	transform: rotateY(0deg);
 }

@@ -6,24 +6,29 @@
     Set thumb (slider on track)
     Set hover/active styles
  */
+
 ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
 }
+
 ::-webkit-scrollbar-track {
-    background: rgb(179, 177, 177);
+    background: rgb(179 177 177);
     border-radius: 5px;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: rgb(136, 136, 136);
+    background: rgb(136 136 136);
     border-radius: 5px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: rgb(100, 100, 100);
+    background: rgb(100 100 100);
     border-radius: 5px;
 }
+
 ::-webkit-scrollbar-thumb:active {
-    background: rgb(68, 68, 68);
+    background: rgb(68 68 68);
     border-radius: 5px;
 }
 
@@ -34,11 +39,12 @@
 */
 .shadow-card:hover {
     transition: all 0.2s ease-out;
-    box-shadow: 0px 2px 8px var(--bs-gray-500);
-    border: 1px solid #cccccc;
+    box-shadow: 0 2px 8px var(--bs-gray-500);
+    border: 1px solid #ccc;
     background-color: white;
 }
-.shadow-card:hover:before {
+
+.shadow-card:hover::before {
     transform: scale(2.15);
 }
 
@@ -62,13 +68,14 @@
 .form-check:hover {
     transition: all 0.2s ease-out;
     background-color: var(--bs-gray-100);
-    box-shadow: 0px 0px 5px var(--bs-gray-100);
+    box-shadow: 0 0 5px var(--bs-gray-100);
     border-radius: 0.4rem;
 }
+
 .nested-form:hover {
     transition: all 0.2s ease-out;
     background-color: var(--bs-gray-300);
-    box-shadow: 0px 0px 5px var(--bs-gray-300);
+    box-shadow: 0 0 5px var(--bs-gray-300);
     border-radius: 0.4rem;
 }
 
@@ -80,10 +87,12 @@ with appropriate colors
     color: #343a40;
     background-color: transparent;
 }
+
 .dropdown-menu-outline-dark:hover {
     color: white;
     background-color: #343a40;
 }
+
 .dropdown-item:focus, .dropdown-item:hover {
     color: #212529;
     background-color: var(--bs-gray-300);
@@ -97,9 +106,11 @@ Children are indented to the right
 .form-check-input:disabled {
     display: none;
 }
+
 .nested-form:has(.subchecklist-label) {
     margin-left: 1.5em;
 }
+
 .nested-form:has(.form-check-input:disabled) {
     padding-left: 0;
 }
@@ -109,12 +120,13 @@ Animation to hide the alert
 Some items need a slight delay which is why we don't adjust opacity
 until halfway through
 */
-@keyframes delay_hide {
+@keyframes delay-hide {
     0% {opacity: 1;}
     50% {opacity: 1;}
     100% {opacity: 0;}
 }
+
 .hidden-alert {
     opacity: 0;
-    animation: delay_hide 2s linear;
+    animation: delay-hide 2s linear;
 }
