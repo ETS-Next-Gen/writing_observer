@@ -3,7 +3,8 @@
         "./**/node_modules/**",
         "./**/deps/**",
         "./**/build/**",
-        "./**/3rd_party/**"
+        "./**/3rd_party/**",
+        "./extension/**"
     ],
     "extends": "stylelint-config-standard",
     "customSyntax": "postcss-scss",
