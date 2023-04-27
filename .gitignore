@@ -28,3 +28,4 @@ learning_observer/passwd.lo
 .vscode/
 build/
 dist/
+node_modules

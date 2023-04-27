@@ -1,9 +1,9 @@
-name: Pycodestyle
+name: Lint
 
 on: [push]
 
 jobs:
-  build:
+  lint-python:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -21,3 +21,24 @@ jobs:
     - name: Analysing the code with pycodestyle
       run: |
         pycodestyle --ignore=E501,W503 $(git ls-files 'learning_observer/*.py' 'modules/*.py')
+  lint-node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.x'
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: List unused CSS
+        run: npm run find-unused-css
+
+      - name: Lint CSS
+        run: npm run lint:css
+
+      - name: Lint JS
+        run: npm run lint:js
