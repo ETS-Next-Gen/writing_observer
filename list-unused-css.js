@@ -4,14 +4,19 @@ const glob = require('glob')
 const postcss = require('postcss')
 const postcssScss = require('postcss-scss')
 
+const ingoreFiles = [
+  './**/node_modules/**', './**/deps/**', './**/build/**',
+  './**/3rd_party/**', '.extension/**'
+]
+
 const inputFiles = [
-  ...glob.sync('./**/*.html', { ignore: './**/node_modules/**' }),
-  ...glob.sync('./**/*.js', { ignore: './**/node_modules/**' }),
-  ...glob.sync('./**/*.py', { ignore: './**/node_modules/**' })
+  ...glob.sync('./**/*.html', { ignore: ingoreFiles }),
+  ...glob.sync('./**/*.js', { ignore: ingoreFiles }),
+  ...glob.sync('./**/*.py', { ignore: ingoreFiles })
 ]
 const cssFiles = [
-  ...glob.sync('./**/*.css', { ignore: ['./**/node_modules/**', './**/deps/**', './**/build/**'] }),
-  ...glob.sync('./**/*.scss', { ignore: ['./**/node_modules/**', './**/deps/**', './**/build/**'] })
+  ...glob.sync('./**/*.css', { ignore: ingoreFiles }),
+  ...glob.sync('./**/*.scss', { ignore: ingoreFiles })
 ]
 
 const usedClasses = new Set()
