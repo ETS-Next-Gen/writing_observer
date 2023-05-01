@@ -5,7 +5,11 @@ Background script. This works across all of Google Chrome.
 // Do not save debug requests. We flip this frequently. Perhaps this
 // should be a cookie or browser.storage?
 var RAW_DEBUG = false;
-const SERVER_URL = "wss://observer.csc.ncsu.edu/wsapi/in/";
+
+/* This variable must be manually updated to specify the server that
+ * the data will be sent to.  
+*/
+var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/" 
 
 
 /*
@@ -53,6 +57,11 @@ function add_event_metadata(event_type, event) {
       TODO: Should we add user identity?
      */
     event['event'] = event_type;
+
+    // Add the event_type if not present
+    if (!event.hasOwnProperty('event_type')) {
+        event['event_type'] = event_type;
+    }
 
     event['source'] = 'org.mitros.writing_analytics';
     event['version'] = 'alpha';
@@ -192,7 +201,7 @@ function ajax_logger(ajax_server) {
       To do: Handle failures / dropped connections
      */
     var server = ajax_server;
-    return function(data) {
+    return function (data) {
         /*
           Helper function to send a logging AJAX request to the server.
           This function takes a JSON dictionary of data.
@@ -214,13 +223,14 @@ loggers_enabled = [
     websocket_logger("wss://localhost/wsapi/in/")
 ];
 */
+
 let loggers_enabled = [
     console_logger(),
     //ajax_logger("https://writing.learning-observer.org/webapi/")//,
 
+
     // Adapted to NCSU Setup.
-    websocket_logger(SERVER_URL)
-    //websocket_logger("wss://writing.learning-observer.org/wsapi/in/")
+    websocket_logger(WEBSOCKET_SERVER_URL)
 ];
 
 function log_event(event_type, event) {
@@ -258,7 +268,7 @@ function send_chrome_identity() {
 
        Note this function is untested, following a refactor.
     */
-  chrome.identity.getProfileInfo(function(userInfo) {
+  chrome.identity.getProfileInfo(function (userInfo) {
     log_event("chrome_identity_load", {
       email: userInfo.email,
       id: userInfo.id,
@@ -407,17 +417,22 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 // re-injected scripts when chrome extension is reloaded, upgraded or re-installed
 // https://stackoverflow.com/questions/10994324/chrome-extension-content-script-re-injection-after-upgrade-or-install
-
-chrome.runtime.onInstalled.addListener(async () => {
-  for (const cs of chrome.runtime.getManifest().content_scripts) {
-    for (const tab of await chrome.tabs.query({url: cs.matches})) {
-      chrome.scripting.executeScript({
-        target: {tabId: tab.id},
-        files: cs.js,
-      });
+chrome.runtime.onInstalled.addListener(reinjectContentScripts);
+async function reinjectContentScripts() {
+    for (const contentScript of chrome.runtime.getManifest().content_scripts) {
+        for (const tab of await chrome.tabs.query({url: contentScript.matches})) {
+            // re-inject content script
+            await chrome.scripting.executeScript({
+                target: {tabId: tab.id, allFrames: true},
+                files: contentScript.js,
+            }, function () {
+                if (!chrome.runtime.lastError) {
+                    console.log('Content script re-injected successfully');
+                }
+            });
+        }
     }
-  }
-});
+}
 
 // Let the server know we've loaded.
 log_event("extension_loaded", {});
