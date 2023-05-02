@@ -2,7 +2,6 @@
 
 Other Docs
 =================
-
 .. include:: ../docs/privacy.md
    :parser: myst_parser.sphinx_
 .. include:: ../docs/system_design.md

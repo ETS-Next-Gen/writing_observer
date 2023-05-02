@@ -10,7 +10,7 @@
     "lint:js": "eslint '**/*.js'",
     "lint": "npm run lint:css && npm run lint:js",
     "find-unused-css": "node list-unused-css.js",
-    "build:docs": "cd autodocs && make html",
+    "build:docs": "npm run clean:docs && cd autodocs && make html",
     "clean:docs": "rm -rf autodocs/_build && rm -r autodocs/generated"
   },
   "repository": {
