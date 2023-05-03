@@ -3,21 +3,40 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Learning Observer's documentation!
-=============================================
+Learning Observer
+=================
+
+Learning Observer is designed as an open source, open science learning
+process data dashboarding framework. You write reducers to handle
+per-student writing data, and aggegators to make dashboards. We've
+tested this in math and writing, but our focus is on writing process
+data.
 
 .. toctree::
    :maxdepth: 3
-   :caption: Contents:
 
    learning_observer
-   writing_observer
-   wo_highlight_dashboard
+
+Modules
+-------
+
+Define modules.
+
+.. toctree::
+   :maxdepth: 2
+
+   modules
+
+Other documentation
+-------------------
+
+.. toctree::
+   :maxdepth: 2
+
    other_docs
 
-
-Indices and tables
-==================
+Additional Information
+----------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
