@@ -23,6 +23,7 @@ google-auth
 ipython
 invoke
 lxml
+myst_parser
 names
 numpy
 pandas
