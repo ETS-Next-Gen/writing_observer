@@ -1,0 +1,50 @@
+{
+    "name": "__MSG_appName__",
+    "short_name": "__MSG_appShortName__",
+    "description": "__MSG_appDescription__",
+    "homepage_url": "http://chrome.google.com/webstore",
+    "incognito": "not_allowed",
+    "version": "0.0.0.1",
+    "version_name": "0.0.0.1",
+    "manifest_version": 3,
+    "default_locale": "en",
+    "minimum_chrome_version": "88",
+    "permissions": [
+        "webRequest",
+        "declarativeNetRequest",
+        "identity",
+        "identity.email",
+        "storage",
+        "nativeMessaging",
+        "scripting",
+        "activeTab"
+    ],
+    "icons": {
+	    "48": "assets/lousy-fountain-pen-48.png"
+    },
+    "background": {
+        "service_worker": "service_worker.js"
+    },
+    "action": {
+        "default_popup": "pages/settings.html",
+        "default_icon": {
+            "48": "assets/lousy-fountain-pen-48.png"
+        },
+        "default_title": "__MSG_appName__"
+    },
+    "content_scripts": [{
+        "matches": ["*://docs.google.com/document/*"],
+	    "js": ["3rdparty/sha256.js", "writing_common.js", "writing.js"]
+    }],
+    "web_accessible_resources": [{
+        "resources": ["inject.js"],
+        "matches": ["*://docs.google.com/*"],
+        "use_dynamic_url": true
+    }],
+    "host_permissions": [
+        "*://docs.google.com/document/*"
+    ],
+    "options_ui": {
+        "page": "pages/options.html"
+    }
+}
