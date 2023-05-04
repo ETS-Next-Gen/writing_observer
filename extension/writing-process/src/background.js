@@ -11,7 +11,7 @@ var RAW_DEBUG = false;
 */
 var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/" 
 
-
+import { googledocs_id_from_url } from './writing_common';
 /*
   TODO: FSM
 
@@ -111,7 +111,7 @@ function websocket_logger(server) {
     function are_we_done() {
         if (state.has("chrome_identity") &&
             state.has("local_storage")) {
-            event = {};
+            var event = {};
             event = add_event_metadata('metadata_finished', event);
             socket.send(JSON.stringify(event));
             state.add("ready");
