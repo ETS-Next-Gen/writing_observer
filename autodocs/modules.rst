@@ -1,6 +1,7 @@
 .. _modules:
 
 .. :currentmodule:: modules
+
 .. autosummary::
    :recursive:
    :toctree: generated/writing_observer
