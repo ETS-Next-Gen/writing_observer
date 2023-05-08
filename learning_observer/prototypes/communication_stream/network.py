@@ -1,3 +1,8 @@
+'''
+Create mermaidjs charts in dash detailing the communication stream
+
+`python network.py`
+'''
 import dash
 from dash import html, dcc
 from dash_extensions import Mermaid
@@ -18,6 +23,7 @@ app.layout = dcc.Tabs(
                             module{{"module: time_on_task"}}
                             filters{{"filters:\n#8195;students: courst_roster(current_course())"}}
                             parameters{{"parameters: paramters:\n#8195;threshold: 1"}}
+                            style module text-align:left
                             style filters text-align:left
                             style parameters text-align:left
                         end
