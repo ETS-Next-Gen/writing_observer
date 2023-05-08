@@ -8,6 +8,8 @@ Other Docs
    :parser: myst_parser.sphinx_
 .. include:: ../docs/testing.md
    :parser: myst_parser.sphinx_
+.. include:: ../extension/writing-process/README.md
+   :parser: myst_parser.sphinx_
 .. include:: ../docs/privacy.md
    :parser: myst_parser.sphinx_
 .. include:: ../docs/system_design.md
