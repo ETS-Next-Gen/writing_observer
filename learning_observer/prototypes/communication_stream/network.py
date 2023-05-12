@@ -7,6 +7,45 @@ import dash
 from dash import html, dcc
 from dash_extensions import Mermaid
 
+flowchart = """
+flowchart LR
+subgraph roster
+learning_observer.course_roster([Call: learning_observer.course_roster])
+subgraph roster.kwargs
+subgraph roster.kwargs.course
+end
+end
+end
+subgraph doc_ids
+writing_observer.latest_doc[[Map: writing_observer.latest_doc]]
+subgraph doc_ids.values
+end
+end
+subgraph docs
+subgraph docs.keys
+end
+end
+subgraph combined
+subgraph combined.left
+end
+subgraph combined.right
+end
+end
+subgraph impl.roster.kwargs.course
+course_id[/Parameter: course_id/]
+end
+subgraph impl.docs.keys
+subgraph impl.docs.keys.doc_ids
+end
+end
+impl.roster.kwargs.course --> roster.kwargs.course
+roster --> doc_ids.values
+impl.docs.keys --> docs.keys
+docs --> combined.left
+roster --> combined.right
+doc_ids --> impl.docs.keys.doc_ids
+"""
+
 # module["module: string\nfilters: object\n#8195;students: list_of_students\n#8195;...\nparamters: object\n#8195;key: value"]
 # style module text-align:left
 app = dash.Dash()
@@ -95,9 +134,16 @@ app.layout = dcc.Tabs(
             ),
             label='Sequence diagram',
             value='seq'
-        )
+        ),
+        dcc.Tab(
+            Mermaid(
+                chart=flowchart
+            ),
+            label='DAG',
+            value='dag'
+        ),
     ],
-    value='seq'
+    value='dag'
 )
 
 if __name__ == '__main__':
