@@ -7,39 +7,12 @@ import copy
 import json
 
 import learning_observer.communication_protocol.request
+import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.kvs
 
 dispatch = learning_observer.communication_protocol.request.dispatch
-
-
-def dummy_roster(course):
-    """
-    Dummy function for course roster.
-
-    :param course: The course identifier
-    :type course: str
-    :return: A list of student identifiers
-    :rtype: list
-    """
-    return list(range(10))
-
-
-def dummy_latest_doc(student_id):
-    """
-    Dummy function for latest document.
-
-    :param student_id: The student identifier
-    :type student_id: str
-    :return: A string representing the latest document
-    :rtype: str
-    """
-    return f"abcd_{student_id}_docid"
-
-
-# TODO register functions on startup
-functions = {
-    "writing_observer.latest_doc": dummy_latest_doc,
-    "learning_observer.course_roster": dummy_roster
-}
+# TODO create connection to our kvs so we access the data
+# kvs = learning_observer.kvs.KVS()
 
 
 # NOTE perhaps if flatten doesn't fit in the request or the executor module
@@ -57,7 +30,6 @@ def flatten_helper(top_level, current_level, prefix=''):
     :return: A flattened dictionary
     :rtype: dict
     """
-    result = {}
     for key, value in list(current_level.items()):
         new_key = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and dispatch in value and value[dispatch] != learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE:
@@ -122,57 +94,128 @@ def handler(name):
     return decorator
 
 
-# TODO do all of these need parameters? I'm still trying to fully understand the system - brad
-# TODO give each of this a docstring, waiting until implemented
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.CALL)
-def call_dispatch(function_name, args, kwargs, parameters):
+def call_dispatch(functions, function_name, args, kwargs):
+    """
+    Calls a function from the available functions.
+
+    :param functions: Dictionary of available functions
+    :type functions: dict
+    :param function_name: The name of the function to be called
+    :type function_name: str
+    :param args: The positional arguments for the function
+    :type args: list
+    :param kwargs: The keyword arguments for the function
+    :type kwargs: dict
+    :return: The result of the function call
+    """
     function = functions[function_name]
     return function(*args, **kwargs)
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER)
 def substitute_parameter(parameter_name, parameters):
+    """
+    Substitutes a parameter from the provided parameters.
+
+    :param parameter_name: The name of the parameter to be substituted
+    :type parameter_name: str
+    :param parameters: The dictionary of available parameters
+    :type parameters: dict
+    :return: The value of the parameter
+    """
     return parameters[parameter_name]
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.JOIN)
-def handle_join(left, right, left_key, right_key, parameters):
-    # TODO implement this
-    return f'{left} {right} {left_key}, {right_key}'
+def handle_join(left, right, left_on=None, right_on=None):
+    """
+    Joins two lists of dictionaries based on provided keys. If no keys are provided, zips the lists together.
 
-
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE)
-def substitute_variable(variable_name, parameters):
-    # TODO implement this
-    return f'variable_name: {variable_name}'
+    :param left: The left list of dictionaries
+    :type left: list
+    :param right: The right list of dictionaries
+    :type right: list
+    :param left_on: The key on which to join from the left list, defaults to None
+    :type left_on: str, optional
+    :param right_on: The key on which to join from the right list, defaults to None
+    :type right_on: str, optional
+    :return: The joined list
+    :rtype: list
+    """
+    if not left_on or not right_on:
+        return [(le, r) for le, r in zip(left, right)]
+    return [dict(**le, **r) for le, r in zip(left, right) if le.get(left_on) == r.get(right_on)]
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.MAP)
-def map_function(function, values, parameters):
-    # TODO implement this
-    return f'mapping {function} {values}'
+def map_function(functions, function, values):
+    """
+    Applies a function to a list of values.
+
+    :param functions: Dictionary of available functions
+    :type functions: dict
+    :param function: The function to be applied
+    :type function: str
+    :param values: The values to be mapped
+    :type values: list
+    :return: The mapped values
+    :rtype: list
+    """
+    return map(functions[function], values)
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.SELECT)
-def handle_select(keys, parameters):
-    # TODO implement this
-    return f'selecting {keys}'
+def handle_select(keys):
+    """
+    Placeholder function to select data from a key-value store (KVS). Currently returns mock data.
+
+    :param keys: The keys to select data for
+    :type keys: list
+    :return: The selected data
+    :rtype: list
+    """
+    # TODO fix this to actually call the kvs, will need async overhaul first
+    # data = await kvs.multiget(keys=keys)
+    data = [f'fetched-{i}' for i in keys]
+    return data
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.KEYS)
-def handle_keys(doc_ids, parameters):
-    # TODO implement this
-    return f'keys {doc_ids}'
-
-
-def execute_dag(endpoint, parameters):
+def handle_keys(function, items):
     """
-    Execute the directed acyclic graph (DAG).
+    Placeholder function to generate keys for a function and list of items. Currently returns mock data.
+
+    :param function: The function to generate keys for
+    :type function: str
+    :param items: The items to generate keys for
+    :type items: list
+    :return: The generated keys
+    :rtype: list
+    """
+    # TODO Fix this code to properly implement
+    # currently broken because funciton is only a string and
+    # the method expects a callable
+    #
+    # keys = [sa_helpers.make_key(
+    #     function,
+    #     {},
+    #     sa_helpers.KeyStateType.INTERNAL
+    # ) for i in items]
+    keys = [f'{function}-{i}' for i in items]
+    return keys
+
+
+def execute_dag(endpoint, parameters, functions):
+    """
+    Execute a flattened directed acyclic graph (DAG).
 
     :param endpoint: The endpoint dictionary
     :type endpoint: dict
     :param parameters: The parameters for execution
     :type parameters: dict
+    :param functions: The functions available for execution
+    :type functions: dict
     :return: The result of the execution
     :rtype: list
     """
@@ -184,9 +227,16 @@ def execute_dag(endpoint, parameters):
             return node
         if dispatch not in node:
             return node
-        function = DISPATCH[node[dispatch]]
+        node_dispatch = node[dispatch]
+        function = DISPATCH[node_dispatch]
         del node[dispatch]
-        return function(parameters=parameters, **node)
+        # make dispatch specific function call
+        if node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER:
+            return function(parameters=parameters, **node)
+        elif (node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.CALL
+              or node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.MAP):
+            return function(functions=functions, **node)
+        return function(**node)
 
     def walk_dict(node_dict):
         '''
@@ -213,9 +263,35 @@ def execute_dag(endpoint, parameters):
 
 
 if __name__ == '__main__':
+    def dummy_roster(course):
+        """
+        Dummy function for course roster.
+
+        :param course: The course identifier
+        :type course: str
+        :return: A list of student identifiers
+        :rtype: list
+        """
+        return list(range(10))
+
+    def dummy_latest_doc(student_id):
+        """
+        Dummy function for latest document.
+
+        :param student_id: The student identifier
+        :type student_id: str
+        :return: A string representing the latest document
+        :rtype: str
+        """
+        return f"abcd_{student_id}_docid"
+
+    functions = {
+        "writing_observer.latest_doc": dummy_latest_doc,
+        "learning_observer.course_roster": dummy_roster
+    }
+
     print("Source:", json.dumps(learning_observer.communication_protocol.request.EXAMPLE, indent=2))
     FLAT = flatten(copy.deepcopy(learning_observer.communication_protocol.request.EXAMPLE))
     print("Flat:", json.dumps(FLAT, indent=2))
-    EXECUTE = execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345})
-    # print(">>>", EXECUTE)
+    EXECUTE = execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions)
     print("Execute:", json.dumps(EXECUTE, indent=2))

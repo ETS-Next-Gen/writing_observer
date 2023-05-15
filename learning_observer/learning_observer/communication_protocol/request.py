@@ -14,7 +14,7 @@ dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map', 'key
 [setattr(DISPATCH_MODES, d.upper(), d) for d in dispatch_modes]
 
 
-def PARAMETER(parameter_name):
+def create_parameter(parameter_name):
     """
     Returns a dictionary with the given parameter_name.
 
@@ -29,7 +29,7 @@ def PARAMETER(parameter_name):
     }
 
 
-def VARIABLE(variable_name):
+def create_variable(variable_name):
     """
     Returns a dictionary with the given variable_name.
 
@@ -44,7 +44,7 @@ def VARIABLE(variable_name):
     }
 
 
-def CALL(function_name):
+def create_call(function_name):
     """
     Returns a callable that, when invoked, returns a dictionary containing the dispatch type, function name, arguments, and keyword arguments.
 
@@ -63,11 +63,7 @@ def CALL(function_name):
     return caller
 
 
-course_roster = CALL('learning_observer.course_roster')
-latest_doc = CALL('writing_observer.latest_doc')  # <-- This should not be a call but a direct query into the KVS
-
-
-def SELECT(keys):
+def create_select(keys):
     """
     Returns a dictionary with the given keys.
 
@@ -82,18 +78,18 @@ def SELECT(keys):
     }
 
 
-def JOIN(LEFT, RIGHT, LEFT_KEY, RIGHT_KEY):
+def create_join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     """
-    Returns a dictionary representing a JOIN operation between LEFT and RIGHT based on LEFT_KEY and RIGHT_KEY.
+    Returns a dictionary representing a JOIN operation between LEFT and RIGHT based on LEFT_ON and RIGHT_ON.
 
     :param LEFT: the left table
     :type LEFT: dict
     :param RIGHT: the right table
     :type RIGHT: dict
-    :param LEFT_KEY: the key to join on from the left table
-    :type LEFT_KEY: str
-    :param RIGHT_KEY: the key to join on from the right table
-    :type RIGHT_KEY: str
+    :param LEFT_ON: the key to join on from the left table
+    :type LEFT_ON: str
+    :param RIGHT_ON: the key to join on from the right table
+    :type RIGHT_ON: str
     :return: a dictionary containing the dispatch type and the join information
     :rtype: dict
     """
@@ -101,12 +97,12 @@ def JOIN(LEFT, RIGHT, LEFT_KEY, RIGHT_KEY):
         dispatch: DISPATCH_MODES.JOIN,
         "left": LEFT,
         "right": RIGHT,
-        "left_key": LEFT_KEY,
-        "right_key": RIGHT_KEY
+        "left_on": LEFT_ON,
+        "right_on": RIGHT_ON
     }
 
 
-def MAP(function, values):
+def create_map(function, values):
     """
     Returns a dictionary representing a MAP operation for the given function and values.
 
@@ -124,7 +120,7 @@ def MAP(function, values):
     }
 
 
-def some_way_to_make_keys(text, doc_ids):
+def create_keys(func, items):
     """
     Some way to make keys. This is a placeholder function and needs to be implemented.
 
@@ -135,32 +131,21 @@ def some_way_to_make_keys(text, doc_ids):
     :return: a dictionary representing the keys
     :rtype: dict
     """
-    # learning_observer.stream_analytics.helpers.make_key
     return {
         "dispatch": DISPATCH_MODES.KEYS,
-        "doc_ids": doc_ids
+        "function": func,
+        "items": items
     }
 
 
-def MAKE_KEY(student_id):
-    """
-    Makes key based on student_id. This is a placeholder function and needs to be implemented.
-
-    :param student_id: the student ID to make the key from
-    :type student_id: str
-    :return: a key
-    :rtype: str
-    """
-    # learning_observer.stream_analytics.helpers.make_key
-    return ""
-
+course_roster = create_call('learning_observer.course_roster')
 
 EXAMPLE = {
     "execution_dag": {
-        "roster": course_roster(course=PARAMETER("course_id")),
-        "doc_ids": MAP(latest_doc, VARIABLE("roster")),
-        "docs": SELECT(some_way_to_make_keys("document-text", VARIABLE("doc_ids"))),
-        "combined": JOIN(LEFT=VARIABLE("docs"), RIGHT=VARIABLE("roster"), LEFT_KEY=MAKE_KEY(student_id="student_id"), RIGHT_KEY=MAKE_KEY(student_id="student.student_id"))
+        "roster": course_roster(course=create_parameter("course_id")),
+        "doc_ids": create_select(create_keys('lastest-doc', create_variable("roster"))),
+        "docs": create_select(create_keys('doc-text', create_variable("doc_ids"))),
+        "combined": create_join(LEFT=create_variable("docs"), RIGHT=create_variable("roster"))
     },
     "returns": ["combined"],
     "name": "docs-with-roster",
