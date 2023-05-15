@@ -206,17 +206,9 @@ def execute_dag(endpoint, parameters):
 
 
 if __name__ == '__main__':
-    import enum
-
-    class MyEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, enum.Enum):
-                return obj.value
-            return super().default(obj)
-
-    print("Source:", json.dumps(learning_observer.communication_protocol.request.EXAMPLE, indent=2, cls=MyEncoder))
+    print("Source:", json.dumps(learning_observer.communication_protocol.request.EXAMPLE, indent=2))
     FLAT = flatten(copy.deepcopy(learning_observer.communication_protocol.request.EXAMPLE))
-    print("Flat:", json.dumps(FLAT, indent=2, cls=MyEncoder))
+    print("Flat:", json.dumps(FLAT, indent=2))
     EXECUTE = execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345})
     # print(">>>", EXECUTE)
-    print("Execute:", json.dumps(EXECUTE, indent=2, cls=MyEncoder))
+    print("Execute:", json.dumps(EXECUTE, indent=2))
