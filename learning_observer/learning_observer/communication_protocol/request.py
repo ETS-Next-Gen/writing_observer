@@ -10,7 +10,7 @@ class DISPATCH_MODES:
     pass
 
 
-dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map']
+dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map', 'keys']
 [setattr(DISPATCH_MODES, d.upper(), d) for d in dispatch_modes]
 
 
@@ -137,7 +137,7 @@ def some_way_to_make_keys(text, doc_ids):
     """
     # learning_observer.stream_analytics.helpers.make_key
     return {
-        "dispatch": "keys",
+        "dispatch": DISPATCH_MODES.KEYS,
         "doc_ids": doc_ids
     }
 

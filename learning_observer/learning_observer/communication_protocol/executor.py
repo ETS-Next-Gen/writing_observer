@@ -35,6 +35,7 @@ def dummy_latest_doc(student_id):
     return f"abcd_{student_id}_docid"
 
 
+# TODO register functions on startup
 functions = {
     "writing_observer.latest_doc": dummy_latest_doc,
     "learning_observer.course_roster": dummy_roster
@@ -156,6 +157,12 @@ def map_function(function, values, parameters):
 def handle_select(keys, parameters):
     # TODO implement this
     return f'selecting {keys}'
+
+
+@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.KEYS)
+def handle_keys(doc_ids, parameters):
+    # TODO implement this
+    return f'keys {doc_ids}'
 
 
 def execute_dag(endpoint, parameters):
