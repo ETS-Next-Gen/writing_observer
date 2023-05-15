@@ -4,7 +4,14 @@ This file includes commands to create a request within the communication protoco
 import enum
 
 dispatch = "dispatch"
-DISPATCH_MODES = enum.Enum('DISPATCH_MODES', 'PARAMETER VARIABLE CALL SELECT JOIN MAP')
+
+
+class DISPATCH_MODES:
+    pass
+
+
+dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map']
+[setattr(DISPATCH_MODES, d.upper(), d) for d in dispatch_modes]
 
 
 def PARAMETER(parameter_name):
@@ -120,7 +127,7 @@ def MAP(function, values):
 def some_way_to_make_keys(text, doc_ids):
     """
     Some way to make keys. This is a placeholder function and needs to be implemented.
-    
+
     :param text: text to generate keys from
     :type text: str
     :param doc_ids: document IDs to generate keys from
