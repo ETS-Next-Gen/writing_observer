@@ -14,7 +14,7 @@ dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map', 'key
 [setattr(DISPATCH_MODES, d.upper(), d) for d in dispatch_modes]
 
 
-def create_parameter(parameter_name):
+def parameter(parameter_name):
     """
     Returns a dictionary with the given parameter_name.
 
@@ -29,7 +29,7 @@ def create_parameter(parameter_name):
     }
 
 
-def create_variable(variable_name):
+def variable(variable_name):
     """
     Returns a dictionary with the given variable_name.
 
@@ -44,7 +44,7 @@ def create_variable(variable_name):
     }
 
 
-def create_call(function_name):
+def call(function_name):
     """
     Returns a callable that, when invoked, returns a dictionary containing the dispatch type, function name, arguments, and keyword arguments.
 
@@ -63,7 +63,7 @@ def create_call(function_name):
     return caller
 
 
-def create_select(keys):
+def select(keys):
     """
     Returns a dictionary with the given keys.
 
@@ -78,7 +78,7 @@ def create_select(keys):
     }
 
 
-def create_join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
+def join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     """
     Returns a dictionary representing a JOIN operation between LEFT and RIGHT based on LEFT_ON and RIGHT_ON.
 
@@ -102,7 +102,7 @@ def create_join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     }
 
 
-def create_map(function, values):
+def map(function, values):
     """
     Returns a dictionary representing a MAP operation for the given function and values.
 
@@ -120,7 +120,7 @@ def create_map(function, values):
     }
 
 
-def create_keys(func, items):
+def keys(func, items):
     """
     Some way to make keys. This is a placeholder function and needs to be implemented.
 
@@ -138,14 +138,14 @@ def create_keys(func, items):
     }
 
 
-course_roster = create_call('learning_observer.course_roster')
+course_roster = call('learning_observer.course_roster')
 
 EXAMPLE = {
     "execution_dag": {
-        "roster": course_roster(course=create_parameter("course_id")),
-        "doc_ids": create_select(create_keys('latest-doc', create_variable("roster"))),
-        "docs": create_select(create_keys('doc-text', create_variable("doc_ids"))),
-        "combined": create_join(LEFT=create_variable("docs"), RIGHT=create_variable("roster"))
+        "roster": course_roster(course=parameter("course_id")),
+        "doc_ids": select(keys('latest-doc', variable("roster"))),
+        "docs": select(keys('doc-text', variable("doc_ids"))),
+        "combined": join(LEFT=variable("docs"), RIGHT=variable("roster"))
     },
     "returns": ["combined"],
     "name": "docs-with-roster",
