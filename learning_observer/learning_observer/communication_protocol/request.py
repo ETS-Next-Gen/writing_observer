@@ -143,7 +143,7 @@ course_roster = create_call('learning_observer.course_roster')
 EXAMPLE = {
     "execution_dag": {
         "roster": course_roster(course=create_parameter("course_id")),
-        "doc_ids": create_select(create_keys('lastest-doc', create_variable("roster"))),
+        "doc_ids": create_select(create_keys('latest-doc', create_variable("roster"))),
         "docs": create_select(create_keys('doc-text', create_variable("doc_ids"))),
         "combined": create_join(LEFT=create_variable("docs"), RIGHT=create_variable("roster"))
     },

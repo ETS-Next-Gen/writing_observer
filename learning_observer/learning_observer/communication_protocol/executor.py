@@ -4,6 +4,7 @@ This also includes some utility functions.
 '''
 import collections
 import copy
+import inspect
 import json
 
 import learning_observer.communication_protocol.request
@@ -95,7 +96,7 @@ def handler(name):
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.CALL)
-def call_dispatch(functions, function_name, args, kwargs):
+async def call_dispatch(functions, function_name, args, kwargs):
     """
     Calls a function from the available functions.
 
@@ -110,7 +111,10 @@ def call_dispatch(functions, function_name, args, kwargs):
     :return: The result of the function call
     """
     function = functions[function_name]
-    return function(*args, **kwargs)
+    result = function(*args, **kwargs)
+    if inspect.iscoroutinefunction(function):
+        result = await result
+    return result
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER)
@@ -149,7 +153,7 @@ def handle_join(left, right, left_on=None, right_on=None):
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.MAP)
-def map_function(functions, function, values):
+async def map_function(functions, function, values):
     """
     Applies a function to a list of values.
 
@@ -162,7 +166,10 @@ def map_function(functions, function, values):
     :return: The mapped values
     :rtype: list
     """
-    return map(functions[function], values)
+    func = functions[function]
+    if inspect.iscoroutinefunction(func):
+        return [await func(v) for v in values]
+    return map(func, values)
 
 
 @handler(learning_observer.communication_protocol.request.DISPATCH_MODES.SELECT)
@@ -206,7 +213,7 @@ def handle_keys(function, items):
     return keys
 
 
-def execute_dag(endpoint, parameters, functions):
+async def execute_dag(endpoint, parameters, functions):
     """
     Execute a flattened directed acyclic graph (DAG).
 
@@ -222,7 +229,7 @@ def execute_dag(endpoint, parameters, functions):
     visited = set()
     nodes = endpoint['execution_dag']
 
-    def dispatch_node(node):
+    async def dispatch_node(node):
         if not isinstance(node, dict):
             return node
         if dispatch not in node:
@@ -232,34 +239,39 @@ def execute_dag(endpoint, parameters, functions):
         del node[dispatch]
         # make dispatch specific function call
         if node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER:
-            return function(parameters=parameters, **node)
+            result = function(parameters=parameters, **node)
         elif (node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.CALL
               or node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.MAP):
-            return function(functions=functions, **node)
-        return function(**node)
+            result = function(functions=functions, **node)
+        else:
+            result = function(**node)
 
-    def walk_dict(node_dict):
+        if inspect.iscoroutinefunction(function):
+            result = await result
+        return result
+
+    async def walk_dict(node_dict):
         '''
         This will walk a dictionary, and call `visit` on all variables, and make the requisite substitions
         '''
         for child_key, child_value in list(node_dict.items()):
             if isinstance(child_value, dict) and dispatch in child_value and child_value[dispatch] == learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE:
-                node_dict[child_key] = visit(child_value['variable_name'])
+                node_dict[child_key] = await visit(child_value['variable_name'])
             elif isinstance(child_value, dict):
-                walk_dict(child_value)
+                await walk_dict(child_value)
 
-    def visit(node_name):
+    async def visit(node_name):
         # We've already done this one.
         if node_name in visited:
             return nodes[node_name]
         # Execute all the child nodes
-        walk_dict(nodes[node_name])
+        await walk_dict(nodes[node_name])
         # Execute the current node
-        nodes[node_name] = dispatch_node(nodes[node_name])
+        nodes[node_name] = await dispatch_node(nodes[node_name])
         visited.add(node_name)
         return nodes[node_name]
 
-    return list(map(visit, endpoint['returns']))
+    return [await visit(e) for e in endpoint['returns']]
 
 
 if __name__ == '__main__':
@@ -293,5 +305,6 @@ if __name__ == '__main__':
     print("Source:", json.dumps(learning_observer.communication_protocol.request.EXAMPLE, indent=2))
     FLAT = flatten(copy.deepcopy(learning_observer.communication_protocol.request.EXAMPLE))
     print("Flat:", json.dumps(FLAT, indent=2))
-    EXECUTE = execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions)
+    import asyncio
+    EXECUTE = asyncio.run(execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
     print("Execute:", json.dumps(EXECUTE, indent=2))
