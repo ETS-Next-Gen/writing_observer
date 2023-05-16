@@ -29,7 +29,6 @@ import writing_observer.nlp_indicators
 import learning_observer.kvs
 import learning_observer.util
 
-
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
 
 
@@ -217,8 +216,8 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
         Yes: a. Collect options not covered till now and add to features_running.
              b. Once finished, update cache and return results.
     '''
-    recurring_sleep_time = 1  # Time to wait between recurring calls to cache to check if features have finished running
-    running_features_wait_time = 60  # Time to wait for features already running.
+    recurring_sleep_time = 1  # Time in seconds to wait between recurring calls to cache to check if features have finished running
+    running_features_wait_time = 60  # Time in seconds to wait for features already running.
     results = []
     found_options = set()
     cache = learning_observer.kvs.KVS()
@@ -242,13 +241,8 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
         if text_cache_data is None:
             text_cache_data = {}
 
-        if 'features_running' not in text_cache_data:
-            features_running = set()
-        else:
-            features_running = set(json.loads(text_cache_data['features_running']))
-
-        if 'features_available' not in text_cache_data:
-            text_cache_data['features_available'] = dict()
+        features_running = set(json.loads(text_cache_data['features_running'])) if 'features_running' in text_cache_data else set()
+        text_cache_data.setdefault('features_available', dict())
 
         # Check if some options are a subset of features_available
         if text_cache_data['features_available']:
