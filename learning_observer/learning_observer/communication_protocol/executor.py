@@ -7,11 +7,11 @@ import copy
 import inspect
 import json
 
-import learning_observer.communication_protocol.request
+import learning_observer.communication_protocol.query
 import learning_observer.stream_analytics.helpers as sa_helpers
 import learning_observer.kvs
 
-dispatch = learning_observer.communication_protocol.request.dispatch
+dispatch = learning_observer.communication_protocol.query.dispatch
 # TODO create connection to our kvs so we access the data
 # kvs = learning_observer.kvs.KVS()
 
@@ -33,13 +33,13 @@ def flatten_helper(top_level, current_level, prefix=''):
     """
     for key, value in list(current_level.items()):
         new_key = f"{prefix}.{key}" if prefix else key
-        if isinstance(value, dict) and dispatch in value and value[dispatch] != learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE:
+        if isinstance(value, dict) and dispatch in value and value[dispatch] != learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
             if isinstance(value, dict):
                 top_level[new_key] = flatten_helper(top_level, value, prefix=new_key)
             else:
                 top_level[new_key] = value
             current_level[key] = {
-                dispatch: learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE,
+                dispatch: learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE,
                 "variable_name": new_key
             }
         elif isinstance(value, dict) and dispatch not in value:
@@ -95,7 +95,7 @@ def handler(name):
     return decorator
 
 
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.CALL)
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.CALL)
 async def call_dispatch(functions, function_name, args, kwargs):
     """
     Calls a function from the available functions.
@@ -117,7 +117,7 @@ async def call_dispatch(functions, function_name, args, kwargs):
     return result
 
 
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER)
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER)
 def substitute_parameter(parameter_name, parameters):
     """
     Substitutes a parameter from the provided parameters.
@@ -131,7 +131,7 @@ def substitute_parameter(parameter_name, parameters):
     return parameters[parameter_name]
 
 
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.JOIN)
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.JOIN)
 def handle_join(left, right, left_on=None, right_on=None):
     """
     Joins two lists of dictionaries based on provided keys. If no keys are provided, zips the lists together.
@@ -152,7 +152,7 @@ def handle_join(left, right, left_on=None, right_on=None):
     return [dict(**le, **r) for le, r in zip(left, right) if le.get(left_on) == r.get(right_on)]
 
 
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.MAP)
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
 async def map_function(functions, function, values):
     """
     Applies a function to a list of values.
@@ -172,7 +172,7 @@ async def map_function(functions, function, values):
     return map(func, values)
 
 
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.SELECT)
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
 def handle_select(keys):
     """
     Placeholder function to select data from a key-value store (KVS). Currently returns mock data.
@@ -188,7 +188,7 @@ def handle_select(keys):
     return data
 
 
-@handler(learning_observer.communication_protocol.request.DISPATCH_MODES.KEYS)
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
 def handle_keys(function, items):
     """
     Placeholder function to generate keys for a function and list of items. Currently returns mock data.
@@ -238,10 +238,10 @@ async def execute_dag(endpoint, parameters, functions):
         function = DISPATCH[node_dispatch]
         del node[dispatch]
         # make dispatch specific function call
-        if node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER:
+        if node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER:
             result = function(parameters=parameters, **node)
-        elif (node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.CALL
-              or node_dispatch == learning_observer.communication_protocol.request.DISPATCH_MODES.MAP):
+        elif (node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.CALL
+              or node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.MAP):
             result = function(functions=functions, **node)
         else:
             result = function(**node)
@@ -255,7 +255,7 @@ async def execute_dag(endpoint, parameters, functions):
         This will walk a dictionary, and call `visit` on all variables, and make the requisite substitions
         '''
         for child_key, child_value in list(node_dict.items()):
-            if isinstance(child_value, dict) and dispatch in child_value and child_value[dispatch] == learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE:
+            if isinstance(child_value, dict) and dispatch in child_value and child_value[dispatch] == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
                 node_dict[child_key] = await visit(child_value['variable_name'])
             elif isinstance(child_value, dict):
                 await walk_dict(child_value)
@@ -302,8 +302,8 @@ if __name__ == '__main__':
         "learning_observer.course_roster": dummy_roster
     }
 
-    print("Source:", json.dumps(learning_observer.communication_protocol.request.EXAMPLE, indent=2))
-    FLAT = flatten(copy.deepcopy(learning_observer.communication_protocol.request.EXAMPLE))
+    print("Source:", json.dumps(learning_observer.communication_protocol.query.EXAMPLE, indent=2))
+    FLAT = flatten(copy.deepcopy(learning_observer.communication_protocol.query.EXAMPLE))
     print("Flat:", json.dumps(FLAT, indent=2))
     import asyncio
     EXECUTE = asyncio.run(execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))

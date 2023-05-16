@@ -2,7 +2,7 @@
 This file outputs the text for a flow chart readable by Mermaid.js
 Copy the output and paste it here: https://mermaid.live/edit
 '''
-import learning_observer.communication_protocol.request
+import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.executor
 
 
@@ -31,16 +31,16 @@ def iteratively_build_flowchart(data, path='', subgraphs=None, arrows=None):
         for k, v in data.items():
             new_path = f'{path}.{k}' if path else k
             dispatch = k == 'dispatch'
-            if dispatch and v == learning_observer.communication_protocol.request.DISPATCH_MODES.VARIABLE:
+            if dispatch and v == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
                 variable_name = data.get('variable_name', None)
                 arrows.append(f'{variable_name} --> {path}')
-            if dispatch and v == learning_observer.communication_protocol.request.DISPATCH_MODES.PARAMETER:
+            if dispatch and v == learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER:
                 parameter_name = data.get('parameter_name', None)
                 subgraphs.append(f'{parameter_name}[/Parameter: {parameter_name}/]')
-            if dispatch and v == learning_observer.communication_protocol.request.DISPATCH_MODES.CALL:
+            if dispatch and v == learning_observer.communication_protocol.query.DISPATCH_MODES.CALL:
                 parameter_name = data.get('function_name', None)
                 subgraphs.append(f'{parameter_name}([Call: {parameter_name}])')
-            if dispatch and v == learning_observer.communication_protocol.request.DISPATCH_MODES.MAP:
+            if dispatch and v == learning_observer.communication_protocol.query.DISPATCH_MODES.MAP:
                 parameter_name = data.get('function', None)
                 subgraphs.append(f'{parameter_name}[[Map: {parameter_name}]]')
             else:
@@ -68,4 +68,4 @@ def create_mermaid_flowchart(endpoint):
 
 
 if __name__ == '__main__':
-    print(create_mermaid_flowchart(learning_observer.communication_protocol.request.EXAMPLE))
+    print(create_mermaid_flowchart(learning_observer.communication_protocol.query.EXAMPLE))
