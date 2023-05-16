@@ -85,7 +85,7 @@ async def system_status(request):
             return json_object
         if isinstance(json_object, dict):
             return {key: clean_json(value) for key, value in json_object.items()}
-        if isinstance(json_object, list):
+        if isinstance(json_object, list) or isinstance(json_object, tuple):
             return [clean_json(i) for i in json_object]
         if isinstance(json_object, learning_observer.stream_analytics.fields.Scope):
             # We could make a nicer representation....
@@ -107,7 +107,8 @@ async def system_status(request):
             "course_aggregators": clean_json(learning_observer.module_loader.course_aggregators()),
             "reducers": clean_json(learning_observer.module_loader.reducers()),
             "static_repos": learning_observer.module_loader.static_repos(),
-            "dash_pages": clean_json(learning_observer.module_loader.dash_pages())
+            "dash_pages": clean_json(learning_observer.module_loader.dash_pages()),
+            "named_queries": clean_json(learning_observer.module_loader.named_queries())
         },
         "routes": routes(request.app)
     }

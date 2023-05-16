@@ -10,7 +10,7 @@ This may be an examplar for building new modules too.
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
 
-import learning_observer.stream_analytics.helpers as helpers
+import learning_observer.communication_protocol.query as q
 
 import writing_observer.aggregator
 import writing_observer.writing_analysis
@@ -18,6 +18,23 @@ from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
 NAME = "The Writing Observer"
+
+course_roster = q.call('learning_observer.course_roster')
+
+NAMED_QUERIES = {
+    "docs_with_roster": {
+        "execution_dag": {
+            "roster": course_roster(course=q.parameter("course_id")),
+            "doc_ids": q.select(q.keys('latest-doc', q.variable("roster"))),
+            "docs": q.select(q.keys('doc-text', q.variable("doc_ids"))),
+            "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"))
+        },
+        "returns": ["combined"],
+        "name": "docs-with-roster",
+        "description": "Here's what I do",
+        "parameters": "Here's what I get called with, together with description"
+    },
+}
 
 COURSE_AGGREGATORS = {
     "writing_observer": {
