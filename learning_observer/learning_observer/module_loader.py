@@ -22,6 +22,7 @@ import learning_observer.paths
 import learning_observer.settings
 
 from learning_observer.log_event import debug_log
+import learning_observer.communication_protocol.executor
 
 import learning_observer.stream_analytics.helpers as helpers
 
@@ -302,7 +303,8 @@ def load_named_queries(component_name, module):
     Load named queries from a module.
     '''
     if hasattr(module, "NAMED_QUERIES"):
-        debug_log(f"Loading course aggregators from {component_name}")
+        debug_log(f"Loading named queries from {component_name}")
+        learning_observer.communication_protocol.executor.add_queries_to_module(module.NAMED_QUERIES, module)
         for named_query in module.NAMED_QUERIES:
             query_name = f"{component_name}.{named_query}"
             # TODO validate the structure of the query

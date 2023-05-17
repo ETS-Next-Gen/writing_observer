@@ -274,6 +274,22 @@ async def execute_dag(endpoint, parameters, functions):
     return [await visit(e) for e in endpoint['returns']]
 
 
+def add_queries_to_module(named_queries, module):
+    '''
+    Add queries to each module as a callable object
+    example: `writing_observer.docs_with_roster(course_id=course_id)`
+    '''
+    for query_name in named_queries:
+        async def query_func(**kwargs):  # create new function
+            flat = flatten(copy.deepcopy(named_queries[query_name]))
+            output = await execute_dag(flat, parameters=kwargs, functions=functions)
+            return output
+        if hasattr(module, query_name):
+            raise AttributeError(f'Attibute, {query_name}, already exists under {module.__name__}')
+        else:
+            setattr(module, query_name, query_func)
+
+
 if __name__ == '__main__':
     def dummy_roster(course):
         """
