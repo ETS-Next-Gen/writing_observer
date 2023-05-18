@@ -308,9 +308,14 @@ def load_named_queries(component_name, module):
         for named_query in module.NAMED_QUERIES:
             query_name = f"{component_name}.{named_query}"
             # TODO validate the structure of the query
+            cleaned_query = {
+                'id': query_name,
+                'module': component_name
+            }
+            cleaned_query.update(module.NAMED_QUERIES[named_query])
             if query_name in NAMED_QUERIES:
                 raise KeyError('Query name already exists')
-            NAMED_QUERIES[query_name] = module.NAMED_QUERIES[named_query]
+            NAMED_QUERIES[query_name] = cleaned_query
     else:
         debug_log(f"Component {component_name} has no named queries")
 
