@@ -201,39 +201,42 @@ async def process_texts_parallel(texts, options=None):
 
     return annotated
 
-async def initialize_text_hash(cache, text):
+
+async def get_latest_cache(cache, text_hash):
     """
-    Cache Helper Function: Creates text hash and initializes key-value pair for that hash if it does not already exist in the cache.
+    Cache Helper Function: Returns latest cache for the text hash or initializes key-value pair for that hash if it does not already exist in the cache.
     """
-    text_hash = 'NLP_CACHE_' + learning_observer.util.secure_hash(text.encode('utf-8'))
     text_cache_data = await cache[text_hash]
     if text_cache_data is None:
         text_cache_data = {}
-    return text_cache_data, text_hash
+    return text_cache_data
 
 
-def check_features_available(text_cache_data, set_options, writing):
+async def check_features_available(cache, text_hash, set_options, writing):
     """
-    Cache Helper Function: Check if some options are a subset of features_available
-    """    
+    Cache Helper Function : Check if some options are a subset of features_available
+    """
+    text_cache_data = await get_latest_cache(cache, text_hash)  # Get latest cache
     found_options = set()
     text_cache_data.setdefault('features_available', dict())
     if len(text_cache_data['features_available']) > 0:
         found_options = set_options.intersection(text_cache_data['features_available'].keys())
         writing.update(text_cache_data['features_available'])
-    return text_cache_data, found_options, writing
+    return found_options, writing
 
 
-async def check_features_running(writing, text_cache_data, set_options, found_options, cache, recurring_sleep_time, running_features_wait_time, text_hash):
+async def check_features_running(writing, set_options, found_options, cache, recurring_sleep_time, running_features_wait_time, text_hash):
     """
     Check if some options are a subset of features_running: features that are needed but are already running
     """
+    text_cache_data = await get_latest_cache(cache, text_hash)  # Get latest cache
     features_running = set(json.loads(text_cache_data['features_running'])) if 'features_running' in text_cache_data else set()
     run_successful = False
     not_found = set_options - found_options
     features_needed_running = set()  # Features that are needed but are already processing
     if features_running:
         features_needed_running = not_found.intersection(features_running)
+    # Recursively check if features have finished processing at a regular interval of recurring_sleep_time
     if len(features_needed_running) > 0:
         while True:
             new_cache = await cache[text_hash]
@@ -250,16 +253,18 @@ async def check_features_running(writing, text_cache_data, set_options, found_op
     return not_found, found_options, writing
 
 
-async def process_missing_features(results, not_found, found_options, set_options, text_cache_data, cache, text_hash, writing):
+async def process_missing_features(results, not_found, found_options, set_options, cache, text_hash, writing):
     """
-    Cache Helper: Add not found options to features_running and update cache
+    Cache Helper: Add not found options to features_running and update cache.
     """
+    text_cache_data = await get_latest_cache(cache, text_hash)  # Get latest cache
+    text_cache_data.setdefault('features_available', dict())
     not_found = set_options - found_options
     features_running = not_found
     text_cache_data['features_running'] = json.dumps(list(features_running))
     text_cache_data['start_time'] = timestamp()
     text_cache_data['stop_time'] = "running"
-    await cache.set(text_hash, text_cache_data) 
+    await cache.set(text_hash, text_cache_data)
     annotated_text = process_text(writing.get("text", ""), list(not_found))
     text_cache_data['features_running'] = json.dumps([])
     text_cache_data['stop_time'] = timestamp()
@@ -269,7 +274,7 @@ async def process_missing_features(results, not_found, found_options, set_option
     return writing
 
 
-async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSING, recurring_sleep_time = 1, running_features_wait_time = 60):
+async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSING, recurring_sleep_time=1, running_features_wait_time=60):
     '''
     Caching:
     1. Create text hash.
@@ -301,24 +306,24 @@ async def process_texts(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSI
             continue
 
         # Creating text hash and setting defaults
-        text_cache_data, text_hash = await initialize_text_hash(cache, text)
+        text_hash = 'NLP_CACHE_' + learning_observer.util.secure_hash(text.encode('utf-8'))
 
         # Check if some options are a subset of features_available
-        text_cache_data, found_options, writing = check_features_available(text_cache_data, set_options, writing)
+        found_options, writing = await check_features_available(cache, text_hash, set_options, writing)
         # If all options were found
         if found_options == set_options:
             results.append(writing)
             continue
 
         # Check if some options are a subset of features_running: features that are needed but are already running
-        not_found, found_options, writing = await check_features_running(writing, text_cache_data, set_options, found_options, cache, recurring_sleep_time, running_features_wait_time, text_hash)
+        not_found, found_options, writing = await check_features_running(writing, set_options, found_options, cache, recurring_sleep_time, running_features_wait_time, text_hash)
         # If all options are found
         if found_options == set_options:
             results.append(writing)
             continue
 
         # Add not found options to features_running and update cache
-        results.append(await process_missing_features(results, not_found, found_options, set_options, text_cache_data, cache, text_hash, writing))
+        results.append(await process_missing_features(results, not_found, found_options, set_options, cache, text_hash, writing))
 
     return results
 
