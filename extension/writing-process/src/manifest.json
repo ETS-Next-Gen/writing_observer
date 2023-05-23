@@ -11,11 +11,9 @@
     "minimum_chrome_version": "88",
     "permissions": [
         "webRequest",
-        "declarativeNetRequest",
         "identity",
         "identity.email",
         "storage",
-        "nativeMessaging",
         "scripting",
         "activeTab",
         "tabs"
