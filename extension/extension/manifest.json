@@ -5,7 +5,7 @@
     "homepage_url": "https://github.com/ETS-Next-Gen/writing_observer",
     "incognito": "not_allowed",
     "offline_enabled": true,
-    "version": "0.0.0.1",
+    "version": "1.0.0.2",
     "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
     "action": {
         "default_title": "Writing Process",
@@ -28,11 +28,9 @@
     },
     "permissions": [
         "webRequest",
-        "declarativeNetRequest",
         "identity",
         "identity.email",
         "storage",
-        "nativeMessaging",
         "scripting",
         "activeTab"
     ],
