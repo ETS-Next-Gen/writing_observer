@@ -6,8 +6,11 @@ Background script. This works across all of Google Chrome.
 // should be a cookie or browser.storage?
 var RAW_DEBUG = false;
 
-// Manually update this variable before upload to Google store
-var WEBSOCKET_SERVER_URL = "wss://observer.csc.ncsu.edu/wsapi/in/"
+/* This variable must be manually updated to specify the server that
+ * the data will be sent to.  
+*/
+var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/" 
+
 
 /*
   TODO: FSM
