@@ -26,6 +26,18 @@ DASH_PAGES = [
     }
 ]
 
+# Third party module tests with helpful messages.
+Minty_URL = 'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css'
+if (dbc.themes.MINTY != Minty_URL):
+    print("WARN:: Unrecognized Minty URL detected: {}".format(dbc.themes.MINTY))
+    print("You will need to update dash bootstrap components hash value.\n")
+    
+FontAwesome_URL = "https://use.fontawesome.com/releases/v6.3.0/css/all.css"
+if (dbc.icons.FONT_AWESOME != FontAwesome_URL):
+    print("WARN:: Unrecognized Fontawesome URL detected: {}".format(dbc.icons.FONT_AWESOME))
+    print("You will need to update the FontAwesome bootstrap components hash value.\n")
+
+
 THIRD_PARTY = {
     "css/bootstrap.min.css": {
         "url": dbc.themes.MINTY,

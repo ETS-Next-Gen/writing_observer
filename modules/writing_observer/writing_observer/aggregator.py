@@ -6,6 +6,7 @@ import learning_observer.kvs
 import learning_observer.settings
 from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
 import learning_observer.stream_analytics.helpers
+# import traceback
 import learning_observer.util
 
 import writing_observer.writing_analysis
