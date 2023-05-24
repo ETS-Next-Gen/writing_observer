@@ -198,6 +198,10 @@ def register_dashboard_api(app):
             '/wsapi/dashboard',
             learning_observer.dashboard.websocket_dashboard_view),
         aiohttp.web.get(
+            '/wsapi/communication_dashboard',
+            learning_observer.dashboard.websocket_dashboard_handler
+        ),
+        aiohttp.web.get(
             '/webapi/course_dashboards',
             ajax_handler_wrapper(learning_observer.module_loader.course_dashboards)),
         aiohttp.web.get(

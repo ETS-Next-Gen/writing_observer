@@ -8,10 +8,11 @@ import inspect
 import json
 
 import learning_observer.communication_protocol.query
-import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.stream_analytics.fields
 import learning_observer.kvs
 
 dispatch = learning_observer.communication_protocol.query.dispatch
+
 # TODO create connection to our kvs so we access the data
 # kvs = learning_observer.kvs.KVS()
 
@@ -60,6 +61,16 @@ def flatten(endpoint):
         endpoint['execution_dag'][key] = flatten_helper(endpoint['execution_dag'], value, prefix=f"impl.{key}")
 
     return endpoint
+
+
+def get_nested_dict_value(d, key_str):
+    keys = key_str.split('.')
+    for key in keys:
+        if d is not None and key in d:
+            d = d[key]
+        else:
+            return None
+    return d
 
 
 def unimplemented_handler(*args, **kwargs):
@@ -147,13 +158,21 @@ def handle_join(left, right, left_on=None, right_on=None):
     :return: The joined list
     :rtype: list
     """
-    if not left_on or not right_on:
-        return [(le, r) for le, r in zip(left, right)]
-    return [dict(**le, **r) for le, r in zip(left, right) if le.get(left_on) == r.get(right_on)]
+    right_dict = {get_nested_dict_value(d, right_on): d for d in right if get_nested_dict_value(d, right_on) is not None}
+
+    result = []
+    for left_dict in left:
+        lookup_key = get_nested_dict_value(left_dict, left_on)
+        right_dict_match = right_dict.get(lookup_key)
+
+        if right_dict_match:
+            merged_dict = {**left_dict, **right_dict_match}
+            result.append(merged_dict)
+    return result
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
-async def map_function(functions, function, values):
+async def map_function(functions, function, values, value_path):
     """
     Applies a function to a list of values.
 
@@ -166,14 +185,15 @@ async def map_function(functions, function, values):
     :return: The mapped values
     :rtype: list
     """
+    # TODO this needs context added still, this method is currently unused
     func = functions[function]
     if inspect.iscoroutinefunction(func):
-        return [await func(v) for v in values]
-    return map(func, values)
+        return [await func(v) if value_path is None else get_nested_dict_value(v, value_path) for v in values]
+    return [func(v) if value_path is None else get_nested_dict_value(v, value_path) for v in values]
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
-def handle_select(keys):
+def handle_select(keys, fields):
     """
     Placeholder function to select data from a key-value store (KVS). Currently returns mock data.
 
@@ -182,14 +202,30 @@ def handle_select(keys):
     :return: The selected data
     :rtype: list
     """
-    # TODO fix this to actually call the kvs, will need async overhaul first
-    # data = await kvs.multiget(keys=keys)
-    data = [f'fetched-{i}' for i in keys]
-    return data
+    if fields is None:
+        fields = {}
+
+    response = []
+    for k in keys:
+        item = {
+            'context': {
+                'key': k['key'],
+                'context': k['context']
+            }
+        }
+        # TODO fetch from the KVS then pass the KVS output
+        # into the get_nested_dict_value function instead of k
+        # kvs_out = await kvs[k]
+        for f in fields:
+            # value = get_nested_dict_value(kvs_out, f)
+            value = get_nested_dict_value(k, f)
+            item[fields[f]] = value
+        response.append(item)
+    return response
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
-def handle_keys(function, items):
+def handle_keys(function, value_path, **kwargs):
     """
     Placeholder function to generate keys for a function and list of items. Currently returns mock data.
 
@@ -200,16 +236,37 @@ def handle_keys(function, items):
     :return: The generated keys
     :rtype: list
     """
+    # TODO figure out how to reduce the kwargs to a list of keys
+    # i.e.) how do we handle defining both STUDENTS and RESOURCES?
+    # currently we only allow one and set it to `items`
+    items = []
+    for key in kwargs:
+        if key in learning_observer.stream_analytics.fields.KeyFields:
+            items = kwargs[key]  # we currently overwrite items if more than one KeyField is used
+            # {sa_helpers.KeyField.key: kwargs[key]}  # issue with this code, we need to unpack it before we create the key
+
     # TODO Fix this code to properly implement
     # currently broken because funciton is only a string and
     # the method expects a callable
     #
     # keys = [sa_helpers.make_key(
     #     function,
-    #     {},
-    #     sa_helpers.KeyStateType.INTERNAL
+    #     keys,
+    #     sa_helpers.KeyStateType.EXTERNAL
     # ) for i in items]
-    keys = [f'{function}-{i}' for i in items]
+    keys = []
+    for i in items:
+        val = i if value_path is None else get_nested_dict_value(i, value_path)
+        keys.append(
+            {
+                'key': f'{function}-{val}',
+                'context': {
+                    'function': function,
+                    'value': val,
+                    'context': i.get('context', {})
+                }
+            }
+        )
     return keys
 
 
@@ -271,7 +328,7 @@ async def execute_dag(endpoint, parameters, functions):
         visited.add(node_name)
         return nodes[node_name]
 
-    return [await visit(e) for e in endpoint['returns']]
+    return {e: await visit(e) for e in endpoint['returns']}
 
 
 def add_queries_to_module(named_queries, module):
@@ -290,6 +347,28 @@ def add_queries_to_module(named_queries, module):
             setattr(module, query_name, query_func)
 
 
+def create_function(query):
+    # TODO fetch functions
+
+    def dummy_roster(course):
+        return [
+            {
+                'student': f'student-{i}',
+                # 'doc_id': f'latest-doc-{i}'
+            } for i in range(10)
+        ]
+
+    functions = {
+        'learning_observer.course_roster': dummy_roster
+    }
+
+    async def query_func(**kwargs):
+        flat = flatten(copy.deepcopy(query))
+        output = await execute_dag(flat, parameters=kwargs, functions=functions)
+        return output
+    return query_func
+
+
 if __name__ == '__main__':
     def dummy_roster(course):
         """
@@ -300,27 +379,19 @@ if __name__ == '__main__':
         :return: A list of student identifiers
         :rtype: list
         """
-        return list(range(10))
-
-    def dummy_latest_doc(student_id):
-        """
-        Dummy function for latest document.
-
-        :param student_id: The student identifier
-        :type student_id: str
-        :return: A string representing the latest document
-        :rtype: str
-        """
-        return f"abcd_{student_id}_docid"
+        return [
+            {
+                'student': f'student-{i}'
+            } for i in range(10)
+        ]
 
     functions = {
-        "writing_observer.latest_doc": dummy_latest_doc,
         "learning_observer.course_roster": dummy_roster
     }
 
-    print("Source:", json.dumps(learning_observer.communication_protocol.query.EXAMPLE, indent=2))
+    # print("Source:", json.dumps(learning_observer.communication_protocol.query.EXAMPLE, indent=2))
     FLAT = flatten(copy.deepcopy(learning_observer.communication_protocol.query.EXAMPLE))
-    print("Flat:", json.dumps(FLAT, indent=2))
+    # print("Flat:", json.dumps(FLAT, indent=2))
     import asyncio
     EXECUTE = asyncio.run(execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
     print("Execute:", json.dumps(EXECUTE, indent=2))

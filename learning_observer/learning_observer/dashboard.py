@@ -26,6 +26,9 @@ import learning_observer.rosters as rosters
 
 from learning_observer.log_event import debug_log
 
+import learning_observer.module_loader
+import learning_observer.communication_protocol.executor
+
 
 def timelist_to_seconds(timelist):
     '''
@@ -352,6 +355,50 @@ async def websocket_dashboard_view(request):
         if ws.closed:
             debug_log("Socket closed. This should never appear, however.")
             return aiohttp.web.Response(text="This never makes it back....")
+
+
+@learning_observer.auth.teacher
+async def websocket_dashboard_handler(request):
+    '''
+    Websocket for communication protocol
+    '''
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
+    await ws.prepare(request)
+
+    client_data = None
+    while True:
+        try:
+            client_data = await ws.receive_json()
+        except (TypeError, ValueError):
+            if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
+                debug_log("Socket closed!")
+                # By this point, the client is long gone, but we want to
+                # return something to avoid confusing middlewares.
+                return aiohttp.web.Response(text="This never makes it back....")
+        except asyncio.exceptions.TimeoutError:
+            # This is the normal code path
+            if client_data is None:
+                continue
+
+        if ws.closed:
+            debug_log("Socket closed. This should never appear, however.")
+            return aiohttp.web.Response(text="This never makes it back....")
+
+        query_name = client_data.get('query', None)
+        if query_name is None:
+            continue
+        parameters = client_data.get('parameters', {'course_id': 123})
+
+        queries = learning_observer.module_loader.named_queries()
+        # TODO catch a key error here
+        query = queries[query_name]
+
+        func = learning_observer.communication_protocol.executor.create_function(query)
+        # TODO we ought to make check the paramaters in some way,
+        # i.e. make sure any required ones exist before making the call
+        output = await func(**parameters)
+        await ws.send_json(output)
+        await asyncio.sleep(0.5)
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use

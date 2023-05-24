@@ -20,19 +20,31 @@ from writing_observer.nlp_indicators import INDICATOR_JSONS
 NAME = "The Writing Observer"
 
 course_roster = q.call('learning_observer.course_roster')
+LAST_DOC = 'writing_observer.writing_analysis.last_document'
+DOC_TEXT = 'writing_observer.writing_analysis.reconstruct'
 
 NAMED_QUERIES = {
     "docs_with_roster": {
         "execution_dag": {
             "roster": course_roster(course=q.parameter("course_id")),
-            "doc_ids": q.select(q.keys('latest-doc', q.variable("roster"))),
-            "docs": q.select(q.keys('doc-text', q.variable("doc_ids"))),
-            "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"))
+            "doc_ids": q.select(q.keys('latest-doc', STUDENT=q.variable("roster"), value_path='student'), fields={'key': 'key'}),
+            "docs": q.select(q.keys('doc-text', RESOURCE=q.variable("doc_ids"), value_path='key'), fields={'key': 'key'}),
+            "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.context.context.value', RIGHT_ON='student')
         },
         "returns": ["combined"],
         "name": "docs-with-roster",
         "description": "Here's what I do",
-        "parameters": "Here's what I get called with, together with description"
+        "parameters": """
+        `course_id`: id of course to fetch
+        """,
+        "output": """
+        ```python
+        output = [
+            {student},
+            # ...
+        ]
+        ```
+        """
     },
 }
 

@@ -1,7 +1,6 @@
 '''
 This file includes commands to create a request within the communication protocol.
 '''
-import enum
 
 dispatch = "dispatch"
 
@@ -63,7 +62,7 @@ def call(function_name):
     return caller
 
 
-def select(keys):
+def select(keys, fields=None):
     """
     Returns a dictionary with the given keys.
 
@@ -74,7 +73,8 @@ def select(keys):
     """
     return {
         dispatch: DISPATCH_MODES.SELECT,
-        "keys": keys
+        "keys": keys,
+        "fields": fields
     }
 
 
@@ -102,7 +102,7 @@ def join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     }
 
 
-def map(function, values):
+def map(function, values, value_path=None):
     """
     Returns a dictionary representing a MAP operation for the given function and values.
 
@@ -110,17 +110,20 @@ def map(function, values):
     :type function: callable
     :param values: the values to map over
     :type values: list
+    :param value_path: path to values that should be ran through map function
+    :type value_path: str
     :return: a dictionary containing the dispatch type, the function name, and the values
     :rtype: dict
     """
     return {
         dispatch: DISPATCH_MODES.MAP,
         "function": function.__lo_name__,
-        "values": values
+        "values": values,
+        "value_path": value_path
     }
 
 
-def keys(func, items):
+def keys(func, value_path=None, **kwargs):
     """
     Some way to make keys. This is a placeholder function and needs to be implemented.
 
@@ -128,13 +131,16 @@ def keys(func, items):
     :type text: str
     :param doc_ids: document IDs to generate keys from
     :type doc_ids: list
+    :param value_path: path to values that should be ran through map function
+    :type value_path: str
     :return: a dictionary representing the keys
     :rtype: dict
     """
     return {
         "dispatch": DISPATCH_MODES.KEYS,
         "function": func,
-        "items": items
+        "value_path": value_path,
+        **kwargs
     }
 
 
@@ -143,9 +149,9 @@ course_roster = call('learning_observer.course_roster')
 EXAMPLE = {
     "execution_dag": {
         "roster": course_roster(course=parameter("course_id")),
-        "doc_ids": select(keys('latest-doc', variable("roster"))),
-        "docs": select(keys('doc-text', variable("doc_ids"))),
-        "combined": join(LEFT=variable("docs"), RIGHT=variable("roster"))
+        "doc_ids": select(keys('latest-doc', STUDENT=variable("roster"), value_path='student'), fields={'key': 'key'}),
+        "docs": select(keys('doc-text', RESOURCE=variable("doc_ids"), value_path='key'), fields={'key': 'key'}),
+        "combined": join(LEFT=variable("docs"), RIGHT=variable("roster"), LEFT_ON='context.context.context.context.value', RIGHT_ON='student')
     },
     "returns": ["combined"],
     "name": "docs-with-roster",
