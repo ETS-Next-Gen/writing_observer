@@ -8,13 +8,15 @@ import inspect
 import json
 
 import learning_observer.communication_protocol.query
-import learning_observer.stream_analytics.fields
 import learning_observer.kvs
+import learning_observer.module_loader
+import learning_observer.settings
+import learning_observer.stream_analytics.fields
+import learning_observer.stream_analytics.helpers
 
 dispatch = learning_observer.communication_protocol.query.dispatch
 
-# TODO create connection to our kvs so we access the data
-# kvs = learning_observer.kvs.KVS()
+KVS = None
 
 
 # NOTE perhaps if flatten doesn't fit in the request or the executor module
@@ -64,6 +66,15 @@ def flatten(endpoint):
 
 
 def get_nested_dict_value(d, key_str):
+    """
+    Fetch an item from a nested dictionary using `.` to indicate nested keys
+
+    :param d: Dictionary to be searched
+    :type d: dict
+    :param key_str: Keys to iterate over
+    :type key_str: str
+    :return: Value of nested dictionary
+    """
     keys = key_str.split('.')
     for key in keys:
         if d is not None and key in d:
@@ -193,13 +204,15 @@ async def map_function(functions, function, values, value_path):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
-def handle_select(keys, fields):
+async def handle_select(keys, fields):
     """
-    Placeholder function to select data from a key-value store (KVS). Currently returns mock data.
+    Select data from a key-value store (KVS) based on a list of keys.
 
     :param keys: The keys to select data for
     :type keys: list
-    :return: The selected data
+    :param fields: A mapping of key paths to keys (similar to SQL `AS`), ex) `{path.to.item: output}`
+    :type fields: dict
+    :return: The selected data ex) `[{output: value, context: {}}, ...]`
     :rtype: list
     """
     if fields is None:
@@ -213,12 +226,9 @@ def handle_select(keys, fields):
                 'context': k['context']
             }
         }
-        # TODO fetch from the KVS then pass the KVS output
-        # into the get_nested_dict_value function instead of k
-        # kvs_out = await kvs[k]
+        kvs_out = await KVS()[k['key']]
         for f in fields:
-            # value = get_nested_dict_value(kvs_out, f)
-            value = get_nested_dict_value(k, f)
+            value = get_nested_dict_value(kvs_out, f)
             item[fields[f]] = value
         response.append(item)
     return response
@@ -236,7 +246,12 @@ def handle_keys(function, value_path, **kwargs):
     :return: The generated keys
     :rtype: list
     """
+    # TODO figure out how we are making the keys with this keyfields variable
+    # this should replace items below
+    keyfields = {k: kwargs.get(k, None) for k in learning_observer.stream_analytics.fields.KeyFields}
+
     # TODO figure out how to reduce the kwargs to a list of keys
+    # Should this even be kwargs?
     # i.e.) how do we handle defining both STUDENTS and RESOURCES?
     # currently we only allow one and set it to `items`
     items = []
@@ -245,18 +260,16 @@ def handle_keys(function, value_path, **kwargs):
             items = kwargs[key]  # we currently overwrite items if more than one KeyField is used
             # {sa_helpers.KeyField.key: kwargs[key]}  # issue with this code, we need to unpack it before we create the key
 
-    # TODO Fix this code to properly implement
-    # currently broken because funciton is only a string and
-    # the method expects a callable
-    #
-    # keys = [sa_helpers.make_key(
-    #     function,
-    #     keys,
-    #     sa_helpers.KeyStateType.EXTERNAL
-    # ) for i in items]
+    # TODO fetch the function of the specified reducer for `make_key`
+    # func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
     keys = []
     for i in items:
         val = i if value_path is None else get_nested_dict_value(i, value_path)
+        # key = learning_observer.stream_analytics.helpers.make_key(
+        #     func['function'],
+        #     items,
+        #     learning_observer.stream_analytics.fields.KeyStateType.EXTERNAL
+        # )
         keys.append(
             {
                 'key': f'{function}-{val}',
@@ -281,10 +294,14 @@ async def execute_dag(endpoint, parameters, functions):
     :param functions: The functions available for execution
     :type functions: dict
     :return: The result of the execution
-    :rtype: list
+    :rtype: dict
     """
     visited = set()
     nodes = endpoint['execution_dag']
+
+    global KVS
+    if KVS is None:
+        KVS = learning_observer.kvs.KVS
 
     async def dispatch_node(node):
         if not isinstance(node, dict):
@@ -328,7 +345,12 @@ async def execute_dag(endpoint, parameters, functions):
         visited.add(node_name)
         return nodes[node_name]
 
-    return {e: await visit(e) for e in endpoint['returns']}
+    if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
+        # return everything in dev mode
+        return {e: await visit(e) for e in endpoint['returns']}
+    # remove context from outputs
+    # this breaks if `await visit(e)` does not return a list of dicts
+    return {e: [{k: v for k, v in o.items() if k != 'context'} for o in await visit(e)] for e in endpoint['returns']}
 
 
 def add_queries_to_module(named_queries, module):
@@ -336,6 +358,7 @@ def add_queries_to_module(named_queries, module):
     Add queries to each module as a callable object
     example: `writing_observer.docs_with_roster(course_id=course_id)`
     '''
+    # TODO add these queries a more general LO namespace
     for query_name in named_queries:
         async def query_func(**kwargs):  # create new function
             flat = flatten(copy.deepcopy(named_queries[query_name]))
@@ -348,7 +371,7 @@ def add_queries_to_module(named_queries, module):
 
 
 def create_function(query):
-    # TODO fetch functions
+    # TODO fetch functions - create a wrapper to populate a dictionary of runnable functions
 
     def dummy_roster(course):
         return [
@@ -384,6 +407,15 @@ if __name__ == '__main__':
                 'student': f'student-{i}'
             } for i in range(10)
         ]
+
+    # Setup KVS since LO.KVS() isn't available here
+    import collections
+
+    def create_kvs():
+        async def return_value():
+            return {'some_key': {'nested': 'some_key_value'}}
+        return collections.defaultdict(return_value)
+    KVS = create_kvs
 
     functions = {
         "learning_observer.course_roster": dummy_roster

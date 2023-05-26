@@ -357,47 +357,66 @@ async def websocket_dashboard_view(request):
             return aiohttp.web.Response(text="This never makes it back....")
 
 
+async def execute_queries(client_data):
+    named_queries = learning_observer.module_loader.named_queries()
+    funcs = []
+    for query_name, client_query in client_data.items():
+        function_name = client_query.get('function_name', query_name)
+        try:
+            query = named_queries[function_name]
+        except KeyError:
+            # TODO fix a bug that exists in this code
+            # if a function isn't found, we skip it.
+            # this will cause issues later on when
+            # we zip the query_names (keys) with the outputs
+            debug_log(f'Query, {function_name}, not found in named_queries. Skipping.')
+            continue
+        parameters = query.get('parameters')
+        # TODO check parameters and make sure we have the proper ones
+        func = learning_observer.communication_protocol.executor.create_function(query)
+        func = func(**client_query.get('kwargs', {}))
+        funcs.append(func)
+    return await asyncio.gather(*funcs, return_exceptions=False)
+
+
 @learning_observer.auth.teacher
 async def websocket_dashboard_handler(request):
     '''
-    Websocket for communication protocol
+    Handles client requests through a WebSocket, executes requested queries,
+    and sends back the results.
+
+    Args:
+        request: aiohttp request object.
+
+    Returns:
+        aiohttp web response.
     '''
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
     await ws.prepare(request)
-
     client_data = None
+
     while True:
         try:
             client_data = await ws.receive_json()
+            # TODO we should validate the client_data structure
         except (TypeError, ValueError):
+            # these Errors may signal a close
             if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
                 debug_log("Socket closed!")
-                # By this point, the client is long gone, but we want to
-                # return something to avoid confusing middlewares.
-                return aiohttp.web.Response(text="This never makes it back....")
+                return aiohttp.web.Response()
         except asyncio.exceptions.TimeoutError:
-            # This is the normal code path
+            # this is the normal path of the code
+            # if the client_data hasn't been set, keep waiting for it
             if client_data is None:
                 continue
 
         if ws.closed:
-            debug_log("Socket closed. This should never appear, however.")
-            return aiohttp.web.Response(text="This never makes it back....")
+            debug_log("Socket closed.")
+            return aiohttp.web.Response()
 
-        query_name = client_data.get('query', None)
-        if query_name is None:
-            continue
-        parameters = client_data.get('parameters', {'course_id': 123})
+        outputs = await execute_queries(client_data)
 
-        queries = learning_observer.module_loader.named_queries()
-        # TODO catch a key error here
-        query = queries[query_name]
-
-        func = learning_observer.communication_protocol.executor.create_function(query)
-        # TODO we ought to make check the paramaters in some way,
-        # i.e. make sure any required ones exist before making the call
-        output = await func(**parameters)
-        await ws.send_json(output)
+        await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
         await asyncio.sleep(0.5)
 
 

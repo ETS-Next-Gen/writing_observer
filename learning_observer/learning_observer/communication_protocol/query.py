@@ -149,8 +149,8 @@ course_roster = call('learning_observer.course_roster')
 EXAMPLE = {
     "execution_dag": {
         "roster": course_roster(course=parameter("course_id")),
-        "doc_ids": select(keys('latest-doc', STUDENT=variable("roster"), value_path='student'), fields={'key': 'key'}),
-        "docs": select(keys('doc-text', RESOURCE=variable("doc_ids"), value_path='key'), fields={'key': 'key'}),
+        "doc_ids": select(keys('latest-doc', STUDENT=variable("roster"), value_path='student'), fields={'key': 'doc_id'}),
+        "docs": select(keys('doc-text', RESOURCE=variable("doc_ids"), value_path='doc_id'), fields={'some_key.nested': 'out_test'}),
         "combined": join(LEFT=variable("docs"), RIGHT=variable("roster"), LEFT_ON='context.context.context.context.value', RIGHT_ON='student')
     },
     "returns": ["combined"],

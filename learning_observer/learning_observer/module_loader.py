@@ -251,7 +251,8 @@ def load_reducers(component_name, module):
                 "context": reducer['context'],
                 "function": reducer['function'],  # Primary ID
                 "scope": reducer.get('scope', DEFAULT_STUDENT_SCOPE),
-                "module": module
+                "module": module,
+                "id": f"{module.__name__.replace('.module', '')}.{reducer['function'].__name__}"
             }
 
             # Here's the deal: Our primary ID is the function itself, and our

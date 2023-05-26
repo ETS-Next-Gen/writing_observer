@@ -1,6 +1,7 @@
 from dash import html, dcc, callback, Output, Input, State
 import dash_bootstrap_components as dbc
 import dash_extensions as de
+import json
 
 import learning_observer.module_loader
 import learning_observer.communication_protocol.query
@@ -22,7 +23,7 @@ def layout():
 
     ret = dbc.Container(
         [
-            dcc.Store(id=module_store, data=modules),
+            dcc.Store(id=module_store, data=json.loads(json.dumps(modules, default=lambda x: x.__name__))),
             dbc.Row(
                 [
                     dbc.Col(
@@ -166,6 +167,34 @@ def create_mermaid_flowchart(endpoint):
     return 'flowchart TD\n' + '\n'.join(subgraphs) + '\n' + '\n'.join(arrows)
 
 
+def create_parameter(param):
+    required = param.get('required', True)
+    return html.Div(
+        [
+            html.H5(
+                dcc.Markdown(f'`{param["id"]}`'),
+                className='d-inline-block'
+            ),
+            dbc.Badge('required', class_name='ms-1') if required else html.Span(),
+            html.P(
+                [
+                    html.Strong('Type: '),
+                    ' or '.join([str(t.__name__) for t in param['type']]),
+                    html.Br(),
+                    html.Span(
+                        [
+                            html.Strong('Default: '),
+                            param['default'],
+                            html.Br()
+                        ]
+                    ) if not required else '',
+                    html.P(param['description'])
+                ]
+            ),
+        ]
+    )
+
+
 def create_query(item):
     copy = item.copy()
     div = html.Div(
@@ -173,7 +202,7 @@ def create_query(item):
             html.H3(copy['name']),
             dcc.Markdown(copy['description']),
             html.H4('Parameters'),
-            dcc.Markdown(copy['parameters']),
+            html.Div([create_parameter(p) for p in copy['parameters']]),
             html.H4('Output'),
             dcc.Markdown(copy['output']),
             html.H4('Example'),
