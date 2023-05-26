@@ -103,7 +103,6 @@ def student_dashboard_view(course_id, assignment_id):
                             ),
                             dbc.DropdownMenu(
                                 [
-                                    settings.open_btn,
                                     dbc.DropdownMenuItem(
                                         'Settings',
                                         id=settings.open_btn
