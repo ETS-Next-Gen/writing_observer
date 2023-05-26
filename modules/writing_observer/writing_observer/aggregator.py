@@ -14,7 +14,6 @@ import learning_observer.constants as constants
 import learning_observer.kvs
 import learning_observer.settings
 import learning_observer.stream_analytics.helpers
-# import traceback
 import learning_observer.util
 
 pmss.register_field(
