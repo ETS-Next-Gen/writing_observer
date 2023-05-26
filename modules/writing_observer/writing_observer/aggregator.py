@@ -181,10 +181,10 @@ async def retrieve_latest_documents_kvs(student_data):
     """
     kvs = learning_observer.kvs.KVS()
 
-    # To do: Handle students with no documents more cleanly.
-    #
-    # Right now, we just return a key with the text 'None', which is an
-    # an invalid document.
+    # Compile a list of the active students.
+    active_student_data = [s for s in student_data if 'writing_observer.writing_analysis.last_document' in s]
+    
+    # Now collect documents for all of the active students.
     document_keys = ([
         learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
@@ -193,7 +193,7 @@ async def retrieve_latest_documents_kvs(student_data):
                 EventField('doc_id'): get_last_document_id(s)
             },
             KeyStateType.INTERNAL
-        ) for s in student_data])
+        ) for s in active_student_data])
 
     writing_data = await kvs.multiget(keys=document_keys)
 
