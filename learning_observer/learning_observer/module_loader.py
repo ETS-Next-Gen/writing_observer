@@ -23,7 +23,7 @@ import learning_observer.settings
 
 from learning_observer.log_event import debug_log
 import learning_observer.communication_protocol.executor
-
+import learning_observer.queries
 import learning_observer.stream_analytics.helpers as helpers
 
 
@@ -305,7 +305,12 @@ def load_named_queries(component_name, module):
     '''
     if hasattr(module, "NAMED_QUERIES"):
         debug_log(f"Loading named queries from {component_name}")
-        learning_observer.communication_protocol.executor.add_queries_to_module(module.NAMED_QUERIES, module)
+        # set lo.queries namespace
+        queries = learning_observer.queries.NestedQuery()
+        learning_observer.communication_protocol.executor.add_queries_to_module(module.NAMED_QUERIES, queries)
+        setattr(learning_observer.queries, component_name, queries)
+
+        # clean queries
         for named_query in module.NAMED_QUERIES:
             query_name = f"{component_name}.{named_query}"
             # TODO validate the structure of the query

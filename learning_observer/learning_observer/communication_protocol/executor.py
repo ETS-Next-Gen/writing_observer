@@ -246,14 +246,14 @@ def handle_keys(function, value_path, **kwargs):
     :return: The generated keys
     :rtype: list
     """
-    # TODO figure out how we are making the keys with this keyfields variable
-    # this should replace items below
+    # TODO figure out how we are making the keys with the keyfields variable below
+    # Currently we have "STUDENT", "CLASS", "RESOURCE"
+    # When only 1 is populated, we
+    # 
+    # filter kwargs for KeyFields
     keyfields = {k: kwargs.get(k, None) for k in learning_observer.stream_analytics.fields.KeyFields}
 
-    # TODO figure out how to reduce the kwargs to a list of keys
-    # Should this even be kwargs?
-    # i.e.) how do we handle defining both STUDENTS and RESOURCES?
-    # currently we only allow one and set it to `items`
+    # NOTE this should be removed when the keyfields stuff above gets figured out
     items = []
     for key in kwargs:
         if key in learning_observer.stream_analytics.fields.KeyFields:
@@ -353,16 +353,33 @@ async def execute_dag(endpoint, parameters, functions):
     return {e: [{k: v for k, v in o.items() if k != 'context'} for o in await visit(e)] for e in endpoint['returns']}
 
 
+FUNCTIONS = {}
+
+
+def query_function(name):
+    """
+    Decorator to record callable functions.
+
+    :param name: The name of the handler
+    :type name: str
+    :return: Decorator function
+    """
+    def decorator(f):
+        # TODO check for duplicates?
+        FUNCTIONS[name] = f
+        return f
+    return decorator
+
+
 def add_queries_to_module(named_queries, module):
     '''
     Add queries to each module as a callable object
     example: `writing_observer.docs_with_roster(course_id=course_id)`
     '''
-    # TODO add these queries a more general LO namespace
     for query_name in named_queries:
         async def query_func(**kwargs):  # create new function
             flat = flatten(copy.deepcopy(named_queries[query_name]))
-            output = await execute_dag(flat, parameters=kwargs, functions=functions)
+            output = await execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
             return output
         if hasattr(module, query_name):
             raise AttributeError(f'Attibute, {query_name}, already exists under {module.__name__}')
@@ -370,24 +387,19 @@ def add_queries_to_module(named_queries, module):
             setattr(module, query_name, query_func)
 
 
+@query_function('learning_observer.course_roster')
+def dummy_roster(course):
+    return [
+        {
+            'student': f'student-{i}'
+        } for i in range(10)
+    ]
+
+
 def create_function(query):
-    # TODO fetch functions - create a wrapper to populate a dictionary of runnable functions
-
-    def dummy_roster(course):
-        return [
-            {
-                'student': f'student-{i}',
-                # 'doc_id': f'latest-doc-{i}'
-            } for i in range(10)
-        ]
-
-    functions = {
-        'learning_observer.course_roster': dummy_roster
-    }
-
     async def query_func(**kwargs):
         flat = flatten(copy.deepcopy(query))
-        output = await execute_dag(flat, parameters=kwargs, functions=functions)
+        output = await execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
         return output
     return query_func
 
