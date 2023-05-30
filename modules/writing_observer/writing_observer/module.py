@@ -19,15 +19,15 @@ from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 NAME = "The Writing Observer"
 
-course_roster = q.call('learning_observer.course_roster')
+course_roster = q.call('learning_observer.courseroster')
 
 NAMED_QUERIES = {
     "docs_with_roster": {
         "execution_dag": {
-            "roster": course_roster(course=q.parameter("course_id")),
-            "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENT=q.variable("roster"), value_path='student'), fields={'key': 'doc_id'}),
+            "roster": course_roster(request=q.parameter("request"), course_id=q.parameter("course_id")),
+            "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENT=q.variable("roster"), value_path='user_id'), fields={'key': 'doc_id'}),
             "docs": q.select(q.keys('writing_observer.reconstruct', RESOURCE=q.variable("doc_ids"), value_path='doc_id'), fields={'key': 'text'}),
-            "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.context.context.value', RIGHT_ON='student')
+            "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.context.context.value', RIGHT_ON='user_id')
         },
         "returns": ["combined"],
         "name": "docs-with-roster",

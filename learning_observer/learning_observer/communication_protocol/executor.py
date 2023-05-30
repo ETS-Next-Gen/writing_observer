@@ -248,8 +248,9 @@ def handle_keys(function, value_path, **kwargs):
     """
     # TODO figure out how we are making the keys with the keyfields variable below
     # Currently we have "STUDENT", "CLASS", "RESOURCE"
-    # When only 1 is populated, we
-    # 
+    # When only 1 is populated, we just create a key for each item
+    # when more >1 is populated, we need to combine them in some way
+    #
     # filter kwargs for KeyFields
     keyfields = {k: kwargs.get(k, None) for k in learning_observer.stream_analytics.fields.KeyFields}
 
@@ -257,25 +258,23 @@ def handle_keys(function, value_path, **kwargs):
     items = []
     for key in kwargs:
         if key in learning_observer.stream_analytics.fields.KeyFields:
-            items = kwargs[key]  # we currently overwrite items if more than one KeyField is used
-            # {sa_helpers.KeyField.key: kwargs[key]}  # issue with this code, we need to unpack it before we create the key
+            # we currently overwrite items if more than one KeyField is used
+            items = [{learning_observer.stream_analytics.fields.KeyField[key]: get_nested_dict_value(i, value_path)} for i in kwargs[key]]
 
     # TODO fetch the function of the specified reducer for `make_key`
-    # func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
+    func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
     keys = []
     for i in items:
-        val = i if value_path is None else get_nested_dict_value(i, value_path)
-        # key = learning_observer.stream_analytics.helpers.make_key(
-        #     func['function'],
-        #     items,
-        #     learning_observer.stream_analytics.fields.KeyStateType.EXTERNAL
-        # )
+        key = learning_observer.stream_analytics.helpers.make_key(
+            func['function'],
+            i,
+            learning_observer.stream_analytics.fields.KeyStateType.EXTERNAL
+        )
         keys.append(
             {
-                'key': f'{function}-{val}',
+                'key': key,
                 'context': {
                     'function': function,
-                    'value': val,
                     'context': i.get('context', {})
                 }
             }
@@ -356,7 +355,7 @@ async def execute_dag(endpoint, parameters, functions):
 FUNCTIONS = {}
 
 
-def query_function(name):
+def callable_function(name):
     """
     Decorator to record callable functions.
 
@@ -387,7 +386,7 @@ def add_queries_to_module(named_queries, module):
             setattr(module, query_name, query_func)
 
 
-@query_function('learning_observer.course_roster')
+@callable_function('learning_observer.course_roster')
 def dummy_roster(course):
     return [
         {

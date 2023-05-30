@@ -357,7 +357,7 @@ async def websocket_dashboard_view(request):
             return aiohttp.web.Response(text="This never makes it back....")
 
 
-async def execute_queries(client_data):
+async def execute_queries(client_data, request):
     named_queries = learning_observer.module_loader.named_queries()
     funcs = []
     for query_name, client_query in client_data.items():
@@ -371,11 +371,18 @@ async def execute_queries(client_data):
             # we zip the query_names (keys) with the outputs
             debug_log(f'Query, {function_name}, not found in named_queries. Skipping.')
             continue
-        parameters = query.get('parameters')
-        # TODO check parameters and make sure we have the proper ones
-        func = learning_observer.communication_protocol.executor.create_function(query)
-        func = func(**client_query.get('kwargs', {}))
-        funcs.append(func)
+        query_parameters = query.get('parameters')
+        query_func = learning_observer.communication_protocol.executor.create_function(query)
+        client_parameters = client_query.get('kwargs', {})
+        # check that the required parameters are included in the client_query
+        for param in query_parameters:
+            if param['required']:
+                # FIXME handle this case properly
+                assert param['id'] in client_parameters
+        # TODO handle adding request more gracefully
+        client_parameters['request'] = request
+        query_func = query_func(**client_parameters)
+        funcs.append(query_func)
     return await asyncio.gather(*funcs, return_exceptions=False)
 
 
@@ -414,7 +421,7 @@ async def websocket_dashboard_handler(request):
             debug_log("Socket closed.")
             return aiohttp.web.Response()
 
-        outputs = await execute_queries(client_data)
+        outputs = await execute_queries(client_data, request)
 
         await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
         await asyncio.sleep(0.5)
