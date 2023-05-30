@@ -123,7 +123,7 @@ def map(function, values, value_path=None):
     }
 
 
-def keys(func, value_path=None, **kwargs):
+def keys(func, **kwargs):
     """
     Some way to make keys. This is a placeholder function and needs to be implemented.
 
@@ -139,7 +139,6 @@ def keys(func, value_path=None, **kwargs):
     return {
         "dispatch": DISPATCH_MODES.KEYS,
         "function": func,
-        "value_path": value_path,
         **kwargs
     }
 

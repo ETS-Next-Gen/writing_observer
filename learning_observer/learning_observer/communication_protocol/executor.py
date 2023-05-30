@@ -234,7 +234,7 @@ async def handle_select(keys, fields):
     return response
 
 
-@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
+# @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
 def handle_keys(function, value_path, **kwargs):
     """
     Placeholder function to generate keys for a function and list of items. Currently returns mock data.
@@ -277,6 +277,50 @@ def handle_keys(function, value_path, **kwargs):
                     'function': function,
                     'context': i.get('context', {})
                 }
+            }
+        )
+    return keys
+
+
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
+def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
+    func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
+    fields = []
+    contexts = []
+    if STUDENTS is not None and RESOURCES is None:
+        # handle only students
+        fields = [
+            {
+                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)
+            } for s in STUDENTS
+        ]
+        contexts = [s.get('context', {'value': s}) for s in STUDENTS]
+    elif STUDENTS is not None and RESOURCES is not None:
+        # handle both students and resources
+        fields = [
+            {
+                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),
+                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)
+            } for s, r in zip(STUDENTS, RESOURCES)
+        ]
+        contexts = [
+            {
+                'STUDENT': s.get('context', {'value': s}),
+                'RESOURCE': r.get('context', {'value': r})
+            } for s, r in zip(STUDENTS, RESOURCES)
+        ]
+
+    keys = []
+    for f, c in zip(fields, contexts):
+        key = learning_observer.stream_analytics.helpers.make_key(
+            func['function'],
+            f,
+            learning_observer.stream_analytics.fields.KeyStateType.EXTERNAL
+        )
+        keys.append(
+            {
+                'key': key,
+                'context': c
             }
         )
     return keys
@@ -342,6 +386,7 @@ async def execute_dag(endpoint, parameters, functions):
         # Execute the current node
         nodes[node_name] = await dispatch_node(nodes[node_name])
         visited.add(node_name)
+        # print('*****', node_name, json.dumps(nodes[node_name], indent=2, default=str))
         return nodes[node_name]
 
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
