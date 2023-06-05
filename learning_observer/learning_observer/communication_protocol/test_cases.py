@@ -33,10 +33,11 @@ if args['<test_case>'] == []:
 
 # TODO: Validate that the test cases are valid
 
+
 def dummy_roster(course):
     """
     Dummy function for course roster.
-    
+
     :param course: The course identifier
     :type course: str
     :return: A list of student identifiers
@@ -48,10 +49,13 @@ def dummy_roster(course):
 
 # Setup KVS since LO.KVS() isn't available here
 
+
 def create_kvs():
     async def return_value():
         return {'some_key': {'nested': 'some_key_value'}}
     return collections.defaultdict(return_value)
+
+
 KVS = create_kvs
 
 functions = {

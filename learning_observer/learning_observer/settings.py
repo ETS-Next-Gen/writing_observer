@@ -143,17 +143,19 @@ def load_settings(config):
 
     return settings
 
+
 class SettingsException(Exception):
     pass
 
 
 NOT_INITIALIZED_ERROR = \
-"""Attempted to access Learning Observer settings before initializing
-them:
-* If you are writing test code, use `offline.init()` for a minimalist
-  in-memory debug settings version.
-* If you are running in the main system, you probably have a bug with
-  load / initialization order."""
+    """Attempted to access Learning Observer settings before initializing
+    them:
+    * If you are writing test code, use `offline.init()` for a minimalist
+    in-memory debug settings version.
+    * If you are running in the main system, you probably have a bug with
+    load / initialization order."""
+
 
 def initialized():
     '''
@@ -164,6 +166,7 @@ def initialized():
             NOT_INITIALIZED_ERROR
         )
     return True
+
 
 # Not all of these are guaranteed to work on every branch of the codebase.
 AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page', 'merkle', 'save_google_ajax', 'use_google_ajax']
