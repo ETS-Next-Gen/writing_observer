@@ -14,84 +14,22 @@ This should be broken up into pieces:
 4. Core code for executing the JSON DAG
 '''
 import collections
-import copy
 import datetime
 import inspect
 import traceback
 
 import learning_observer.communication_protocol.query
+import learning_observer.communication_protocol.util
 import learning_observer.kvs
 import learning_observer.module_loader
 import learning_observer.settings
 import learning_observer.stream_analytics.fields
 import learning_observer.stream_analytics.helpers
+from learning_observer.util import get_nested_dict_value
 
 dispatch = learning_observer.communication_protocol.query.dispatch
 
 KVS = None
-
-
-def _flatten_helper(top_level, current_level, prefix=''):
-    """
-    Flatten the dictionary.
-
-    :param top_level: The top level dictionary
-    :type top_level: dict
-    :param current_level: The current level dictionary
-    :type current_level: dict
-    :param prefix: The prefix for new keys
-    :type prefix: str
-    :return: A flattened dictionary
-    :rtype: dict
-    """
-    for key, value in list(current_level.items()):
-        new_key = f"{prefix}.{key}" if prefix else key
-        if isinstance(value, dict) and dispatch in value and value[dispatch] != learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
-            if isinstance(value, dict):
-                top_level[new_key] = _flatten_helper(top_level, value, prefix=new_key)
-            else:
-                top_level[new_key] = value
-            current_level[key] = {
-                dispatch: learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE,
-                "variable_name": new_key
-            }
-        elif isinstance(value, dict) and dispatch not in value:
-            current_level[key] = _flatten_helper(top_level, value, prefix=new_key)
-    return current_level
-
-
-def flatten(endpoint):
-    """
-    Flatten the endpoint.
-
-    :param endpoint: The endpoint dictionary
-    :type endpoint: dict
-    :return: A flattened endpoint
-    :rtype: dict
-    """
-    for key, value in list(endpoint['execution_dag'].items()):
-        endpoint['execution_dag'][key] = _flatten_helper(endpoint['execution_dag'], value, prefix=f"impl.{key}")
-
-    return endpoint
-
-
-def get_nested_dict_value(d, key_str):
-    """
-    Fetch an item from a nested dictionary using `.` to indicate nested keys
-
-    :param d: Dictionary to be searched
-    :type d: dict
-    :param key_str: Keys to iterate over
-    :type key_str: str
-    :return: Value of nested dictionary
-    """
-    keys = key_str.split('.')
-    for key in keys:
-        if d is not None and key in d:
-            d = d[key]
-        else:
-            return None
-    return d
 
 
 def unimplemented_handler(*args, **kwargs):
@@ -446,54 +384,3 @@ async def execute_dag(endpoint, parameters, functions):
     # remove context from outputs
     # this breaks if `await visit(e)` does not return a list of dicts
     return {e: [{k: v for k, v in o.items() if k != 'context'} for o in await visit(e)] for e in endpoint['returns']}
-
-
-FUNCTIONS = {}
-
-
-def callable_function(name):
-    """
-    Decorator to record callable functions.
-
-    :param name: The name of the handler
-    :type name: str
-    :return: Decorator function
-    """
-    def decorator(f):
-        # TODO check for duplicates?
-        FUNCTIONS[name] = f
-        return f
-    return decorator
-
-
-def add_queries_to_module(named_queries, module):
-    '''
-    Add queries to each module as a callable object
-    example: `writing_observer.docs_with_roster(course_id=course_id)`
-    '''
-    for query_name in named_queries:
-        async def query_func(**kwargs):  # create new function
-            flat = flatten(copy.deepcopy(named_queries[query_name]))
-            output = await execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
-            return output
-        if hasattr(module, query_name):
-            raise AttributeError(f'Attibute, {query_name}, already exists under {module.__name__}')
-        else:
-            setattr(module, query_name, query_func)
-
-
-@callable_function('learning_observer.course_roster')
-def dummy_roster(course):
-    return [
-        {
-            'student': f'student-{i}'
-        } for i in range(10)
-    ]
-
-
-def create_function(query):
-    async def query_func(**kwargs):
-        flat = flatten(copy.deepcopy(query))
-        output = await execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
-        return output
-    return query_func

@@ -119,6 +119,25 @@ def insecure_hash(text):
     return "MD5_" + hashlib.md5(text).hexdigest()
 
 
+def get_nested_dict_value(d, key_str):
+    """
+    Fetch an item from a nested dictionary using `.` to indicate nested keys
+
+    :param d: Dictionary to be searched
+    :type d: dict
+    :param key_str: Keys to iterate over
+    :type key_str: str
+    :return: Value of nested dictionary
+    """
+    keys = key_str.split('.')
+    for key in keys:
+        if d is not None and key in d:
+            d = d[key]
+        else:
+            return None
+    return d
+
+
 # And a test case
 if __name__ == '__main__':
     assert to_safe_filename('{') == '-123-'

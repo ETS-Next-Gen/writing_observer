@@ -77,7 +77,7 @@ import learning_observer.paths as paths
 import learning_observer.prestartup
 import learning_observer.runtime
 import learning_observer.settings as settings
-import learning_observer.communication_protocol.executor
+import learning_observer.communication_protocol.integration
 
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
@@ -407,7 +407,7 @@ async def courselist(request):
     return course_list
 
 
-@learning_observer.communication_protocol.executor.callable_function('learning_observer.courseroster')
+@learning_observer.communication_protocol.integration.callable_function('learning_observer.courseroster')
 async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper

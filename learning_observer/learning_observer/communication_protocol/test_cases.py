@@ -24,8 +24,9 @@ import json
 import sys
 
 import learning_observer.communication_protocol.query as q
+import learning_observer.communication_protocol.util
+import learning_observer.communication_protocol.executor
 import learning_observer.offline
-from learning_observer.communication_protocol.executor import flatten, execute_dag
 
 args = docopt.docopt(__doc__)
 if args['<test_case>'] == []:
@@ -79,7 +80,7 @@ test_dags = {
 learning_observer.offline.init()
 
 for key in test_dags:
-    FLAT = flatten(copy.deepcopy(test_dags[key]))
-    EXECUTE = asyncio.run(execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
+    FLAT = learning_observer.communication_protocol.util.flatten(copy.deepcopy(test_dags[key]))
+    EXECUTE = asyncio.run(learning_observer.communication_protocol.executor.execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
     if key in args['<test_case>']:
         print("Execute:", json.dumps(EXECUTE, indent=2))
