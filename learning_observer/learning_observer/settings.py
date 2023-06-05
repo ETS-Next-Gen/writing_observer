@@ -143,6 +143,27 @@ def load_settings(config):
 
     return settings
 
+class SettingsException(Exception):
+    pass
+
+
+NOT_INITIALIZED_ERROR = \
+"""Attempted to access Learning Observer settings before initializing
+them:
+* If you are writing test code, use `offline.init()` for a minimalist
+  in-memory debug settings version.
+* If you are running in the main system, you probably have a bug with
+  load / initialization order."""
+
+def initialized():
+    '''
+    Check if we're initialized. If not, raise an exception
+    '''
+    if settings is None:
+        raise SettingsException(
+            NOT_INITIALIZED_ERROR
+        )
+    return True
 
 # Not all of these are guaranteed to work on every branch of the codebase.
 AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page', 'merkle', 'save_google_ajax', 'use_google_ajax']
@@ -154,6 +175,7 @@ def feature_flag(flag):
 
     Returns the value of the feature flag if it is enabled.
     '''
+    initialized()
     if flag not in AVAILABLE_FEATURE_FLAGS:
         raise ValueError(
             f"Unknown feature flag: {flag}"
@@ -179,6 +201,7 @@ def module_setting(module_name, setting=None, default=None):
 
     Returns `default` if no setting (or `None` if not set)
     '''
+    initialized()
     module_settings = settings.get(
         'modules', {}
     ).get(module_name, None)

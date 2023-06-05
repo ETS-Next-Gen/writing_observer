@@ -1,6 +1,17 @@
 '''
+This file is designed to take an execution DAG (as a JSON object),
+a set of parameters, and execute those queries.
+
 The executor processes the `execution_dag` portion of our request.
 This also includes some utility functions.
+
+This should be broken up into pieces:
+
+1. Generic utilities, like `flatten`
+2. Test framework (instead of `if __name__ == '__main__'`)
+3. Calls into the `learning_observer`, so we can eventually use this
+   in other contexts (specifically, learning_observer.module_loader)
+4. Core code for executing the JSON DAG
 '''
 import collections
 import copy
@@ -21,7 +32,7 @@ dispatch = learning_observer.communication_protocol.query.dispatch
 KVS = None
 
 
-def flatten_helper(top_level, current_level, prefix=''):
+def _flatten_helper(top_level, current_level, prefix=''):
     """
     Flatten the dictionary.
 
@@ -38,7 +49,7 @@ def flatten_helper(top_level, current_level, prefix=''):
         new_key = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and dispatch in value and value[dispatch] != learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
             if isinstance(value, dict):
-                top_level[new_key] = flatten_helper(top_level, value, prefix=new_key)
+                top_level[new_key] = _flatten_helper(top_level, value, prefix=new_key)
             else:
                 top_level[new_key] = value
             current_level[key] = {
@@ -46,7 +57,7 @@ def flatten_helper(top_level, current_level, prefix=''):
                 "variable_name": new_key
             }
         elif isinstance(value, dict) and dispatch not in value:
-            current_level[key] = flatten_helper(top_level, value, prefix=new_key)
+            current_level[key] = _flatten_helper(top_level, value, prefix=new_key)
     return current_level
 
 
@@ -60,7 +71,7 @@ def flatten(endpoint):
     :rtype: dict
     """
     for key, value in list(endpoint['execution_dag'].items()):
-        endpoint['execution_dag'][key] = flatten_helper(endpoint['execution_dag'], value, prefix=f"impl.{key}")
+        endpoint['execution_dag'][key] = _flatten_helper(endpoint['execution_dag'], value, prefix=f"impl.{key}")
 
     return endpoint
 

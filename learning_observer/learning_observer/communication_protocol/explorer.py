@@ -1,3 +1,11 @@
+'''
+This is a web interface which provides information about:
+
+* The available queries
+* The DAG execution graphs associated with those
+* Parameters to said queries
+'''
+
 from dash import html, dcc, callback, Output, Input, State
 import dash_bootstrap_components as dbc
 import dash_extensions as de

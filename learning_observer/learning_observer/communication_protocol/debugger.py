@@ -1,3 +1,8 @@
+'''
+This provides a web interface for making queries via the
+communication protocol and seeing the text of the results.
+'''
+
 from dash import html, dcc, callback, Output, Input, State
 from dash.exceptions import PreventUpdate
 from dash_renderjson import DashRenderjson

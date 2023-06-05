@@ -1,5 +1,21 @@
 '''
-This file includes commands to create a request within the communication protocol.
+This file includes commands to create a request within the
+communication protocol. It provides a set of Python calls, designed to
+(roughly) mirror a relational database, and returns a JSON object
+corresponding to that query.
+
+See EXAMPLE at the bottom to understand the format.
+
+This JSON object can then be executed by executor.py.
+
+This file should be kept thin and minimal, since we will want versions
+translated into JavaScript for the front end (and, perhaps eventually,
+Julia, R, Stata, and other languages researchers might want to use to
+query our system).
+
+This file is intended to be imported in diverse contexts, including ones
+where we don't want all of the machinery of the Learning Observer, so also
+note the lack of dependencies.
 '''
 
 dispatch = "dispatch"
