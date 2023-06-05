@@ -4,7 +4,7 @@ communication protocol. It provides a set of Python calls, designed to
 (roughly) mirror a relational database, and returns a JSON object
 corresponding to that query.
 
-See EXAMPLE at the bottom to understand the format.
+See the examples in the `tests.py` for the format.
 
 This JSON object can then be executed by executor.py.
 
@@ -158,18 +158,3 @@ def keys(func, **kwargs):
         **kwargs
     }
 
-
-course_roster = call('learning_observer.course_roster')
-
-EXAMPLE = {
-    "execution_dag": {
-        "roster": course_roster(course=parameter("course_id")),
-        "doc_ids": select(keys('writing_observer.last_document', STUDENTS=variable("roster"), STUDENTS_path='user_id'), fields={'some_key.nested': 'doc_id'}),
-        "docs": select(keys('writing_observer.reconstruct', STUDENTS=variable("roster"), STUDENTS_path='user_id', RESOURCES=variable("doc_ids"), RESOURCES_path='doc_id'), fields={'some_key.nested': 'text'}),
-        "combined": join(LEFT=variable("docs"), RIGHT=variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id')
-    },
-    "returns": ["combined"],
-    "name": "docs-with-roster",
-    "description": "Here's what I do",
-    "parameters": "Here's what I get called with, together with description"
-}
