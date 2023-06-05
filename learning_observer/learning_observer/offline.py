@@ -27,7 +27,7 @@ from learning_observer.stream_analytics.helpers import kvs_pipeline, KeyField, E
 
 # For interactive data analysis
 INTERACTIVE_SETTINGS = {
-    'kvs': {'type': 'stub'},
+    'kvs': {'default': {'type': 'stub'}},
     'config': {
         'run_mode': 'interactive'
     },
