@@ -4,8 +4,10 @@ This also includes some utility functions.
 '''
 import collections
 import copy
+import datetime
 import inspect
 import json
+import traceback
 
 import learning_observer.communication_protocol.query
 import learning_observer.kvs
@@ -19,8 +21,6 @@ dispatch = learning_observer.communication_protocol.query.dispatch
 KVS = None
 
 
-# NOTE perhaps if flatten doesn't fit in the request or the executor module
-# we may want to make a utilities module
 def flatten_helper(top_level, current_level, prefix=''):
     """
     Flatten the dictionary.
@@ -93,6 +93,7 @@ def unimplemented_handler(*args, **kwargs):
     :return: A dictionary indicating unimplemented status
     :rtype: dict
     """
+    # TODO raise a 501 error here
     return {
         'issue': "UNIMPLEMENTED",
         'args': args,
@@ -179,6 +180,9 @@ def handle_join(left, right, left_on=None, right_on=None):
         if right_dict_match:
             merged_dict = {**left_dict, **right_dict_match}
             result.append(merged_dict)
+
+    # example of raising an error
+    # raise DAGExecutionException('Error', 'handle_join', {'left': left, 'right': right, 'left_on': left_on, 'right_on': right_on}, {})
     return result
 
 
@@ -323,7 +327,34 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
                 'context': c
             }
         )
+    # raise DAGExecutionException('bruh', 200)
     return keys
+
+
+class DAGExecutionException(Exception):
+    '''
+    Exception for errors raised during the execution of the dag
+
+    Attributes:
+        message -- explanation of the error
+    '''
+
+    def __init__(self, error, function, inputs, context):
+        self.error = error
+        self.function = function
+        self.inputs = inputs
+        self.context = context
+
+    def to_dict(self):
+        print(''.join(traceback.format_tb(self.__traceback__)))
+        return {
+            'error': self.error,
+            'function': self.function,
+            'inputs': self.inputs,
+            'context': self.context,
+            'timestamp': datetime.datetime.utcnow().isoformat(),
+            'traceback': ''.join(traceback.format_tb(self.__traceback__))
+        }
 
 
 async def execute_dag(endpoint, parameters, functions):
@@ -347,25 +378,28 @@ async def execute_dag(endpoint, parameters, functions):
         KVS = learning_observer.kvs.KVS
 
     async def dispatch_node(node):
-        if not isinstance(node, dict):
-            return node
-        if dispatch not in node:
-            return node
-        node_dispatch = node[dispatch]
-        function = DISPATCH[node_dispatch]
-        del node[dispatch]
-        # make dispatch specific function call
-        if node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER:
-            result = function(parameters=parameters, **node)
-        elif (node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.CALL
-              or node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.MAP):
-            result = function(functions=functions, **node)
-        else:
-            result = function(**node)
+        try:
+            if not isinstance(node, dict):
+                return node
+            if dispatch not in node:
+                return node
+            node_dispatch = node[dispatch]
+            function = DISPATCH[node_dispatch]
+            del node[dispatch]
+            # make dispatch specific function call
+            if node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER:
+                result = function(parameters=parameters, **node)
+            elif (node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.CALL
+                  or node_dispatch == learning_observer.communication_protocol.query.DISPATCH_MODES.MAP):
+                result = function(functions=functions, **node)
+            else:
+                result = function(**node)
 
-        if inspect.iscoroutinefunction(function):
-            result = await result
-        return result
+            if inspect.iscoroutinefunction(function):
+                result = await result
+            return result
+        except DAGExecutionException as e:
+            return [e.to_dict()]
 
     async def walk_dict(node_dict):
         '''
@@ -384,9 +418,16 @@ async def execute_dag(endpoint, parameters, functions):
         # Execute all the child nodes
         await walk_dict(nodes[node_name])
         # Execute the current node
-        nodes[node_name] = await dispatch_node(nodes[node_name])
+        # TODO check for any children that have an error object instead
+        # return error object that states which node_name we errored on and that there
+        # exists an issue with the children (parameters) for it
+        if any([isinstance(nodes[node_name][c], dict) and 'error' in nodes[node_name][c] for c in nodes[node_name]]):
+            print('erroring up', node_name)
+            nodes[node_name] = [{'error': 'stupid'}]
+        else:
+            nodes[node_name] = await dispatch_node(nodes[node_name])
         visited.add(node_name)
-        # print('*****', node_name, json.dumps(nodes[node_name], indent=2, default=str))
+        # print('*****', node_name, json.dumps(nodes[node_name], indent=2, default=str))  # useful but produces a lot
         return nodes[node_name]
 
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
@@ -460,7 +501,7 @@ if __name__ == '__main__':
         """
         return [
             {
-                'student': f'student-{i}'
+                'user_id': f'student-{i}'
             } for i in range(10)
         ]
 
