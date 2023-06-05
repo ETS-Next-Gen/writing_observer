@@ -8,6 +8,12 @@ import learning_observer.communication_protocol.executor
 import learning_observer.communication_protocol.util
 
 FUNCTIONS = {}
+DUPLICATE_FUNCTION_FOUND = """Duplicate function name found: {name}.
+Please ensure that all callable functions used in the
+communication protocol have different names.
+Search the codebase for `callable_function({name}) to view
+any duplicates.
+"""
 
 
 def callable_function(name):
@@ -31,7 +37,10 @@ def callable_function(name):
         as part of a DAG call using the `create_function` function.
     """
     def decorator(f):
-        # TODO check for duplicates?
+        if name in FUNCTIONS:
+            # NOTE perhaps we should include some form of priority
+            # use case: we may want to overwrite the roster function for a specific system
+            raise KeyError(DUPLICATE_FUNCTION_FOUND.format(name=name))
         FUNCTIONS[name] = f
         return f
     return decorator
