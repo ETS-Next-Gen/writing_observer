@@ -305,9 +305,10 @@ def load_named_queries(component_name, module):
     '''
     if hasattr(module, "NAMED_QUERIES"):
         debug_log(f"Loading named queries from {component_name}")
-        # set lo.queries namespace
+        # set up a nested module to add our queries to
         queries = learning_observer.queries.NestedQuery()
         learning_observer.communication_protocol.integration.add_queries_to_module(module.NAMED_QUERIES, queries)
+        # set the nested module to the `learning_observer.queries.component_name` namespace
         setattr(learning_observer.queries, component_name, queries)
 
         # clean queries

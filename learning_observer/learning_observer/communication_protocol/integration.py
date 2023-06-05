@@ -14,9 +14,21 @@ def callable_function(name):
     """
     Decorator to record callable functions.
 
-    :param name: The name of the handler
-    :type name: str
-    :return: Decorator function
+    Args:
+        name: The name of the handler.
+
+    Returns:
+        The decorator function.
+
+    Example Usage:
+        @callable_function("my_function")
+        def my_function_handler():
+            pass
+
+    Note:
+        This decorator adds the decorated function to the `FUNCTIONS` dictionary
+        with the specified name as the key. The function can later be executed
+        as part of a DAG call using the `create_function` function.
     """
     def decorator(f):
         # TODO check for duplicates?
@@ -27,8 +39,27 @@ def callable_function(name):
 
 def add_queries_to_module(named_queries, module):
     '''
-    Add queries to each module as a callable object
-    example: `writing_observer.docs_with_roster(course_id=course_id)`
+    Add queries to each module as a callable object.
+
+    Args:
+        named_queries: A dictionary containing named queries.
+        module: The module to which the queries will be added.
+
+    Example Usage:
+        queries = {
+            "query1": ...,
+            "query2": ...,
+        }
+        add_queries_to_module(queries, my_module)
+        result = await my_module.query1(parameter1=123)
+
+    Raises:
+        AttributeError: If the attribute name already exists in the module.
+
+    Note:
+        This function iterates over the named queries and adds each query as a
+        callable object to the specified module. The queries can be executed
+        by calling them as attributes of the module.
     '''
     for query_name in named_queries:
         async def query_func(**kwargs):  # create new function
@@ -42,6 +73,24 @@ def add_queries_to_module(named_queries, module):
 
 
 def create_function(query):
+    '''
+    Creates a query function for executing a DAG (Directed Acyclic Graph) based on the provided query.
+
+    Args:
+        query: A query object representing the DAG to be executed.
+
+    Returns:
+        A query function that can be used to execute the DAG.
+
+    Example Usage:
+        query_obj = ...  # create the query object
+        query_function = create_function(query_obj)
+        result = await query_function(param1=value1, param2=value2)
+
+    Note:
+        The query object is flattened and passed to an executor to execute the DAG.
+        The executor uses the provided parameters and functions for execution.
+    '''
     async def query_func(**kwargs):
         flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(query))
         output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
