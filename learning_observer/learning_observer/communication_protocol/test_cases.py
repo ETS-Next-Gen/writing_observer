@@ -21,6 +21,7 @@ import collections
 import copy
 import docopt
 import json
+import sys
 
 import learning_observer.communication_protocol.query as q
 import learning_observer.offline
@@ -28,8 +29,8 @@ from learning_observer.communication_protocol.executor import flatten, execute_d
 
 args = docopt.docopt(__doc__)
 if args['<test_case>'] == []:
-    # TODO: Something like: docopt.usage()
-    raise
+    print(__doc__)
+    sys.exit()
 
 # TODO: Validate that the test cases are valid
 
@@ -47,16 +48,6 @@ def dummy_roster(course):
         'user_id': f'student-{i}'
     } for i in range(10)]
 
-# Setup KVS since LO.KVS() isn't available here
-
-
-def create_kvs():
-    async def return_value():
-        return {'some_key': {'nested': 'some_key_value'}}
-    return collections.defaultdict(return_value)
-
-
-KVS = create_kvs
 
 functions = {
     "learning_observer.course_roster": dummy_roster

@@ -17,7 +17,6 @@ import collections
 import copy
 import datetime
 import inspect
-import json
 import traceback
 
 import learning_observer.communication_protocol.query
@@ -241,7 +240,7 @@ async def handle_select(keys, fields):
                 'context': k['context']
             }
         }
-        kvs_out = await KVS()[k['key']]
+        kvs_out = await KVS[k['key']]
         for f in fields:
             value = get_nested_dict_value(kvs_out, f)
             item[fields[f]] = value
@@ -386,7 +385,7 @@ async def execute_dag(endpoint, parameters, functions):
 
     global KVS
     if KVS is None:
-        KVS = learning_observer.kvs.KVS
+        KVS = learning_observer.kvs.KVS()
 
     async def dispatch_node(node):
         try:
