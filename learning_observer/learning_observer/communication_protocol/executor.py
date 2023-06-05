@@ -3,15 +3,6 @@ This file is designed to take an execution DAG (as a JSON object),
 a set of parameters, and execute those queries.
 
 The executor processes the `execution_dag` portion of our request.
-This also includes some utility functions.
-
-This should be broken up into pieces:
-
-1. Generic utilities, like `flatten`
-2. Test framework (instead of `if __name__ == '__main__'`)
-3. Calls into the `learning_observer`, so we can eventually use this
-   in other contexts (specifically, learning_observer.module_loader)
-4. Core code for executing the JSON DAG
 '''
 import collections
 import datetime

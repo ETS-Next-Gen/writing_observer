@@ -15,9 +15,7 @@ Test Cases:
     none          Prints no output, except on unexpected errors
 """
 
-import argparse
 import asyncio
-import collections
 import copy
 import docopt
 import json
@@ -28,32 +26,7 @@ import learning_observer.communication_protocol.util
 import learning_observer.communication_protocol.executor
 import learning_observer.offline
 
-args = docopt.docopt(__doc__)
-if args['<test_case>'] == []:
-    print(__doc__)
-    sys.exit()
-
 # TODO: Validate that the test cases are valid
-
-
-def dummy_roster(course):
-    """
-    Dummy function for course roster.
-
-    :param course: The course identifier
-    :type course: str
-    :return: A list of student identifiers
-    :rtype: list
-    """
-    return [{
-        'user_id': f'student-{i}'
-    } for i in range(10)]
-
-
-functions = {
-    "learning_observer.course_roster": dummy_roster
-}
-
 course_roster = q.call('learning_observer.course_roster')
 
 DOCS_WITH_ROSTER_EXAMPLE = {
@@ -68,19 +41,75 @@ DOCS_WITH_ROSTER_EXAMPLE = {
     "description": "Here's what I do",
     "parameters": "Here's what I get called with, together with description"
 }
-EXCEPTION_EXAMPLE = {}
-ACCIDENTALLY_CIRCULAR_DAG_EXAMPLE = {}
-# ... and so on
-
-# TODO: Consider DRY with docstring and this dictionary
-test_dags = {
-    'docs': DOCS_WITH_ROSTER_EXAMPLE
+# TODO eventually make this a nested extension example
+EXCEPTION_EXAMPLE = {
+    "execution_dag": {
+        "roster": course_roster(course=q.parameter("course_id")),
+    },
+    "returns": ["roster"],
+    "name": "Exception example"
 }
+# TODO make this a circular example for real
+ACCIDENTALLY_CIRCULAR_DAG_EXAMPLE = {}
 
-learning_observer.offline.init()
 
-for key in test_dags:
-    FLAT = learning_observer.communication_protocol.util.flatten(copy.deepcopy(test_dags[key]))
-    EXECUTE = asyncio.run(learning_observer.communication_protocol.executor.execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
-    if key in args['<test_case>']:
-        print("Execute:", json.dumps(EXECUTE, indent=2))
+def dummy_roster(course):
+    """
+    Dummy function for course roster.
+
+    Args:
+        course: The course identifier
+
+    Returns:
+        list: A list of student identifiers
+    """
+    return [{
+        'user_id': f'student-{i}'
+    } for i in range(10)]
+
+
+def run_test_cases(test_cases):
+    """
+    Run all test cases. Print output from the ones specified.
+
+    Args:
+        test_cases (list): The test cases to be run
+
+    Returns:
+        None
+    """
+    # List of available test cases
+    available_test_cases = ['docs', 'exception', 'circular', 'all', 'none']
+
+    if not all(case in available_test_cases for case in test_cases):
+        print(f"Invalid test case. Available test cases are: {available_test_cases}")
+        sys.exit()
+
+    functions = {"learning_observer.course_roster": dummy_roster}
+    course_roster = q.call('learning_observer.course_roster')
+
+    # Include the test_dags definition here
+    test_dags = {
+        'docs': DOCS_WITH_ROSTER_EXAMPLE,
+        'exception': EXCEPTION_EXAMPLE,
+        # additional test cases...
+    }
+
+    learning_observer.offline.init()
+
+    for key in test_dags:
+        FLAT = learning_observer.communication_protocol.util.flatten(copy.deepcopy(test_dags[key]))
+        EXECUTE = asyncio.run(learning_observer.communication_protocol.executor.execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
+        if (key in test_cases or 'all' in test_cases) and 'none' not in test_cases:
+            print(f"Execute {key}:", json.dumps(EXECUTE, indent=2))
+
+
+if __name__ == "__main__":
+    """
+    Program entry point
+    """
+    args = docopt.docopt(__doc__)
+    if args['<test_case>'] == []:
+        print(__doc__)
+        sys.exit()
+    run_test_cases(args['<test_case>'])
