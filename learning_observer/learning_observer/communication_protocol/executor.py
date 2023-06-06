@@ -321,11 +321,14 @@ def _has_error(node):
     return None, []
 
 
-def _remove_context(variable):
+KEYS_TO_REMOVE = ['context']
+
+
+def _sanitaize_output(variable):
     if isinstance(variable, dict):
-        return {key: value for key, value in variable.items() if key != 'context'}
+        return {key: value for key, value in variable.items() if key in KEYS_TO_REMOVE}
     elif isinstance(variable, list):
-        return [_remove_context(item) if isinstance(item, dict) else item for item in variable]
+        return [_sanitaize_output(item) if isinstance(item, dict) else item for item in variable]
     else:
         return variable
 
@@ -417,5 +420,5 @@ async def execute_dag(endpoint, parameters, functions):
     outputs = {}
     for e in endpoint['returns']:
         out = await visit(e)
-        outputs[e] = _remove_context(out)
+        outputs[e] = _sanitaize_output(out)
     return outputs

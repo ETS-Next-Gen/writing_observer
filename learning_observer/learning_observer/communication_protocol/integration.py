@@ -11,7 +11,7 @@ FUNCTIONS = {}
 DUPLICATE_FUNCTION_FOUND = """Duplicate function name found: {name}.
 Please ensure that all callable functions used in the
 communication protocol have different names.
-Search the codebase for `publish_function({name}) to view
+Search the codebase for `publish_function({name})` to view
 any duplicates.
 """
 
