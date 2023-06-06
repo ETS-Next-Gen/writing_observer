@@ -90,6 +90,13 @@ def substitute_parameter(parameter_name, parameters):
     :type parameters: dict
     :return: The value of the parameter
     """
+    if parameter_name not in parameters:
+        raise DAGExecutionException(
+            f'Required parameter `{parameter_name}` was not found in parameters.',
+            inspect.currentframe().f_code.co_name,
+            {'parameter_name': parameter_name, 'parameters': parameters},
+            {}
+        )
     return parameters[parameter_name]
 
 
@@ -285,7 +292,6 @@ class DAGExecutionException(Exception):
         self.context = context
 
     def to_dict(self):
-        print(''.join(traceback.format_tb(self.__traceback__)))
         return {
             'error': self.error,
             'function': self.function,
@@ -294,6 +300,34 @@ class DAGExecutionException(Exception):
             'timestamp': datetime.datetime.utcnow().isoformat(),
             'traceback': ''.join(traceback.format_tb(self.__traceback__))
         }
+
+
+def _has_error(node):
+    '''
+    Non-recursive function to find and return 'error' value and its path from any dictionary within the node.
+    '''
+    queue = [(node, [])]  # start with the node and an empty path
+    while queue:
+        current, path = queue.pop(0)
+        if 'error' in current:
+            return current, path
+        for c in current:
+            if isinstance(current[c], dict):
+                queue.append((current[c], path + [c]))
+            elif isinstance(current[c], list):
+                for idx, i in enumerate(current[c]):
+                    if isinstance(i, dict):
+                        queue.append((i, path + [c, idx]))
+    return None, []
+
+
+def _remove_context(variable):
+    if isinstance(variable, dict):
+        return {key: value for key, value in variable.items() if key != 'context'}
+    elif isinstance(variable, list):
+        return [_remove_context(item) if isinstance(item, dict) else item for item in variable]
+    else:
+        return variable
 
 
 async def execute_dag(endpoint, parameters, functions):
@@ -354,24 +388,34 @@ async def execute_dag(endpoint, parameters, functions):
         # We've already done this one.
         if node_name in visited:
             return nodes[node_name]
+
         # Execute all the child nodes
         await walk_dict(nodes[node_name])
-        # Execute the current node
-        # TODO check for any children that have an error object instead
-        # return error object that states which node_name we errored on and that there
-        # exists an issue with the children (parameters) for it
-        if any([isinstance(nodes[node_name][c], dict) and 'error' in nodes[node_name][c] for c in nodes[node_name]]):
-            print('erroring up', node_name)
-            nodes[node_name] = [{'error': 'stupid'}]
+
+        # Check for any errors, then dispatch the node
+        # if errors are present, we bubble them up the DAG
+        error, error_path = _has_error(nodes[node_name])
+        if error is not None:
+            nodes[node_name] = {
+                'error': error,
+                'dispatch': nodes[node_name]['dispatch'],
+                'error_path': error_path
+            }
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
-        visited.add(node_name)
+
+        # import json
         # print('*****', node_name, json.dumps(nodes[node_name], indent=2, default=str))  # useful but produces a lot
+        visited.add(node_name)
         return nodes[node_name]
 
+    # return everything in dev mode
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
-        # return everything in dev mode
         return {e: await visit(e) for e in endpoint['returns']}
-    # remove context from outputs
-    # this breaks if `await visit(e)` does not return a list of dicts
-    return {e: [{k: v for k, v in o.items() if k != 'context'} for o in await visit(e)] for e in endpoint['returns']}
+
+    # otherwise remove context from outputs
+    outputs = {}
+    for e in endpoint['returns']:
+        out = await visit(e)
+        outputs[e] = _remove_context(out)
+    return outputs

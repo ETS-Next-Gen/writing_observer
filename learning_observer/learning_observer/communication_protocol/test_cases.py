@@ -21,13 +21,14 @@ import docopt
 import json
 import sys
 
+import learning_observer.communication_protocol.executor
+import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query as q
 import learning_observer.communication_protocol.util
-import learning_observer.communication_protocol.executor
 import learning_observer.offline
 
 # TODO: Validate that the test cases are valid
-course_roster = q.call('learning_observer.course_roster')
+course_roster = q.call('learning_observer.dummyroster')
 
 DOCS_WITH_ROSTER_EXAMPLE = {
     "execution_dag": {
@@ -38,16 +39,20 @@ DOCS_WITH_ROSTER_EXAMPLE = {
     },
     "returns": ["combined"],
     "name": "docs-with-roster",
-    "description": "Here's what I do",
-    "parameters": "Here's what I get called with, together with description"
+    "description": "Example of fetching students text information based on their last document.",
+    "test_parameters": {"course_id": 123}
 }
-# TODO eventually make this a nested extension example
 EXCEPTION_EXAMPLE = {
     "execution_dag": {
         "roster": course_roster(course=q.parameter("course_id")),
+        "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'some_key.nested': 'doc_id'}),
+        "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'some_key.nested': 'text'}),
+        "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id')
     },
-    "returns": ["roster"],
-    "name": "Exception example"
+    "returns": ["combined"],
+    "name": "exception-example",
+    "description": "Fetches student doc text; however, this errors since we do not provide the necessary parameters.",
+    "test_parameters": {}
 }
 # TODO make this a circular example for real
 ACCIDENTALLY_CIRCULAR_DAG_EXAMPLE = {}
@@ -85,8 +90,7 @@ def run_test_cases(test_cases):
         print(f"Invalid test case. Available test cases are: {available_test_cases}")
         sys.exit()
 
-    functions = {"learning_observer.course_roster": dummy_roster}
-    course_roster = q.call('learning_observer.course_roster')
+    functions = {"learning_observer.dummyroster": dummy_roster}
 
     # Include the test_dags definition here
     test_dags = {
@@ -99,7 +103,7 @@ def run_test_cases(test_cases):
 
     for key in test_dags:
         FLAT = learning_observer.communication_protocol.util.flatten(copy.deepcopy(test_dags[key]))
-        EXECUTE = asyncio.run(learning_observer.communication_protocol.executor.execute_dag(copy.deepcopy(FLAT), parameters={"course_id": 12345}, functions=functions))
+        EXECUTE = asyncio.run(learning_observer.communication_protocol.executor.execute_dag(copy.deepcopy(FLAT), parameters=test_dags[key]['test_parameters'], functions=functions))
         if (key in test_cases or 'all' in test_cases) and 'none' not in test_cases:
             print(f"Execute {key}:", json.dumps(EXECUTE, indent=2))
 

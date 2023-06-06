@@ -27,7 +27,7 @@ import learning_observer.rosters as rosters
 from learning_observer.log_event import debug_log
 
 import learning_observer.module_loader
-import learning_observer.communication_protocol.executor
+import learning_observer.communication_protocol.integration
 
 
 def timelist_to_seconds(timelist):
@@ -372,7 +372,7 @@ async def execute_queries(client_data, request):
             debug_log(f'Query, {function_name}, not found in named_queries. Skipping.')
             continue
         query_parameters = query.get('parameters')
-        query_func = learning_observer.communication_protocol.executor.create_function(query)
+        query_func = learning_observer.communication_protocol.integration.create_function(query)
         client_parameters = client_query.get('kwargs', {})
         # check that the required parameters are included in the client_query
         for param in query_parameters:
