@@ -407,7 +407,7 @@ async def courselist(request):
     return course_list
 
 
-@learning_observer.communication_protocol.integration.callable_function('learning_observer.courseroster')
+@learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
 async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper

@@ -11,14 +11,14 @@ FUNCTIONS = {}
 DUPLICATE_FUNCTION_FOUND = """Duplicate function name found: {name}.
 Please ensure that all callable functions used in the
 communication protocol have different names.
-Search the codebase for `callable_function({name}) to view
+Search the codebase for `publish_function({name}) to view
 any duplicates.
 """
 
 
-def callable_function(name):
+def publish_function(name):
     """
-    Decorator to record callable functions.
+    Decorator to expose functions to the communication protocol.
 
     Args:
         name: The name of the handler.
@@ -27,7 +27,7 @@ def callable_function(name):
         The decorator function.
 
     Example Usage:
-        @callable_function("my_function")
+        @publish_function("my_function")
         def my_function_handler():
             pass
 

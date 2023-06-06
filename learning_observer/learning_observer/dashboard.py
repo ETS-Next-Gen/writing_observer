@@ -379,7 +379,7 @@ async def execute_queries(client_data, request):
             if param['required']:
                 # FIXME handle this case properly
                 assert param['id'] in client_parameters
-        # TODO handle adding request more gracefully
+        # TODO handle adding request/runtime more gracefully
         client_parameters['request'] = request
         query_func = query_func(**client_parameters)
         funcs.append(query_func)
@@ -424,6 +424,7 @@ async def websocket_dashboard_handler(request):
         outputs = await execute_queries(client_data, request)
 
         await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
+        # TODO allow the client to set the update timer.
         await asyncio.sleep(0.5)
 
 
