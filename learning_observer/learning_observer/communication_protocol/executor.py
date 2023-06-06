@@ -73,9 +73,16 @@ async def call_dispatch(functions, function_name, args, kwargs):
     :return: The result of the function call
     """
     function = functions[function_name]
-    result = function(*args, **kwargs)
-    if inspect.iscoroutinefunction(function):
-        result = await result
+    try:
+        result = function(*args, **kwargs)
+        if inspect.iscoroutinefunction(function):
+            result = await result
+    except Exception as e:
+        raise DAGExecutionException(
+            f'Function {function_name} did not execute properly, {e}',
+            inspect.currentframe().f_code.co_name,
+            {'function_name': function_name, 'args': args, 'kwargs': kwargs}
+        )
     return result
 
 
@@ -94,8 +101,7 @@ def substitute_parameter(parameter_name, parameters):
         raise DAGExecutionException(
             f'Required parameter `{parameter_name}` was not found in parameters.',
             inspect.currentframe().f_code.co_name,
-            {'parameter_name': parameter_name, 'parameters': parameters},
-            {}
+            {'parameter_name': parameter_name, 'parameters': parameters}
         )
     return parameters[parameter_name]
 
@@ -127,8 +133,6 @@ def handle_join(left, right, left_on=None, right_on=None):
             merged_dict = {**left_dict, **right_dict_match}
             result.append(merged_dict)
 
-    # example of raising an error
-    # raise DAGExecutionException('Error', 'handle_join', {'left': left, 'right': right, 'left_on': left_on, 'right_on': right_on}, {})
     return result
 
 
@@ -170,12 +174,19 @@ async def handle_select(keys, fields):
 
     response = []
     for k in keys:
-        item = {
-            'context': {
-                'key': k['key'],
-                'context': k['context']
+        if isinstance(k, dict) and 'key' in k:
+            item = {
+                'context': {
+                    'key': k['key'],
+                    'context': k['context']
+                }
             }
-        }
+        else:
+            raise DAGExecutionException(
+                f'Malformed key {k}.',
+                inspect.currentframe().f_code.co_name,
+                {'keys': keys}
+            )
         kvs_out = await KVS[k['key']]
         for f in fields:
             value = get_nested_dict_value(kvs_out, f)
@@ -273,7 +284,6 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
                 'context': c
             }
         )
-    # raise DAGExecutionException('bruh', 200)
     return keys
 
 
@@ -285,18 +295,17 @@ class DAGExecutionException(Exception):
         message -- explanation of the error
     '''
 
-    def __init__(self, error, function, inputs, context):
+    def __init__(self, error, function, inputs):
         self.error = error
         self.function = function
         self.inputs = inputs
-        self.context = context
 
     def to_dict(self):
+        # TODO create serialize/deserialize methods for traceback
         return {
             'error': self.error,
             'function': self.function,
             'inputs': self.inputs,
-            'context': self.context,
             'timestamp': datetime.datetime.utcnow().isoformat(),
             'traceback': ''.join(traceback.format_tb(self.__traceback__))
         }
@@ -326,7 +335,7 @@ KEYS_TO_REMOVE = ['context']
 
 def _sanitaize_output(variable):
     if isinstance(variable, dict):
-        return {key: value for key, value in variable.items() if key in KEYS_TO_REMOVE}
+        return {key: value for key, value in variable.items() if key not in KEYS_TO_REMOVE}
     elif isinstance(variable, list):
         return [_sanitaize_output(item) if isinstance(item, dict) else item for item in variable]
     else:
@@ -375,7 +384,7 @@ async def execute_dag(endpoint, parameters, functions):
                 result = await result
             return result
         except DAGExecutionException as e:
-            return [e.to_dict()]
+            return e.to_dict()
 
     async def walk_dict(node_dict):
         '''
@@ -417,8 +426,4 @@ async def execute_dag(endpoint, parameters, functions):
         return {e: await visit(e) for e in endpoint['returns']}
 
     # otherwise remove context from outputs
-    outputs = {}
-    for e in endpoint['returns']:
-        out = await visit(e)
-        outputs[e] = _sanitaize_output(out)
-    return outputs
+    return {e: _sanitaize_output(await visit(e)) for e in endpoint['returns']}
