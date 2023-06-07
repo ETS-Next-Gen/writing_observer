@@ -322,7 +322,6 @@ async def process_writings_with_caching(writing_data, options=None, mode=RUN_MOD
     :param wait_time_for_running_features: The time in seconds to wait for features already running (default: 60).
     :return: The results list.
     '''
-    # await performance_test()
     results = []
     cache = learning_observer.kvs.KVS()
     requested_features = set(options if options else [])
@@ -385,6 +384,3 @@ if __name__ == '__main__':
     print("Note that these results are imperfect -- ")
     print("Errors", len([r for r in results2 if r == "Error"]))
     print("Errors", [r if r == "Error" else "--" for r in results2])
-
-    
-
