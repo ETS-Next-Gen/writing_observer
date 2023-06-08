@@ -12,6 +12,8 @@ before doing so.
 import hashlib
 import math
 import re
+import datetime
+from dateutil import parser
 
 
 def paginate(data_list, nrows):
@@ -118,6 +120,28 @@ def insecure_hash(text):
     '''
     return "MD5_" + hashlib.md5(text).hexdigest()
 
+
+def timestamp():
+    """
+    Return a timestamp string in ISO 8601 format
+
+    Returns:
+        str: The timestamp string.
+
+    The timestamp is in UTC.
+    """
+    return datetime.datetime.utcnow().isoformat()
+
+
+def timeparse(timestamp):
+    """
+    Parse an ISO-8601 datetime string into a datetime.datetime
+
+    Returns:
+        datetime: datetime object converted from the string timestamp.
+
+    """
+    return parser.isoparse(timestamp)
 
 # And a test case
 if __name__ == '__main__':
