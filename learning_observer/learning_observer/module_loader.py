@@ -251,6 +251,7 @@ def load_reducers(component_name, module):
                 "context": reducer['context'],
                 "function": reducer['function'],  # Primary ID
                 "scope": reducer.get('scope', DEFAULT_STUDENT_SCOPE),
+                "default": reducer.get('default', {}),
                 "module": module,
                 "id": f"{module.__name__.replace('.module', '')}.{reducer['function'].__name__}"
             }

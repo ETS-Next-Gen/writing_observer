@@ -30,25 +30,22 @@ import learning_observer.offline
 # TODO: Validate that the test cases are valid
 course_roster = q.call('learning_observer.dummyroster')
 
+DOCS_WITH_ROSTER_DAG = {
+    "roster": course_roster(course=q.parameter("course_id")),
+    "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
+    "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
+    "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id')
+}
+
 DOCS_WITH_ROSTER_EXAMPLE = {
-    "execution_dag": {
-        "roster": course_roster(course=q.parameter("course_id")),
-        "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'some_key.nested': 'doc_id'}),
-        "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'some_key.nested': 'text'}),
-        "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id')
-    },
+    "execution_dag": DOCS_WITH_ROSTER_DAG,
     "returns": ["combined"],
     "name": "docs-with-roster",
     "description": "Example of fetching students text information based on their last document.",
     "test_parameters": {"course_id": 123}
 }
 EXCEPTION_EXAMPLE = {
-    "execution_dag": {
-        "roster": course_roster(course=q.parameter("course_id")),
-        "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'some_key.nested': 'doc_id'}),
-        "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'some_key.nested': 'text'}),
-        "combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id')
-    },
+    "execution_dag": DOCS_WITH_ROSTER_DAG,
     "returns": ["combined"],
     "name": "exception-example",
     "description": "Fetches student doc text; however, this errors since we do not provide the necessary parameters.",

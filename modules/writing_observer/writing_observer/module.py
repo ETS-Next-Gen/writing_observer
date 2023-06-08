@@ -99,7 +99,8 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.gdoc_scope,
-        'function': writing_observer.writing_analysis.reconstruct
+        'function': writing_observer.writing_analysis.reconstruct,
+        'default': {'text': ''}
     },
     {
         'context': "org.mitros.writing_analytics",

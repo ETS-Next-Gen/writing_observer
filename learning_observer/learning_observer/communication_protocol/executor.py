@@ -183,11 +183,13 @@ async def handle_select(keys, fields):
             }
         else:
             raise DAGExecutionException(
-                f'Malformed key {k}.',
+                f'Key not formatted correctly for select: {k}',
                 inspect.currentframe().f_code.co_name,
                 {'keys': keys}
             )
         kvs_out = await KVS[k['key']]
+        if kvs_out is None:
+            kvs_out = k['default']
         for f in fields:
             value = get_nested_dict_value(kvs_out, f)
             item[fields[f]] = value
@@ -198,7 +200,7 @@ async def handle_select(keys, fields):
 # @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
 def handle_keys(function, value_path, **kwargs):
     """
-    Placeholder function to generate keys for a function and list of items. Currently returns mock data.
+    Currently unused handle keys function, we just use hack_keys
 
     :param function: The function to generate keys for
     :type function: str
@@ -281,7 +283,8 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         keys.append(
             {
                 'key': key,
-                'context': c
+                'context': c,
+                'default': func['default']
             }
         )
     return keys

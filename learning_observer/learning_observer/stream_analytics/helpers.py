@@ -295,7 +295,6 @@ def kvs_pipeline(
                 #   enough and probably the right long-term solution
                 # * We could have modules explicitly indicate where they need
                 #   thread safety and transactions. That'd be easy enough.
-
                 keydict = {}
                 # Step 1: Handle auth metadata.
                 if KeyField.STUDENT in scope:
