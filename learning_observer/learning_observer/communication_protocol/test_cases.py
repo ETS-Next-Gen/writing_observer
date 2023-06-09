@@ -12,6 +12,7 @@ Test Cases:
     parameter     Prints the parameter test case.
     field         Prints the missing fields test case.
     malformed_key Prints the malformed key test case.
+    func_except   Prints the func_except test case.
     circular      Prints the circular reference test cases.
     all           Prints all available test cases.
     none          Prints no output, except on unexpected errors
@@ -31,6 +32,7 @@ import learning_observer.offline
 
 # TODO: Validate that the test cases are valid
 course_roster = q.call('learning_observer.dummyroster')
+exception_func = q.call('learning_observer.dummycall')
 
 DOCS_WITH_ROSTER_DAG = {
     "roster": course_roster(course=q.parameter("course_id")),
@@ -72,6 +74,15 @@ MALFORMED_KEY_EXAMPLE = {
     "description": "Malformed key when trying to select",
     "test_parameters": {}
 }
+CALL_EXCEPTION_EXAMPLE = {
+    "execution_dag": {
+        "dummy": exception_func()
+    },
+    "returns": ["dummy"],
+    "name": "call-exception-example",
+    "description": "Throw exception within a published function",
+    "test_parameters": {}
+}
 # TODO make this a circular example for real
 ACCIDENTALLY_CIRCULAR_DAG_EXAMPLE = {}
 
@@ -91,6 +102,10 @@ def dummy_roster(course):
     } for i in range(10)]
 
 
+def raises_exception():
+    raise Exception('This is an exception that was raised in a published function.')
+
+
 def run_test_cases(test_cases):
     """
     Run all test cases. Print output from the ones specified.
@@ -102,20 +117,24 @@ def run_test_cases(test_cases):
         None
     """
     # List of available test cases
-    available_test_cases = ['docs', 'parameter', 'field', 'malformed_key', 'circular', 'all', 'none']
+    available_test_cases = ['docs', 'parameter', 'field', 'malformed_key', 'func_except', 'circular', 'all', 'none']
 
     if not all(case in available_test_cases for case in test_cases):
         print(f"Invalid test case. Available test cases are: {available_test_cases}")
         sys.exit()
 
-    functions = {"learning_observer.dummyroster": dummy_roster}
+    functions = {
+        "learning_observer.dummyroster": dummy_roster,
+        "learning_observer.dummycall": raises_exception
+    }
 
     # Include the test_dags definition here
     test_dags = {
         'docs': DOCS_WITH_ROSTER_EXAMPLE,
         'parameter': PARAMETER_ERROR_EXAMPLE,
         'field': FIELD_ERROR_EXAMPLE,
-        'malformed_key': MALFORMED_KEY_EXAMPLE
+        'malformed_key': MALFORMED_KEY_EXAMPLE,
+        'func_except': CALL_EXCEPTION_EXAMPLE
         # additional test cases...
     }
 

@@ -78,9 +78,9 @@ async def call_dispatch(functions, function_name, args, kwargs):
             result = await result
     except Exception as e:
         raise DAGExecutionException(
-            f'Function {function_name} did not execute properly, {e}',
+            f'Function {function_name} did not execute properly',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'args': args, 'kwargs': kwargs}
+            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)}
         )
     return result
 
