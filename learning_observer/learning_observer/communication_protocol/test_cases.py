@@ -9,7 +9,9 @@ Options:
 
 Test Cases:
     docs          Prints the dummy Google Docs text DAG.
-    exception     Prints the exception test cases.
+    parameter     Prints the parameter test case.
+    field         Prints the missing fields test case.
+    malformed_key Prints the malformed key test case.
     circular      Prints the circular reference test cases.
     all           Prints all available test cases.
     none          Prints no output, except on unexpected errors
@@ -44,11 +46,30 @@ DOCS_WITH_ROSTER_EXAMPLE = {
     "description": "Example of fetching students text information based on their last document.",
     "test_parameters": {"course_id": 123}
 }
-EXCEPTION_EXAMPLE = {
+PARAMETER_ERROR_EXAMPLE = {
     "execution_dag": DOCS_WITH_ROSTER_DAG,
     "returns": ["combined"],
-    "name": "exception-example",
+    "name": "parameter-error-example",
     "description": "Fetches student doc text; however, this errors since we do not provide the necessary parameters.",
+    "test_parameters": {}
+}
+FIELD_ERROR_EXAMPLE = {
+    "execution_dag": {
+        "roster": course_roster(course=q.parameter("course_id")),
+        "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'nonexistent_key': 'doc_id'}),
+    },
+    "returns": ["doc_ids"],
+    "name": "field-error-example",
+    "description": "The desired field does not exist within our key. We output an error, but do no fail.",
+    "test_parameters": {"course_id": 123}
+}
+MALFORMED_KEY_EXAMPLE = {
+    "execution_dag": {
+        "doc_ids": q.select([{'item': 1}, {'item': 2}], fields={'nonexistent_key': 'doc_id'}),
+    },
+    "returns": ["doc_ids"],
+    "name": "malformed-key-error-example",
+    "description": "Malformed key when trying to select",
     "test_parameters": {}
 }
 # TODO make this a circular example for real
@@ -81,7 +102,7 @@ def run_test_cases(test_cases):
         None
     """
     # List of available test cases
-    available_test_cases = ['docs', 'exception', 'circular', 'all', 'none']
+    available_test_cases = ['docs', 'parameter', 'field', 'malformed_key', 'circular', 'all', 'none']
 
     if not all(case in available_test_cases for case in test_cases):
         print(f"Invalid test case. Available test cases are: {available_test_cases}")
@@ -92,7 +113,9 @@ def run_test_cases(test_cases):
     # Include the test_dags definition here
     test_dags = {
         'docs': DOCS_WITH_ROSTER_EXAMPLE,
-        'exception': EXCEPTION_EXAMPLE,
+        'parameter': PARAMETER_ERROR_EXAMPLE,
+        'field': FIELD_ERROR_EXAMPLE,
+        'malformed_key': MALFORMED_KEY_EXAMPLE
         # additional test cases...
     }
 

@@ -115,7 +115,8 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.student_scope,
-        'function': writing_observer.writing_analysis.last_document
+        'function': writing_observer.writing_analysis.last_document,
+        'default': {'document_id': ''}
     }
 ]
 

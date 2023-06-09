@@ -32,12 +32,11 @@ def unimplemented_handler(*args, **kwargs):
     :return: A dictionary indicating unimplemented status
     :rtype: dict
     """
-    # TODO raise a 501 error here
-    return {
-        'issue': "UNIMPLEMENTED",
-        'args': args,
-        'kwargs': kwargs
-    }
+    raise DAGExecutionException(
+        f'Unimplemented function',
+        inspect.currentframe().f_code.co_name,
+        {'args': args, 'kwargs': kwargs}
+    )
 
 
 DISPATCH = collections.defaultdict(lambda: unimplemented_handler)
@@ -185,13 +184,21 @@ async def handle_select(keys, fields):
             raise DAGExecutionException(
                 f'Key not formatted correctly for select: {k}',
                 inspect.currentframe().f_code.co_name,
-                {'keys': keys}
+                {'keys': keys, 'fields': fields}
             )
         kvs_out = await KVS[k['key']]
         if kvs_out is None:
             kvs_out = k['default']
         for f in fields:
             value = get_nested_dict_value(kvs_out, f)
+            if value is None:
+                raise DAGExecutionException(
+                    f'Field `{f}` not found under {k["key"]}. '
+                    'Ensure the keys in the fields parameter are available in the KVS output. '
+                    'You can provide a default within the list of reducers.',
+                    inspect.currentframe().f_code.co_name,
+                    {'fields': fields, 'key': k['key'], 'kvs_out': kvs_out}
+                )
             item[fields[f]] = value
         response.append(item)
     return response
@@ -209,40 +216,7 @@ def handle_keys(function, value_path, **kwargs):
     :return: The generated keys
     :rtype: list
     """
-    # TODO figure out how we are making the keys with the keyfields variable below
-    # Currently we have "STUDENT", "CLASS", "RESOURCE"
-    # When only 1 is populated, we just create a key for each item
-    # when more >1 is populated, we need to combine them in some way
-    #
-    # filter kwargs for KeyFields
-    keyfields = {k: kwargs.get(k, None) for k in learning_observer.stream_analytics.fields.KeyFields}
-
-    # NOTE this should be removed when the keyfields stuff above gets figured out
-    items = []
-    for key in kwargs:
-        if key in learning_observer.stream_analytics.fields.KeyFields:
-            # we currently overwrite items if more than one KeyField is used
-            items = [{learning_observer.stream_analytics.fields.KeyField[key]: get_nested_dict_value(i, value_path)} for i in kwargs[key]]
-
-    # TODO fetch the function of the specified reducer for `make_key`
-    func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
-    keys = []
-    for i in items:
-        key = learning_observer.stream_analytics.helpers.make_key(
-            func['function'],
-            i,
-            learning_observer.stream_analytics.fields.KeyStateType.EXTERNAL
-        )
-        keys.append(
-            {
-                'key': key,
-                'context': {
-                    'function': function,
-                    'context': i.get('context', {})
-                }
-            }
-        )
-    return keys
+    pass
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
@@ -298,17 +272,17 @@ class DAGExecutionException(Exception):
         message -- explanation of the error
     '''
 
-    def __init__(self, error, function, inputs):
+    def __init__(self, error, function, context):
         self.error = error
         self.function = function
-        self.inputs = inputs
+        self.context = context
 
     def to_dict(self):
         # TODO create serialize/deserialize methods for traceback
         return {
             'error': self.error,
             'function': self.function,
-            'inputs': self.inputs,
+            'error_context': self.context,
             'timestamp': datetime.datetime.utcnow().isoformat(),
             'traceback': ''.join(traceback.format_tb(self.__traceback__))
         }
