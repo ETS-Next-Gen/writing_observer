@@ -13,27 +13,12 @@ tested this in math and writing, but our focus is on writing process
 data.
 
 .. toctree::
-   :maxdepth: 3
-
-   learning_observer
-
-Modules
--------
-
-Define modules.
-
-.. toctree::
    :maxdepth: 2
 
-   modules
-
-Other documentation
--------------------
-
-.. toctree::
-   :maxdepth: 2
-
-   other_docs
+   development
+   system_design
+   extension
+   api
 
 Additional Information
 ----------------------

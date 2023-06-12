@@ -1,5 +1,6 @@
 Learning Observer System Design
 -------------------------------
+
 Piotr Mitros. 2021-07-11
 
 This lays out the system design, as planned. This design does not

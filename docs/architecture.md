@@ -1,12 +1,13 @@
 # Architecture
-## Piotr Mitros
 
-# Introduction
+Piotr Mitros
+
+## Introduction
 
 Like all such documents, this document should be taken with a grain of
 salt. It my be out-of-date, or not fully implemented. 
 
-# Overview
+## Overview
 
 1. Events come from a web browser over a web socket.
 2. The server performs a reduce operation of some kind on these
@@ -14,11 +15,11 @@ salt. It my be out-of-date, or not fully implemented.
    plug-in) inside of a KVS.
 3. A subset of the internal state is used to compute state as sent to
    an educator dashboard.
-3. Whenever an event is processed, consumers are notified via a pubsub.
-4. Consumers can aggregate these notifications, inspect the external state,
+4. Whenever an event is processed, consumers are notified via a pubsub.
+5. Consumers can aggregate these notifications, inspect the external state,
    and make a dashboard.
 
-## Technology choices
+### Technology choices
 
 1. Generic student information (e.g. names, auth, etc.) cn live in
    flat files on the disk, sqlite, or postgres. As of this writing, this
@@ -31,7 +32,7 @@ salt. It my be out-of-date, or not fully implemented.
    all three work, but xmpp is buggy/unfinished.
 4. The front-end uses bulma and d3.js.
 
-## Architectural Constraints
+### Architectural Constraints
 
 1. By design, this system should be in a usable (although not
    necessarily scalable or reliable) state with just a `pip
@@ -49,7 +50,7 @@ salt. It my be out-of-date, or not fully implemented.
 4. Once we know we have the right set of abstractions, we can open up
    the flood gates to more plug-ins.
 
-## Process constraints
+### Process constraints
 
 It's better to say "no" to a feature than to break the
 architecture. We're in this for the long haul. It's okay to have
