@@ -47,4 +47,3 @@ watchdog
 -e gitserve
 -e learning_observer
 -e modules/writing_observer
--e modules/lo_dash_react_components

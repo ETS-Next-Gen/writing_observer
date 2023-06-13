@@ -1,4 +1,4 @@
-# Config (creds.yml)
+# Config (creds.yaml)
 
 The Learning Observer project can be configured on a per-system basis using a configuration file. This configuration file is essential for setting various options such as the environment mode (development or production), authentication, and module-specific settings.
 
@@ -20,7 +20,7 @@ The `hostname` and `protocol` sections define the address and protocol used for 
 
 Example:
 
-```yml
+```yaml
 hostname: localhost:8888
 protocol: http
 ```
@@ -41,7 +41,7 @@ The `xmpp` section defines the credentials and configurations for XMPP connectio
 
 Example:
 
-```yml
+```yaml
 xmpp:
   sink:
     jid: sink@localhost
@@ -74,7 +74,7 @@ The `auth` section is responsible for configuring various authentication methods
 
 Example:
 
-```yml
+```yaml
 auth:
   google_oauth:
     web:
@@ -99,7 +99,7 @@ The `pubsub` section configures the pubsub system type used for the application.
 
 Example:
 
-```yml
+```yaml
 pubsub:
   type: stub
 ```
@@ -116,7 +116,7 @@ The `kvs` section configures the key-value store used in the application.
 
 Example:
 
-```yml
+```yaml
 kvs:
   default:
     type: stub
@@ -131,7 +131,7 @@ The `roster_data` section configures the source of roster data.
 
 Example:
 
-```yml
+```yaml
 roster_data:
   source: filesystem
 ```
@@ -145,7 +145,7 @@ The `aio` section configures user session settings.
 
 Example:
 
-```yml
+```yaml
 aio:
   session_secret: {unique-aio-session-key}
   session_max_age: 3600
@@ -160,7 +160,7 @@ The `config` section configures the run mode and debug settings.
 
 Example:
 
-```yml
+```yaml
 config:
   run_mode: dev
   debug: []
@@ -175,7 +175,7 @@ The `logging` section configures the logging settings.
 
 Example:
 
-```yml
+```yaml
 logging:
   debug_log_level: SIMPLE
   debug_log_destinations:
@@ -193,7 +193,7 @@ The `theme` section configures the appearance and messages of the application.
 
 Example:
 
-```yml
+```yaml
 theme:
   server_name: Learning Observer
   front_page_pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
@@ -212,7 +212,7 @@ The `event_auth` section configures authentication settings for events.
 
 Example:
 
-```yml
+```yaml
 event_auth:
   local_storage:
     userfile: students.yaml
@@ -226,7 +226,7 @@ The `feature_flags` section allows you to enable or disable specific features in
 
 Example:
 
-```yml
+```yaml
 feature_flags: {}
 ```
 
@@ -238,7 +238,7 @@ The `server` section configures the server settings.
 
 Example:
 
-```yml
+```yaml
 server:
   port: 8888
 ```
@@ -253,7 +253,7 @@ The `modules` section configures the settings for each module installed on the s
 
 Example:
 
-```yml
+```yaml
 modules:
   writing_observer:
     use_nlp: true
