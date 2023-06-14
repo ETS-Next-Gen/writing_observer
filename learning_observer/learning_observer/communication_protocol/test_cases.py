@@ -33,6 +33,7 @@ import learning_observer.offline
 # TODO: Validate that the test cases are valid
 course_roster = q.call('learning_observer.dummyroster')
 exception_func = q.call('learning_observer.dummycall')
+map_func = q.call('learning_observer.dummymap')
 
 DOCS_WITH_ROSTER_DAG = {
     "roster": course_roster(course=q.parameter("course_id")),
@@ -83,6 +84,16 @@ CALL_EXCEPTION_EXAMPLE = {
     "description": "Throw exception within a published function",
     "test_parameters": {}
 }
+MAP_EXAMPLE = {
+    'execution_dag': {
+        'roster': course_roster(course=q.parameter("course_id")),
+        'dummy': q.map(map_func, q.variable('roster'), 'user_id', {'example': 123})
+    },
+    "returns": ["dummy"],
+    "name": "call-exception-example",
+    "description": "Throw exception within a published function",
+    "test_parameters": {'course_id': 123}
+}
 # TODO make this a circular example for real
 ACCIDENTALLY_CIRCULAR_DAG_EXAMPLE = {}
 
@@ -106,6 +117,10 @@ def raises_exception():
     raise Exception('This is an exception that was raised in a published function.')
 
 
+def dummy_map(value, example):
+    return {'value': value, 'example': example}
+
+
 def run_test_cases(test_cases):
     """
     Run all test cases. Print output from the ones specified.
@@ -117,7 +132,7 @@ def run_test_cases(test_cases):
         None
     """
     # List of available test cases
-    available_test_cases = ['docs', 'parameter', 'field', 'malformed_key', 'func_except', 'circular', 'all', 'none']
+    available_test_cases = ['docs', 'parameter', 'field', 'malformed_key', 'func_except', 'circular', 'dummy_map', 'all', 'none']
 
     if not all(case in available_test_cases for case in test_cases):
         print(f"Invalid test case. Available test cases are: {available_test_cases}")
@@ -125,7 +140,8 @@ def run_test_cases(test_cases):
 
     functions = {
         "learning_observer.dummyroster": dummy_roster,
-        "learning_observer.dummycall": raises_exception
+        "learning_observer.dummycall": raises_exception,
+        "learning_observer.dummymap": dummy_map
     }
 
     # Include the test_dags definition here
@@ -134,7 +150,8 @@ def run_test_cases(test_cases):
         'parameter': PARAMETER_ERROR_EXAMPLE,
         'field': FIELD_ERROR_EXAMPLE,
         'malformed_key': MALFORMED_KEY_EXAMPLE,
-        'func_except': CALL_EXCEPTION_EXAMPLE
+        'func_except': CALL_EXCEPTION_EXAMPLE,
+        'dummy_map': MAP_EXAMPLE
         # additional test cases...
     }
 

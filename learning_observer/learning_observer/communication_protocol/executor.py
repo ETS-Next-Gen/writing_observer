@@ -4,8 +4,11 @@ a set of parameters, and execute those queries.
 
 The executor processes the `execution_dag` portion of our request.
 '''
+import asyncio
 import collections
+import concurrent.futures
 import datetime
+import functools
 import inspect
 import traceback
 
@@ -78,7 +81,7 @@ async def call_dispatch(functions, function_name, args, kwargs):
             result = await result
     except Exception as e:
         raise DAGExecutionException(
-            f'Function {function_name} did not execute properly',
+            f'Function {function_name} did not execute properly during call.',
             inspect.currentframe().f_code.co_name,
             {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)}
         )
@@ -136,7 +139,7 @@ def handle_join(left, right, left_on=None, right_on=None):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
-async def map_function(functions, function, values, value_path):
+async def map_function(functions, function, values, value_path, func_kwargs=None):
     """
     Applies a function to a list of values.
 
@@ -149,11 +152,49 @@ async def map_function(functions, function, values, value_path):
     :return: The mapped values
     :rtype: list
     """
-    # TODO this needs context added still, this method is currently unused
+    if func_kwargs is None:
+        func_kwargs = {}
     func = functions[function]
+    partial = functools.partial(func, **func_kwargs)
+
+    # async
     if inspect.iscoroutinefunction(func):
-        return [await func(v) if value_path is None else get_nested_dict_value(v, value_path) for v in values]
-    return [func(v) if value_path is None else get_nested_dict_value(v, value_path) for v in values]
+        results = await asyncio.gather(*[partial(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
+    # sync
+    else:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = [executor.submit(partial, get_nested_dict_value(v, value_path)) for v in values]
+        results = []
+        for future in futures:
+            try:
+                results.append(future.result())
+            except Exception as e:
+                results.append(e)
+
+    # add context/errors
+    output = []
+    for res, item in zip(results, values):
+        context = {
+            'function': function,
+            'func_kwargs': func_kwargs,
+            'value': item,
+            'value_path': value_path
+        }
+        if isinstance(res, dict):
+            out = res
+        elif isinstance(res, Exception):
+            error_context = context.copy()
+            error_context['error'] = str(res)
+            out = DAGExecutionException(
+                f'Function {function} did not execute properly during map.',
+                inspect.currentframe().f_code.co_name,
+                error_context
+            ).to_dict()
+        else:
+            out = {'output': res}
+        out['context'] = context
+        output.append(out)
+    return output
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)

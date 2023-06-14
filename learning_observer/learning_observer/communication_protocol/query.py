@@ -118,7 +118,7 @@ def join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     }
 
 
-def map(function, values, value_path=None):
+def map(function, values, value_path=None, func_kwargs=None):
     """
     Returns a dictionary representing a MAP operation for the given function and values.
 
@@ -135,7 +135,8 @@ def map(function, values, value_path=None):
         dispatch: DISPATCH_MODES.MAP,
         "function": function.__lo_name__,
         "values": values,
-        "value_path": value_path
+        "value_path": value_path,
+        "func_kwargs": func_kwargs
     }
 
 
