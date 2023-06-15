@@ -133,6 +133,8 @@ def get_nested_dict_value(d, key_str):
     for key in keys:
         if d is not None and key in d:
             d = d[key]
+        elif key == '':
+            d = d
         else:
             return None
     return d

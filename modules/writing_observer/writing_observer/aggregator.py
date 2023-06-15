@@ -2,6 +2,7 @@ import sys
 import time
 
 import learning_observer.cache
+import learning_observer.communication_protocol.integration
 import learning_observer.kvs
 import learning_observer.settings
 from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
@@ -170,6 +171,8 @@ if learning_observer.settings.module_setting('writing_observer', 'use_nlp', Fals
 else:
     import writing_observer.stub_nlp
     processor = writing_observer.stub_nlp.process_texts
+
+processor = learning_observer.communication_protocol.integration.publish_function('writing_observer.process_texts')(processor)
 
 
 async def retrieve_latest_documents_kvs(student_data):

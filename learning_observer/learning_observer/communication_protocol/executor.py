@@ -203,7 +203,7 @@ async def map_function(functions, function, values, value_path, func_kwargs=None
     :type value_path: str
     :param func_kwargs: kwargs to include in function
     :type func_kwargs: dict
-    :param parallelize: Run synchronous functions in parallel
+    :param parallelize: Run **synchronous** functions in parallel
     :type parallelize: bool
     :return: The mapped values
     :rtype: list
@@ -402,6 +402,11 @@ async def execute_dag(endpoint, parameters, functions):
     """
     visited = set()
     nodes = endpoint['execution_dag']
+
+    # sets default for any missing optional parameters
+    for parameter in endpoint['parameters']:
+        if parameter['id'] not in parameters and not parameter['required']:
+            parameters[parameter['id']] = parameter['default']
 
     global KVS
     if KVS is None:

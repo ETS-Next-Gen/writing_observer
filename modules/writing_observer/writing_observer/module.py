@@ -20,6 +20,7 @@ from writing_observer.nlp_indicators import INDICATOR_JSONS
 NAME = "The Writing Observer"
 
 course_roster = q.call('learning_observer.courseroster')
+process_texts = q.call('writing_observer.process_texts')
 
 NAMED_QUERIES = {
     "docs_with_roster": {
@@ -49,6 +50,35 @@ NAMED_QUERIES = {
         ```
         """
     },
+    'latest_doc_with_nlp': {
+        'execution_dag': {
+            'roster': course_roster(request=q.parameter('request'), course_id=q.parameter('course_id')),
+            'doc_ids': q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
+            'docs': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable('roster'), STUDENTS_path='user_id', RESOURCES=q.variable('doc_ids'), RESOURCES_path='doc_id'), fields={'text': 'text'}),
+            # 'updated_docs': '',  # TODO call google API here
+            'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options')),
+            'combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')  # TODO determine which values to call
+        },
+        'returns': ['combined'],
+        'name': 'latest-doc-with-nlp',
+        'description': 'Fetch the latest doc from students, then fetch NLP indicators. ',
+        'parameters': [
+            {
+                'id': 'course_id',
+                'type': [str],
+                'required': True,
+                'description': 'the ID of the course in which we wish to receive data for'
+            },
+            {
+                'id': 'nlp_options',
+                'type': [list],
+                'required': False,
+                'default': [],
+                'description': 'the list of NLP options to run on each text'
+            }
+        ],
+        'output': ''
+    }
 }
 
 COURSE_AGGREGATORS = {

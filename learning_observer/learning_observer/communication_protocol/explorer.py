@@ -13,7 +13,7 @@ import json
 
 import learning_observer.module_loader
 import learning_observer.communication_protocol.query
-import learning_observer.communication_protocol.executor
+import learning_observer.communication_protocol.util
 
 main_panel = 'queries-view'
 module_store = 'queries-module-store'
@@ -171,7 +171,7 @@ def create_mermaid_flowchart(endpoint):
     :return: A string representing the mermaid flowchart
     :rtype: str
     """
-    subgraphs, arrows = iteratively_build_flowchart(learning_observer.communication_protocol.executor.flatten(endpoint)['execution_dag'])
+    subgraphs, arrows = iteratively_build_flowchart(learning_observer.communication_protocol.util.flatten(endpoint)['execution_dag'])
     return 'flowchart TD\n' + '\n'.join(subgraphs) + '\n' + '\n'.join(arrows)
 
 
