@@ -117,7 +117,9 @@ def raises_exception():
     raise Exception('This is an exception that was raised in a published function.')
 
 
-def dummy_map(value, example):
+async def dummy_map(value, example):
+    if value.endswith('2'):
+        raise ValueError('Item ends with a 2')
     return {'value': value, 'example': example}
 
 

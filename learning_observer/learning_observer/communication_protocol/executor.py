@@ -138,40 +138,31 @@ def handle_join(left, right, left_on=None, right_on=None):
     return result
 
 
-@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
-async def map_function(functions, function, values, value_path, func_kwargs=None):
-    """
-    Applies a function to a list of values.
+def exception_wrapper(func):
+    def exception_catcher(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            return e
+    return exception_catcher
 
-    :param functions: Dictionary of available functions
-    :type functions: dict
-    :param function: The function to be applied
-    :type function: str
-    :param values: The values to be mapped
-    :type values: list
-    :return: The mapped values
-    :rtype: list
-    """
-    if func_kwargs is None:
-        func_kwargs = {}
-    func = functions[function]
-    partial = functools.partial(func, **func_kwargs)
 
-    # async
-    if inspect.iscoroutinefunction(func):
-        results = await asyncio.gather(*[partial(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
-    # sync
-    else:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(partial, get_nested_dict_value(v, value_path)) for v in values]
-        results = []
-        for future in futures:
-            try:
-                results.append(future.result())
-            except Exception as e:
-                results.append(e)
+async def map_coroutine(func, values, value_path):
+    return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
 
-    # add context/errors
+
+def map_parallelize(func, values, value_path):
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = [executor.submit(func, get_nested_dict_value(v, value_path)) for v in values]
+    results = [future.result() for future in futures]
+    return results
+
+
+def map_serialize(func, values, value_path):
+    return [func(get_nested_dict_value(v, value_path)) for v in values]
+
+
+def annotate_metadata(function, results, values, value_path, func_kwargs):
     output = []
     for res, item in zip(results, values):
         context = {
@@ -194,6 +185,42 @@ async def map_function(functions, function, values, value_path, func_kwargs=None
             out = {'output': res}
         out['context'] = context
         output.append(out)
+    return output
+
+
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
+async def map_function(functions, function, values, value_path, func_kwargs=None, parallelize=False):
+    """
+    Applies a function to a list of values.
+
+    :param functions: Dictionary of available functions
+    :type functions: dict
+    :param function: The function to be applied
+    :type function: str
+    :param values: The values objects that need to be mapped
+    :type values: list
+    :param value_path: The path to fetch the value to be mapped
+    :type value_path: str
+    :param func_kwargs: kwargs to include in function
+    :type func_kwargs: dict
+    :param parallelize: Run synchronous functions in parallel
+    :type parallelize: bool
+    :return: The mapped values
+    :rtype: list
+    """
+    if func_kwargs is None:
+        func_kwargs = {}
+    func = functions[function]
+    partial = functools.partial(func, **func_kwargs)
+    if inspect.iscoroutinefunction(func):
+        results = await map_coroutine(partial, values, value_path)
+    else:
+        exception_catcher = exception_wrapper(partial)
+        if parallelize:
+            results = map_parallelize(exception_catcher, values, value_path)
+        else:
+            results = map_serialize(exception_catcher, values, value_path)
+    output = annotate_metadata(function, results, values, value_path, func_kwargs)
     return output
 
 
