@@ -50,6 +50,9 @@ def add_queries_to_module(named_queries, module):
     '''
     Add queries to each module as a callable object.
 
+    The `set_query_with_name` inner closure is necessary to appropriately
+    set the `name` parameter within the `query_func` inner-most function.
+
     Args:
         named_queries: A dictionary containing named queries.
         module: The module to which the queries will be added.
@@ -71,14 +74,16 @@ def add_queries_to_module(named_queries, module):
         by calling them as attributes of the module.
     '''
     for query_name in named_queries:
-        async def query_func(**kwargs):  # create new function
-            flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(named_queries[query_name]))
-            output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
-            return output
-        if hasattr(module, query_name):
-            raise AttributeError(f'Attibute, {query_name}, already exists under {module.__name__}')
-        else:
-            setattr(module, query_name, query_func)
+        def set_query_with_name(name):
+            async def query_func(**kwargs):  # create new function
+                flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(named_queries[name]))
+                output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
+                return output
+            if hasattr(module, name):
+                raise AttributeError(f'Attibute, {name}, already exists under {module}')
+            else:
+                setattr(module, name, query_func)
+        set_query_with_name(query_name)
 
 
 def create_function(query):

@@ -124,6 +124,7 @@ def handle_join(left, right, left_on=None, right_on=None):
     :return: The joined list
     :rtype: list
     """
+    # TODO raise exceptions when needed
     right_dict = {get_nested_dict_value(d, right_on): d for d in right if get_nested_dict_value(d, right_on) is not None}
 
     result = []
@@ -189,7 +190,7 @@ def annotate_metadata(function, results, values, value_path, func_kwargs):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
-async def map_function(functions, function, values, value_path, func_kwargs=None, parallelize=False):
+async def handle_map(functions, function, values, value_path, func_kwargs=None, parallelize=False):
     """
     Applies a function to a list of values.
 
