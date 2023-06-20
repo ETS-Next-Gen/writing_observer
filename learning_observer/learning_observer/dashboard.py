@@ -357,29 +357,33 @@ async def websocket_dashboard_view(request):
             return aiohttp.web.Response(text="This never makes it back....")
 
 
+async def DAGNotFound(dag_name):
+    return f'Execution DAG, {dag_name}, not found on system.'
+
+
 async def execute_queries(client_data, request):
-    named_queries = learning_observer.module_loader.named_queries()
+    execution_dags = learning_observer.module_loader.execution_dags()
     funcs = []
+    # client_data = {
+    #     'output_name': {
+    #         'execution_dag': 'writing_obssdfsderver',
+    #         'target_exports': ['docs_with_roster'],
+    #         'kwargs': {'course_id': 12345}
+    #     },
+    # }
     for query_name, client_query in client_data.items():
-        function_name = client_query.get('function_name', query_name)
+        dag_name = client_query.get('execution_dag', query_name)
         try:
-            query = named_queries[function_name]
+            query = execution_dags[dag_name]
         except KeyError:
-            # TODO fix a bug that exists in this code
-            # if a function isn't found, we skip it.
-            # this will cause issues later on when
-            # we zip the query_names (keys) with the outputs
-            debug_log(f'Query, {function_name}, not found in named_queries. Skipping.')
+            debug_log(f'Execution DAG, {dag_name}, not found.')
+            funcs.append(DAGNotFound(dag_name))
             continue
-        query_parameters = query.get('parameters')
-        query_func = learning_observer.communication_protocol.integration.create_function(query)
+        target_exports = client_query.get('target_exports', [])
+        query_func = learning_observer.communication_protocol.integration.create_function(query, target_exports)
         client_parameters = client_query.get('kwargs', {})
-        # check that the required parameters are included in the client_query
-        for param in query_parameters:
-            if param['required']:
-                # FIXME handle this case properly
-                assert param['id'] in client_parameters
         # TODO handle adding request/runtime more gracefully
+        # runtime = learning_observer.runtime.Runtime(request)
         client_parameters['request'] = request
         query_func = query_func(**client_parameters)
         funcs.append(query_func)
@@ -425,6 +429,7 @@ async def websocket_dashboard_handler(request):
 
         await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
         # TODO allow the client to set the update timer.
+        # it would be cool if the client could set different sleep timers for each item
         await asyncio.sleep(0.5)
 
 

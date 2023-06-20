@@ -3,7 +3,7 @@ This provides a web interface for making queries via the
 communication protocol and seeing the text of the results.
 '''
 
-from dash import html, dcc, callback, Output, Input, State
+from dash import html, callback, Output, Input, State
 from dash.exceptions import PreventUpdate
 from dash_renderjson import DashRenderjson
 import dash_bootstrap_components as dbc
@@ -40,7 +40,7 @@ def layout():
                             dbc.Textarea(
                                 id=message,
                                 placeholder='Input valid query',
-                                value='{"output":{"function_name":"writing_observer.docs_with_roster","kwargs":{"course_id":123}}}',
+                                value='{"output_name": {"execution_dag": "writing_observer", "target_exports": ["docs_with_roster"], "kwargs": {"course_id": 123}}}',
                             ),
                             dbc.Button(
                                 'Submit',

@@ -18,37 +18,23 @@ import learning_observer.communication_protocol.util
 main_panel = 'queries-view'
 module_store = 'queries-module-store'
 
+# TODO MAKE SURE THIS SHOWS THINGS PROPERLY
+
 
 def layout():
-    queries = learning_observer.module_loader.named_queries()
-    modules = {}
-    for item in queries.values():
-        module = item['module']
-        if module in modules:
-            modules[module].append(item)
-        else:
-            modules[module] = [item]
+    dags = learning_observer.module_loader.execution_dags()
 
     ret = dbc.Container(
         [
-            dcc.Store(id=module_store, data=json.loads(json.dumps(modules, default=lambda x: x.__name__))),
+            dcc.Store(id=module_store, data=json.loads(json.dumps(dags.keys(), default=str))),
             dbc.Row(
                 [
                     dbc.Col(
                         dbc.Card(
                             dbc.ListGroup(
                                 [
-                                    dbc.ListGroupItem(
-                                        [
-                                            dbc.CardLink(mod, href=f'#{mod}'),
-                                            html.Div(
-                                                [
-                                                    dbc.CardLink(i['name'], class_name='ms-2', href=f'#{i["id"]}')
-                                                    for i in modules[mod]
-                                                ]
-                                            )
-                                        ]
-                                    ) for mod in modules
+                                    dbc.CardLink(dag, href=f'#{dag}')
+                                    for dag in dags
                                 ]
                             )
                         ),
@@ -207,14 +193,11 @@ def create_query(item):
     copy = item.copy()
     div = html.Div(
         [
-            html.H3(copy['name']),
-            dcc.Markdown(copy['description']),
+            html.H3(copy['module']),
+            html.H4('Exports'),
+            # TODO create exports piece
             html.H4('Parameters'),
             html.Div([create_parameter(p) for p in copy['parameters']]),
-            html.H4('Output'),
-            dcc.Markdown(copy['output']),
-            html.H4('Example'),
-            dcc.Markdown(f'`{copy["id"]}()`'),
             html.H4('Flow chart'),
             de.Mermaid(
                 chart=create_mermaid_flowchart(copy)
@@ -233,12 +216,10 @@ def update_page(hash, modules):
     if hash is None:
         return create_modules(modules)
 
-    queries = learning_observer.module_loader.named_queries()
+    dags = learning_observer.module_loader.execution_dags()
 
     cleaned_hash = hash[1:]
-    if cleaned_hash in modules:
-        return create_module(cleaned_hash, modules[cleaned_hash])
-    elif cleaned_hash in queries:
-        return create_query(queries[cleaned_hash])
+    if cleaned_hash in dags:
+        return create_query(dags[cleaned_hash])
     else:
         return create_modules(modules)

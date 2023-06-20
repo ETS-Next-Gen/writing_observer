@@ -31,7 +31,7 @@ import learning_observer.stream_analytics.helpers as helpers
 LOADED = False
 
 COURSE_AGGREGATORS = collections.OrderedDict()
-NAMED_QUERIES = {}
+EXECUTION_DAGS = {}
 REDUCERS = []
 THIRD_PARTY = {}
 STATIC_REPOS = {}
@@ -82,12 +82,12 @@ def course_aggregators():
     return COURSE_AGGREGATORS
 
 
-def named_queries():
+def execution_dags():
     '''
     Return a dictionary of all named queries the system can make.
     '''
     load_modules()
-    return NAMED_QUERIES
+    return EXECUTION_DAGS
 
 
 def reducers():
@@ -300,30 +300,25 @@ def load_course_aggregators(component_name, module):
         debug_log(f"Component {component_name} has no course aggregators")
 
 
-def load_named_queries(component_name, module):
+def load_execution_dags(component_name, module):
     '''
     Load named queries from a module.
     '''
-    if hasattr(module, "NAMED_QUERIES"):
+    if hasattr(module, "EXECUTION_DAG"):
         debug_log(f"Loading named queries from {component_name}")
+        # TODO NOW fix this
         # set up a nested module to add our queries to
-        queries = learning_observer.queries.NestedQuery()
-        learning_observer.communication_protocol.integration.add_queries_to_module(module.NAMED_QUERIES, queries)
+        # queries = learning_observer.queries.NestedQuery()
+        # learning_observer.communication_protocol.integration.add_queries_to_module(module.EXECUTION_DAGS, queries)
         # set the nested module to the `learning_observer.queries.component_name` namespace
-        setattr(learning_observer.queries, component_name, queries)
+        # setattr(learning_observer.queries, component_name, queries)
 
         # clean queries
-        for named_query in module.NAMED_QUERIES:
-            query_name = f"{component_name}.{named_query}"
-            # TODO validate the structure of the query
-            cleaned_query = {
-                'id': query_name,
-                'module': component_name
-            }
-            cleaned_query.update(module.NAMED_QUERIES[named_query])
-            if query_name in NAMED_QUERIES:
-                raise KeyError('Query name already exists')
-            NAMED_QUERIES[query_name] = cleaned_query
+        cleaned_query = {'module': component_name}
+        cleaned_query.update(module.EXECUTION_DAG)
+        if component_name in EXECUTION_DAGS:
+            raise KeyError(f'Execution DAG already exists for {component_name}')
+        EXECUTION_DAGS[component_name] = cleaned_query
     else:
         debug_log(f"Component {component_name} has no named queries")
 
@@ -531,7 +526,7 @@ def load_module_from_entrypoint(entrypoint):
     debug_log(f"Corresponding to module: {module.__name__} ({module.NAME})")
     load_reducers(component_name, module)
     load_course_aggregators(component_name, module)
-    load_named_queries(component_name, module)
+    load_execution_dags(component_name, module)
     load_ajax(component_name, module)
     load_dashboards(component_name, module)
     load_extra_views(component_name, module)

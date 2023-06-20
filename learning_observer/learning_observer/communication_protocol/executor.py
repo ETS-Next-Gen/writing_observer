@@ -388,7 +388,7 @@ def _sanitaize_output(variable):
         return variable
 
 
-async def execute_dag(endpoint, parameters, functions):
+async def execute_dag(endpoint, parameters, functions, target_exports=None):
     """
     Execute a flattened directed acyclic graph (DAG).
 
@@ -401,13 +401,20 @@ async def execute_dag(endpoint, parameters, functions):
     :return: The result of the execution
     :rtype: dict
     """
+    if target_exports is None:
+        target_exports = []
+
+    target_nodes = [endpoint['exports'][key]['returns'] for key in target_exports]
+
     visited = set()
     nodes = endpoint['execution_dag']
 
     # sets default for any missing optional parameters
+    target_parameters = set(param for key in target_exports for param in endpoint['exports'][key]['parameters'])
     for parameter in endpoint['parameters']:
-        if parameter['id'] not in parameters and not parameter['required']:
-            parameters[parameter['id']] = parameter['default']
+        p_id = parameter['id']
+        if p_id in target_parameters and p_id not in parameters and not parameter['required']:
+            parameters[p_id] = parameter['default']
 
     global KVS
     if KVS is None:
@@ -474,7 +481,7 @@ async def execute_dag(endpoint, parameters, functions):
 
     # return everything in dev mode
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
-        return {e: await visit(e) for e in endpoint['returns']}
+        return {e: await visit(e) for e in target_nodes}
 
     # otherwise remove context from outputs
-    return {e: _sanitaize_output(await visit(e)) for e in endpoint['returns']}
+    return {e: _sanitaize_output(await visit(e)) for e in target_nodes}

@@ -108,7 +108,7 @@ async def system_status(request):
             "reducers": clean_json(learning_observer.module_loader.reducers()),
             "static_repos": learning_observer.module_loader.static_repos(),
             "dash_pages": clean_json(learning_observer.module_loader.dash_pages()),
-            "named_queries": clean_json(learning_observer.module_loader.named_queries())
+            "execution_dags": clean_json(learning_observer.module_loader.execution_dags())
         },
         "routes": routes(request.app)
     }

@@ -86,7 +86,7 @@ def add_queries_to_module(named_queries, module):
         set_query_with_name(query_name)
 
 
-def create_function(query):
+def create_function(query, targets):
     '''
     Creates a query function for executing a DAG (Directed Acyclic Graph) based on the provided query.
 
@@ -107,6 +107,6 @@ def create_function(query):
     '''
     async def query_func(**kwargs):
         flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(query))
-        output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
+        output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS, target_exports=targets)
         return output
     return query_func
