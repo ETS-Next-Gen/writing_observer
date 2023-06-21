@@ -152,6 +152,14 @@ async def map_coroutine(func, values, value_path):
     return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
 
 
+async def map_coroutine_parallelize(func, values, value_path):
+    raise DAGExecutionException(
+        f'Asynchronous parallelization has not yet been implemented.',
+        inspect.currentframe().f_code.co_name,
+        {'function': func, 'values': values, 'value_path': value_path}
+    )
+
+
 def map_parallelize(func, values, value_path):
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = [executor.submit(func, get_nested_dict_value(v, value_path)) for v in values]
@@ -214,7 +222,10 @@ async def handle_map(functions, function, values, value_path, func_kwargs=None, 
     func = functions[function]
     partial = functools.partial(func, **func_kwargs)
     if inspect.iscoroutinefunction(func):
-        results = await map_coroutine(partial, values, value_path)
+        if parallelize:
+            results = await map_coroutine_parallelize(partial, values, value_path)
+        else:
+            results = await map_coroutine(partial, values, value_path)
     else:
         exception_catcher = exception_wrapper(partial)
         if parallelize:
