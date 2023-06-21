@@ -84,36 +84,42 @@ TEST_DAG = {
             'parameters': ['course_id'],
             'test_parameters': {'course_id': 123},
             "description": "Example of fetching students text information based on their last document.",
+            'expected': lambda x: isinstance(x, list) and 'text' in x[0]
         },
         'map_example': {
             'returns': 'map_students',
             'parameters': ['course_id'],
             'test_parameters': {'course_id': 123},
-            "description": 'Show example of mapping students'
+            "description": 'Show example of mapping students',
+            'expected': lambda x: isinstance(x, list) and 'value' in x[0]
         },
         'parameter_error': {
             'returns': 'docs_join_roster',
             'parameters': ['course_id'],
             'test_parameters': {},
             "description": "Fetches student doc text; however, this errors since we do not provide the necessary parameters.",
+            'expected': lambda x: isinstance(x, dict) and 'error' in x
         },
         'field_error': {
             'returns': 'field_error',
             'parameters': ['course_id'],
             'test_parameters': {'course_id': 123},
             "description": "The desired field does not exist within our key. We output an error, but do no fail.",
+            'expected': lambda x: isinstance(x, dict) and 'error' in x
         },
         'malformed_key': {
             'returns': 'malformed_key_error',
             'parameters': [],
             'test_parameters': {},
             "description": "Malformed key when trying to select",
+            'expected': lambda x: isinstance(x, dict) and 'error' in x
         },
         'call_exception': {
             'returns': 'call_exception',
             'parameters': [],
             'test_parameters': {},
-            'description': "Throw an exception within a published function"
+            'description': "Throw an exception within a published function",
+            'expected': lambda x: isinstance(x, dict) and 'error' in x
         }
     },
     'parameters': [
@@ -156,7 +162,10 @@ def run_test_cases(test_cases):
             )
         )
         if (key in test_cases or 'all' in test_cases) and 'none' not in test_cases:
-            print(f"Execute {key}:", json.dumps(EXECUTE, indent=2))
+            print(f"Executing {key}")
+            # print(json.dumps(EXECUTE, indent=2))
+            assert (TEST_DAG['exports'][key]['expected'](EXECUTE[TEST_DAG['exports'][key]['returns']]))
+            print('  Received expected output.')
 
 
 if __name__ == "__main__":
