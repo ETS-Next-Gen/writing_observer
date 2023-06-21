@@ -227,7 +227,7 @@ def fetch_student_state(
                     {sa_helpers.KeyField.STUDENT: student_id},
                     sa_helpers.KeyStateType.EXTERNAL)
                 data = await teacherkvs[key]
-                # debug_log(data) <-- Useful, but a lot of stuff is spit out.
+                # debug_log(key, data)  # <-- Useful, but a lot of stuff is spit out.
                 if data is not None:
                     student_state[sa_helpers.fully_qualified_function_name(sa_module)] = data
             cleaner = agg_module.get("cleaner", lambda x: x)

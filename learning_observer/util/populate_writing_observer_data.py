@@ -73,7 +73,6 @@ async def set_text(kvs, student_id, text, docid):
     Set a text for the student in redis.
     '''
     document_id = f"test-doc-{docid}"
-    print(student_id)
     for kst in [KeyStateType.INTERNAL, KeyStateType.EXTERNAL]:
         last_document_key = learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.last_document,
@@ -97,9 +96,7 @@ async def set_text(kvs, student_id, text, docid):
 
 
 async def main():
-    learning_observer.settings.load_settings(config="creds.yaml")
-    learning_observer.google.initialize_and_register_routes(learning_observer.offline.app)
-    learning_observer.kvs.kvs_startup_check()
+    learning_observer.offline.init()
     kvs = learning_observer.kvs.KVS()
     course = await select_course()
     roster = await print_roster(course)

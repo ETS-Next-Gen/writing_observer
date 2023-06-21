@@ -18,7 +18,7 @@ from dash import Dash, html, clientside_callback, Output, Input
 
 from dash_extensions import WebSocket
 import dash_bootstrap_components as dbc
-from learning_observer_components import LOConnection
+from lo_dash_react_components import LOConnection
 
 import learning_observer.prestartup
 import learning_observer.paths
@@ -187,7 +187,8 @@ def load_dash_pages():
         external_stylesheets=all_dash_resources('CSS'),
         external_scripts=all_dash_resources('SCRIPTS'),
         assets_folder=compile_dash_assets(),
-        assets_url_path='dash/assets'
+        assets_url_path='dash/assets',
+        update_title=None
     )
 
     dash.register_page(

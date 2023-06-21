@@ -61,11 +61,11 @@ def make_roster(course_id, N):
         fn = names.get_first_name()
         ln = names.get_last_name()
         student = {
-            'courseId': course_id,
-            'userId': student_id,
+            'course_id': course_id,
+            'user_id': student_id,
             'profile': {
                 'id': student_id,
-                'name': {'givenName': fn, 'familyName': ln, 'fullName': '{fn} {ln}'.format(fn=fn, ln=ln)}
+                'name': {'given_name': fn, 'family_name': ln, 'full_name': '{fn} {ln}'.format(fn=fn, ln=ln)}
             }
         }
         students.append(student)
