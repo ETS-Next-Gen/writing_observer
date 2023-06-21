@@ -382,9 +382,8 @@ async def execute_queries(client_data, request):
         target_exports = client_query.get('target_exports', [])
         query_func = learning_observer.communication_protocol.integration.create_function(query, target_exports)
         client_parameters = client_query.get('kwargs', {})
-        # TODO handle adding request/runtime more gracefully
-        # runtime = learning_observer.runtime.Runtime(request)
-        client_parameters['request'] = request
+        runtime = learning_observer.runtime.Runtime(request)
+        client_parameters['runtime'] = runtime
         query_func = query_func(**client_parameters)
         funcs.append(query_func)
     return await asyncio.gather(*funcs, return_exceptions=False)

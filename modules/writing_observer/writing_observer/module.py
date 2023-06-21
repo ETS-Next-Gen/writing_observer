@@ -28,7 +28,7 @@ process_texts = q.call('writing_observer.process_texts')
 
 EXECUTION_DAG = {
     "execution_dag": {
-        "roster": course_roster(request=q.parameter("request"), course_id=q.parameter("course_id")),
+        "roster": course_roster(runtime=q.parameter("runtime"), course_id=q.parameter("course_id")),
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         # 'updated_docs': '',  # TODO call google API here

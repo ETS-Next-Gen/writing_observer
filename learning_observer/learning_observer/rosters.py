@@ -408,6 +408,13 @@ async def courselist(request):
 
 
 @learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
+async def courseroster_runtime(runtime, course_id):
+    '''
+    Wrapper to call courseroster with a runtime object
+    '''
+    return await courseroster(runtime.get_request(), course_id)
+
+
 async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
