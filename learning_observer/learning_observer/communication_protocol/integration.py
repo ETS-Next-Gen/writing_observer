@@ -46,7 +46,7 @@ def publish_function(name):
     return decorator
 
 
-def add_queries_to_module(named_queries, module):
+def add_queries_to_module(execution_dag, module):
     '''
     Add queries to each module as a callable object.
 
@@ -73,11 +73,11 @@ def add_queries_to_module(named_queries, module):
         callable object to the specified module. The queries can be executed
         by calling them as attributes of the module.
     '''
-    for query_name in named_queries:
+    for query_name in execution_dag['exports']:
         def set_query_with_name(name):
             async def query_func(**kwargs):  # create new function
-                flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(named_queries[name]))
-                output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS)
+                flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(execution_dag))
+                output = await learning_observer.communication_protocol.executor.execute_dag(flat, parameters=kwargs, functions=FUNCTIONS, target_exports=[query_name])
                 return output
             if hasattr(module, name):
                 raise AttributeError(f'Attibute, {name}, already exists under {module}')

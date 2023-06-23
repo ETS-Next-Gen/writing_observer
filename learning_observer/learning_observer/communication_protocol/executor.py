@@ -89,7 +89,7 @@ async def call_dispatch(functions, function_name, args, kwargs):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER)
-def substitute_parameter(parameter_name, parameters):
+def substitute_parameter(parameter_name, parameters, required, default):
     """
     Substitutes a parameter from the provided parameters.
 
@@ -100,11 +100,14 @@ def substitute_parameter(parameter_name, parameters):
     :return: The value of the parameter
     """
     if parameter_name not in parameters:
-        raise DAGExecutionException(
-            f'Required parameter `{parameter_name}` was not found in parameters.',
-            inspect.currentframe().f_code.co_name,
-            {'parameter_name': parameter_name, 'parameters': parameters}
-        )
+        if required:
+            raise DAGExecutionException(
+                f'Required parameter `{parameter_name}` was not found in parameters.',
+                inspect.currentframe().f_code.co_name,
+                {'parameter_name': parameter_name, 'parameters': parameters}
+            )
+        else:
+            return default
     return parameters[parameter_name]
 
 
@@ -421,11 +424,11 @@ async def execute_dag(endpoint, parameters, functions, target_exports=None):
     nodes = endpoint['execution_dag']
 
     # sets default for any missing optional parameters
-    target_parameters = set(param for key in target_exports for param in endpoint['exports'][key]['parameters'])
-    for parameter in endpoint['parameters']:
-        p_id = parameter['id']
-        if p_id in target_parameters and p_id not in parameters and not parameter['required']:
-            parameters[p_id] = parameter['default']
+    # target_parameters = set(param for key in target_exports for param in endpoint['exports'][key]['parameters'])
+    # for parameter in endpoint['parameters']:
+    #     p_id = parameter['id']
+    #     if p_id in target_parameters and p_id not in parameters and not parameter['required']:
+    #         parameters[p_id] = parameter['default']
 
     global KVS
     if KVS is None:

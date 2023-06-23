@@ -29,18 +29,24 @@ dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map', 'key
 [setattr(DISPATCH_MODES, d.upper(), d) for d in dispatch_modes]
 
 
-def parameter(parameter_name):
+def parameter(parameter_name, required=False, default=None):
     """
     Returns a dictionary with the given parameter_name.
 
     :param parameter_name: the name of the parameter
     :type parameter_name: str
+    :param required: whether the parameter is required
+    :type required: bool
+    :param default: default value to be used instead if parameter is not included
+    :type default: any
     :return: a dictionary containing the dispatch type and the parameter name
     :rtype: dict
     """
     return {
         dispatch: DISPATCH_MODES.PARAMETER,
-        "parameter_name": parameter_name
+        "parameter_name": parameter_name,
+        "required": required,
+        "default": default
     }
 
 

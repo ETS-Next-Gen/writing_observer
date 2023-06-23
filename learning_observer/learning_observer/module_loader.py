@@ -302,16 +302,15 @@ def load_course_aggregators(component_name, module):
 
 def load_execution_dags(component_name, module):
     '''
-    Load named queries from a module.
+    Load execution DAG from a module.
     '''
     if hasattr(module, "EXECUTION_DAG"):
-        debug_log(f"Loading named queries from {component_name}")
-        # TODO NOW fix this
+        debug_log(f"Loading execution DAG from {component_name}")
         # set up a nested module to add our queries to
-        # queries = learning_observer.queries.NestedQuery()
-        # learning_observer.communication_protocol.integration.add_queries_to_module(module.EXECUTION_DAGS, queries)
+        queries = learning_observer.queries.NestedQuery()
+        learning_observer.communication_protocol.integration.add_queries_to_module(module.EXECUTION_DAG, queries)
         # set the nested module to the `learning_observer.queries.component_name` namespace
-        # setattr(learning_observer.queries, component_name, queries)
+        setattr(learning_observer.queries, component_name, queries)
 
         # clean queries
         cleaned_query = {'module': component_name}
@@ -320,7 +319,7 @@ def load_execution_dags(component_name, module):
             raise KeyError(f'Execution DAG already exists for {component_name}')
         EXECUTION_DAGS[component_name] = cleaned_query
     else:
-        debug_log(f"Component {component_name} has no named queries")
+        debug_log(f"Component {component_name} has no execution DAG")
 
 
 def load_ajax(component_name, module):

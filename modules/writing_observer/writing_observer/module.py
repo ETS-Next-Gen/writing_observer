@@ -28,12 +28,12 @@ process_texts = q.call('writing_observer.process_texts')
 
 EXECUTION_DAG = {
     "execution_dag": {
-        "roster": course_roster(runtime=q.parameter("runtime"), course_id=q.parameter("course_id")),
+        "roster": course_roster(runtime=q.parameter("runtime"), course_id=q.parameter("course_id", required=True)),
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         # 'updated_docs': '',  # TODO call google API here
         "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id'),
-        'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options')),
+        'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
         'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     "exports": {
@@ -53,14 +53,12 @@ EXECUTION_DAG = {
             'id': 'course_id',
             'node': 'roster',
             'type': [str],
-            'required': True,
             'description': 'the ID of the course in which we wish to receive data for'
         },
         {
             'id': 'nlp_options',
             'node': 'nlp',
             'type': [list],
-            'required': False,
             'default': [],
             'description': 'the list of NLP options to run on each text'
         }

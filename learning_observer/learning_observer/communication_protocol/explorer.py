@@ -18,15 +18,13 @@ import learning_observer.communication_protocol.util
 main_panel = 'queries-view'
 module_store = 'queries-module-store'
 
-# TODO MAKE SURE THIS SHOWS THINGS PROPERLY
-
 
 def layout():
     dags = learning_observer.module_loader.execution_dags()
 
     ret = dbc.Container(
         [
-            dcc.Store(id=module_store, data=json.loads(json.dumps(dags.keys(), default=str))),
+            dcc.Store(id=module_store, data=json.loads(json.dumps(list(dags.keys()), default=str))),
             dbc.Row(
                 [
                     dbc.Col(
@@ -70,34 +68,12 @@ def create_modules(modules):
                 md=6,
                 lg=4,
                 xxl=3
-            ) for m in modules
+            ) for m in list(modules)
         ],
         justify='around',
         class_name='text-center'
     )
     return row
-
-
-def create_module(module, items):
-
-    header = [
-        html.Thead(html.Tr([html.Th('Name'), html.Th('Description')]))
-    ]
-    body = [html.Tbody(
-        [
-            html.Tr(
-                [html.Td(dbc.CardLink(i['name'], href=f'#{i["id"]}')), html.Td(i['description'])]
-            ) for i in items
-        ]
-    )]
-
-    div = html.Div(
-        [
-            html.H4(module),
-            dbc.Table(header + body, striped=True)
-        ]
-    )
-    return div
 
 
 def iteratively_build_flowchart(data, path='', subgraphs=None, arrows=None):
@@ -162,26 +138,17 @@ def create_mermaid_flowchart(endpoint):
 
 
 def create_parameter(param):
-    required = param.get('required', True)
     return html.Div(
         [
             html.H5(
                 dcc.Markdown(f'`{param["id"]}`'),
                 className='d-inline-block'
             ),
-            dbc.Badge('required', class_name='ms-1') if required else html.Span(),
             html.P(
                 [
                     html.Strong('Type: '),
                     ' or '.join([str(t.__name__) for t in param['type']]),
                     html.Br(),
-                    html.Span(
-                        [
-                            html.Strong('Default: '),
-                            param['default'],
-                            html.Br()
-                        ]
-                    ) if not required else '',
                     html.P(param['description'])
                 ]
             ),
