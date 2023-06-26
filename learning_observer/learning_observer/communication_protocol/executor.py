@@ -454,6 +454,14 @@ KEYS_TO_REMOVE = ['context']
 
 
 def _sanitaize_output(variable):
+    '''
+    Sanitizes output by removing specified keys from each level of a dictionary or a list of dictionaries.
+
+    :param variable: The variable to be sanitized
+    :type variable: dict or list
+    :return: The sanitized variable
+    :rtype: dict or list
+    '''
     if isinstance(variable, dict):
         return {key: value for key, value in variable.items() if key not in KEYS_TO_REMOVE}
     elif isinstance(variable, list):
@@ -482,13 +490,6 @@ async def execute_dag(endpoint, parameters, functions, target_exports=None):
 
     visited = set()
     nodes = endpoint['execution_dag']
-
-    # sets default for any missing optional parameters
-    # target_parameters = set(param for key in target_exports for param in endpoint['exports'][key]['parameters'])
-    # for parameter in endpoint['parameters']:
-    #     p_id = parameter['id']
-    #     if p_id in target_parameters and p_id not in parameters and not parameter['required']:
-    #         parameters[p_id] = parameter['default']
 
     global KVS
     if KVS is None:
