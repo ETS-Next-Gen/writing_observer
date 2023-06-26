@@ -17,6 +17,7 @@ Test Cases:
     malformed_key       Prints the malformed key test case.
     call_exception      Prints the func_except test case.
     join_error_key      Prints the nonexistent key in join test case.
+    circular_error      Prints the circular error test case
     all                 Prints all available test cases.
     none                Prints no output, except on unexpected errors
 """
@@ -80,7 +81,9 @@ TEST_DAG = {
         "field_error": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'nonexistent_key': 'doc_id'}),
         "malformed_key_error": q.select([{'item': 1}, {'item': 2}], fields={'nonexistent_key': 'doc_id'}),
         "call_exception": exception_func(),
-        "join_key_error": q.join(LEFT=q.variable('docs'), LEFT_ON='nonexistent.value.path', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
+        "join_key_error": q.join(LEFT=q.variable('docs'), LEFT_ON='nonexistent.value.path', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        "circular_2": q.keys('writing_observer.last_document', STUDENTS=q.variable("circular_1"), STUDENTS_PATH='user_id'),
+        "circular_1": q.variable("circular_2")
     },
     'exports': {
         'docs_with_roster': {
@@ -131,6 +134,13 @@ TEST_DAG = {
             'test_parameters': {'course_id': 123},
             'description': 'The left_on path does not exist, so we return an error on the join.',
             'expected': lambda x: isinstance(x, list) and 'error' in x[0]
+        },
+        'circular_error': {
+            'returns': 'circular_2',
+            'parameters': [],
+            'test_parameters': {},
+            'description': 'Test out circular node errors',
+            'expected': lambda x: isinstance(x, dict) and 'error' in x
         }
     }
 }
