@@ -2,10 +2,12 @@
 Run all test cases. Print output from the ones specified.
 
 Usage:
-    test_cases.py [<test_case>...]
+    test_cases.py [--quiet | --verbose] [<test_case>...]
 
 Options:
     -h --help     Show this screen.
+    --quiet       Do not include execution DAG output
+    --verbose     Include execution DAG output (overrides --quiet)
 
 Test Cases:
     docs_with_roster    Prints the dummy Google Docs text DAG.
@@ -14,6 +16,7 @@ Test Cases:
     field_error         Prints the missing fields test case.
     malformed_key       Prints the malformed key test case.
     call_exception      Prints the func_except test case.
+    join_error_key      Prints the nonexistent key in join test case.
     all                 Prints all available test cases.
     none                Prints no output, except on unexpected errors
 """
@@ -76,7 +79,8 @@ TEST_DAG = {
         "map_students": q.map(map_func, q.variable('roster'), 'user_id', {'example': 123}),
         "field_error": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'nonexistent_key': 'doc_id'}),
         "malformed_key_error": q.select([{'item': 1}, {'item': 2}], fields={'nonexistent_key': 'doc_id'}),
-        "call_exception": exception_func()
+        "call_exception": exception_func(),
+        "join_key_error": q.join(LEFT=q.variable('docs'), LEFT_ON='nonexistent.value.path', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     'exports': {
         'docs_with_roster': {
@@ -105,7 +109,7 @@ TEST_DAG = {
             'parameters': ['course_id'],
             'test_parameters': {'course_id': 123},
             "description": "The desired field does not exist within our key. We output an error, but do no fail.",
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]['doc_id']
         },
         'malformed_key': {
             'returns': 'malformed_key_error',
@@ -120,12 +124,19 @@ TEST_DAG = {
             'test_parameters': {},
             'description': "Throw an exception within a published function",
             'expected': lambda x: isinstance(x, dict) and 'error' in x
+        },
+        'join_key_error': {
+            'returns': 'join_key_error',
+            'parameters': [],
+            'test_parameters': {'course_id': 123},
+            'description': 'The left_on path does not exist, so we return an error on the join.',
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         }
     }
 }
 
 
-def run_test_cases(test_cases):
+def run_test_cases(test_cases, verbose=False):
     """
     Run all test cases. Print output from the ones specified.
 
@@ -154,7 +165,8 @@ def run_test_cases(test_cases):
         )
         if (key in test_cases or 'all' in test_cases) and 'none' not in test_cases:
             print(f"Executing {key}")
-            # print(json.dumps(EXECUTE, indent=2))
+            if verbose:
+                print(json.dumps(EXECUTE, indent=2))
             assert (TEST_DAG['exports'][key]['expected'](EXECUTE[TEST_DAG['exports'][key]['returns']]))
             print('  Received expected output.')
 
@@ -167,4 +179,4 @@ if __name__ == "__main__":
     if args['<test_case>'] == []:
         print(__doc__)
         sys.exit()
-    run_test_cases(args['<test_case>'])
+    run_test_cases(args['<test_case>'], args['--verbose'])

@@ -119,7 +119,7 @@ def insecure_hash(text):
     return "MD5_" + hashlib.md5(text).hexdigest()
 
 
-def get_nested_dict_value(d, key_str):
+def get_nested_dict_value(d, key_str=None):
     """
     Fetch an item from a nested dictionary using `.` to indicate nested keys
 
@@ -129,6 +129,8 @@ def get_nested_dict_value(d, key_str):
     :type key_str: str
     :return: Value of nested dictionary
     """
+    if key_str is None:
+        key_str = ''
     keys = key_str.split('.')
     for key in keys:
         if d is not None and key in d:

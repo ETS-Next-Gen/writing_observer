@@ -2,7 +2,11 @@
 This file provides utility functions specific to the
 communication protocol.
 '''
+import inspect
+
 import learning_observer.communication_protocol.query
+import learning_observer.communication_protocol.exception
+import learning_observer.util
 
 dispatch = learning_observer.communication_protocol.query.dispatch
 
@@ -49,3 +53,20 @@ def flatten(endpoint):
         endpoint['execution_dag'][key] = _flatten_helper(endpoint['execution_dag'], value, prefix=f"impl.{key}")
 
     return endpoint
+
+
+def get_nested_dict_value(d, key_str=None):
+    '''
+    Wrapper for learning_observer.util.get_nested_dict_value that
+    will raise a DAGExecutionException if the key_str is not found
+    '''
+    k = key_str
+    output = learning_observer.util.get_nested_dict_value(d, k)
+    if output is None:
+        raise learning_observer.communication_protocol.exception.DAGExecutionException(
+            f'Field `{key_str}` not found in {d}. '
+            'Ensure the keys are present within d.',
+            inspect.currentframe().f_code.co_name,
+            {'dict': d, 'key_string': key_str}
+        )
+    return output

@@ -7,10 +7,8 @@ The executor processes the `execution_dag` portion of our request.
 import asyncio
 import collections
 import concurrent.futures
-import datetime
 import functools
 import inspect
-import traceback
 
 import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.util
@@ -19,7 +17,8 @@ import learning_observer.module_loader
 import learning_observer.settings
 import learning_observer.stream_analytics.fields
 import learning_observer.stream_analytics.helpers
-from learning_observer.util import get_nested_dict_value
+from learning_observer.communication_protocol.util import get_nested_dict_value
+from learning_observer.communication_protocol.exception import DAGExecutionException
 
 dispatch = learning_observer.communication_protocol.query.dispatch
 
@@ -127,22 +126,40 @@ def handle_join(left, right, left_on=None, right_on=None):
     :return: The joined list
     :rtype: list
     """
-    # TODO raise exceptions when needed
-    right_dict = {get_nested_dict_value(d, right_on): d for d in right if get_nested_dict_value(d, right_on) is not None}
+    right_dict = {}
+    for d in right:
+        try:
+            nested_value = get_nested_dict_value(d, right_on)
+            right_dict[nested_value] = d
+        except DAGExecutionException as e:
+            # should we still error if we can't values on the right
+            pass
 
     result = []
     for left_dict in left:
-        lookup_key = get_nested_dict_value(left_dict, left_on)
-        right_dict_match = right_dict.get(lookup_key)
+        try:
+            lookup_key = get_nested_dict_value(left_dict, left_on)
 
-        if right_dict_match:
-            merged_dict = {**left_dict, **right_dict_match}
-            result.append(merged_dict)
+            right_dict_match = right_dict.get(lookup_key)
+
+            if right_dict_match:
+                merged_dict = {**left_dict, **right_dict_match}
+                result.append(merged_dict)
+        except DAGExecutionException as e:
+            result.append(e.to_dict())
 
     return result
 
 
 def exception_wrapper(func):
+    """
+    Wraps a function to catch any exceptions it might throw.
+
+    :param func: The function to be wrapped
+    :type func: callable
+    :return: The wrapped function that catches and returns exceptions
+    :rtype: callable
+    """
     def exception_catcher(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -151,30 +168,102 @@ def exception_wrapper(func):
     return exception_catcher
 
 
-async def map_coroutine(func, values, value_path):
+async def map_coroutine_serial(func, values, value_path):
+    """
+    Asynchronously applies a coroutine function to a list of values sequentially.
+
+    :param func: The coroutine function to be applied
+    :type func: coroutine
+    :param values: The values that the function will be applied to
+    :type values: list
+    :param value_path: The path to fetch the value to be mapped
+    :type value_path: str
+    :return: The list of results from applying the coroutine function
+    :rtype: list
+    """
     return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
 
 
 async def map_coroutine_parallelize(func, values, value_path):
+    """
+    Asynchronously applies a coroutine function to a list of values in parallel.
+    This function is not yet implemented.
+
+    :param func: The coroutine function to be applied
+    :type func: coroutine
+    :param values: The values that the function will be applied to
+    :type values: list
+    :param value_path: The path to fetch the value to be mapped
+    :type value_path: str
+    :raises DAGExecutionException: When this function is called
+    """
     raise DAGExecutionException(
-        f'Asynchronous parallelization has not yet been implemented.',
+        'Asynchronous parallelization has not yet been implemented.',
         inspect.currentframe().f_code.co_name,
         {'function': func, 'values': values, 'value_path': value_path}
     )
 
 
 def map_parallelize(func, values, value_path):
+    """
+    Applies a function to a list of values in parallel using a process pool executor.
+
+    :param func: The function to be applied
+    :type func: callable
+    :param values: The values that the function will be applied to
+    :type values: list
+    :param value_path: The path to fetch the value to be mapped
+    :type value_path: str
+    :return: The list of results from applying the function
+    :rtype: list
+    """
     with concurrent.futures.ProcessPoolExecutor() as executor:
+        # TODO catch any errors from get_nested_dict_value()
         futures = [executor.submit(func, get_nested_dict_value(v, value_path)) for v in values]
     results = [future.result() for future in futures]
     return results
 
 
 def map_serialize(func, values, value_path):
-    return [func(get_nested_dict_value(v, value_path)) for v in values]
+    """
+    Applies a function to a list of values sequentially and returns any exceptions as dict.
+
+    :param func: The function to be applied
+    :type func: callable
+    :param values: The values that the function will be applied to
+    :type values: list
+    :param value_path: The path to fetch the value to be mapped
+    :type value_path: str
+    :return: The list of results from applying the function
+    :rtype: list
+    """
+    outputs = []
+    for v in values:
+        try:
+            output = func(get_nested_dict_value(v, value_path))
+        except DAGExecutionException as e:
+            output = e.to_dict()
+        outputs.append(output)
+    return outputs
 
 
-def annotate_metadata(function, results, values, value_path, func_kwargs):
+def annotate_map_metadata(function, results, values, value_path, func_kwargs):
+    """
+    Annotates map results with metadata related to the mapping operation.
+
+    :param function: The function that was applied to the values
+    :type function: str
+    :param results: The results from applying the function
+    :type results: list
+    :param values: The original values that the function was applied to
+    :type values: list
+    :param value_path: The path used to fetch the value to be mapped
+    :type value_path: str
+    :param func_kwargs: The keyword arguments that were provided to the function
+    :type func_kwargs: dict
+    :return: The results from applying the function, annotated with metadata
+    :rtype: list
+    """
     output = []
     for res, item in zip(results, values):
         context = {
@@ -228,14 +317,14 @@ async def handle_map(functions, function, values, value_path, func_kwargs=None, 
         if parallelize:
             results = await map_coroutine_parallelize(partial, values, value_path)
         else:
-            results = await map_coroutine(partial, values, value_path)
+            results = await map_coroutine_serial(partial, values, value_path)
     else:
         exception_catcher = exception_wrapper(partial)
         if parallelize:
             results = map_parallelize(exception_catcher, values, value_path)
         else:
             results = map_serialize(exception_catcher, values, value_path)
-    output = annotate_metadata(function, results, values, value_path, func_kwargs)
+    output = annotate_map_metadata(function, results, values, value_path, func_kwargs)
     return output
 
 
@@ -273,15 +362,10 @@ async def handle_select(keys, fields):
         if kvs_out is None:
             kvs_out = k['default']
         for f in fields:
-            value = get_nested_dict_value(kvs_out, f)
-            if value is None:
-                raise DAGExecutionException(
-                    f'Field `{f}` not found under {k["key"]}. '
-                    'Ensure the keys in the fields parameter are available in the KVS output. '
-                    'You can provide a default within the list of reducers.',
-                    inspect.currentframe().f_code.co_name,
-                    {'fields': fields, 'key': k['key'], 'kvs_out': kvs_out}
-                )
+            try:
+                value = get_nested_dict_value(kvs_out, f)
+            except DAGExecutionException as e:
+                value = e.to_dict()
             item[fields[f]] = value
         response.append(item)
     return response
@@ -311,7 +395,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         # handle only students
         fields = [
             {
-                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)
+                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)  # TODO catch get_nested_dict_value errors
             } for s in STUDENTS
         ]
         contexts = [s.get('context', {'value': s}) for s in STUDENTS]
@@ -319,8 +403,8 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         # handle both students and resources
         fields = [
             {
-                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),
-                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)
+                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),  # TODO catch get_nested_dict_value errors
+                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)  # TODO catch get_nested_dict_value errors
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
         contexts = [
@@ -345,30 +429,6 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
             }
         )
     return keys
-
-
-class DAGExecutionException(Exception):
-    '''
-    Exception for errors raised during the execution of the dag
-
-    Attributes:
-        message -- explanation of the error
-    '''
-
-    def __init__(self, error, function, context):
-        self.error = error
-        self.function = function
-        self.context = context
-
-    def to_dict(self):
-        # TODO create serialize/deserialize methods for traceback
-        return {
-            'error': self.error,
-            'function': self.function,
-            'error_context': self.context,
-            'timestamp': datetime.datetime.utcnow().isoformat(),
-            'traceback': ''.join(traceback.format_tb(self.__traceback__))
-        }
 
 
 def _has_error(node):
