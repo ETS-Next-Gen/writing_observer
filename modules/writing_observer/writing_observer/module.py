@@ -48,21 +48,6 @@ EXECUTION_DAG = {
             "output": ""
         }
     },
-    "parameters": [
-        {
-            'id': 'course_id',
-            'node': 'roster',
-            'type': [str],
-            'description': 'the ID of the course in which we wish to receive data for'
-        },
-        {
-            'id': 'nlp_options',
-            'node': 'nlp',
-            'type': [list],
-            'default': [],
-            'description': 'the list of NLP options to run on each text'
-        }
-    ]
 }
 
 COURSE_AGGREGATORS = {

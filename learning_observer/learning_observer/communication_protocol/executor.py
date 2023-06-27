@@ -22,20 +22,15 @@ from learning_observer.communication_protocol.exception import DAGExecutionExcep
 
 dispatch = learning_observer.communication_protocol.query.dispatch
 
-KVS = None
-
 
 def unimplemented_handler(*args, **kwargs):
     """
-    Handler for unimplemented functions.
-
-    :param args: Positional arguments
-    :param kwargs: Keyword arguments
-    :return: A dictionary indicating unimplemented status
-    :rtype: dict
+    We use a handler for mapping different types of nodes to their appropriate
+    functions in an execution DAG.
+    This function is used as a default when the function for a given node is not found.
     """
     raise DAGExecutionException(
-        f'Unimplemented function',
+        'Unimplemented function',
         inspect.currentframe().f_code.co_name,
         {'args': args, 'kwargs': kwargs}
     )
@@ -46,13 +41,17 @@ DISPATCH = collections.defaultdict(lambda: unimplemented_handler)
 
 def handler(name):
     """
-    Decorator for handlers.
-
-    :param name: The name of the handler
-    :type name: str
-    :return: Decorator function
+    Add mapping for nodes of type `name` in an execution DAG
+    to their appropriate server-side functions.
+    Raises an exception when duplicate names are found
     """
     def decorator(f):
+        if name in DISPATCH:
+            raise DAGExecutionException(
+                f'Duplicate entry for {name} found.',
+                inspect.currentframe().f_code.co_name,
+                {'handler': name, 'new_function': f, 'prior_function': DISPATCH[name]}
+            )
         DISPATCH[name] = f
         return f
     return decorator
@@ -61,20 +60,29 @@ def handler(name):
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.CALL)
 async def call_dispatch(functions, function_name, args, kwargs):
     """
-    Calls a function from the available functions.
+    We dispatch this function whenever we process a DISPATCH_MODES.CALL node.
+    This is used when users want to call functions on the server and use their
+    output within an execution DAG. Some of these functions include:
+    * `courseroster(request, course_id)`
+    * `process_document_data(text)`
 
-    :param functions: Dictionary of available functions
-    :type functions: dict
-    :param function_name: The name of the function to be called
-    :type function_name: str
-    :param args: The positional arguments for the function
-    :type args: list
-    :param kwargs: The keyword arguments for the function
-    :type kwargs: dict
-    :return: The result of the function call
+    We run the function, `function_name`, in `functions` with any `args` or
+    `kwargs` and return the result.
+
+    >>> asyncio.run(call_dispatch({'double': lambda x: x*2}, 'double', [1], {}))
+    2
+
+    Raises an exception when functions are not found.
+    >>> asyncio.run(call_dispatch({'double': lambda x: x*2}, 'nonexistent', [1], {}))
+    Traceback (most recent call last):
+      ...
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function nonexistent did not execute properly during call.', 'call_dispatch', {'function_name': 'nonexistent', 'args': [1], 'kwargs': {}, 'error': "'nonexistent'"})
+
+    Raises an exception when the called function raises an exception.
+    TODO add doctext, could not get methods working before had to use lambdas
     """
-    function = functions[function_name]
     try:
+        function = functions[function_name]
         result = function(*args, **kwargs)
         if inspect.iscoroutinefunction(function):
             result = await result
@@ -90,13 +98,23 @@ async def call_dispatch(functions, function_name, args, kwargs):
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.PARAMETER)
 def substitute_parameter(parameter_name, parameters, required, default):
     """
-    Substitutes a parameter from the provided parameters.
+    We dispatch this function whenever we process a DISPATCH_MODES.PARAMETER node.
+    This function is used to substitute parameters provided by the user into future
+    nodes. When defining the node, a default may be provided.
 
-    :param parameter_name: The name of the parameter to be substituted
-    :type parameter_name: str
-    :param parameters: The dictionary of available parameters
-    :type parameters: dict
-    :return: The value of the parameter
+    Standard scenario fetching a required parameter
+    >>> substitute_parameter('param1key', {'param1key': 'param1val'}, True, None)
+    'param1val'
+
+    Standard scenario fetching a nonexistent optional parameter and using the default
+    >>> substitute_parameter('param2key', {'param1key': 'param1val'}, False, 'defaultvalue')
+    'defaultvalue'
+
+    Raise an exception when a required parameter is missing
+    >>> substitute_parameter('param2key', {'param1key': 'param1val'}, True, None)
+    Traceback (most recent call last):
+      ...
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Required parameter `param2key` was not found in parameters.', 'substitute_parameter', {'parameter_name': 'param2key', 'parameters': {'param1key': 'param1val'}})
     """
     if parameter_name not in parameters:
         if required:
@@ -111,20 +129,28 @@ def substitute_parameter(parameter_name, parameters, required, default):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.JOIN)
-def handle_join(left, right, left_on=None, right_on=None):
+def handle_join(left, right, left_on, right_on):
     """
-    Joins two lists of dictionaries based on provided keys. If no keys are provided, zips the lists together.
+    We dispatch this function whenever we process a DISPATCH_MODES.JOIN node.
+    Users will use this when they want to combine the output of multiple nodes.
 
-    :param left: The left list of dictionaries
-    :type left: list
-    :param right: The right list of dictionaries
-    :type right: list
-    :param left_on: The key on which to join from the left list, defaults to None
-    :type left_on: str, optional
-    :param right_on: The key on which to join from the right list, defaults to None
-    :type right_on: str, optional
-    :return: The joined list
-    :rtype: list
+    Both `left_on` and `right_on` support nested dot notation. That is,
+    ```python
+    some_dict = {'some': {'nested': {'key': 'value'}}}
+    normal_access = some_dict['some']['nested']['key']
+    dot_access = get_nested_dict_value(some_dict, 'some.nested.key')
+    assert(normal_access == dot_access)
+    ```
+
+    Generic join where left.lid == right.rid
+    >>> handle_join(
+    ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
+    ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
+    ...     left_on='lid', right_on='rid'
+    ... )
+    [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+
+    # TODO add test where right and left don't have the _on item
     """
     right_dict = {}
     for d in right:
@@ -153,12 +179,11 @@ def handle_join(left, right, left_on=None, right_on=None):
 
 def exception_wrapper(func):
     """
-    Wraps a function to catch any exceptions it might throw.
-
-    :param func: The function to be wrapped
-    :type func: callable
-    :return: The wrapped function that catches and returns exceptions
-    :rtype: callable
+    When we map values across a function, we want to catch any errors that may occur.
+    For asynchronous functions, we are able to use `asyncio.gather` which allows us to return
+    exceptions as normal results. This wrapper mimics this behavior for synchronous functions
+    and returns any exceptions as normal results. These exceptions are later caught by the
+    DAG executor and handled appropriately.
     """
     def exception_catcher(*args, **kwargs):
         try:
@@ -170,32 +195,16 @@ def exception_wrapper(func):
 
 async def map_coroutine_serial(func, values, value_path):
     """
-    Asynchronously applies a coroutine function to a list of values sequentially.
-
-    :param func: The coroutine function to be applied
-    :type func: coroutine
-    :param values: The values that the function will be applied to
-    :type values: list
-    :param value_path: The path to fetch the value to be mapped
-    :type value_path: str
-    :return: The list of results from applying the coroutine function
-    :rtype: list
+    We call the map for coroutine functions operating in serial.
+    See the `handle_map` function for more details regarding parameters.
     """
     return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
 
 
-async def map_coroutine_parallelize(func, values, value_path):
+async def map_coroutine_parallel(func, values, value_path):
     """
-    Asynchronously applies a coroutine function to a list of values in parallel.
-    This function is not yet implemented.
-
-    :param func: The coroutine function to be applied
-    :type func: coroutine
-    :param values: The values that the function will be applied to
-    :type values: list
-    :param value_path: The path to fetch the value to be mapped
-    :type value_path: str
-    :raises DAGExecutionException: When this function is called
+    We call the map for coroutine functions operating in parallel.
+    See the `handle_map` function for more details regarding parameters.
     """
     raise DAGExecutionException(
         'Asynchronous parallelization has not yet been implemented.',
@@ -204,18 +213,10 @@ async def map_coroutine_parallelize(func, values, value_path):
     )
 
 
-def map_parallelize(func, values, value_path):
+def map_parallel(func, values, value_path):
     """
-    Applies a function to a list of values in parallel using a process pool executor.
-
-    :param func: The function to be applied
-    :type func: callable
-    :param values: The values that the function will be applied to
-    :type values: list
-    :param value_path: The path to fetch the value to be mapped
-    :type value_path: str
-    :return: The list of results from applying the function
-    :rtype: list
+    We call the map for functions operating in parallel.
+    See the `handle_map` function for more details regarding parameters.
     """
     with concurrent.futures.ProcessPoolExecutor() as executor:
         # TODO catch any errors from get_nested_dict_value()
@@ -224,18 +225,10 @@ def map_parallelize(func, values, value_path):
     return results
 
 
-def map_serialize(func, values, value_path):
+def map_serial(func, values, value_path):
     """
-    Applies a function to a list of values sequentially and returns any exceptions as dict.
-
-    :param func: The function to be applied
-    :type func: callable
-    :param values: The values that the function will be applied to
-    :type values: list
-    :param value_path: The path to fetch the value to be mapped
-    :type value_path: str
-    :return: The list of results from applying the function
-    :rtype: list
+    We call the map for functions operating in serial.
+    See the `handle_map` function for more details regarding parameters.
     """
     outputs = []
     for v in values:
@@ -249,20 +242,9 @@ def map_serialize(func, values, value_path):
 
 def annotate_map_metadata(function, results, values, value_path, func_kwargs):
     """
-    Annotates map results with metadata related to the mapping operation.
-
-    :param function: The function that was applied to the values
-    :type function: str
-    :param results: The results from applying the function
-    :type results: list
-    :param values: The original values that the function was applied to
-    :type values: list
-    :param value_path: The path used to fetch the value to be mapped
-    :type value_path: str
-    :param func_kwargs: The keyword arguments that were provided to the function
-    :type func_kwargs: dict
-    :return: The results from applying the function, annotated with metadata
-    :rtype: list
+    We annotate the list of raw results from mapping over a function with context
+    about the values passed in and the function used. Additionally, we want to
+    provide the proper metadata and output for any exceptions that took place.
     """
     output = []
     for res, item in zip(results, values):
@@ -289,56 +271,62 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
     return output
 
 
-@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
-async def handle_map(functions, function, values, value_path, func_kwargs=None, parallelize=False):
-    """
-    Applies a function to a list of values.
+MAPS = {
+    'map_parallel': map_parallel,
+    'map_serial': map_serial,
+    'map_coroutine_parallel': map_coroutine_parallel,
+    'map_coroutine_serial': map_coroutine_serial
+}
 
-    :param functions: Dictionary of available functions
-    :type functions: dict
-    :param function: The function to be applied
-    :type function: str
-    :param values: The values objects that need to be mapped
-    :type values: list
-    :param value_path: The path to fetch the value to be mapped
-    :type value_path: str
-    :param func_kwargs: kwargs to include in function
-    :type func_kwargs: dict
-    :param parallelize: Run **synchronous** functions in parallel
-    :type parallelize: bool
-    :return: The mapped values
-    :rtype: list
+
+@handler(learning_observer.communication_protocol.query.DISPATCH_MODES.MAP)
+async def handle_map(functions, function_name, values, value_path, func_kwargs=None, parallel=False):
+    """
+    We dispatch this function whenever we process a DISPATCH_MODES.MAP node.
+    Users can run a single function across a set of values.
+
+    We fetch the function found under `function_name` in the `functions` dictionary and
+    apply any `func_kwargs` to it before calling the map function. The function is ran
+    over the value found at `value_path` under each value in `values`. The `value_path`
+    parameter supports dot notation.
+
+    >>> asyncio.run(handle_map({'double': lambda x: x*2}, 'double', [{'path': i} for i in range(2)], 'path'))
+    [{'output': 0, 'context': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'context': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
+
+    Exceptions in each function are returned with normal results and handled later by the DAG executor.
+    # TODO add exception check here, how to add exception to this?
     """
     if func_kwargs is None:
         func_kwargs = {}
-    func = functions[function]
-    partial = functools.partial(func, **func_kwargs)
+    func = functions[function_name]  # TODO throw KeyError
+    func_with_kwargs = functools.partial(func, **func_kwargs)
+    is_coroutine = inspect.iscoroutinefunction(func)
+    map_function = MAPS[f'map{"_coroutine" if is_coroutine else ""}_{"parallel" if parallel else "serial"}']
+
+    results = map_function(func_with_kwargs, values, value_path)
     if inspect.iscoroutinefunction(func):
-        if parallelize:
-            results = await map_coroutine_parallelize(partial, values, value_path)
-        else:
-            results = await map_coroutine_serial(partial, values, value_path)
-    else:
-        exception_catcher = exception_wrapper(partial)
-        if parallelize:
-            results = map_parallelize(exception_catcher, values, value_path)
-        else:
-            results = map_serialize(exception_catcher, values, value_path)
-    output = annotate_map_metadata(function, results, values, value_path, func_kwargs)
+        results = await results
+
+    output = annotate_map_metadata(function_name, results, values, value_path, func_kwargs)
     return output
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
 async def handle_select(keys, fields):
     """
-    Select data from a key-value store (KVS) based on a list of keys.
+    We dispatch this function whenever we process a DISPATCH_MODES.SELECT node.
+    This function is used to select data from a kvs. The data being selected
+    is usually the output or the default from a reducer.
 
-    :param keys: The keys to select data for
-    :type keys: list
-    :param fields: A mapping of key paths to keys (similar to SQL `AS`), ex) `{path.to.item: output}`
-    :type fields: dict
-    :return: The selected data ex) `[{output: value, context: {}}, ...]`
-    :rtype: list
+    Currently, we only select data from the default learning_observer kvs.
+    TODO pass kvs as a parameter
+
+    This function expects a list of dicts that contain a 'key' attribute as well
+    as which fields to include. The fields should be specified as a dictionary
+    where the keys are the dot notation you are looking for and the values the key
+    they are returned under.
+
+    TODO add in test cases once we pass kvs as a parameter
     """
     if fields is None:
         fields = {}
@@ -346,7 +334,8 @@ async def handle_select(keys, fields):
     response = []
     for k in keys:
         if isinstance(k, dict) and 'key' in k:
-            item = {
+            # output added to response later
+            query_response_element = {
                 'context': {
                     'key': k['key'],
                     'context': k['context']
@@ -358,36 +347,51 @@ async def handle_select(keys, fields):
                 inspect.currentframe().f_code.co_name,
                 {'keys': keys, 'fields': fields}
             )
-        kvs_out = await KVS[k['key']]
-        if kvs_out is None:
-            kvs_out = k['default']
+        resulting_value = await learning_observer.kvs.KVS()[k['key']]
+        if resulting_value is None:
+            # the reducer has not run yet, so we return the default value from the module
+            resulting_value = k['default']
         for f in fields:
             try:
-                value = get_nested_dict_value(kvs_out, f)
+                value = get_nested_dict_value(resulting_value, f)
             except DAGExecutionException as e:
                 value = e.to_dict()
-            item[fields[f]] = value
-        response.append(item)
+            query_response_element[fields[f]] = value
+        response.append(query_response_element)
     return response
 
 
 # @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
 def handle_keys(function, value_path, **kwargs):
     """
-    Currently unused handle keys function, we just use hack_keys
+    We WANT TO dispatch this function whenever we process a DISPATCH_MODES.KEYS node.
+    Whenever a user wants to perform a select operation, they first must make sure their
+    keys are formatted properly. This method builds the keys to access the appropriate
+    reducers output.
 
-    :param function: The function to generate keys for
-    :type function: str
-    :param items: The items to generate keys for
-    :type items: list
-    :return: The generated keys
-    :rtype: list
+    We have not yet implemented this because there is not a clear way of how different
+    sets of KeyFields should interact with one another. The easy solution is when we
+    just have a single KeyField. For example, with Students, we iterate over each one
+    and create the key. It is not clear how each item in the superset of KeyField
+    combinations should behave.
+
+    Currently we use `hack_handle_keys` instead.
     """
-    pass
+    return unimplemented_handler()
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
 def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
+    """
+    We INSTEAD dispatch this function whenever we process a DISPATCH_MODES.KEYS node.
+    Whenever a user wants to perform a select operation, they first must make sure their
+    keys are formatted properly. This method builds the keys to access the appropriate
+    reducers output.
+
+    This function only supports the creation of Student keys and Student/Resource pair keys.
+    We create a list of fields needed for the `make_key()` function as well as the context
+    associated with each. These are zipped together and returned to the user.
+    """
     func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
     fields = []
     contexts = []
@@ -433,7 +437,10 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
 
 def _has_error(node):
     '''
-    Non-recursive function to find and return 'error' value and its path from any dictionary within the node.
+    When executing a DAG, we may return an error. This function returns the first
+    error found, so that it can be further bubbled up the execution tree.
+
+    TODO either change this to BFS or add visted tracker
     '''
     queue = [(node, [])]  # start with the node and an empty path
     while queue:
@@ -450,52 +457,36 @@ def _has_error(node):
     return None, []
 
 
-KEYS_TO_REMOVE = ['context']
-
-
-def _sanitaize_output(variable):
+def strip_context(variable):
     '''
-    Sanitizes output by removing specified keys from each level of a dictionary or a list of dictionaries.
-
-    :param variable: The variable to be sanitized
-    :type variable: dict or list
-    :return: The sanitized variable
-    :rtype: dict or list
+    Context is included for debugging purposes, but should not be included
+    in deployed settings. This function removes all instances of 'context'
+    from a variable.
     '''
     if isinstance(variable, dict):
-        return {key: value for key, value in variable.items() if key not in KEYS_TO_REMOVE}
+        return {key: value for key, value in variable.items() if key != 'context'}
     elif isinstance(variable, list):
-        return [_sanitaize_output(item) if isinstance(item, dict) else item for item in variable]
+        return [strip_context(item) if isinstance(item, dict) else item for item in variable]
     else:
         return variable
 
 
-async def execute_dag(endpoint, parameters, functions, target_exports=None):
+async def execute_dag(endpoint, parameters, functions, target_exports):
     """
-    Execute a flattened directed acyclic graph (DAG).
-
-    :param endpoint: The endpoint dictionary
-    :type endpoint: dict
-    :param parameters: The parameters for execution
-    :type parameters: dict
-    :param functions: The functions available for execution
-    :type functions: dict
-    :return: The result of the execution
-    :rtype: dict
+    This is the primary way to execute a DAG.
+    Users should pass the overall execution dag dict, a dictionary parameters,
+    a dictionary of available functions, and a list of exports they wish to
+    receive data back for.
     """
-    if target_exports is None:
-        target_exports = []
-
     target_nodes = [endpoint['exports'][key]['returns'] for key in target_exports]
 
     visited = set()
     nodes = endpoint['execution_dag']
 
-    global KVS
-    if KVS is None:
-        KVS = learning_observer.kvs.KVS()
-
     async def dispatch_node(node):
+        """
+        Dispatch the appropriate server-side function for a given node.
+        """
         try:
             if not isinstance(node, dict):
                 return node
@@ -520,9 +511,10 @@ async def execute_dag(endpoint, parameters, functions, target_exports=None):
             return e.to_dict()
 
     async def walk_dict(node_dict):
-        '''
-        This will walk a dictionary, and call `visit` on all variables, and make the requisite substitions
-        '''
+        """
+        We walk through the execution DAG backwards. We visit any variable nodes
+        we find and cache their stored value.
+        """
         for child_key, child_value in list(node_dict.items()):
             if isinstance(child_value, dict) and dispatch in child_value and child_value[dispatch] == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
                 node_dict[child_key] = await visit(child_value['variable_name'])
@@ -530,6 +522,14 @@ async def execute_dag(endpoint, parameters, functions, target_exports=None):
                 await walk_dict(child_value)
 
     async def visit(node_name):
+        """
+        When executing the DAG, we `visit()` nodes that we want output from.
+        These will either be specified as target_nodes or be any descendents
+        of the target_nodes.
+
+        If we've already visited a node, we return the result.
+        If any of the child nodes return errors, we return them.
+        """
         # We've already done this one.
         if node_name in visited:
             return nodes[node_name]
@@ -549,14 +549,17 @@ async def execute_dag(endpoint, parameters, functions, target_exports=None):
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
 
-        # import json
-        # print('*****', node_name, json.dumps(nodes[node_name], indent=2, default=str))  # useful but produces a lot
         visited.add(node_name)
         return nodes[node_name]
 
-    # return everything in dev mode
+    # Include execution history in output if operating in development settings
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
         return {e: await visit(e) for e in target_nodes}
 
-    # otherwise remove context from outputs
-    return {e: _sanitaize_output(await visit(e)) for e in target_nodes}
+    # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
+    return {e: strip_context(await visit(e)) for e in target_nodes}
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod(optionflags=doctest.ELLIPSIS)

@@ -139,7 +139,7 @@ def map(function, values, value_path=None, func_kwargs=None):
     """
     return {
         dispatch: DISPATCH_MODES.MAP,
-        "function": function.__lo_name__,
+        "function_name": function.__lo_name__,
         "values": values,
         "value_path": value_path,
         "func_kwargs": func_kwargs
