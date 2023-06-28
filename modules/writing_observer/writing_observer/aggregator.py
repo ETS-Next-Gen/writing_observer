@@ -228,16 +228,19 @@ async def remove_extra_data(writing_data):
     return writing_data
 
 
-async def merge_with_student_data(writing_data, student_data):
-    '''
-    Add the student metadata to each text
-    '''
+# async def merge_with_student_data(writing_data, student_data):
+#     '''
+#     Add the student metadata to each text.  Because we may have
+#     fewer entries in writing_data than student_data we iterate 
+#     over the student_data locating writing data that matches it
+#     if any.
+#     '''
 
-    for item, student in zip(writing_data, student_data):
-        if 'edit_metadata' in item:
-            del item['edit_metadata']
-        item['student'] = student
-    return writing_data
+#     for item, student in zip(writing_data, student_data):
+#         if 'edit_metadata' in item:
+#             del item['edit_metadata']
+#         item['student'] = student
+#     return writing_data
 
 
 # TODO the use_nlp initialization code ought to live in a
@@ -382,8 +385,7 @@ async def latest_data(runtime, student_data, options=None):
     #         single_doc.update(annotated_text)
     :return: The latest writing data.
     '''
-    print(">>>> PRINT WRITE DATA: Incoming Student")
-    print(student_data)
+    debug_log("WritingObserver latest_data students:", student_data)
 
     # HACK we have a cache downstream that relies on redis_ephemeral being setup
     # when that is resolved, we can remove the feature flag
@@ -394,7 +396,8 @@ async def latest_data(runtime, student_data, options=None):
     # Get the latest documents with the students appended.
     writing_data = await get_latest_student_documents(student_data)
 
-    # Strip out the unnecessary extra data.
+    # Strip out the unnecessary edit_metadata from the merged
+    # student and writing data.
     writing_data = await remove_extra_data(writing_data)
 
     # print(">>> WRITE DATA-premerge: {}".format(writing_data))
@@ -417,7 +420,9 @@ async def latest_data(runtime, student_data, options=None):
 
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)
-            
+
+    debug_log("WritingObserver latest_data result: ", writing_data)
+    
     return {'latest_writing_data': writing_data}
 
 
