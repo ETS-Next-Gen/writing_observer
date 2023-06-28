@@ -62,19 +62,31 @@ cd ..
 "$PIP_CMD" install -r requirements.txt
 
 
-
-
 echo -e "\n=== Installing Learning Observer ==="
 cd learning_observer
 "$PYTHON_CMD" setup.py develop
 
 
-echo -e "\n=== Installing Writing Observer ==="
-cd ../modules/writing_observer
+echo -e "\n=== Installing Modules ==="
+cd ../modules/
+
+echo -e "\n--- Installing Writing Observer ---"
+cd ./writing_observer
 "$PYTHON_CMD" setup.py develop
+cd ..
+
+echo -e "\n--- Installing lo_dash_react_components. ---"
+cd ./lo_dash_react_components
+"$PYTHON_CMD" setup.py develop
+pip install .
+cd ..
+
+echo -e "\n--- Installing wo_highlight_dashboard. ---"
+cd ./wo_highlight_dashboard
+"$PYTHON_CMD" setup.py develop
+cd ..
 
 
-echo -e "\n=== Installing Brad's Dashboard ==="
-cd ../wo_highlight_dashboard
-"$PYTHON_CMD" setup.py develop
+
+
 

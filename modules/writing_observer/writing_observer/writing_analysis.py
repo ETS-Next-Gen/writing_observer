@@ -171,10 +171,6 @@ async def last_document(event, internal_state):
     '''
     document_id = get_doc_id(event)
 
-    document_id = get_doc_id_wrapper(event)
-
-    document_id = get_doc_id_wrapper(event)
-
     if document_id is not None:
         state = {"document_id": document_id}
         return state, state
