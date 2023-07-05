@@ -3,10 +3,10 @@
     "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
     "version": "0.0.1",
     "homepage": "http://chrome.google.com/webstore",
-    "author": "ENTER YOUR NAME HERE",
+    "author": "Piotr Mitros, Bradley Erickson",
     "repository": {
         "type": "git",
-        "url": "ENTER GIT REPO URL"
+        "url": "https://github.com/ETS-Next-Gen/writing_observer/tree/master/extension/writing-process"
     },
     "scripts": {
         "start": "xt-build -e dev -w",
