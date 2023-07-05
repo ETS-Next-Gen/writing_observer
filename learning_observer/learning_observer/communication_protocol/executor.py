@@ -242,13 +242,13 @@ def map_serial(func, values, value_path):
 
 def annotate_map_metadata(function, results, values, value_path, func_kwargs):
     """
-    We annotate the list of raw results from mapping over a function with context
+    We annotate the list of raw results from mapping over a function with providence
     about the values passed in and the function used. Additionally, we want to
     provide the proper metadata and output for any exceptions that took place.
     """
     output = []
     for res, item in zip(results, values):
-        context = {
+        providence = {
             'function': function,
             'func_kwargs': func_kwargs,
             'value': item,
@@ -257,16 +257,16 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
         if isinstance(res, dict):
             out = res
         elif isinstance(res, Exception):
-            error_context = context.copy()
-            error_context['error'] = str(res)
+            error_providence = providence.copy()
+            error_providence['error'] = str(res)
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
-                error_context
+                error_providence
             ).to_dict()
         else:
             out = {'output': res}
-        out['context'] = context
+        out['providence'] = providence
         output.append(out)
     return output
 
@@ -291,7 +291,7 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     parameter supports dot notation.
 
     >>> asyncio.run(handle_map({'double': lambda x: x*2}, 'double', [{'path': i} for i in range(2)], 'path'))
-    [{'output': 0, 'context': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'context': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
+    [{'output': 0, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
 
     Exceptions in each function are returned with normal results and handled later by the DAG executor.
     # TODO add exception check here, how to add exception to this?
@@ -336,9 +336,9 @@ async def handle_select(keys, fields):
         if isinstance(k, dict) and 'key' in k:
             # output added to response later
             query_response_element = {
-                'context': {
+                'providence': {
                     'key': k['key'],
-                    'context': k['context']
+                    'providence': k['providence']
                 }
             }
         else:
@@ -389,12 +389,12 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
     reducers output.
 
     This function only supports the creation of Student keys and Student/Resource pair keys.
-    We create a list of fields needed for the `make_key()` function as well as the context
+    We create a list of fields needed for the `make_key()` function as well as the providence
     associated with each. These are zipped together and returned to the user.
     """
     func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
     fields = []
-    contexts = []
+    providences = []
     if STUDENTS is not None and RESOURCES is None:
         # handle only students
         fields = [
@@ -402,7 +402,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
                 learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)  # TODO catch get_nested_dict_value errors
             } for s in STUDENTS
         ]
-        contexts = [s.get('context', {'value': s}) for s in STUDENTS]
+        providences = [s.get('providence', {'value': s}) for s in STUDENTS]
     elif STUDENTS is not None and RESOURCES is not None:
         # handle both students and resources
         fields = [
@@ -411,15 +411,15 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
                 learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)  # TODO catch get_nested_dict_value errors
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
-        contexts = [
+        providences = [
             {
-                'STUDENT': s.get('context', {'value': s}),
-                'RESOURCE': r.get('context', {'value': r})
+                'STUDENT': s.get('providence', {'value': s}),
+                'RESOURCE': r.get('providence', {'value': r})
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
 
     keys = []
-    for f, c in zip(fields, contexts):
+    for f, c in zip(fields, providences):
         key = learning_observer.stream_analytics.helpers.make_key(
             func['function'],
             f,
@@ -428,7 +428,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         keys.append(
             {
                 'key': key,
-                'context': c,
+                'providence': c,
                 'default': func['default']
             }
         )
@@ -460,24 +460,24 @@ def _has_error(node):
     return None, []
 
 
-def strip_context(variable):
+def strip_providence(variable):
     '''
     Context is included for debugging purposes, but should not be included
-    in deployed settings. This function removes all instances of 'context'
+    in deployed settings. This function removes all instances of 'providence'
     from a variable.
 
-    >>> strip_context({'context': 123, 'other': 123})
+    >>> strip_providence({'providence': 123, 'other': 123})
     {'other': 123}
 
-    Each context item should appear at the top-level of a dictionary, so
-    nested context key/value pairs are still included.
-    >>> strip_context({'nested_dict': {'context': 123, 'other': 123}})
-    {'nested_dict': {'context': 123, 'other': 123}}
+    Each providence item should appear at the top-level of a dictionary, so
+    nested providence key/value pairs are still included.
+    >>> strip_providence({'nested_dict': {'providence': 123, 'other': 123}})
+    {'nested_dict': {'providence': 123, 'other': 123}}
     '''
     if isinstance(variable, dict):
-        return {key: value for key, value in variable.items() if key != 'context'}
+        return {key: value for key, value in variable.items() if key != 'providence'}
     elif isinstance(variable, list):
-        return [strip_context(item) if isinstance(item, dict) else item for item in variable]
+        return [strip_providence(item) if isinstance(item, dict) else item for item in variable]
     else:
         return variable
 
@@ -571,7 +571,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         return {e: await visit(e) for e in target_nodes}
 
     # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
-    return {e: strip_context(await visit(e)) for e in target_nodes}
+    return {e: strip_providence(await visit(e)) for e in target_nodes}
 
 
 if __name__ == "__main__":

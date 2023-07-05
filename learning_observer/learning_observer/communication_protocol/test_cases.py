@@ -76,7 +76,7 @@ TEST_DAG = {
         "roster": course_roster(course=q.parameter("course_id", required=True)),
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
-        "docs_join_roster": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id'),
+        "docs_join_roster": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT_ON='user_id'),
         "map_students": q.map(map_func, q.variable('roster'), 'user_id', {'example': 123}),
         "field_error": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'nonexistent_key': 'doc_id'}),
         "malformed_key_error": q.select([{'item': 1}, {'item': 2}], fields={'nonexistent_key': 'doc_id'}),
