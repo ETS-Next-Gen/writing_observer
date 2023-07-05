@@ -4,9 +4,9 @@ communication protocol. It provides a set of Python calls, designed to
 (roughly) mirror a relational database, and returns a JSON object
 corresponding to that query.
 
-See the examples in the `tests.py` for the format.
+See the examples in the `test_cases.py` for the format.
 
-This JSON object can then be executed by executor.py.
+This JSON object can then be executed by `executor.py`.
 
 This file should be kept thin and minimal, since we will want versions
 translated into JavaScript for the front end (and, perhaps eventually,
@@ -31,16 +31,7 @@ dispatch_modes = ['parameter', 'variable', 'call', 'select', 'join', 'map', 'key
 
 def parameter(parameter_name, required=False, default=None):
     """
-    Returns a dictionary with the given parameter_name.
-
-    :param parameter_name: the name of the parameter
-    :type parameter_name: str
-    :param required: whether the parameter is required
-    :type required: bool
-    :param default: default value to be used instead if parameter is not included
-    :type default: any
-    :return: a dictionary containing the dispatch type and the parameter name
-    :rtype: dict
+    Parameters are used to allow users to make specifications for the execution DAG.
     """
     return {
         dispatch: DISPATCH_MODES.PARAMETER,
@@ -52,12 +43,7 @@ def parameter(parameter_name, required=False, default=None):
 
 def variable(variable_name):
     """
-    Returns a dictionary with the given variable_name.
-
-    :param variable_name: the name of the variable
-    :type variable_name: str
-    :return: a dictionary containing the dispatch type and the variable name
-    :rtype: dict
+    Variables are used to reference the output of other nodes in the execution DAG.
     """
     return {
         dispatch: DISPATCH_MODES.VARIABLE,
@@ -67,11 +53,7 @@ def variable(variable_name):
 
 def call(function_name):
     """
-    Returns a callable that, when invoked, returns a dictionary containing the dispatch type, function name, arguments, and keyword arguments.
-
-    :param function_name: the name of the function to call
-    :type function_name: str
-    :return: a callable object
+    Call is used to call functions on the server-side with appropriate args and kwargs.
     """
     def caller(*args, **kwargs):
         return {
@@ -86,12 +68,7 @@ def call(function_name):
 
 def select(keys, fields=None):
     """
-    Returns a dictionary with the given keys.
-
-    :param keys: the keys to select
-    :type keys: list
-    :return: a dictionary containing the dispatch type and the keys
-    :rtype: dict
+    Select is used to collect data from the KVS
     """
     return {
         dispatch: DISPATCH_MODES.SELECT,
@@ -102,18 +79,7 @@ def select(keys, fields=None):
 
 def join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     """
-    Returns a dictionary representing a JOIN operation between LEFT and RIGHT based on LEFT_ON and RIGHT_ON.
-
-    :param LEFT: the left table
-    :type LEFT: dict
-    :param RIGHT: the right table
-    :type RIGHT: dict
-    :param LEFT_ON: the key to join on from the left table
-    :type LEFT_ON: str
-    :param RIGHT_ON: the key to join on from the right table
-    :type RIGHT_ON: str
-    :return: a dictionary containing the dispatch type and the join information
-    :rtype: dict
+    Join is used to combine two lists of dictionaries.
     """
     return {
         dispatch: DISPATCH_MODES.JOIN,
@@ -126,16 +92,8 @@ def join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
 
 def map(function, values, value_path=None, func_kwargs=None):
     """
-    Returns a dictionary representing a MAP operation for the given function and values.
-
-    :param function: the function to map
-    :type function: callable
-    :param values: the values to map over
-    :type values: list
-    :param value_path: path to values that should be ran through map function
-    :type value_path: str
-    :return: a dictionary containing the dispatch type, the function name, and the values
-    :rtype: dict
+    Map is used to run a function on the server, similar to `call`, over
+    a list of values.
     """
     return {
         dispatch: DISPATCH_MODES.MAP,
@@ -148,16 +106,8 @@ def map(function, values, value_path=None, func_kwargs=None):
 
 def keys(func, **kwargs):
     """
-    Some way to make keys. This is a placeholder function and needs to be implemented.
-
-    :param text: text to generate keys from
-    :type text: str
-    :param doc_ids: document IDs to generate keys from
-    :type doc_ids: list
-    :param value_path: path to values that should be ran through map function
-    :type value_path: str
-    :return: a dictionary representing the keys
-    :rtype: dict
+    Keys is used to convert our data into the appropriate format for
+    the `select` operation to pull data from the KVS.
     """
     return {
         "dispatch": DISPATCH_MODES.KEYS,

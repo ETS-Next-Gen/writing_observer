@@ -7,7 +7,10 @@ class DAGExecutionException(Exception):
     Exception for errors raised during the execution of the dag
 
     Attributes:
-        message -- explanation of the error
+        function -- the function causing the error
+        error_providence -- any items that may be useful for debugging the error
+        timestamp -- when the error occured
+        traceback -- traceback object for error
     '''
 
     def __init__(self, error, function, providence):
