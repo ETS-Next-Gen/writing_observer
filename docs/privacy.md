@@ -1,5 +1,6 @@
-# Draft Thoughts on Privacy
-## Piotr Mitros
+# Privacy
+
+Piotr Mitros
 
 **Disclaimer:** This is a work-in-progress. It is a draft for
 discussion. It should not be confused with a legal document (policy,

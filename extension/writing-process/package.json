@@ -1,0 +1,76 @@
+{
+    "name": "writing-process",
+    "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
+    "version": "1.0.0.2",
+    "homepage": "http://chrome.google.com/webstore",
+    "author": "Piotr Mitros, Bradley Erickson",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ETS-Next-Gen/writing_observer/tree/master/extension/writing-process"
+    },
+    "scripts": {
+        "start": "xt-build -e dev -w",
+        "start:firefox": "xt-build -e dev -p firefox -w",
+        "build": "xt-build -e prod",
+        "build:firefox": "xt-build -e prod -p firefox",
+        "clean": "xt-clean",
+        "docs": "xt-docs",
+        "test": "xt-test",
+        "coverage": "nyc --reporter=lcov npm run test",
+        "sync": "xt-sync"
+    },
+    "babel": {
+        "presets": [
+            "@babel/preset-env"
+        ]
+    },
+    "eslintIgnore": [
+        "test/**/*"
+    ],
+    "devDependencies": {
+        "extension-cli": "latest"
+    },
+    "xtdocs": {
+        "source": {
+            "include": [
+                "README.md",
+                "src"
+            ]
+        }
+    },
+    "xtbuild": {
+        "copyAsIs": [
+            "./src/pages/*"
+        ],
+        "js_bundles": [
+            {
+                "name": "background",
+                "src": "./src/background.js"
+            },
+            {
+                "name": "inject",
+                "src": "./src/inject.js"
+            },
+            {
+                "name": "service_worker",
+                "src": "./src/service_worker.js"
+            },
+            {
+                "name": "writing_common",
+                "src": "./src/writing_common.js"
+            },
+            {
+                "name": "writing",
+                "src": "./src/writing.js"
+            },
+            {
+                "name": "3rdparty/sha256",
+                "src": "./src/3rdparty/sha256.js"
+            },
+            {
+                "name": "3rdparty/sha256",
+                "src": "./src/3rdparty/sha256.js"
+            }
+        ]
+    }
+}

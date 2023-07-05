@@ -96,3 +96,38 @@ source_based = {
         'selected': []
     }
 }
+
+
+def combine_dicts(dicts):
+    # Initialize a dictionary with the same structure as input dicts
+    combined = {
+        'sort_by': {
+            'options': [],
+            'selected': []
+        },
+        'metrics': {
+            'options': [],
+            'selected': []
+        },
+        'highlight': {
+            'options': [],
+            'selected': []
+        },
+        'indicators': {
+            'options': [],
+            'selected': []
+        }
+    }
+
+    # Iterate over input dicts
+    for d in dicts:
+        # Iterate over keys and subkeys of each input dict
+        for key, subdict in d.items():
+            for subkey, value in subdict.items():
+                # Append values to the corresponding list in the combined dict
+                combined[key][subkey].extend(value)
+
+    return combined
+
+
+overall = combine_dicts([general, argumentative, narrative, source_based])

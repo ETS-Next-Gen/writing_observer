@@ -16,8 +16,6 @@ import shutil
 import dash
 from dash import Dash, html, clientside_callback, Output, Input
 
-from dash_extensions import WebSocket
-import dash_bootstrap_components as dbc
 from lo_dash_react_components import LOConnection
 
 import learning_observer.prestartup
