@@ -69,17 +69,28 @@ async def call_dispatch(functions, function_name, args, kwargs):
     We run the function, `function_name`, in `functions` with any `args` or
     `kwargs` and return the result.
 
-    >>> asyncio.run(call_dispatch({'double': lambda x: x*2}, 'double', [1], {}))
+    Generic double function for testing
+    >>> def double(x):
+    ...     if x is None:
+    ...         raise ValueError("Input cannot be None")
+    ...     return x * 2
+
+    Simple call to double with args [1]
+    >>> asyncio.run(call_dispatch({'double': double}, 'double', [1], {}))
     2
 
-    Raises an exception when functions are not found.
-    >>> asyncio.run(call_dispatch({'double': lambda x: x*2}, 'nonexistent', [1], {}))
+    Raises an exception when function `nonexistent` is not found.
+    >>> asyncio.run(call_dispatch({'double': double}, 'nonexistent', [1], {}))
     Traceback (most recent call last):
       ...
     learning_observer.communication_protocol.exception.DAGExecutionException: ('Function nonexistent did not execute properly during call.', 'call_dispatch', {'function_name': 'nonexistent', 'args': [1], 'kwargs': {}, 'error': "'nonexistent'"})
 
+
     Raises an exception when the called function raises an exception.
-    TODO add doctext, could not get methods working before had to use lambdas
+    >>> asyncio.run(call_dispatch({'double': double}, 'double', [None], {}))
+    Traceback (most recent call last):
+      ...
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function double did not execute properly during call.', 'call_dispatch', {'function_name': 'double', 'args': [None], 'kwargs': {}, 'error': 'Input cannot be None'})
     """
     try:
         function = functions[function_name]
@@ -142,6 +153,8 @@ def handle_join(left, right, left_on, right_on):
     assert(normal_access == dot_access)
     ```
 
+    
+
     Generic join where left.lid == right.rid
     >>> handle_join(
     ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
@@ -150,7 +163,26 @@ def handle_join(left, right, left_on, right_on):
     ... )
     [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
 
-    # TODO add test where right and left don't have the _on item
+    We return every item in `left` even if they do not have a matching item
+    in `right`. This also demonstrates the behavior for `RIGHT_ON` not being found in
+    one of the elements of `right`.
+    >>> handle_join(
+    ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
+    ...     right=[{'right': True}, {'rid': 1, 'right': True}],
+    ...     left_on='lid', right_on='rid'
+    ... )
+    [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True}]
+
+    When `LEFT_ON` is not found, we return an error. Instead of throwing exceptions,
+    we return errors like normal results and allow the DAG executor to handle package
+    them and bubble them up. This allows to only error on a singular item and allow
+    the others to continue running.
+    >>> handle_join(
+    ...     left=[{'left': True}, {'lid': 2, 'left': True}],
+    ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
+    ...     left_on='lid', right_on='rid'
+    ... )
+    [{'error': "Field `lid` not found in {'left': True}. Ensure the keys are present within d.", 'function': 'get_nested_dict_value', 'error_providence': {'dict': {'left': True}, 'key_string': 'lid'}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
     for d in right:
@@ -158,7 +190,6 @@ def handle_join(left, right, left_on, right_on):
             nested_value = get_nested_dict_value(d, right_on)
             right_dict[nested_value] = d
         except DAGExecutionException as e:
-            # should we still error if we can't values on the right
             pass
 
     result = []
@@ -170,7 +201,10 @@ def handle_join(left, right, left_on, right_on):
 
             if right_dict_match:
                 merged_dict = {**left_dict, **right_dict_match}
-                result.append(merged_dict)
+            else:
+                # defaults to left_dict if not match isn't found
+                merged_dict = left_dict
+            result.append(merged_dict)
         except DAGExecutionException as e:
             result.append(e.to_dict())
 
@@ -292,18 +326,44 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     over the value found at `value_path` under each value in `values`. The `value_path`
     parameter supports dot notation.
 
-    >>> asyncio.run(handle_map({'double': lambda x: x*2}, 'double', [{'path': i} for i in range(2)], 'path'))
+    Generic double function for testing
+    >>> def double(x):
+    ...     if not isinstance(x, int):
+    ...         raise ValueError("Input must be an int")
+    ...     return x * 2
+
+    Generic example of mapping a double function over [0, 1].
+    >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path'))
     [{'output': 0, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
 
-    Exceptions in each function are returned with normal results and handled later by the DAG executor.
-    # TODO add exception check here, how to add exception to this?
+    Exceptions in each function with in the map are returned with normal results
+    and handled later by the DAG executor. In our text, we return both a normal result
+    and the result of an exception being caught.
+    >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path'))
+    [{'output': 2, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': '', 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
+
+    Example of trying to call nonexistent function, `triple`
+    >>> asyncio.run(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path'))
+    Traceback (most recent call last):
+      ...
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"})
     """
     if func_kwargs is None:
         func_kwargs = {}
-    func = functions[function_name]  # TODO throw KeyError
+    try:
+        func = functions[function_name]
+    except KeyError as e:
+        raise DAGExecutionException(
+            f'Could not find function `{function_name}` in available functions.',
+            inspect.currentframe().f_code.co_name,
+            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)}
+        )
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
     map_function = MAPS[f'map{"_coroutine" if is_coroutine else ""}_{"parallel" if parallel else "serial"}']
+    if not is_coroutine:
+        # wrap sync functions to return errors similar to asyncio.gather
+        func_with_kwargs = exception_wrapper(func_with_kwargs)
 
     results = map_function(func_with_kwargs, values, value_path)
     if inspect.isawaitable(results):
