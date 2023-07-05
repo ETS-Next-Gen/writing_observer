@@ -84,7 +84,7 @@ async def call_dispatch(functions, function_name, args, kwargs):
     try:
         function = functions[function_name]
         result = function(*args, **kwargs)
-        if inspect.iscoroutinefunction(function):
+        if inspect.isawaitable(result):
             result = await result
     except Exception as e:
         raise DAGExecutionException(
@@ -304,7 +304,7 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     map_function = MAPS[f'map{"_coroutine" if is_coroutine else ""}_{"parallel" if parallel else "serial"}']
 
     results = map_function(func_with_kwargs, values, value_path)
-    if inspect.iscoroutinefunction(func):
+    if inspect.isawaitable(results):
         results = await results
 
     output = annotate_map_metadata(function_name, results, values, value_path, func_kwargs)
@@ -504,7 +504,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
             else:
                 result = function(**node)
 
-            if inspect.iscoroutinefunction(function):
+            if inspect.isawaitable(result):
                 result = await result
             return result
         except DAGExecutionException as e:
