@@ -153,8 +153,6 @@ def handle_join(left, right, left_on, right_on):
     assert(normal_access == dot_access)
     ```
 
-    
-
     Generic join where left.lid == right.rid
     >>> handle_join(
     ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
@@ -385,7 +383,7 @@ async def handle_select(keys, fields):
 
     This function expects a list of dicts that contain a 'key' attribute as well
     as which fields to include. The fields should be specified as a dictionary
-    where the keys are the dot notation you are looking for and the values are 
+    where the keys are the dot notation you are looking for and the values are
     the key they are returned under.
 
     TODO add in test cases once we pass kvs as a parameter
