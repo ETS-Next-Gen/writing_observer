@@ -1,7 +1,7 @@
 {
     "name": "writing-process",
     "description": "Tracks writing in Google Docs, and provides nifty insights to you and your teachers!",
-    "version": "0.0.1",
+    "version": "1.0.0.2",
     "homepage": "http://chrome.google.com/webstore",
     "author": "Piotr Mitros, Bradley Erickson",
     "repository": {
