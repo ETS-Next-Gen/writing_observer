@@ -440,7 +440,10 @@ def _has_error(node):
     When executing a DAG, we may return an error. This function returns the first
     error found, so that it can be further bubbled up the execution tree.
 
-    TODO either change this to BFS or add visted tracker
+    FIXME Possible bottleneck in this code. The following uses DFS when checking
+    for errors. Since a DAG can split off and rejoin, we may get iterate over the
+    same nodes multiple times. We have simple DAGs, so for now it should not be a
+    problem. However, we ought to change this to a BFS or add a visited node tracker.
     '''
     queue = [(node, [])]  # start with the node and an empty path
     while queue:
@@ -462,6 +465,14 @@ def strip_context(variable):
     Context is included for debugging purposes, but should not be included
     in deployed settings. This function removes all instances of 'context'
     from a variable.
+
+    >>> strip_context({'context': 123, 'other': 123})
+    {'other': 123}
+
+    Each context item should appear at the top-level of a dictionary, so
+    nested context key/value pairs are still included.
+    >>> strip_context({'nested_dict': {'context': 123, 'other': 123}})
+    {'nested_dict': {'context': 123, 'other': 123}}
     '''
     if isinstance(variable, dict):
         return {key: value for key, value in variable.items() if key != 'context'}
@@ -477,6 +488,9 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
     Users should pass the overall execution dag dict, a dictionary parameters,
     a dictionary of available functions, and a list of exports they wish to
     receive data back for.
+
+    See `learning_observer/communication_protocol/test_cases.py` for examples of
+    this behavior.
     """
     target_nodes = [endpoint['exports'][key]['returns'] for key in target_exports]
 
