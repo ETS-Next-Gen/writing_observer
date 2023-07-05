@@ -43,7 +43,7 @@ To automate testing in your project, you can use GitHub Actions. This allows you
 
 If your tests should be automated make sure to provide them as a parameter in the `.github/workflows/pytest.yml`. While we work on cleaning up the prior testing framework, we only run select tests.
 
-```yml
+```yaml
     - name: Unit testing with pytest
       run: |
         pytest modules/wo_highlight_dashboard/

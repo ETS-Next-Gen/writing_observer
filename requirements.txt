@@ -46,3 +46,4 @@ uvloop
 watchdog
 -e gitserve
 -e learning_observer
+-e modules/writing_observer

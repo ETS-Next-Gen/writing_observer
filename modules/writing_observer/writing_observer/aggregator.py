@@ -1,14 +1,10 @@
 import sys
 import time
-
-import learning_observer.cache
-import learning_observer.kvs
 import learning_observer.settings
 from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
 import learning_observer.stream_analytics.helpers
+# import traceback
 import learning_observer.util
-
-import writing_observer.writing_analysis
 
 
 def excerpt_active_text(
@@ -82,7 +78,7 @@ def sanitize_and_shrink_per_student_data(student_data):
     return student_data
 
 
-def aggregate_course_summary_stats(request, student_data):
+def aggregate_course_summary_stats(student_data):
     '''
     Here, we compute summary stats across the entire course. This is
     helpful so that the front end can know, for example, how to render
@@ -121,23 +117,78 @@ def aggregate_course_summary_stats(request, student_data):
     }
 
 
-def get_last_document_id(s):
-    """
-    Retrieves the ID of the latest document for a given student.
+######
+#
+#  Everything from here on is a hack.
+#  We need to figure out proper abstractions.
+#
+######
 
-    :param s: The student data.
-    :return: The ID of the latest document.
-    """
-    return s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
+
+async def get_latest_student_documents(student_data):
+    '''
+    This will retrieve the latest student documents from the database. It breaks
+    abstractions.
+
+    It also involves some excess loops that are annoying but briefly we need to
+    determine which students actually *have* last writing data. Then we need to
+    go through and build keys for that data.  Then we fetch the data itself.
+    Later on in this file we need to marry the information again.  This builds
+    up a series of lists which are successively merged into a single dict with
+    the resulting data.
+
+    Some of what is copied along is clearly duplicative and probably unneeded.
+    '''
+    import learning_observer.kvs
+
+    import writing_observer.writing_analysis
+    from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
+
+    kvs = learning_observer.kvs.KVS()
+
+    # Compile a list of the active students.
+    active_students = [s for s in student_data if 'writing_observer.writing_analysis.last_document' in s]
+
+    # Now collect documents for all of the active students.
+    document_keys = ([
+        learning_observer.stream_analytics.helpers.make_key(
+            writing_observer.writing_analysis.reconstruct,
+            {
+                KeyField.STUDENT: s['user_id'],
+                EventField('doc_id'): get_last_document_id(s)
+            },
+            KeyStateType.INTERNAL
+        ) for s in active_students])
+
+    kvs_data = await kvs.multiget(keys=document_keys)
+
+    # Return blank entries if no data, rather than None. This makes it possible
+    # to use item.get with defaults sanely.  For the sake of later alignment
+    # we also zip up the items with the keys and users that they come from
+    # this hack allows us to align them after cleaning occurrs later.
+    # writing_data = [{} if item is None else item for item in writing_data]
+    writing_data = []
+    for idx in range(len(document_keys)):
+        student = active_students[idx]
+        doc = kvs_data[idx]
+
+        # If we have an empty item we simply return an empty dict with the
+        # student but an empty doc value.
+        if (doc is None):
+            doc = {}
+
+        # Now insert the student data and pass it along.
+        doc['student'] = student
+        writing_data.append(doc)
+
+    return writing_data
 
 
 async def remove_extra_data(writing_data):
-    """
-    Removes Deane graph data from writing data.
-
-    :param writing_data: The writing data to process.
-    :return: The processed writing data.
-    """
+    '''
+    We don't want Deane graph data going to the client. We just do a bit of
+    a cleanup. This is in-place.
+    '''
     for item in writing_data:
         if 'edit_metadata' in item:
             del item['edit_metadata']
@@ -145,13 +196,10 @@ async def remove_extra_data(writing_data):
 
 
 async def merge_with_student_data(writing_data, student_data):
-    """
-    Merges writing data with student metadata.
+    '''
+    Add the student metadata to each text
+    '''
 
-    :param writing_data: The writing data to merge.
-    :param student_data: The student metadata to merge.
-    :return: The merged writing data.
-    """
     for item, student in zip(writing_data, student_data):
         if 'edit_metadata' in item:
             del item['edit_metadata']
@@ -162,7 +210,7 @@ async def merge_with_student_data(writing_data, student_data):
 if learning_observer.settings.module_setting('writing_observer', 'use_nlp', False):
     try:
         import writing_observer.awe_nlp
-        processor = writing_observer.awe_nlp.process_texts
+        processor = writing_observer.awe_nlp.process_writings_with_caching
     except ImportError as e:
         print(e)
         print('AWE Components is not installed. To install, please see https://github.com/ETS-Next-Gen/AWE_Components')
@@ -172,43 +220,19 @@ else:
     processor = writing_observer.stub_nlp.process_texts
 
 
-async def retrieve_latest_documents_kvs(student_data):
+def get_last_document_id(s):
     """
-    Retrieves the latest documents for a set of students from KVS.
-
-    :param student_data: The student data.
-    :return: The latest documents.
+    Retrieves the ID of the latest document for a given student.
+    :param s: The student data.
+    :return: The ID of the latest document.
     """
-    kvs = learning_observer.kvs.KVS()
-
-    # To do: Handle students with no documents more cleanly.
-    #
-    # Right now, we just return a key with the text 'None', which is an
-    # an invalid document.
-    document_keys = ([
-        learning_observer.stream_analytics.helpers.make_key(
-            writing_observer.writing_analysis.reconstruct,
-            {
-                KeyField.STUDENT: s['user_id'],
-                EventField('doc_id'): get_last_document_id(s)
-            },
-            KeyStateType.INTERNAL
-        ) for s in student_data])
-
-    writing_data = await kvs.multiget(keys=document_keys)
-
-    # Return blank entries if no data, rather than None. This makes it possible
-    # to use item.get with defaults sanely.
-    error = {'error': {'code': 404, 'message': 'Unable to locate document.'}}
-    writing_data = [error.copy() if item is None else item for item in writing_data]
-    return writing_data
+    return s.get('writing_observer.writing_analysis.last_document', {}).get('document_id', None)
 
 
 async def update_reconstruct_data_with_google_api(runtime, student_data):
     """
     This function updates the text reconstruction writing data from the extension with the
     ground truth data from the Google Docs API.
-
     :param runtime: The runtime for the application
     :param student_data: A list of students
     :return: A list of writing data, one for each student
@@ -217,7 +241,6 @@ async def update_reconstruct_data_with_google_api(runtime, student_data):
     async def fetch_doc_from_google(student):
         """
         This function retrieves a single document text from Google based on the document ID.
-
         :param student: A student object
         :return: The text of the latest document
         """
@@ -250,22 +273,49 @@ async def update_reconstruct_data_with_google_api(runtime, student_data):
 
 
 async def latest_data(runtime, student_data, options=None):
-    """
+    '''
     Retrieves the latest writing data for a set of students.
 
+
     :param runtime: The runtime object from the server
+    # for annotated_text, single_doc in zip(annotated_texts, writing_data):
     :param student_data: The student data.
+    #     if annotated_text != "Error":
     :param options: Additional options to pass to the text processing pipeline.
+    #         single_doc.update(annotated_text)
     :return: The latest writing data.
-    """
+    '''
 
     # HACK we have a cache downstream that relies on redis_ephemeral being setup
     # when that is resolved, we can remove the feature flag
     # Update reconstruct data from KVS with ground truth from Google API
     if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
         await update_reconstruct_data_with_google_api(runtime, student_data)
-    writing_data = await retrieve_latest_documents_kvs(student_data)
+
+    # Get the latest documents with the students appended.
+    writing_data = await get_latest_student_documents(student_data)
+
+    # Strip out the unnecessary extra data.
     writing_data = await remove_extra_data(writing_data)
+
+    # print(">>> WRITE DATA-premerge: {}".format(writing_data))
+
+    # This is the error.  Skipping now.
+    writing_data_merge = await merge_with_student_data(writing_data, student_data)
+    # print(">>> WRITE DATA-postmerge: {}".format(writing_data_merge))
+
+    # #print(">>>> PRINT WRITE DATA: Merge")
+    # #print(writing_data)
+
+    # just_the_text = [w.get("text", "") for w in writing_data]
+
+    # annotated_texts = await writing_observer.awe_nlp.process_texts_parallel(just_the_text)
+
+    # for annotated_text, single_doc in zip(annotated_texts, writing_data):
+    #     if annotated_text != "Error":
+    #         single_doc.update(annotated_text)
+
     writing_data = await merge_with_student_data(writing_data, student_data)
     writing_data = await processor(writing_data, options)
+
     return {'latest_writing_data': writing_data}

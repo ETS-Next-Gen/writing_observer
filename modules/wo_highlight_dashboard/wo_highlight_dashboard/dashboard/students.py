@@ -485,7 +485,7 @@ def fill_in_settings(course, assignment, options):
     # TODO grab the options or type from assignment
     # if options (obj) set opt to assignment options
     # if type (string) set opt to settings_default.type
-    opt = settings_defaults.general
+    opt = settings_defaults.overall
 
     ret = dict(
         sort_by_options=so.create_checklist_options(opt['indicators']['options'], options, 'indicators'),  # same as indicators
