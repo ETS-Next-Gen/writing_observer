@@ -183,7 +183,8 @@ def exception_wrapper(func):
     For asynchronous functions, we are able to use `asyncio.gather` which allows us to return
     exceptions as normal results. This wrapper mimics this behavior for synchronous functions
     and returns any exceptions as normal results. These exceptions are later caught by the
-    DAG executor and handled appropriately.
+    DAG executor and handled appropriately. This allows the system to keep executing the DAG even
+    if some values raise exceptions.
     """
     def exception_catcher(*args, **kwargs):
         try:
@@ -195,7 +196,7 @@ def exception_wrapper(func):
 
 async def map_coroutine_serial(func, values, value_path):
     """
-    We call the map for coroutine functions operating in serial.
+    We call map for coroutine functions operating in serial.
     See the `handle_map` function for more details regarding parameters.
     """
     return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
@@ -203,7 +204,7 @@ async def map_coroutine_serial(func, values, value_path):
 
 async def map_coroutine_parallel(func, values, value_path):
     """
-    We call the map for coroutine functions operating in parallel.
+    We call map for coroutine functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
     raise DAGExecutionException(
@@ -215,7 +216,7 @@ async def map_coroutine_parallel(func, values, value_path):
 
 def map_parallel(func, values, value_path):
     """
-    We call the map for functions operating in parallel.
+    We call map for synchronous functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -227,7 +228,7 @@ def map_parallel(func, values, value_path):
 
 def map_serial(func, values, value_path):
     """
-    We call the map for functions operating in serial.
+    We call map for synchronous functions operating in serial.
     See the `handle_map` function for more details regarding parameters.
     """
     outputs = []
@@ -244,7 +245,8 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
     """
     We annotate the list of raw results from mapping over a function with providence
     about the values passed in and the function used. Additionally, we want to
-    provide the proper metadata and output for any exceptions that took place.
+    provide the proper metadata and output for any exceptions that took place
+    during execution of the map.
     """
     output = []
     for res, item in zip(results, values):
@@ -323,8 +325,8 @@ async def handle_select(keys, fields):
 
     This function expects a list of dicts that contain a 'key' attribute as well
     as which fields to include. The fields should be specified as a dictionary
-    where the keys are the dot notation you are looking for and the values the key
-    they are returned under.
+    where the keys are the dot notation you are looking for and the values are 
+    the key they are returned under.
 
     TODO add in test cases once we pass kvs as a parameter
     """
@@ -334,7 +336,7 @@ async def handle_select(keys, fields):
     response = []
     for k in keys:
         if isinstance(k, dict) and 'key' in k:
-            # output added to response later
+            # output from query added to response later
             query_response_element = {
                 'providence': {
                     'key': k['key'],
@@ -356,6 +358,7 @@ async def handle_select(keys, fields):
                 value = get_nested_dict_value(resulting_value, f)
             except DAGExecutionException as e:
                 value = e.to_dict()
+            # add necessary outputs to query response
             query_response_element[fields[f]] = value
         response.append(query_response_element)
     return response
@@ -419,7 +422,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         ]
 
     keys = []
-    for f, c in zip(fields, providences):
+    for f, p in zip(fields, providences):
         key = learning_observer.stream_analytics.helpers.make_key(
             func['function'],
             f,
@@ -428,7 +431,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         keys.append(
             {
                 'key': key,
-                'providence': c,
+                'providence': p,
                 'default': func['default']
             }
         )
@@ -466,8 +469,19 @@ def strip_providence(variable):
     in deployed settings. This function removes all instances of 'providence'
     from a variable.
 
+    Generic removal of `providence` key from dict.
     >>> strip_providence({'providence': 123, 'other': 123})
     {'other': 123}
+
+    Removal of `providence` from list of dicts.
+    >>> strip_providence([{'providence': 123, 'other': 123}, {'providence': 123, 'other': 123}, {'providence': 123, 'other': 123}])
+    [{'other': 123}, {'other': 123}, {'other': 123}]
+
+    If we don't have a dict, we do not change or remove anything.
+    >>> strip_providence(1)
+    1
+    >>> strip_providence([1, 2, 3])
+    [1, 2, 3]
 
     Each providence item should appear at the top-level of a dictionary, so
     nested providence key/value pairs are still included.
@@ -489,8 +503,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
     a dictionary of available functions, and a list of exports they wish to
     receive data back for.
 
-    See `learning_observer/communication_protocol/test_cases.py` for examples of
-    this behavior.
+    See `learning_observer/communication_protocol/test_cases.py` for usage examples.
     """
     target_nodes = [endpoint['exports'][key]['returns'] for key in target_exports]
 
