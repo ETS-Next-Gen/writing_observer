@@ -8,6 +8,8 @@ import os.path
 import dash_bootstrap_components as dbc
 
 import learning_observer.dash_integration
+import learning_observer.communication_protocol.explorer
+import learning_observer.communication_protocol.debugger
 
 
 NAME = "Learning Observer Base"
@@ -160,5 +162,19 @@ DASH_PAGES = [
         "TITLE": "Test Page for Dash.",
         "DESCRIPTION": "We're just testing. Nothing to see here.",
         "SUBPATH": "test"
+    },
+    {
+        "MODULE": learning_observer.communication_protocol.explorer,
+        "LAYOUT": learning_observer.communication_protocol.explorer.layout,
+        "TITLE": "Queries",
+        "DESCRIPTION": "Named queries and what they do",
+        "SUBPATH": "queries"
+    },
+    {
+        "MODULE": learning_observer.communication_protocol.debugger,
+        "LAYOUT": learning_observer.communication_protocol.debugger.layout,
+        "TITLE": "Debugger",
+        "DESCRIPTION": "Interactive debugger",
+        "SUBPATH": "debugger"
     }
 ]

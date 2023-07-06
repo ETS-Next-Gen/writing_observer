@@ -10,7 +10,7 @@ This may be an examplar for building new modules too.
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
 
-import learning_observer.stream_analytics.helpers as helpers
+import learning_observer.communication_protocol.query as q
 
 import writing_observer.aggregator
 import writing_observer.writing_analysis
@@ -18,6 +18,37 @@ from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
 NAME = "The Writing Observer"
+
+# things that process data versus things that interact with the environment
+# side-effects or not
+# course_id or rosters.course_id to distinguish or provide a default - how to specify selector
+course_roster = q.call('learning_observer.courseroster')
+process_texts = q.call('writing_observer.process_texts')
+
+
+EXECUTION_DAG = {
+    "execution_dag": {
+        "roster": course_roster(runtime=q.parameter("runtime"), course_id=q.parameter("course_id", required=True)),
+        "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
+        "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
+        # 'updated_docs': '',  # TODO call google API here
+        "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id'),
+        'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
+        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
+    },
+    "exports": {
+        "docs_with_roster": {
+            "returns": "docs_combined",
+            "parameters": ["course_id"],
+            "output": ""
+        },
+        "docs_with_nlp_annotations": {
+            "returns": "nlp_combined",
+            "parameters": ["course_id", "nlp_options"],
+            "output": ""
+        }
+    },
+}
 
 COURSE_AGGREGATORS = {
     "writing_observer": {
@@ -67,7 +98,8 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.gdoc_scope,
-        'function': writing_observer.writing_analysis.reconstruct
+        'function': writing_observer.writing_analysis.reconstruct,
+        'default': {'text': ''}
     },
     {
         'context': "org.mitros.writing_analytics",
@@ -82,7 +114,8 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.student_scope,
-        'function': writing_observer.writing_analysis.last_document
+        'function': writing_observer.writing_analysis.last_document,
+        'default': {'document_id': ''}
     }
 ]
 

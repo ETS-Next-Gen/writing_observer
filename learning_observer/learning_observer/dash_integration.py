@@ -185,7 +185,8 @@ def load_dash_pages():
         external_stylesheets=all_dash_resources('CSS'),
         external_scripts=all_dash_resources('SCRIPTS'),
         assets_folder=compile_dash_assets(),
-        assets_url_path='dash/assets'
+        assets_url_path='dash/assets',
+        update_title=None
     )
 
     dash.register_page(

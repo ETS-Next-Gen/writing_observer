@@ -26,6 +26,9 @@ import learning_observer.rosters as rosters
 
 from learning_observer.log_event import debug_log
 
+import learning_observer.module_loader
+import learning_observer.communication_protocol.integration
+
 
 def timelist_to_seconds(timelist):
     '''
@@ -224,7 +227,7 @@ def fetch_student_state(
                     {sa_helpers.KeyField.STUDENT: student_id},
                     sa_helpers.KeyStateType.EXTERNAL)
                 data = await teacherkvs[key]
-                # debug_log(data) <-- Useful, but a lot of stuff is spit out.
+                # debug_log(key, data)  # <-- Useful, but a lot of stuff is spit out.
                 if data is not None:
                     student_state[sa_helpers.fully_qualified_function_name(sa_module)] = data
             cleaner = agg_module.get("cleaner", lambda x: x)
@@ -352,6 +355,81 @@ async def websocket_dashboard_view(request):
         if ws.closed:
             debug_log("Socket closed. This should never appear, however.")
             return aiohttp.web.Response(text="This never makes it back....")
+
+
+async def DAGNotFound(dag_name):
+    return f'Execution DAG, {dag_name}, not found on system.'
+
+
+async def execute_queries(client_data, request):
+    execution_dags = learning_observer.module_loader.execution_dags()
+    funcs = []
+    # client_data = {
+    #     'output_name': {
+    #         'execution_dag': 'writing_obssdfsderver',
+    #         'target_exports': ['docs_with_roster'],
+    #         'kwargs': {'course_id': 12345}
+    #     },
+    # }
+    for query_name, client_query in client_data.items():
+        dag_name = client_query.get('execution_dag', query_name)
+        try:
+            query = execution_dags[dag_name]
+        except KeyError:
+            debug_log(f'Execution DAG, {dag_name}, not found.')
+            funcs.append(DAGNotFound(dag_name))
+            continue
+        target_exports = client_query.get('target_exports', [])
+        query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
+        client_parameters = client_query.get('kwargs', {})
+        runtime = learning_observer.runtime.Runtime(request)
+        client_parameters['runtime'] = runtime
+        query_func = query_func(**client_parameters)
+        funcs.append(query_func)
+    return await asyncio.gather(*funcs, return_exceptions=False)
+
+
+@learning_observer.auth.teacher
+async def websocket_dashboard_handler(request):
+    '''
+    Handles client requests through a WebSocket, executes requested queries,
+    and sends back the results.
+
+    Args:
+        request: aiohttp request object.
+
+    Returns:
+        aiohttp web response.
+    '''
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
+    await ws.prepare(request)
+    client_data = None
+
+    while True:
+        try:
+            client_data = await ws.receive_json()
+            # TODO we should validate the client_data structure
+        except (TypeError, ValueError):
+            # these Errors may signal a close
+            if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
+                debug_log("Socket closed!")
+                return aiohttp.web.Response()
+        except asyncio.exceptions.TimeoutError:
+            # this is the normal path of the code
+            # if the client_data hasn't been set, keep waiting for it
+            if client_data is None:
+                continue
+
+        if ws.closed:
+            debug_log("Socket closed.")
+            return aiohttp.web.Response()
+
+        outputs = await execute_queries(client_data, request)
+
+        await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
+        # TODO allow the client to set the update timer.
+        # it would be cool if the client could set different sleep timers for each item
+        await asyncio.sleep(0.5)
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use

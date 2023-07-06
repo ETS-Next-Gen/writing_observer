@@ -10,6 +10,7 @@ cryptography
 cython
 dash
 dash-extensions
+dash_renderjson
 docopt
 dash-bootstrap-components
 dash-core-components

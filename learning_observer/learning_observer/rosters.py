@@ -77,6 +77,7 @@ import learning_observer.paths as paths
 import learning_observer.prestartup
 import learning_observer.runtime
 import learning_observer.settings as settings
+import learning_observer.communication_protocol.integration
 
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
@@ -404,6 +405,14 @@ async def courselist(request):
         default=[]
     )
     return course_list
+
+
+@learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
+async def courseroster_runtime(runtime, course_id):
+    '''
+    Wrapper to call courseroster with a runtime object
+    '''
+    return await courseroster(runtime.get_request(), course_id)
 
 
 async def courseroster(request, course_id):

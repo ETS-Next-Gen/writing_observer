@@ -22,7 +22,8 @@ import learning_observer.paths
 import learning_observer.settings
 
 from learning_observer.log_event import debug_log
-
+import learning_observer.communication_protocol.integration
+import learning_observer.queries
 import learning_observer.stream_analytics.helpers as helpers
 
 
@@ -30,6 +31,7 @@ import learning_observer.stream_analytics.helpers as helpers
 LOADED = False
 
 COURSE_AGGREGATORS = collections.OrderedDict()
+EXECUTION_DAGS = {}
 REDUCERS = []
 THIRD_PARTY = {}
 STATIC_REPOS = {}
@@ -78,6 +80,14 @@ def course_aggregators():
     '''
     load_modules()
     return COURSE_AGGREGATORS
+
+
+def execution_dags():
+    '''
+    Return a dictionary of all named queries the system can make.
+    '''
+    load_modules()
+    return EXECUTION_DAGS
 
 
 def reducers():
@@ -241,7 +251,9 @@ def load_reducers(component_name, module):
                 "context": reducer['context'],
                 "function": reducer['function'],  # Primary ID
                 "scope": reducer.get('scope', DEFAULT_STUDENT_SCOPE),
-                "module": module
+                "default": reducer.get('default', {}),
+                "module": module,
+                "id": f"{module.__name__.replace('.module', '')}.{reducer['function'].__name__}"
             }
 
             # Here's the deal: Our primary ID is the function itself, and our
@@ -286,6 +298,28 @@ def load_course_aggregators(component_name, module):
             debug_log(f"Loaded course aggregator: {cleaned_aggregator}")
     else:
         debug_log(f"Component {component_name} has no course aggregators")
+
+
+def load_execution_dags(component_name, module):
+    '''
+    Load execution DAG from a module.
+    '''
+    if hasattr(module, "EXECUTION_DAG"):
+        debug_log(f"Loading execution DAG from {component_name}")
+        # set up a nested module to add our queries to
+        queries = learning_observer.queries.NestedQuery()
+        learning_observer.communication_protocol.integration.add_exports_to_module(module.EXECUTION_DAG, queries)
+        # set the nested module to the `learning_observer.queries.component_name` namespace
+        setattr(learning_observer.queries, component_name, queries)
+
+        # clean queries
+        cleaned_query = {'module': component_name}
+        cleaned_query.update(module.EXECUTION_DAG)
+        if component_name in EXECUTION_DAGS:
+            raise KeyError(f'Execution DAG already exists for {component_name}')
+        EXECUTION_DAGS[component_name] = cleaned_query
+    else:
+        debug_log(f"Component {component_name} has no execution DAG")
 
 
 def load_ajax(component_name, module):
@@ -491,6 +525,7 @@ def load_module_from_entrypoint(entrypoint):
     debug_log(f"Corresponding to module: {module.__name__} ({module.NAME})")
     load_reducers(component_name, module)
     load_course_aggregators(component_name, module)
+    load_execution_dags(component_name, module)
     load_ajax(component_name, module)
     load_dashboards(component_name, module)
     load_extra_views(component_name, module)
