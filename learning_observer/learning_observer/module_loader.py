@@ -308,7 +308,7 @@ def load_execution_dags(component_name, module):
         debug_log(f"Loading execution DAG from {component_name}")
         # set up a nested module to add our queries to
         queries = learning_observer.queries.NestedQuery()
-        learning_observer.communication_protocol.integration.add_queries_to_module(module.EXECUTION_DAG, queries)
+        learning_observer.communication_protocol.integration.add_exports_to_module(module.EXECUTION_DAG, queries)
         # set the nested module to the `learning_observer.queries.component_name` namespace
         setattr(learning_observer.queries, component_name, queries)
 

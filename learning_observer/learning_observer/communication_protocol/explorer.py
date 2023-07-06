@@ -163,8 +163,6 @@ def create_query(item):
             html.H3(copy['module']),
             html.H4('Exports'),
             # TODO create exports piece
-            html.H4('Parameters'),
-            html.Div([create_parameter(p) for p in copy['parameters']]),
             html.H4('Flow chart'),
             de.Mermaid(
                 chart=create_mermaid_flowchart(copy)

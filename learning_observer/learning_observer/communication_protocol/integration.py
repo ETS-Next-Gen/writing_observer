@@ -1,6 +1,8 @@
 '''
-This file handles integrating queries into the
-Learning Observer platform.
+This file handles integrating exports from DAGs into the
+Learning Observer platform and publishing functions from
+the Learning Observer platform into the communications
+protocol.
 '''
 import copy
 
@@ -18,23 +20,10 @@ any duplicates.
 
 def publish_function(name):
     """
-    Decorator to expose functions to the communication protocol.
-
-    Args:
-        name: The name of the handler.
-
-    Returns:
-        The decorator function.
-
-    Example Usage:
-        @publish_function("my_function")
-        def my_function_handler():
-            pass
-
-    Note:
-        This decorator adds the decorated function to the `FUNCTIONS` dictionary
-        with the specified name as the key. The function can later be executed
-        as part of a DAG call using the `create_function` function.
+    To expose functions to the communications protocol, we have to
+    pass in a dictionary of functions to the DAG executor. The Learning
+    Observer system will pass the `FUNCTIONS` dictionary to the executor.
+    This decorator adds a function to FUNCTIONS.
     """
     def decorator(f):
         if name in FUNCTIONS:
@@ -46,32 +35,27 @@ def publish_function(name):
     return decorator
 
 
-def add_queries_to_module(execution_dag, module):
+def add_exports_to_module(execution_dag, module):
     '''
-    Add queries to each module as a callable object.
+    We may want to access each endpoint as a function call in code.
+    This function iterates over exposed endpoints and adds each as a callable
+    function to the provided `module`.
 
     The `set_query_with_name` inner closure is necessary to appropriately
     set the `name` parameter within the `query_func` inner-most function.
 
-    Args:
-        named_queries: A dictionary containing named queries.
-        module: The module to which the queries will be added.
-
     Example Usage:
-        queries = {
-            "query1": ...,
-            "query2": ...,
+        dag = {
+            "exports": {
+                "query1": ...,
+                "query2": ...,
+            }
         }
-        add_queries_to_module(queries, my_module)
+        add_exports_to_module(exports, my_module)
         result = await my_module.query1(parameter1=123)
 
     Raises:
         AttributeError: If the attribute name already exists in the module.
-
-    Note:
-        This function iterates over the named queries and adds each query as a
-        callable object to the specified module. The queries can be executed
-        by calling them as attributes of the module.
     '''
     for query_name in execution_dag['exports']:
         def set_query_with_name(name):
@@ -86,24 +70,15 @@ def add_queries_to_module(execution_dag, module):
         set_query_with_name(query_name)
 
 
-def create_function(query, targets):
+def prepare_dag_execution(query, targets):
     '''
-    Creates a query function for executing a DAG (Directed Acyclic Graph) based on the provided query.
-
-    Args:
-        query: A query object representing the DAG to be executed.
-
-    Returns:
-        A query function that can be used to execute the DAG.
+    This functions wraps an execution DAG in the necessary steps to
+    execute specific `targets`.
 
     Example Usage:
         query_obj = ...  # create the query object
-        query_function = create_function(query_obj)
+        query_function = prepare_dag_execution(query_obj)
         result = await query_function(param1=value1, param2=value2)
-
-    Note:
-        The query object is flattened and passed to an executor to execute the DAG.
-        The executor uses the provided parameters and functions for execution.
     '''
     async def query_func(**kwargs):
         flat = learning_observer.communication_protocol.util.flatten(copy.deepcopy(query))
