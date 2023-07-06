@@ -198,7 +198,7 @@ def register_dashboard_api(app):
             '/wsapi/dashboard',
             learning_observer.dashboard.websocket_dashboard_view),
         aiohttp.web.get(
-            '/wsapi/communication_dashboard',
+            '/wsapi/communication_protocol',
             learning_observer.dashboard.websocket_dashboard_handler
         ),
         aiohttp.web.get(

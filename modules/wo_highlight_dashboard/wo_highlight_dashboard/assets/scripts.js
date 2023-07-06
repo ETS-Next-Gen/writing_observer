@@ -122,10 +122,9 @@ window.dash_clientside.clientside = {
             return [prev_metrics, prev_text, prev_highlights, prev_indicators, -1, 0];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
-        const data = JSON.parse(msg.data)['latest_writing_data'];
-        // console.log(data);
+        const data = JSON.parse(msg.data)['docs_with_nlp']['nlp_combined'];
         for (let i = 0; i < data.length; i++) {
-            let curr_user = data[i].student.user_id;
+            let curr_user = data[i].user_id;
             let user_index = student_ids.findIndex(item => item.user_id === curr_user)
             const last_document = data[i]?.student?.['writing_observer.writing_analysis.last_document'];
             const link = (typeof last_document !== 'undefined') ? `https://docs.google.com/document/d/${last_document.document_id}/edit` : '';
@@ -367,7 +366,7 @@ window.dash_clientside.clientside = {
         return true;
     },
 
-    send_options_to_server: function(types, metrics, highlights, indicators, sort_by) {
+    send_options_to_server: function(types, metrics, highlights, indicators, sort_by, course_id) {
         // Send selected options to the server 
         // TODO work on protocol for communicating with the 
         //
@@ -377,8 +376,18 @@ window.dash_clientside.clientside = {
         // Input(settings.highlight_checklist, 'value'),
         // Input(settings.indicator_checklist, 'value')
         // Input(settings.sort_by_checklist, 'value')
-        const data = metrics.concat(highlights).concat(indicators).concat(sort_by);
-        return [JSON.stringify(data)]
+        const options = metrics.concat(highlights).concat(indicators).concat(sort_by);
+        const message = {
+            docs_with_nlp: {
+                execution_dag: 'writing_observer',
+                target_exports: ['docs_with_nlp_annotations'],
+                kwargs: {
+                    course_id: course_id,
+                    nlp_options: options
+                }
+            }
+        }
+        return JSON.stringify(message)
     },
 
     show_nlp_running_alert: function(msg_count, checklist, metrics, highlight, indicator, sort_by) {

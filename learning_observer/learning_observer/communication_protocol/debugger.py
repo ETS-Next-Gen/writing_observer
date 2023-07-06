@@ -27,7 +27,7 @@ def layout():
                     html.H1('Communication Protocol Debugger'),
                     lodrc.LOConnection(
                         id=ws,
-                        url='ws://localhost:8888/wsapi/communication_dashboard'
+                        url='ws://localhost:8888/wsapi/communication_protocol'
                     ),
                     html.Div(id=status)
                 ]

@@ -32,9 +32,9 @@ EXECUTION_DAG = {
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         # 'updated_docs': '',  # TODO call google API here
-        "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT_ON='user_id'),
+        "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT_ON='user_id'),
         'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
-        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='context.context.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
+        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     "exports": {
         "docs_with_roster": {

@@ -230,20 +230,6 @@ clientside_callback(
     Input(prefix, 'className')
 )
 
-# set the websocket data_scope
-# TODO set with url similar to course id
-clientside_callback(
-    """
-    function(course, assignment) {
-        const ret = {"module": "latest_data", "course": course};
-        return ret;
-    }
-    """,
-    Output(websocket, 'data_scope'),
-    Input(course_store, 'data'),
-    Input(assignment_store, 'data')
-)
-
 # set the websocket status icon
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='set_status'),
@@ -319,7 +305,8 @@ clientside_callback(
     Input(settings.metric_checklist, 'value'),
     Input(settings.highlight_checklist, 'value'),
     Input(settings.indicator_checklist, 'value'),
-    Input(settings.sort_by_checklist, 'value')
+    Input(settings.sort_by_checklist, 'value'),
+    Input(course_store, 'data')
 )
 
 # show or hide the settings checklist for different components

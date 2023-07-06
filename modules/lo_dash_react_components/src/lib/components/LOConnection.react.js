@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
  * A simple web socket interface to the Learning Observer
  *
  * We need to define an appropriate protocol here.
+ * TODO remove anything to do with data scope
  */
 export default class LOConnection extends Component {
     encode_query_string(obj) {
@@ -35,7 +36,7 @@ export default class LOConnection extends Component {
 
         // Determine url
         const protocol = {"http:": "ws:", "https:": "wss:"}[window.location.protocol];
-        url = url ? url : `${protocol}//${window.location.hostname}:${window.location.port}/wsapi/dashboard${params}`;
+        url = url ? url : `${protocol}//${window.location.hostname}:${window.location.port}/wsapi/communication_protocol`;
         this.client = new WebSocket(url);
         // Listen for events.
         this.client.onopen = (e) => {
