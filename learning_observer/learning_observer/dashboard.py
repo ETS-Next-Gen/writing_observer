@@ -401,7 +401,7 @@ async def websocket_dashboard_handler(request):
     Returns:
         aiohttp web response.
     '''
-    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.1)
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.3)
     await ws.prepare(request)
     client_data = None
 
@@ -426,7 +426,7 @@ async def websocket_dashboard_handler(request):
 
         outputs = await execute_queries(client_data, request)
 
-        await ws.send_json({q: json.dumps(v, default=str) for q, v in zip(client_data.keys(), outputs)})
+        await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
         # TODO allow the client to set the update timer.
         # it would be cool if the client could set different sleep timers for each item
         await asyncio.sleep(3)
