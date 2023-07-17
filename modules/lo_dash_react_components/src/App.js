@@ -3,6 +3,8 @@ import { BrowserRouter, Link, Routes, Route } from "react-router-dom";
 import PropTypes from 'prop-types';
 
 import "./css/index.css";
+import "./css/components/WOMetrics.css"
+import "./css/components/LONameTag.css"
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const components = {};
