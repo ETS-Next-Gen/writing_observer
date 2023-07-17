@@ -6,10 +6,12 @@ It just routes to smaller pipelines. Currently that's:
 2) Reconstruct text (+Deane graphs, etc.)
 '''
 # Necessary for the wrapper code below.
+import time
 import re
 
 import writing_observer.reconstruct_doc
 
+import learning_observer.communication_protocol.integration
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
 import learning_observer.settings
 
@@ -31,6 +33,8 @@ import learning_observer.settings
 # Should be 60-300 in prod. 5 seconds is nice for debugging
 TIME_ON_TASK_THRESHOLD = 5
 
+# Threshold in seconds to determine if a student is actively working
+ACTIVE_THRESHOLD = 60
 
 # Here's the basic deal:
 #
@@ -52,6 +56,12 @@ if NEW:
     gdoc_scope = Scope([KeyField.STUDENT, EventField('doc_id')])
 else:
     gdoc_scope = student_scope  # HACK for backwards-compatibility
+
+
+@learning_observer.communication_protocol.integration.publish_function('writing_observer.activity_map')
+def determine_activity_status(last_ts):
+    status = 'active' if time.time() - last_ts < ACTIVE_THRESHOLD else 'inactive'
+    return {'status': status}
 
 
 @kvs_pipeline(scope=gdoc_scope)

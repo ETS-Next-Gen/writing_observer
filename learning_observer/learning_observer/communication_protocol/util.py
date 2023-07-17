@@ -62,6 +62,9 @@ def get_nested_dict_value(d, key_str=None):
     '''
     k = key_str
     output = learning_observer.util.get_nested_dict_value(d, k)
+    # FIXME if the output is None, then we still raise an error
+    # we ought to allow the output to be None without raising an error
+    # sometimes the default of a reducer might be None
     if output is None:
         raise learning_observer.communication_protocol.exception.DAGExecutionException(
             f'Field `{key_str}` not found in {d}. '

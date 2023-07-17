@@ -14,6 +14,7 @@ import learning_observer.communication_protocol.query as q
 
 import writing_observer.aggregator
 import writing_observer.writing_analysis
+import writing_observer.languagetool
 from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
@@ -24,17 +25,30 @@ NAME = "The Writing Observer"
 # course_id or rosters.course_id to distinguish or provide a default - how to specify selector
 course_roster = q.call('learning_observer.courseroster')
 process_texts = q.call('writing_observer.process_texts')
+determine_activity = q.call('writing_observer.activity_map')
+languagetool = q.call('writing_observer.languagetool')
+update_via_google = q.call('writing_observer.update_reconstruct_with_google_api')
 
 
 EXECUTION_DAG = {
     "execution_dag": {
         "roster": course_roster(runtime=q.parameter("runtime"), course_id=q.parameter("course_id", required=True)),
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
-        "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
-        # 'updated_docs': '',  # TODO call google API here
+        'update_docs': update_via_google(runtime=q.parameter("runtime"), doc_ids=q.variable('doc_ids')),
+        "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("update_docs"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT_ON='user_id'),
         'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
-        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
+        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts'}),
+        'activity_map': q.map(determine_activity, q.variable('time_on_task'), value_path='last_ts'),
+        'activity_combined': q.join(LEFT=q.variable('activity_map'), LEFT_ON='providence.value.providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'single_student_latest_doc': q.select(q.keys('writing_observer.last_document', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
+        'single_update_doc': update_via_google(runtime=q.parameter('runtime'), doc_ids=q.variable('single_student_latest_doc')),
+        'single_student_doc': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id', RESOURCES=q.variable("single_update_doc"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
+        'single_student_lt': languagetool(texts=q.variable('single_student_doc')),
+        'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'overall_lt': languagetool(texts=q.variable('docs')),
+        'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     "exports": {
         "docs_with_roster": {
@@ -46,6 +60,21 @@ EXECUTION_DAG = {
             "returns": "nlp_combined",
             "parameters": ["course_id", "nlp_options"],
             "output": ""
+        },
+        "activity": {
+            "returns": "activity_combined",
+            "parameters": ["course_id"],
+            "output": ""
+        },
+        'single_student': {
+            'returns': 'single_lt_combined',
+            'parameters': ['course_id', 'student_id'],
+            'output': ''
+        },
+        'overall_errors': {
+            'returns': 'lt_combined',
+            'parameters': ['course_id'],
+            'output': ''
         }
     },
 }
@@ -93,7 +122,8 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.gdoc_scope,
-        'function': writing_observer.writing_analysis.time_on_task
+        'function': writing_observer.writing_analysis.time_on_task,
+        'default': {'saved_ts': 0}
     },
     {
         'context': "org.mitros.writing_analytics",
