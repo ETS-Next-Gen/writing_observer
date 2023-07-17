@@ -132,7 +132,8 @@ def compile_dash_assets():
         '''
         for filename in os.listdir(source):
             source_path = os.path.join(source, filename)
-            destination_path = os.path.join(destination, filename)
+            module = os.path.basename(os.path.dirname(source))
+            destination_path = os.path.join(destination, f'{module}_{filename}')
             print("Copying", destination_path)
             if os.path.exists(destination_path):
                 raise Exception(f'File {destination_path} already exists compiling Dash assets')
