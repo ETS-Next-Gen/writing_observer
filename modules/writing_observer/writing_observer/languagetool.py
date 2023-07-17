@@ -5,6 +5,7 @@ import learning_observer.util
 from awe_languagetool import languagetoolClient
 
 client = None
+DEFAULT_PORT = 8081
 
 
 @learning_observer.prestartup.register_startup_check
@@ -18,7 +19,7 @@ def check_languagetool_running():
     '''
     if learning_observer.settings.module_setting('writing_observer', 'use_languagetool', False):
         host = learning_observer.settings.module_setting('writing_observer', 'languagetool_host', 'localhost')
-        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port', 8081)
+        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port', DEFAULT_PORT)
         lt_started = learning_observer.util.check_service(host, port)
         if not lt_started:
             raise learning_observer.prestartup.StartupCheck(
