@@ -13,7 +13,7 @@ export default class LONameTag extends Component {
                 className={`LONameTag ${className}`}
                 id={id}
             >
-                <img src={`https:${profile.photo_url}`} title={profile.name.full_name} />
+                <img src={(profile.photo_url === undefined) ? 'https://lh3.googleusercontent.com/a/default-user' : `https:${profile.photo_url}`} title={profile.name.full_name} />
                 <span>{profile.name.full_name}</span>
             </div>
         )

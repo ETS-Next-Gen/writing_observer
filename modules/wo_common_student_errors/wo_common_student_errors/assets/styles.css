@@ -1,0 +1,9 @@
+
+.errors-per-word-tooltip {
+    width: 250px;
+    white-space: normal;
+}
+
+.individual-error-row {
+    /* height: 40vh; */
+}
