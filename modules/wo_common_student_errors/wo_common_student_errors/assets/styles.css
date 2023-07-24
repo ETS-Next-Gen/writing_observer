@@ -4,6 +4,41 @@
     white-space: normal;
 }
 
-.individual-error-row {
-    /* height: 40vh; */
+.individual-student-loading {
+    .loaded {
+        display: none;
+    }
+
+    .loading {
+        display: block;
+    }
+}
+
+.individual-student-loaded {
+    .loaded {
+        display: block;
+    }
+
+    .loading {
+        display: none;
+    }
+}
+
+.student-activity-status-row {
+    .student-name-tag {
+        display: inline-block;
+        text-decoration: none;
+        color: var(--bs-body-color);
+    }
+
+    .activity-status-link {
+        display: flex;
+        width: auto;
+    }
+}
+
+.categorical-table-headers {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    text-align: end;
 }

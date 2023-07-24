@@ -23,7 +23,7 @@ window.dash_clientside.common_student_errors = {
      * to the Learning Observer server.
      */
     if (state === undefined) {
-      return window.dash_clientside.no_update
+      return [window.dash_clientside.no_update, 'individual-student-loading']
     }
     if (state.readyState === 1) {
       if (hash.length === 0) { return window.dash_clientside.no_update }
@@ -32,8 +32,10 @@ window.dash_clientside.common_student_errors = {
       if (!decoded.course_id) { return window.dash_clientside.no_update }
 
       // the server expects a list of dictionary students, so we format the data that way
+      let loadingClass = 'individual-student-loaded'
       if ('student_id' in decoded) {
         decoded.student_id = [{ user_id: decoded.student_id }]
+        loadingClass = 'individual-student-loading'
       } else {
         decoded.student_id = []
       }
@@ -44,9 +46,9 @@ window.dash_clientside.common_student_errors = {
           kwargs: decoded
         }
       }
-      return JSON.stringify(message)
+      return [JSON.stringify(message), loadingClass]
     }
-    return window.dash_clientside.no_update
+    return [window.dash_clientside.no_update, window.dash_clientside.no_update]
   },
 
   update_hash_via_graph: function (selected, message) {
@@ -74,11 +76,12 @@ window.dash_clientside.common_student_errors = {
         type: 'A',
         props: {
           href: `#course_id=${params.course_id};student_id=${data[i].user_id}`,
+          className: 'activity-status-link',
           children: {
             namespace: 'lo_dash_react_components',
             props: {
               profile: data[i].profile,
-              className: 'student-img',
+              className: 'student-name-tag',
               id: `${data[i].user_id}-activity-img`
             },
             type: 'LONameTag'
@@ -90,18 +93,23 @@ window.dash_clientside.common_student_errors = {
     return [output.inactive === undefined ? 'No students' : output.inactive, output.active === undefined ? 'No students' : output.active]
   },
 
-  receive_populate_student_error: function (message) {
+  receive_populate_student_error: function (message, hash) {
     let data = message.wo.single_lt_combined
     if (!data | data.length === 0) {
       return ['Select a student', '']
     }
     data = data[0]
+    const decoded = decode_string_dict(hash.slice(1))
+    if (decoded.student_id !== data.user_id) {
+      return [window.dash_clientside.no_update, window.dash_clientside.no_update, window.dash_clientside.no_update, window.dash_clientside.no_update, 'individual-student-loading']
+    }
     const student = {
       namespace: 'lo_dash_react_components',
       props: {
         profile: data.profile,
-        className: 'student-img',
-        id: `${data.user_id}-activity-img`
+        className: 'student-name-tag',
+        id: `${data.user_id}-activity-img`,
+        includeName: true
       },
       type: 'LONameTag'
     }
@@ -125,9 +133,11 @@ window.dash_clientside.common_student_errors = {
       }
     })
     let names = ['Errors']
+    let ids = ['Errors']
     let parents = ['']
     let values = [data.matches.length]
     for (let key in data.category_counts) {
+      ids = ids.concat(key)
       names = names.concat(key)
       parents = parents.concat('Errors')
       values = values.concat(data.category_counts[key])
@@ -135,12 +145,13 @@ window.dash_clientside.common_student_errors = {
     let category
     for (let key in data.subcategory_counts) {
       category = key.split(':')[0]
-      names = names.concat(key)
+      ids = ids.concat(key)
+      names = names.concat(key.split(':')[1].trim())
       parents = parents.concat(category)
       values = values.concat(data.subcategory_counts[key])
     }
-    const extendedData = [{ labels: [names], parents: [parents], values: [values] }, [0], names.length]
-    return [student, text, errors, extendedData]
+    const extendedData = [{ ids: [ids], labels: [names], parents: [parents], values: [values] }, [0], names.length]
+    return [student, text, errors, extendedData, 'individual-student-loaded']
   },
 
   receive_populate_error_graph: function (message) {
@@ -242,5 +253,27 @@ window.dash_clientside.common_student_errors = {
       })
     })
     return rows
+  },
+
+  receive_populate_agg_info: function (message) {
+    const data = message.wo.lt_combined
+    if (!data) {
+      return window.dash_clientside.no_update
+    }
+
+    const flatErrors = data.map((student) => {
+      return {
+        student: { user_id: student.user_id, profile: student.profile },
+        errors: student.matches.map((match) => {
+          return {
+            category: match.label,
+            subcategory: match.detail,
+            shortMessage: match.shortMessage,
+            message: match.message
+          }
+        })
+      }
+    })
+    return flatErrors
   }
 }

@@ -10,7 +10,7 @@ def create_activity_card(id, title):
     return dbc.Col(
         dbc.Card([
             dbc.CardHeader(title),
-            dbc.CardBody(id=id)
+            dbc.CardBody(dbc.Row(id=id, class_name='g-1 student-activity-status-row'))
         ]),
         sm=6
     )

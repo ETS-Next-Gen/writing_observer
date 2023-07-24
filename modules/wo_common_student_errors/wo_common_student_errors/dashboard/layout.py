@@ -9,7 +9,7 @@ import plotly.express as px
 from dash import clientside_callback, ClientsideFunction, Output, Input, State, html, dcc
 
 # local imports
-from . import activity, individual
+from . import activity, individual, aggregate_information, colors
 
 prefix = 'common-student-errors'
 websocket = f'{prefix}-websocket'
@@ -29,7 +29,7 @@ categorical_errors = f'{prefix}-categorical-errors'
 
 def layout():
     headers = ['Student']
-    [headers.append(category) for category in individual.colors.keys()]
+    [headers.append(category) for category in colors.colors.keys()]
 
     tooltip = dcc.Tooltip(id=error_per_length_tooltip, direction='bottom')
     overall_view = dbc.Col([
@@ -40,9 +40,10 @@ def layout():
             clear_on_unhover=True
         ),
         tooltip,
+        aggregate_information.layout,
         html.Div([
             dbc.Table([
-                html.Thead((html.Tr([html.Th(h) for h in headers]))),
+                html.Thead((html.Tr([html.Th(h, className='categorical-table-headers') for h in headers]))),
                 html.Tbody(id=categorical_errors)
             ], hover=True),
         ])
@@ -60,12 +61,13 @@ def layout():
             individal_view
         ])
     ], fluid=True)
-    return cont
+    return dcc.Loading(cont)
 
 
 clientside_callback(
     ClientsideFunction(namespace='common_student_errors', function_name='send_to_loconnection'),
     Output(websocket, 'send'),
+    Output(individual.prefix, 'className'),
     Input(websocket, 'state'),  # used for initial setup
     Input('_pages_location', 'hash')
 )
@@ -81,7 +83,7 @@ clientside_callback(
     '''
     function(message) {
         const data = JSON.parse(message.data)
-        console.log(data)
+        // console.log(data)
         return data
     }
     ''',
@@ -102,7 +104,10 @@ clientside_callback(
     Output(individual.text, 'children'),
     Output(individual.errors, 'children'),
     Output(individual.error_sunburst, 'extendData'),
-    Input(ws_store, 'data')
+    Output(individual.prefix, 'className', allow_duplicate=True),
+    Input(ws_store, 'data'),
+    Input('_pages_location', 'hash'),
+    prevent_initial_call=True
 )
 
 clientside_callback(
@@ -123,5 +128,11 @@ clientside_callback(
 clientside_callback(
     ClientsideFunction(namespace='common_student_errors', function_name='receive_populate_categorical_errors'),
     Output(categorical_errors, 'children'),
+    Input(ws_store, 'data')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='common_student_errors', function_name='receive_populate_agg_info'),
+    Output(aggregate_information.data_store, 'data'),
     Input(ws_store, 'data')
 )

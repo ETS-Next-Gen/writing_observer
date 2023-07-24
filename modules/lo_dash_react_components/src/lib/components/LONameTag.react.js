@@ -6,15 +6,19 @@ import PropTypes from "prop-types";
  */
 export default class LONameTag extends Component {
     render() {
-        const { id, profile, className } = this.props;
+        const { id, profile, className, includeName } = this.props;
         return (
             <div
                 key={`lo-name-tag-${id}`}
                 className={`LONameTag ${className}`}
                 id={id}
             >
-                <img src={(profile.photo_url === undefined) ? 'https://lh3.googleusercontent.com/a/default-user' : `https:${profile.photo_url}`} title={profile.name.full_name} />
-                <span>{profile.name.full_name}</span>
+                {
+                    (profile.photo_url & profile.photo_url !== '//lh3.googleusercontent.com/a/default-user')
+                    ? <img className='name-tag-photo' src={`https:${profile.photo_url}`} title={profile.name.full_name} />
+                    : <span className='name-tag-photo' title={profile.name.full_name}>{`${profile.name.given_name.slice(0,1)}${profile.name.family_name.slice(0,1)}`}</span>
+                }
+                {includeName ? <span className='name-tag-name'>{profile.name.full_name}</span> : <span/>}
             </div>
         )
     }
@@ -22,6 +26,7 @@ export default class LONameTag extends Component {
 LONameTag.defaultProps = {
     id: "",
     className: "",
+    includeName: false
 };
 
 LONameTag.propTypes = {
@@ -48,6 +53,11 @@ LONameTag.propTypes = {
           }`
        */
     profile: PropTypes.object.isRequired,
+
+    /**
+     * Include name or just use the image
+     */
+    includeName: PropTypes.bool,
 
     /**
      * Dash-assigned callback that should be called to report property changes

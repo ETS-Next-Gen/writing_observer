@@ -1,3 +1,4 @@
+import learning_observer.cache
 import learning_observer.communication_protocol.integration
 import learning_observer.prestartup
 import learning_observer.settings
@@ -45,16 +46,24 @@ def initialize_client():
 
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.languagetool')
-async def process_text(texts):
+async def process_texts(texts):
     '''
     This method processes the text through Language Tool and returns
     the output.
+
+    We use a closure to allow the system to initialize the memoization KVS.
     '''
+
     initialize_client()
+
+    @learning_observer.cache.async_memoization()
+    async def process_text(text):
+        return await client.summarizeText(text)
+
     output = []
     for t in texts:
         text = t.get('text', '')
-        text_data = await client.summarizeText(text)
+        text_data = await process_text(text)
         text_data['text'] = text
         text_data['providence'] = t['providence']
         output.append(text_data)
