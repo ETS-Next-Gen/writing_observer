@@ -13,8 +13,19 @@ const sortObject = function(obj) {
 
 const graphUpdates = function (data) {
   const sorted = sortObject(data)
+  const colors = []
+  const cleanedNames = []
+  for (let i = 0; i < sorted[0].length; i++) {
+    const split = sorted[0][i].split(':')
+    if (split.length > 1) {
+      cleanedNames.push(split[1])
+    } else {
+      cleanedNames.push(split[0])
+    }
+    colors.push(categoryColors[split[0]])
+  }
   const updates = [
-    { x: [sorted[0]], y: [sorted[1]] },
+    { x: [cleanedNames], y: [sorted[1]], 'marker.color': [colors] },
     [0],
     sorted[0].length
   ]
@@ -42,12 +53,14 @@ window.dash_clientside.aggregate_common_errors = {
     const subcategoryCount = {}
     const feedbackCount = {}
     const studentCount = {}
+    let combined
     data.forEach((student) => {
       student.errors.forEach((error) => {
         categoryCount[error.category] = (categoryCount[error.category] || 0) + 1
         if (clickedCats.includes(error.category) & (clickedSubcats.length === 0 | clickedSubcats.includes(error.subcategory))) {
-          subcategoryCount[error.subcategory] = (subcategoryCount[error.subcategory] || 0) + 1
-          feedbackCount[error.shortMessage] = (feedbackCount[error.shortMessage] || 0) + 1
+          combined = `${error.category}: ${error.subcategory}`
+          subcategoryCount[combined] = (subcategoryCount[combined] || 0) + 1
+          feedbackCount[error.message] = (feedbackCount[error.message] || 0) + 1
           studentCount[student.student.user_id] = (studentCount[student.student.user_id] || 0) + 1
         }
       })

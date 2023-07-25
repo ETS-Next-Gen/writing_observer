@@ -1,5 +1,5 @@
 colors = {
-    'Error': 'white',  # white
+    'Errors': 'white',  # white
     'Capitalization': '#f3969a',  # light pink
     'Grammar': '#56cc9d',  # turquoise
     'Possible Typo': '#6cc3d5',  # sky blue

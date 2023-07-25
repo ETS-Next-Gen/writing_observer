@@ -9,7 +9,7 @@ import plotly.express as px
 from dash import clientside_callback, ClientsideFunction, Output, Input, State, html, dcc
 
 # local imports
-from . import activity, individual, aggregate_information, colors
+from . import activity, individual, aggregate_information, colors, hierarchical_information
 
 prefix = 'common-student-errors'
 websocket = f'{prefix}-websocket'
@@ -40,18 +40,20 @@ def layout():
             clear_on_unhover=True
         ),
         tooltip,
+        hierarchical_information.layout,
         aggregate_information.layout,
         html.Div([
+            html.H4('Table counts'),
             dbc.Table([
                 html.Thead((html.Tr([html.Th(h, className='categorical-table-headers') for h in headers]))),
                 html.Tbody(id=categorical_errors)
             ], hover=True),
         ])
-    ], md=9, lg=8, xl=7, xxl=6)
+    ], md=9, lg=8, xl=7, xxl=6, class_name='vh-100 overflow-auto')
 
     individal_view = dbc.Col([
         individual.layout
-    ], md=3, lg=4, xl=5, xxl=6)
+    ], md=3, lg=4, xl=5, xxl=6, class_name='vh-100 overflow-auto')
 
     cont = dbc.Container([
         dcc.Store(ws_store, data={}),
@@ -83,7 +85,6 @@ clientside_callback(
     '''
     function(message) {
         const data = JSON.parse(message.data)
-        // console.log(data)
         return data
     }
     ''',
@@ -134,5 +135,19 @@ clientside_callback(
 clientside_callback(
     ClientsideFunction(namespace='common_student_errors', function_name='receive_populate_agg_info'),
     Output(aggregate_information.data_store, 'data'),
+    Input(ws_store, 'data')
+)
+
+clientside_callback(
+    '''
+    function(message) {
+        const data = message.wo.lt_combined
+        if (!data) {
+        return window.dash_clientside.no_update
+        }
+        return data
+    }
+    ''',
+    Output(hierarchical_information.data_store, 'data'),
     Input(ws_store, 'data')
 )

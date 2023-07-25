@@ -14,11 +14,11 @@ feedback_list = f'{prefix}-feedback-list'
 student_list = f'{prefix}-student-list'
 data_store = f'{prefix}-store'
 
-category_figure = go.Figure([go.Bar(x=[''], y=[''])])
+category_figure = go.Figure(go.Bar(x=[], y=[], marker_color=[]))
 category_figure.update_layout(margin=dict(t=0, l=0, r=0, b=0), clickmode='event+select')
 category_figure.update_yaxes(type='linear', rangemode='tozero')
 
-subcategory_figure = go.Figure([go.Bar(x=[''], y=[''])])
+subcategory_figure = go.Figure(go.Bar(x=[], y=[], marker_color=[]))
 subcategory_figure.update_layout(margin=dict(t=0, l=0, r=0, b=0), clickmode='event+select')
 subcategory_figure.update_yaxes(type='linear', rangemode='tozero')
 
@@ -33,7 +33,7 @@ students = dbc.Card([
 ])
 
 layout = html.Div([
-    html.Title('Aggregate Information'),
+    html.H4('Aggregate Information'),
     dbc.Row([
         dbc.Col(dcc.Graph(id=category_bar_chart, figure=category_figure), sm=6),
         dbc.Col(dcc.Graph(id=subcategory_bar_chart, figure=subcategory_figure), sm=6),

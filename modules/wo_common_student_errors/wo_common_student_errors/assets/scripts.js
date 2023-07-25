@@ -191,7 +191,8 @@ window.dash_clientside.common_student_errors = {
             namespace: 'lo_dash_react_components',
             props: {
               profile: data.profile,
-              id: `${data.user_id}-activity-img`
+              id: `${data.user_id}-activity-img`,
+              includeName: true
             },
             type: 'LONameTag'
           },
