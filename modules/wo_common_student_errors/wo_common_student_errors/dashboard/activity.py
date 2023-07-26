@@ -1,3 +1,6 @@
+'''
+This file defines the components for the student activity information
+'''
 import dash_bootstrap_components as dbc
 
 
@@ -7,6 +10,9 @@ active = f'{prefix}-active'
 
 
 def create_activity_card(id, title):
+    '''
+    Each activity (inactive/active) should look have the same look
+    '''
     return dbc.Col(
         dbc.Card([
             dbc.CardHeader(title),
@@ -16,11 +22,9 @@ def create_activity_card(id, title):
     )
 
 
-def student_activity():
-    inactive_card = create_activity_card(inactive, 'Inactive')
-    active_card = create_activity_card(active, 'Active')
-    row = dbc.Row([
-        inactive_card,
-        active_card
-    ], class_name='g-1')
-    return row
+inactive_card = create_activity_card(inactive, 'Inactive')
+active_card = create_activity_card(active, 'Active')
+layout = dbc.Row([
+    inactive_card,
+    active_card
+], class_name='g-1')

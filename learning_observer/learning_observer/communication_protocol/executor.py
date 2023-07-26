@@ -17,7 +17,7 @@ import learning_observer.module_loader
 import learning_observer.settings
 import learning_observer.stream_analytics.fields
 import learning_observer.stream_analytics.helpers
-from learning_observer.communication_protocol.util import get_nested_dict_value
+from learning_observer.util import get_nested_dict_value
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
 dispatch = learning_observer.communication_protocol.query.dispatch
@@ -180,14 +180,14 @@ def handle_join(left, right, left_on, right_on):
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
     ... )
-    [{'error': "Field `lid` not found in {'left': True}. Ensure the keys are present within d.", 'function': 'get_nested_dict_value', 'error_providence': {'dict': {'left': True}, 'key_string': 'lid'}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+    [{'error': 'KeyError: key not found', 'function': 'handle_join', 'error_providence': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
     for d in right:
         try:
             nested_value = get_nested_dict_value(d, right_on)
             right_dict[nested_value] = d
-        except DAGExecutionException as e:
+        except KeyError as e:
             pass
 
     result = []
@@ -203,8 +203,12 @@ def handle_join(left, right, left_on, right_on):
                 # defaults to left_dict if not match isn't found
                 merged_dict = left_dict
             result.append(merged_dict)
-        except DAGExecutionException as e:
-            result.append(e.to_dict())
+        except KeyError as e:
+            result.append(DAGExecutionException(
+                f'KeyError: key not found',
+                inspect.currentframe().f_code.co_name,
+                {'target': left_dict, 'key': left_on, 'exception': e}
+            ).to_dict())
 
     return result
 
@@ -414,8 +418,12 @@ async def handle_select(keys, fields):
         for f in fields:
             try:
                 value = get_nested_dict_value(resulting_value, f)
-            except DAGExecutionException as e:
-                value = e.to_dict()
+            except KeyError as e:
+                value = DAGExecutionException(
+                    f'KeyError: key not found',
+                    inspect.currentframe().f_code.co_name,
+                    {'target': resulting_value, 'key': f, 'exception': e}
+                ).to_dict()
             # add necessary outputs to query response
             query_response_element[fields[f]] = value
         response.append(query_response_element)

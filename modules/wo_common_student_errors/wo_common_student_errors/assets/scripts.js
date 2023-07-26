@@ -1,7 +1,14 @@
+/**
+ * General scripts used for the common student error dashboard
+ */
 if (!window.dash_clientside) {
   window.dash_clientside = {}
 }
 
+/**
+ * Colors corresponding to categories
+ * NOTE: these values are also defined in wo_common_student_errors/dashboard/colors.py
+ */
 const categoryColors = {
   Error: 'white', // white
   Capitalization: '#f3969a', // light pink
@@ -62,6 +69,9 @@ window.dash_clientside.common_student_errors = {
     return `#course_id=${params.course_id};student_id=${data.user_id}`
   },
 
+  /**
+   * Parse incoming data for the student activity chart
+   */
   receive_populate_activity: function (message) {
     const data = message.wo.activity_combined
     if (!data) {
@@ -93,6 +103,9 @@ window.dash_clientside.common_student_errors = {
     return [output.inactive === undefined ? 'No students' : output.inactive, output.active === undefined ? 'No students' : output.active]
   },
 
+  /**
+   * Populate the individual student error
+   */
   receive_populate_student_error: function (message, hash) {
     let data = message.wo.single_lt_combined
     if (!data | data.length === 0) {
@@ -154,6 +167,9 @@ window.dash_clientside.common_student_errors = {
     return [student, text, errors, extendedData, 'individual-student-loaded']
   },
 
+  /**
+   * Parse the ws message and populate the errors versus text length graph
+   */
   receive_populate_error_graph: function (message) {
     const data = message.wo.lt_combined
     if (!data) {
@@ -175,6 +191,9 @@ window.dash_clientside.common_student_errors = {
     ]
   },
 
+  /**
+   * Update the hover information of the errors per text length graph
+   */
   update_graph_hover: function (hoverData, message) {
     if (!hoverData) {
       return [false, window.dash_clientside.no_update, '']
@@ -209,6 +228,9 @@ window.dash_clientside.common_student_errors = {
     return [true, pt.bbox, child]
   },
 
+  /**
+   * Populate the table of student category aggregation errors
+   */
   receive_populate_categorical_errors: function (message) {
     const data = message.wo.lt_combined
     if (!data) {
@@ -256,6 +278,13 @@ window.dash_clientside.common_student_errors = {
     return rows
   },
 
+  /**
+   * HACK
+   * This function flattens the data from all the language tool results
+   * for later use with the aggregate information.
+   * This hack was implemented since we have not yet determined the specifics
+   * of what we want returned from language tool/exactly how we will display it
+   */
   receive_populate_agg_info: function (message) {
     const data = message.wo.lt_combined
     if (!data) {

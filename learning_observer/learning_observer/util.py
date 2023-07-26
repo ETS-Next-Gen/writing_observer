@@ -10,6 +10,7 @@ before doing so.
 '''
 
 import datetime
+import enum
 import hashlib
 import math
 import re
@@ -122,7 +123,11 @@ def insecure_hash(text):
     return "MD5_" + hashlib.md5(text).hexdigest()
 
 
-def get_nested_dict_value(d, key_str=None):
+class MissingType(enum.Enum):
+    Missing = 'Missing'
+
+
+def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
     """
     Fetch an item from a nested dictionary using `.` to indicate nested keys
 
@@ -141,7 +146,9 @@ def get_nested_dict_value(d, key_str=None):
         elif key == '':
             d = d
         else:
-            return None
+            if default == MissingType.Missing:
+                raise KeyError(f'Key {key_str} not found in {d}')
+            return default
     return d
 
 

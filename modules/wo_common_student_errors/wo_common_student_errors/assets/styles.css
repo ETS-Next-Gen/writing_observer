@@ -1,9 +1,10 @@
-
+/** Set the width/wrapping for the errors per text length hover information */
 .errors-per-word-tooltip {
     width: 250px;
     white-space: normal;
 }
 
+/** CSS for displaying a spinner or not for the individual students */
 .individual-student-loading {
     .loaded {
         display: none;
@@ -24,6 +25,7 @@
     }
 }
 
+/** Adjust the student activity name tag information */
 .student-activity-status-row {
     .student-name-tag {
         display: inline-block;
@@ -37,6 +39,7 @@
     }
 }
 
+/** Make the headers of the student table look nice */
 .categorical-table-headers {
     writing-mode: vertical-rl;
     text-orientation: mixed;

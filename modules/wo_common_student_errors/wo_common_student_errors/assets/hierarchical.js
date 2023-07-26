@@ -1,8 +1,16 @@
+/**
+ * This script defines functions for the hierarchical information area
+ * of the common student errors dashboard.
+ */
 if (!window.dash_clientside) {
   window.dash_clientside = {}
 }
 
 window.dash_clientside.hierarchical_common_errors = {
+  /**
+   * Take the data returned from the LanguageTool and parse it
+   * into the hierarchical format needed for the 3 types of graphs
+   */
   populate_hierarchical_charts: function (data, toggleOrder) {
     const categoryCount = {}
     const subcategoryCount = {}
@@ -44,7 +52,6 @@ window.dash_clientside.hierarchical_common_errors = {
     let total = 0
 
     const language = ['Grammar', 'Usage', 'Style', 'Semantics']
-    console.log(categoryCount)
     const mechanics = ['Capitalization', 'Possible Typo', 'Punctuation', 'Spelling', 'Typography', 'Word Boundaries']
 
     for (const [key, value] of Object.entries(categoryCount)) {

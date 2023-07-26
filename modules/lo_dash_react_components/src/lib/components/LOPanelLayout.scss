@@ -1,0 +1,13 @@
+.LOPanelLayout {
+    display: flex;
+    transition: all 0.3s ease-in-out;
+
+    .main-content {
+        transition: all 0.3s ease-in-out;
+    }
+
+    .side-panel {
+        overflow: hidden;
+        transition: all 0.3s ease-in-out;
+    }
+}
