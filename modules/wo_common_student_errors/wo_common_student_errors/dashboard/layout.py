@@ -117,8 +117,8 @@ clientside_callback(
 clientside_callback(
     ClientsideFunction(namespace='common_student_errors', function_name='receive_populate_student_error'),
     Output(individual.student, 'children'),
-    Output(individual.text, 'children'),
-    Output(individual.errors, 'children'),
+    Output(individual.text, 'text'),
+    Output(individual.text, 'breakpoints'),
     Output(individual.error_sunburst, 'extendData'),
     Output(individual.prefix, 'className', allow_duplicate=True),
     Input(ws_store, 'data'),

@@ -126,22 +126,22 @@ window.dash_clientside.common_student_errors = {
       },
       type: 'LONameTag'
     }
-    const text = data.text.split('\n').map((x) => {
+    const breakpoints = data.matches.map((x, index) => {
       return {
-        namespace: 'dash_html_components',
-        type: 'P',
-        props: { children: x }
-      }
-    })
-    const errors = data.matches.map((x) => {
-      return {
-        namespace: 'dash_bootstrap_components',
-        type: 'Card',
-        props: {
-          children: x.message,
-          body: true,
-          color: `${categoryColors[x.label]}80`,
-          class_name: 'bg-opacity-25'
+        id: index,
+        start: x.offset,
+        offset: x.length,
+        style: { textDecoration: `${categoryColors[x.label]} wavy underline` },
+        tooltip: {
+          namespace: 'dash_bootstrap_components',
+          type: 'Card',
+          props: {
+            children: [
+              { namespace: 'dash_bootstrap_components', type: 'CardHeader', props: { children: `${x.label}: ${x.detail}` } },
+              { namespace: 'dash_bootstrap_components', type: 'CardBody', props: { children: x.message } }
+            ],
+            color: `${categoryColors[x.label]}80`
+          }
         }
       }
     })
@@ -164,7 +164,7 @@ window.dash_clientside.common_student_errors = {
       values = values.concat(data.subcategory_counts[key])
     }
     const extendedData = [{ ids: [ids], labels: [names], parents: [parents], values: [values] }, [0], names.length]
-    return [student, text, errors, extendedData, 'individual-student-loaded']
+    return [student, data.text, breakpoints, extendedData, 'individual-student-loaded']
   },
 
   /**
@@ -243,7 +243,7 @@ window.dash_clientside.common_student_errors = {
       let columnData = [{
         namespace: 'dash_html_components',
         type: 'Td',
-        props: { 
+        props: {
           children: {
             namespace: 'lo_dash_react_components',
             props: {
