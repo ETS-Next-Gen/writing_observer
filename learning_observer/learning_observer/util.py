@@ -9,10 +9,12 @@ We can relax the design invariant, but we should think carefully
 before doing so.
 '''
 
+import datetime
+import enum
 import hashlib
 import math
 import re
-import datetime
+import socket
 from dateutil import parser
 
 
@@ -121,7 +123,11 @@ def insecure_hash(text):
     return "MD5_" + hashlib.md5(text).hexdigest()
 
 
-def get_nested_dict_value(d, key_str=None):
+class MissingType(enum.Enum):
+    Missing = 'Missing'
+
+
+def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
     """
     Fetch an item from a nested dictionary using `.` to indicate nested keys
 
@@ -140,7 +146,9 @@ def get_nested_dict_value(d, key_str=None):
         elif key == '':
             d = d
         else:
-            return None
+            if default == MissingType.Missing:
+                raise KeyError(f'Key {key_str} not found in {d}')
+            return default
     return d
 
 
@@ -165,6 +173,21 @@ def timeparse(timestamp):
 
     """
     return parser.isoparse(timestamp)
+
+
+def check_service(host, port):
+    '''
+    We want to check if a service is running or not before we try and interact with it.
+    This method connects to a port and returns true if a service is running.
+    '''
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((host, port))
+    except socket.error:
+        return True
+    finally:
+        sock.close()
+    return False
 
 
 # And a test case

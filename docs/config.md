@@ -248,8 +248,11 @@ server:
 The `modules` section configures the settings for each module installed on the system. Different systems may define different items depending on which modules they wish to have installed on their system. An error will be raised if an expected setting is missing from a given module. Here is an example for the `writing_observer` module.
 
 - `writing_observer`: Settings specific to the Writing Observer module.
-  - `use_nlp`: A boolean indicating whether to use natural language processing.
-  - `use_google_documents`: A boolean indicating whether to use Google Documents.
+  - `use_nlp`: A boolean indicating whether to use natural language processing or a stub function. (default: `false`)
+  - `use_google_documents`: A boolean indicating whether to use Google Documents. (default: `false`)
+  - `languagetool_port`: The port the LanguageTool server is running on (default: `8081`)
+  - `languagetool_host`: The host the LanguageTool server is running on (default: `localhost`)
+  - `use_languagetool`: A boolean indicating whether to use LanguageTool or a stub function. (default: `false`)
 
 Example:
 
@@ -258,6 +261,8 @@ modules:
   writing_observer:
     use_nlp: true
     use_google_documents: false
+    languagetool_port: 8081
+    use_languagetool: true
 ```
 
 Note: This is just an example of how to configure the settings for a specific module. Each module may have its own unique settings, and you should consult the module's documentation for information on which settings are required and how they should be configured.

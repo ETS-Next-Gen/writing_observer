@@ -226,6 +226,53 @@ else:
 processor = learning_observer.communication_protocol.integration.publish_function('writing_observer.process_texts')(processor)
 
 
+@learning_observer.communication_protocol.integration.publish_function('writing_observer.update_reconstruct_with_google_api')
+async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
+    """
+    This method updates the reconstruct reducer every so often with the ground
+    truth directly from the Google API. This allows us to automatically fix
+    errors introduced by the reconstruction.
+
+    This method is intended for use within the communication protocol.
+    Since we already select reconstruct data from the KVS, this method just
+    updates the KVS and returns the data we input, `doc_ids`, without modification.
+
+    We use a closure here to make use of memoization so we do not update the KVS
+    every time we call this method.
+    """
+
+    @learning_observer.cache.async_memoization()
+    async def fetch_doc_from_google(student, doc_id):
+        """
+        This method performs the fetching of current document text and the
+        updating of the KVS.
+        """
+        if student is None or doc_id is None or len(doc_id) == 0:
+            return None
+        import learning_observer.google
+
+        kvs = learning_observer.kvs.KVS()
+
+        text = await learning_observer.google.doctext(runtime, documentId=doc_id)
+        key = learning_observer.stream_analytics.helpers.make_key(
+            writing_observer.writing_analysis.reconstruct,
+            {
+                KeyField.STUDENT: student,
+                EventField('doc_id'): doc_id
+            },
+            KeyStateType.EXTERNAL
+        )
+        await kvs.set(key, text)
+        return text
+
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
+        [await fetch_doc_from_google(
+            learning_observer.util.get_nested_dict_value(d, 'providence.providence.value.user_id'),
+            learning_observer.util.get_nested_dict_value(d, 'doc_id')
+        ) for d in doc_ids]
+    return doc_ids
+
+
 def get_last_document_id(s):
     """
     Retrieves the ID of the latest document for a given student.
