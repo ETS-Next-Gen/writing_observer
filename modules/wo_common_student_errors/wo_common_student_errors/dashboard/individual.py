@@ -1,4 +1,6 @@
 '''
+This file handles the individual student view on the right side
+of the screen when a student is selected.
 '''
 from dash import html, dcc
 import dash_bootstrap_components as dbc

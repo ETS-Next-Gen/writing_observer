@@ -1,11 +1,11 @@
 const testData = {
     id: "example",
-    children: 'bruh',
+    children: 'this is the main child',
     panels: [
-        {children: 'oh brohter', width: '25%', id: 'boy', side: 'left'},
-        {children: 'oh girl', width: '14%', id: 'girl', side: 'left'},
-        {children: 'oh dog', width: '11%', id: 'dog'},
-        {children: 'oh cat', width: '18%', id: 'cat'}
+        {children: 'boy panel', width: '25%', id: 'boy', side: 'left'},
+        {children: 'girl panel', width: '14%', id: 'girl', side: 'left'},
+        {children: 'dog panel', width: '11%', id: 'dog'},
+        {children: 'cat panel', width: '18%', id: 'cat'}
     ],
     shown: ['cat', 'dog', 'girl']
 }

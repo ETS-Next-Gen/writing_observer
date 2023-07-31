@@ -1,3 +1,6 @@
+'''
+This file defines the hierarchical graphs
+'''
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input
 import dash_bootstrap_components as dbc
 import pandas as pd

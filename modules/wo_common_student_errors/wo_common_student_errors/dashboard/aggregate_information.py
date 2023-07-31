@@ -1,4 +1,6 @@
 '''
+This file creates the aggregate items for the category/subcategory graph.
+Clicking on either of these continues to filter the aggregated data.
 '''
 from dash import clientside_callback, ClientsideFunction, Output, Input, State, html, dcc
 import dash_bootstrap_components as dbc
