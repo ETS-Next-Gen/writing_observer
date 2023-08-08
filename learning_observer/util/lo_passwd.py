@@ -148,10 +148,15 @@ def prompt_for_user_data():
             print(f"{field} is required.")
             sys.exit(1)
         if field == 'password':
-            user_data[field] = bcrypt.hashpw(
+            hashpw = bcrypt.hashpw(
                 user_data[field].encode('utf-8'),
                 bcrypt.gensalt()
-            ).decode('utf-8')
+            )
+            # This is a work-around for version issues in bcrypt.
+            # It sometimes returns strings, and sometimes bytes.
+            if isinstance(hashpw, bytes):
+                hashpw = hashpw.decode('utf-8')
+            user_data[field] = hashpw
 
     return user_data
 
