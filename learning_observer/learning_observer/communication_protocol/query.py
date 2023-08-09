@@ -90,7 +90,7 @@ def join(LEFT, RIGHT, LEFT_ON=None, RIGHT_ON=None):
     }
 
 
-def map(function, values, value_path=None, func_kwargs=None):
+def map(function, values, value_path=None, func_kwargs=None, parallel=False):
     """
     Map is used to run a function on the server, similar to `call`, over
     a list of values.
@@ -100,7 +100,8 @@ def map(function, values, value_path=None, func_kwargs=None):
         "function_name": function.__lo_name__,
         "values": values,
         "value_path": value_path,
-        "func_kwargs": func_kwargs
+        "func_kwargs": func_kwargs,
+        "parallel": parallel
     }
 
 
