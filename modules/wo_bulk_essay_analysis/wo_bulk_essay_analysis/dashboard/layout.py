@@ -96,7 +96,6 @@ clientside_callback(
     '''
     function(message) {
         const data = JSON.parse(message.data).wo.gpt_bulk
-        console.log(data)
         return data
     }
     ''',
