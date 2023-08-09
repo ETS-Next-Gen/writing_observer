@@ -132,7 +132,9 @@ def download_3rd_party_static():
     libs = module_loader.third_party()
 
     def format_hash(hash_string):
-        return hash_string[:48] + '\n' + hash_string[48:]
+        return hash_string[:61] + '\n' + hash_string[61:]
+
+    file_integrity_errors = []
 
     for name in libs:
         url = libs[name]['urls'][0]
@@ -169,21 +171,40 @@ def download_3rd_party_static():
             print("Downloaded {name}".format(name=name))
         shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
         if shahash not in hashes:
-            # Do we want to os.unlink(filename) or just terminate?
-            # Probably just terminate, so we can debug.
-            error = "File integrity of {name} failed!\n" \
-                    "Expected: {sha}\n" \
-                    "Got: {shahash}\n" \
-                    "We download 3rd party libraries from the Internet. This error means that ones of\n" \
-                    "these files changed. This may indicate a man-in-the-middle attack, that a CDN has\n" \
-                    "been compromised, or more prosaically, that one of the files had something like\n" \
-                    "a security fix backported. In either way, VERIFY what happened before moving on.\n\n" \
-                    "If unsure, please consult with a security expert.".format(
-                        name=filename,
-                        sha=sha,
-                        shahash=format_hash(shahash)
-                    )
-            raise StartupCheck(error)
+            file_integrity_errors.append({
+                "file": name,
+                "local_file": filename,
+                "expected_sha": sha,
+                "actual_sha": shahash,
+                "top_line": shahash[:61],
+                "bottom_line": shahash[61:],
+                "url": url,
+                "dashboards": ", ".join(libs[name]['users'])
+            })
+
+    if file_integrity_errors:
+        header = \
+            "We download 3rd party libraries from the Internet. This error means that ones of\n" \
+            "or more of these files changed. This may indicate:\n" \
+            "* A man-in-the-middle attack or that a CDN has been compromised\n" \
+            "* That one of the files had something like a security fix backported, a bug fixed\n" \
+            "* That a file was not version-locked, and a new version of a library is available (common in dev)\n"\
+            "In either case, please verify file integrity and function (a changed file CAN introduce a bug. If\n"\
+            "unsure, please consult with a security expert.\n\n" \
+            "Issues:\n\n"
+        indent = ' ' * 28
+        change = \
+            '{file}'\
+            'URL: {url}'\
+            'File: {local_file}\n' \
+            'Expected: {expected_sha}\n' \
+            'Got: {actual_sha}\n' \
+            'If this is correct, please add these lines:\n' \
+            + indent + '"[new version name]": "{top_line}"\n' \
+            + indent + '"{bottom_line}"\n' \
+            'to the module.py for {dashboards}'
+        issues_formatted = "\n====\n".join([change.format(**fie) for fie in file_integrity_errors])
+        raise StartupCheck(f"{header}{issues_formatted}")
 
 
 def preimport():
