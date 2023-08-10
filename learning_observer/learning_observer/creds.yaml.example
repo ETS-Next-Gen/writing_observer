@@ -92,4 +92,5 @@ server:
     port: 8888     # Optional. Pick a different port.
 modules:
     writing_observer:
-        use_nlp: true
+        use_nlp: false
+        openai_api_key: '' # can also be set with OPENAI_API_KEY environment variable
