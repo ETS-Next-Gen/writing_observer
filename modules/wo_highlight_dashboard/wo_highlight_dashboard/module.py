@@ -6,15 +6,15 @@ from learning_observer.dash_integration import thirdparty_url, static_url
 
 import wo_highlight_dashboard.dashboard.layout
 
-NAME = "Dash Writing Observer Dashboard"
+NAME = "Writing Observer - Text Metric & Highlight Dashboard"
 
 DASH_PAGES = [
     {
         "MODULE": wo_highlight_dashboard.dashboard.layout,
         "LAYOUT": wo_highlight_dashboard.dashboard.layout.layout,
         "ASSETS": 'assets',
-        "TITLE": "Writing Observer Dashboard",
-        "DESCRIPTION": "Dashboard for the Writing Observer built with dash",
+        "TITLE": "Metric & Highlight Dashboard",
+        "DESCRIPTION": "The Metric and Highlight dashboard provides in-depth natural language processing on student essays.",
         "SUBPATH": "dashboard",
         "CSS": [
             thirdparty_url("css/bootstrap.min.css"),

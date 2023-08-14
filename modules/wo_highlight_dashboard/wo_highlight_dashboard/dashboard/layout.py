@@ -22,8 +22,13 @@ def layout(course_id=None, assignment_id=None):
     Returns:
     - A Dash layout containing the student dashboard view wrapped in a Spinner component.
     """
-    layout = dbc.Spinner(
+    layout = dbc.Spinner([
+        dash.html.H2('Prototype: Work in Progress'),
+        dash.html.P(
+            'This dashboard is a prototype displaying various natural language processing (NLP) features. '
+            'The NLP features include metrics and the ability to highlight specific attributes of the text. '
+            'The dashboard is subject to change based on ongoing feedback from teachers.'
+        ),
         student_dashboard_view(course_id, assignment_id),
-        color='primary'
-    )
+    ], color='primary')
     return layout

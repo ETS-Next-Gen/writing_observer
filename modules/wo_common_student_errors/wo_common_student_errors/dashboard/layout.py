@@ -62,6 +62,12 @@ def layout():
     ], className='vh-100 overflow-auto')
 
     cont = dbc.Container([
+        html.H2('Prototype: Work in Progress'),
+        html.P(
+            'This dashboard is a prototype displaying various features returned from LanguageTool. '
+            'LanguageTool is used to determine grammatical and syntax errors in text. '
+            'The dashboard is subject to change based on ongoing feedback from teachers.'
+        ),
         lodrc.LOPanelLayout(
             children=overall_view,
             panels=[

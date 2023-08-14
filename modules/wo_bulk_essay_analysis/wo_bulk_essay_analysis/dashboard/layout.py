@@ -51,6 +51,11 @@ def layout():
         ),
     ], class_name='vh-100 flex-column')
     cont = dbc.Container([
+        html.H2('Prototype: Work in Progress'),
+        html.P(
+            'This dashboard is a prototype allowing teachers to run ChatGPT over a set of essays. '
+            'The dashboard is subject to change based on ongoing feedback from teachers.'
+        ),
         lodrc.LOPanelLayout(
             main,
             panels=[{'children': chat_panel, 'width': '25%', 'id': 'chat'}],
