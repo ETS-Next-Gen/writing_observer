@@ -1,119 +1,65 @@
-# Learning Observer Dash / React Components
+# Dash/React Components
 
-Learning Observer Dash / React Components is a Dash component library of components we use in various dashboards for the Learning Observer and modules.
+## Building and Using Components in Dashboards
 
-At some point, some of these should meander over to those specific modules, while others should be kept system-wide.
+In Learning Observer, we create React components and generate a Python package for them to be used with the Dash framework. These components are housed in the `lo_dash_react_components` module and enable the creation of highly customizable dashboards. This document guides you through the component development process, the build process, and using the components in your dashboards.
 
-## Install
+### Requirements
 
-Get started with:
+A downstream dependency in the build process may cause breaking behavior depending on your node version. The latest version of Node `v16` (tested on `v16.19.1`) should work fine; however, we've noticed errors on Node `v18`.
 
-1. Install npm packages
+If you already have `v18` on your system, install [nvm: Node Version Manager](https://github.com/nvm-sh/nvm). When running `nvm` commands within the project without specifying a specific version, it will automatically look for the version defined in the `.nvmrc` file in the root directory.
 
-    ```bash
-    npm install
-    ```
-
-2. Create a virtual env and activate.
-
-    ```bash
-    virtualenv venv
-    . venv/bin/activate
-    ```
-
-    _Note: venv\Scripts\activate for windows_
-
-3. Install python packages required to build components.
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4. Install the python packages for testing (optional)
-
-    ```bash
-    pip install -r tests/requirements.txt
-    ```
-
-## Run
-
-1. Run `python usage.py` for the official dash workflow.
-
-2. Run `nodemon`, for the same, automatically restarting and rebuilding when files change
-
-3. Run `webpack-start` to run in WebPack, which dash uses for React development
-
-4. Run `react-start` to test in the main React scripts
-
-5. Run `build-css` to build scss into css in the `lo_dash_react_components/` directory.
-
-6. Run `watch-css` to watch and automatically rebuild data
-
-Each of these will give slightly different behavior. Development in React tends to have the most rapid development cycle, but at some point, we switch to dash workflows in order to work end-to-end.
-
-Read the `package.json` file to see other scripts available. There's a lot more, and you should be familiar with them.
-
-## Develop
-
-1. To develop a new component, simply toss in a `react.js` file in `src/lib/components`.
-2. Remember to use class (not functional) syntax for compatibility with `dash`
-3. If the component needs data, toss in a `.testdata.js` file in `src/lib/components`. Note that this file should not use modern JavaScript (we're limited to ES5.1, except for `export default`).
-4. If the component needs SCSS, add a `.scss` file in `src/lib/components`. Each component ought to be enclosed in a class of the name of that component (so that, e.g. your styles can be scoped to within there, or so we can introspect what's on a page).
-5. Use `npm run start-all` to start the react, scss, and dash workflow.
-6. Remember that by the time you move from pure React to `dash`, you should follow `dash` conventions (e.g. you'll want to support `setProps`, be a class-based component, etc.)
-7. For `dash` to be aware of the component, it should be added to `src/lib/index.js`
-
-## Test
-
-We're still figuring this out! Generic `dash` instructions are:
-
-- Write tests for your component.
-
-  - A sample test is available in `tests/test_usage.py`, it will load `usage.py` and you can then automate interactions with selenium.
-  - Run the tests with `$ pytest tests`.
-  - The Dash team uses these types of integration tests extensively. Browse the Dash component code on GitHub for more examples of testing (e.g. [Dash core components](https://github.com/plotly/dash-core-components))
-
-- Add custom styles to your component by putting your custom CSS files into your distribution folder (`lo_dash_react_components`).
-
-  - Make sure that they are referenced in `MANIFEST.in` so that they get properly included when you're ready to publish your component.
-  - Make sure the stylesheets are added to the `_css_dist` dict in `lo_dash_react_components/__init__.py` so dash will serve them automatically when the component suite is requested.
-
-- [Review your code](./review_checklist.md)
-
-Our plan, over time, is to diverge from `dash`. As a rule, with tests, we don't believe more is better. Tests can break abstractions, introduce unnecessary complexity, and make code less mutable. We would like to have tests for:
-
-1. Test infrastructure for unit tests, ideally which also clearly document the code.
-2. General system tests for high-level functionality (e.g. the components build and render without errors).
-
-... and that's it!
-
-## Create a production build
-
-1. Build your code:
-
-    ```bash
-    npm run build
-    npm run build-css
-    ```
-
-    Note: the `build-css` and `watch-css` commands builds all scss and css files located in `src/lib` and outputs them in `lo_react_dash_components/css`.
-    The `lo_react_dash_componets.__init__.py` was modified to automatically read in css files located in the `lo_react_dash_components/css` directory.
-
-2. Create a Python distribution
-
-    ```bash
-    npm run build:python
-    ```
-
-    This first cleans the `dist/` and `build/` directories.
-    Then, it will create source and wheel distribution in the generated the `dist/` folder.
-    See [PyPA](https://packaging.python.org/guides/distributing-packages-using-setuptools/#packaging-your-project)
-    for more information.
-
-3. Test your tarball by copying it into a new environment and installing it locally:
+To install and activate the node version, run:
 
 ```bash
-pip install lo_dash_react_components-0.0.1.tar.gz
+nvm install
+nvm use
+```
+
+Any `npm` command will now use Node `v16`.
+Next, make sure to change into the components directory and install all dependencies.
+Note that all future `npm` commands should be ran from within the components directory.
+
+```bash
+cd modules/lo_dash_react_components
+npm install
+```
+
+### Component Development
+
+1. Create a React component file with the `.react.js` extension in the `src/lib/components` directory. Use a class structure instead of a function definition due to a limitation in the Dash auto-generation process.
+    - Remember to use class (not functional) syntax for compatibility with `dash`.
+    - Remember to use the setProps property whenever props change internally. This is used by `dash` to handle properly handle callbacks.
+1. For component-specific CSS, create a file with the same name and an `.scss` extension in the `src/lib/components` directory.
+1. If the component needs data, toss in a `.testdata.js` file in `src/lib/components`. Note that this file should not use modern JavaScript (we're limited to ES5.1, except for `export default`).
+1. For `dash` to be aware of the component, it should be added to `src/lib/index.js`
+1. Use `npm run start-all` to start the react, scss, and dash workflow (automatically refreshs on file change).
+1. Run `npm run build` to generate the appropriate Python components (same as above, but without fresh capability).
+1. (Optional) Package them into a distribution using the `build:python` command.
+
+### Build Process
+
+The build process provides various commands to build specific pieces or watch sets of files for changes, triggering auto-rebuilds. This includes converting SCSS files using SASS and building React to Dash Python packages.
+
+Here are some useful NPM scripts for building components:
+
+- `build:js`: Builds JavaScript files using Webpack in production mode.
+- `build:backends`: Generates components in the `lo_dash_react_components` module.
+- `build`: Builds CSS, JS, and backends.
+- `build-css`: Converts SCSS files to CSS.
+- `watch-css`: Watches and automatically rebuilds SCSS files.
+- `build:python`: Cleans the `dist/` and `build/` directories and creates a Python distribution.
+
+### Using Components in Dashboards
+
+To use the components in your dashboards, simply import the desired component from the `lo_dash_react_components` module and use them as you would any other Dash component.
+
+```python
+import lo_dash_react_components as lodrc
+
+ws_component = lodrc.LOConnection()
+...
 ```
 
 ## Share
