@@ -235,20 +235,6 @@ STATIC_FILE_GIT_REPOS = {
     }
 }
 
-
-# We're kinda refactoring the stuff above to below
-#
-# The stuff above will become APIs to dashboards. The stuff below
-# will register the actual dashboards.
-COURSE_DASHBOARDS = [{
-    'name': "Writing Observer",
-    'url': "/static/repos/writing_observer/writing_observer/master/wobserver.html",
-    "icon": {
-        "type": "fas",
-        "icon": "fa-pen-nib"
-    }
-}]
-
 EXTRA_VIEWS = [{
     'name': 'NLP Options',
     'suburl': 'nlp-options',

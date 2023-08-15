@@ -15,22 +15,22 @@ general = {
     },
     'metrics': {
         'options': ['sentences', 'paragraphs', 'pos_'],
-        'selected': ['prepositions']
+        'selected': ['sentences', 'paragraphs']
     },
     'highlight': {
         'options': [
             'informal_language', 'transition_words', 'low_frequency_words',
             'positive_tone', 'negative_tone',
-            'polysyllabic_words'
+            'polysyllabic_words', 'academic_language'
         ],
-        'selected': ['transition_words', 'informal_language']
+        'selected': []
     },
     'indicators': {
         'options': [
             'academic_language', 'informal_language', 'latinate_words',
             'polysyllabic_words', 'low_frequency_words'
         ],
-        'selected': ['informal_language']
+        'selected': ['academic_language', 'informal_language']
     }
 }
 argumentative = {
@@ -49,7 +49,7 @@ argumentative = {
             'statements_of_opinion', 'statements_of_fact',
             'explicit_claims',
         ],
-        'selected': ['main_idea_sentences']
+        'selected': ['main_idea_sentences', 'supporting_idea_sentences']
     },
     'indicators': {
         'options': ['opinion_words', 'argument_words', 'information_sources', 'attributions', 'citations'],
@@ -69,13 +69,13 @@ narrative = {
         'options': [
             'direct_speech_verbs', 'indirect_speech',
             'in_past_tense', 'social_awareness',
-            'character_trait_words', 'concrete_details'
+            'character_trait_words', 'concrete_details', 
         ],
-        'selected': []
+        'selected': ['character_trait_words', 'concrete_details']
     },
     'indicators': {
         'options': ['emotion_words', 'character_trait_words'],
-        'selected': []
+        'selected': ['character_trait_words']
     }
 }
 source_based = {
@@ -131,3 +131,5 @@ def combine_dicts(dicts):
 
 
 overall = combine_dicts([general, argumentative, narrative, source_based])
+general_argumentative = combine_dicts([general, argumentative, source_based])
+general_narrative = combine_dicts([general, narrative, source_based])

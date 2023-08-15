@@ -11,6 +11,9 @@ open_btn = f'{prefix}-show-hide-open-button'  # settings button
 offcanvas = f'{prefix}-show-hide-offcanvcas'  # setting wrapper
 close_settings = f'{prefix}-close'  # X on settings panel
 
+# essay type
+essay_type = f'{prefix}-essay-type'
+
 # ids related to sorting
 sort_by_checklist = f'{prefix}-sort-by-checklist'  # options that can be included for sorting
 sort_toggle = f'{prefix}-sort-by-toggle'  # checkbox for determining sort direction
@@ -60,6 +63,15 @@ panel = dbc.Card(
         # Each settings option is an accordion item
         dbc.Accordion(
             [
+                # essay type
+                dbc.AccordionItem(
+                    html.Div([
+                        dbc.RadioItems([
+                            {'label': 'Argumentative', 'value': 'argumentative'},
+                            {'label': 'Narrative', 'value': 'narrative'}
+                        ], value='argumentative', id=essay_type)
+                    ]), title='Essay Type'
+                ),
                 # sort by
                 dbc.AccordionItem(
                     dbc.Card(
@@ -247,7 +259,7 @@ panel = dbc.Card(
                 ),
             ],
             # make both items visible from the start
-            active_item=[f'item-{i}' for i in range(2)],
+            active_item=['item-0', 'item-2'],
             always_open=True,  # keep accordionitems open when click on others
             flush=True,  # styles to take up width
             class_name='border-top'  # bootstrap border on top

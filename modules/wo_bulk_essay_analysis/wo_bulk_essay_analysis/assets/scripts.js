@@ -60,7 +60,12 @@ const createChatCard = function (chat, user) {
   const card = {
     namespace: 'dash_bootstrap_components',
     type: 'Card',
-    props: { children: chat, body: true, color: teacher ? '#6cc3d540' : '#fff' }
+    props: {
+      children: chat,
+      body: true,
+      color: teacher ? '#6cc3d540' : '#fff',
+      style: { whiteSpace: 'pre-line' }
+    }
   }
   return {
     namespace: 'dash_bootstrap_components',

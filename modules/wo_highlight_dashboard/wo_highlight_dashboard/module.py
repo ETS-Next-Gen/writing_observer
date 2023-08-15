@@ -96,7 +96,7 @@ if (dbc.icons.FONT_AWESOME not in FontAwesome_URLs):
 
 
 COURSE_DASHBOARDS = [{
-    'name': "Dash Writing Observer",
+    'name': NAME,
     'url': "/wo_highlight_dashboard/dash/dashboard/",
     "icon": {
         "type": "fas",

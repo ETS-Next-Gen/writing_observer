@@ -442,10 +442,11 @@ clientside_callback(
     inputs=dict(
         course=Input(course_store, 'data'),
         assignment=Input(assignment_store, 'data'),
-        options=Input(nlp_options, 'data')
+        options=Input(nlp_options, 'data'),
+        essay_type=Input(settings.essay_type, 'value')
     )
 )
-def fill_in_settings(course, assignment, options):
+def fill_in_settings(course, assignment, options, essay_type):
     """
     Fill in the settings for the student performance dashboard based on the selected course and assignment,
     as well as the NLP options. Returns a dictionary of settings that can be used to update the dashboard.
@@ -469,10 +470,12 @@ def fill_in_settings(course, assignment, options):
         raise dash_e.PreventUpdate
     # populate all settings based on assignment or default
 
-    # TODO grab the options or type from assignment
-    # if options (obj) set opt to assignment options
-    # if type (string) set opt to settings_default.type
-    opt = settings_defaults.overall
+    if essay_type == 'argumentative':
+        opt = settings_defaults.general_argumentative
+    elif essay_type == 'narrative':
+        opt = settings_defaults.general_narrative
+    else:
+        opt = settings_defaults.general
 
     ret = dict(
         sort_by_options=so.create_checklist_options(opt['indicators']['options'], options, 'indicators'),  # same as indicators
