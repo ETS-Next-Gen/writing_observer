@@ -2,7 +2,7 @@ import wo_highlight_dashboard.dashboard.students as unit
 
 
 def test_fill_in_settings(fetch_nlp_options):
-    settings = unit.fill_in_settings(1, 1, fetch_nlp_options)
+    settings = unit.fill_in_settings(1, 1, fetch_nlp_options, 'narrative')
     keys = settings.keys()
     assert len(keys) > 0
     for k in keys:
