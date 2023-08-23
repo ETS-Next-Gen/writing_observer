@@ -230,6 +230,7 @@ def add_reducer(reducer, string_id=None):
     module load. We'd like to be able to dynamic load and reload reducers in
     interactive programming, so we offer the optnio of a `string_id`
     '''
+    global REDUCERS
     if string_id is not None:
         REDUCERS = [r for r in REDUCERS if r.get("string_id", None) != string_id]
     REDUCERS.append(reducer)

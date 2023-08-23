@@ -260,7 +260,7 @@ async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
                 KeyField.STUDENT: student,
                 EventField('doc_id'): doc_id
             },
-            KeyStateType.EXTERNAL
+            KeyStateType.INTERNAL
         )
         await kvs.set(key, text)
         return text

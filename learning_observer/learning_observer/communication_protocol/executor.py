@@ -492,7 +492,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         key = learning_observer.stream_analytics.helpers.make_key(
             func['function'],
             f,
-            learning_observer.stream_analytics.fields.KeyStateType.EXTERNAL
+            learning_observer.stream_analytics.fields.KeyStateType.INTERNAL
         )
         keys.append(
             {
