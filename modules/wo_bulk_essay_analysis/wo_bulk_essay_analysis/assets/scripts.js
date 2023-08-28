@@ -6,7 +6,9 @@ if (!window.dash_clientside) {
   window.dash_clientside = {}
 }
 
-const createStudentCard = function (student) {
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js'
+
+const createStudentCard = function (student, prompt) {
   const header = {
     namespace: 'dash_bootstrap_components',
     type: 'CardHeader',
@@ -15,24 +17,37 @@ const createStudentCard = function (student) {
   const studentText = {
     namespace: 'lo_dash_react_components',
     type: 'WOAnnotatedText',
-    props: { text: student.text, breakpoints: [] }
+    props: { text: student.text, breakpoints: [], className: 'border-end' }
   }
-  const feedback = {
+  const feedbackMessage = {
     namespace: 'dash_html_components',
     type: 'Div',
     props: {
       children: student?.feedback ? student.feedback : '',
-      className: student?.feedback ? 'border-start p-1 overflow-auto' : '',
+      className: student?.feedback ? 'p-1 overflow-auto' : '',
       style: { whiteSpace: 'pre-line' }
     }
   }
+  const feedbackLoading = {
+    namespace: 'dash_html_components',
+    type: 'Div',
+    props: {
+      children: {
+        namespace: 'dash_bootstrap_components',
+        type: 'Spinner',
+        props: {}
+      },
+      className: 'text-center'
+    }
+  }
+  const feedback = prompt === student.prompt ? feedbackMessage : feedbackLoading
   const body = {
     namespace: 'lo_dash_react_components',
     type: 'LOPanelLayout',
     props: {
       children: studentText,
       panels: [{ children: feedback, id: 'feedback-text', width: '40%' }],
-      shown: feedback.props.children.length > 0 ? ['feedback-text'] : [],
+      shown: ['feedback-text'],
       className: 'overflow-auto p-1'
     }
   }
@@ -41,7 +56,7 @@ const createStudentCard = function (student) {
     type: 'Card',
     props: {
       children: [header, body],
-      style: { maxHeight: '300px' }
+      style: { maxHeight: '375px' }
     }
   }
   return {
@@ -55,31 +70,41 @@ const createStudentCard = function (student) {
   }
 }
 
-const createChatCard = function (chat, user) {
-  const teacher = (user === 'teacher')
-  const card = {
-    namespace: 'dash_bootstrap_components',
-    type: 'Card',
-    props: {
-      children: chat,
-      body: true,
-      color: teacher ? '#6cc3d540' : '#fff',
-      style: { whiteSpace: 'pre-line' }
-    }
+const charactersAfterChar = function (str, char) {
+  const commaIndex = str.indexOf(char)
+  if (commaIndex === -1) {
+    return ''
   }
-  return {
-    namespace: 'dash_bootstrap_components',
-    type: 'Col',
-    props: {
-      children: card,
-      align: teacher ? 'end' : 'start',
-      width: 9
-    }
+  return str.slice(commaIndex + 1).trim()
+}
+
+const extractPDF = async function (base64String) {
+  const pdfData = atob(charactersAfterChar(base64String, ','))
+
+  // Use PDF.js to load and parse the PDF
+  const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise
+
+  const totalPages = pdf.numPages
+  const allTextPromises = []
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+    let pageTextPromise = pdf.getPage(pageNumber).then(function (page) {
+      return page.getTextContent()
+    }).then(function (textContent) {
+      return textContent.items.map(item => item.str).join(' ')
+    })
+
+    allTextPromises.push(pageTextPromise)
   }
+
+  const allTexts = await Promise.all(allTextPromises)
+  const allText = allTexts.join(' ')
+
+  return allText
 }
 
 window.dash_clientside.bulk_essay_feedback = {
-  send_to_loconnection: async function (state, hash, clicks, query) {
+  send_to_loconnection: async function (state, hash, clicks, query, systemPrompt, rubricText) {
     if (state === undefined) {
       return window.dash_clientside.no_update
     }
@@ -94,6 +119,8 @@ window.dash_clientside.bulk_essay_feedback = {
       const trig = window.dash_clientside.callback_context.triggered[0]
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
         decoded.gpt_prompt = query
+        decoded.system_prompt = systemPrompt
+        decoded.rubric = rubricText
       }
 
       const message = {
@@ -108,40 +135,43 @@ window.dash_clientside.bulk_essay_feedback = {
     return window.dash_clientside.no_update
   },
 
-  update_ui_upon_query_submission: async function (clicks, text, children) {
+  update_input_history_on_query_submission: async function (clicks, query, history) {
     if (clicks > 0) {
-      const loading = {
-        namespace: 'dash_bootstrap_components',
-        type: 'Col',
-        props: {
-          children: {
-            namespace: 'dash_bootstrap_components',
-            type: 'Spinner',
-            props: { color: 'primary' }
-          },
-          align: 'start',
-          width: 8,
-          id: 'loading'
-        }
-      }
-      const newChildren = [loading, createChatCard(text, 'teacher')].concat(children)
-      return ['', newChildren]
+      return ['', history.concat(query)]
     }
   },
 
-  update_student_grid: function (message) {
+  update_history_list: function (history) {
+    const items = history.map((x) => {
+      return {
+        namespace: 'dash_html_components',
+        type: 'Li',
+        props: { children: x }
+      }
+    })
+    return {
+      namespace: 'dash_html_components',
+      type: 'Ol',
+      props: { children: items }
+    }
+  },
+
+  update_student_grid: function (message, history) {
+    const currPrompt = history.length > 0 ? history[history.length - 1] : ''
     const cards = message.map((x) => {
-      return createStudentCard(x)
+      return createStudentCard(x, currPrompt)
     })
     return cards
   },
 
-  add_response_to_chat: function (message, children) {
-    const chatCard = createChatCard('Your feedback will appear next to each student card.', 'gpt')
-    const index = children.findIndex(item => item.props.id === 'loading')
-    if (index > -1) {
-      children[index] = chatCard
+  update_rubric: async function (contents, filename) {
+    if (filename === undefined) {
+      return ['', '']
     }
-    return children
+    let data = ''
+    if (filename.endsWith('.pdf')) {
+      data = await extractPDF(contents)
+    }
+    return [data, `Current: ${filename}`]
   }
 }

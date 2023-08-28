@@ -6,7 +6,8 @@ import "./css/index.css";
 import "./css/components/WOMetrics.css"
 import "./css/components/LONameTag.css"
 import "./css/components/LOPanelLayout.css"
-import "bootstrap/dist/css/bootstrap.min.css";
+import "./css/components/LOCollapse.css"
+import "bootstrap/dist/css/bootstrap.min.css"
 
 const components = {};
 const noop = () => null;

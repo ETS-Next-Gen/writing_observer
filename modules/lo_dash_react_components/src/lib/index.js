@@ -1,6 +1,7 @@
 import LOConnection from './components/LOConnection.react';
 import LONameTag from './components/LONameTag.react';
 import LOPanelLayout from './components/LOPanelLayout.react';
+import LOCollapse from './components/LOCollapse.react';
 import WOAnnotatedText from './components/WOAnnotatedText.react';
 import WOMetrics from './components/WOMetrics.react';
 import WOIndicatorBars from './components/WOIndicatorBars.react';
@@ -14,6 +15,7 @@ export {
     LOConnection,
     LONameTag,
     LOPanelLayout,
+    LOCollapse,
     WOAnnotatedText,
     WOMetrics,
     WOIndicatorBars,

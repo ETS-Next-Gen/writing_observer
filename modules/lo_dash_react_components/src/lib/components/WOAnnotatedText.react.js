@@ -62,7 +62,7 @@ export default class WOAnnotatedText extends Component {
   }
 
   render() {
-    const { breakpoints, text } = this.props
+    const { breakpoints, text, className } = this.props
     const sortedList = [...breakpoints].sort((a, b) => a.start - b.start)
     let chunks = sortedList.reduce((prev, { start, offset, tooltip, style }, index) => {
       const lastOffset = prev.length ? prev[prev.length - 1].end : 0
@@ -87,9 +87,9 @@ export default class WOAnnotatedText extends Component {
     chunks = this.handleOverlap(chunks, text)
 
     if (chunks.length === 0) {
-      return <span>
+      return <div className={className}>
         {this.replaceNewLines(text)}
-      </span>
+      </div>
     }
 
     // TODO figure out how empty breakpoints
@@ -100,7 +100,7 @@ export default class WOAnnotatedText extends Component {
       })
     }
     return (
-      <>
+      <div className={className}>
         {chunks.map((chunk, index) => (
           chunk.annotated
             ?
@@ -126,7 +126,7 @@ export default class WOAnnotatedText extends Component {
               {this.replaceNewLines(chunk.text)}
             </span>
         ))}
-      </>
+      </div>
     )
   }
 }
