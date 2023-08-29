@@ -1,0 +1,39 @@
+name: Continuous Integration
+
+on: [push]
+
+jobs:
+  learning_observer:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+    env:
+      MODULEDIR: learning_observer/
+    steps:
+    - uses: ./.github/actions/install-dependencies
+      id: cache
+    # - name: Lint Learning Observer
+    #   run: |
+    #     npm run lint
+    #     pycodestyle --ignore=E501,W503 $(git ls-files "$(MODULEDIR)*.py")
+    # - name: Test Learning Observer
+    #   run: |
+    #     pytest $MODULEDIR
+  
+  writing_observer:
+    runs-on: ubuntu-latest
+    needs: learning_observer
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+    steps:
+    - name: Install Writing Observer dependencies
+      run: |
+        pip install modules/writing_observer
+    - name: Lint Writing Observer
+      run: |
+        pycodestyle --ignore=E501,W503 $(git ls-files 'modules/writing_observer/*.py')
+    - name: Test Writing Observer
+      run: |
+        pytest modules/writing_observer/
