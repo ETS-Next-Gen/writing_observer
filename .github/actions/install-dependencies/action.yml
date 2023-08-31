@@ -7,7 +7,9 @@ inputs:
     required: true
 runs:
   using: "composite"
-  shell: bash
+  defaults:
+    run:
+      shell: bash
   steps:
   - name: Set up Python ${{ inputs.python-version }}
     uses: actions/setup-python@v4
