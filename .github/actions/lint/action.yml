@@ -1,0 +1,35 @@
+name: Lint code
+description: Runs a linter across py, js, and css files
+
+inputs:
+  module-dir:
+    description: "Module directory to use"
+    required: false
+  python-version:
+    description: "Python version to use"
+    required: true
+runs:
+  using: "composite"
+  steps:
+  - name: Set up Python ${{ inputs.python-version }}
+    uses: actions/setup-python@v4
+    with:
+      python-version: ${{ inputs.python-version }}
+  - name: Install Python dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install pycodestyle
+  - name: Set up Node JS
+    uses: actions/setup-node@v3
+    with:
+      node-version-file: '.nvmrc'
+  - name: Install Node dependencies
+    run: npm ci
+  - name: Set module directory
+    run: echo "MODULEDIR=${{ inputs.module-dir }}" >> $GITHUB_ENV
+  - name: Lint Python
+    run: pycodestyle --ignore=E501,W503 $(git ls-files "${MODULEDIR}*.py")
+  - name: Lint JS
+    run: npm run lint:js
+  - name: Lint CSS
+    run: npm run lint:css

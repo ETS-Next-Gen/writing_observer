@@ -3,37 +3,53 @@ name: Continuous Integration
 on: [push]
 
 jobs:
-  learning_observer:
+  linting:
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
-    env:
-      MODULEDIR: learning_observer/
+        module: ["learning_observer/", "modules/writing_observer/"]
     steps:
-    - uses: ./.github/actions/install-dependencies
-      id: cache
-    # - name: Lint Learning Observer
-    #   run: |
-    #     npm run lint
-    #     pycodestyle --ignore=E501,W503 $(git ls-files "$(MODULEDIR)*.py")
-    # - name: Test Learning Observer
-    #   run: |
-    #     pytest $MODULEDIR
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Linting ${{ matrix.module }}
+      uses: ./.github/actions/lint
+      id: lo-lint
+      with:
+        module-dir: ${{ matrix.module }}
+        python-version: "3.10"
+
+  test-lo:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Install Learning Observer
+      uses: ./.github/actions/install-dependencies
+      with:
+        python-version: "3.10"
+    - name: Unit Test Learning Observer
+      run: pytest --doctest-modules learning_observer/learning_observer
   
-  writing_observer:
+  test-modules:
     runs-on: ubuntu-latest
-    needs: learning_observer
+    continue-on-error: true
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        module: ["modules/writing_observer", "modules/wo_highlight_dashboard"]
     steps:
-    - name: Install Writing Observer dependencies
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Install Learning Observer
+      uses: ./.github/actions/install-dependencies
+      with:
+        python-version: "3.10"
+    - name: Install ${{ matrix.module }} dependencies
       run: |
-        pip install modules/writing_observer
-    - name: Lint Writing Observer
+        if [ -d "${{ matrix.module }}" ] && [ -f "${{ matrix.module }}/requirements.txt" ]; then
+          pip install -r "${{ matrix.module }}/requirements.txt"
+        fi
+        pip install -e "${{ matrix.module }}"
+    - name: Testing ${{ matrix.module }}
       run: |
-        pycodestyle --ignore=E501,W503 $(git ls-files 'modules/writing_observer/*.py')
-    - name: Test Writing Observer
-      run: |
-        pytest modules/writing_observer/
+        pytest ${{ matrix.module }}

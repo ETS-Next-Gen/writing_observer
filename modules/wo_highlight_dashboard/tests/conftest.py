@@ -1,6 +1,11 @@
 import pytest
 
+import learning_observer.offline
 import writing_observer.nlp_indicators
+
+
+def pytest_configure():
+    learning_observer.offline.init()
 
 
 def synthesize_student(id, course_id=None):
