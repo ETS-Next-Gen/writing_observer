@@ -24,7 +24,6 @@ runs:
     uses: actions/setup-node@v3
     with:
       node-version-file: .nvmrc
-      cache: 'npm'
   - name: Install Node dependencies
     run: npm install
     shell: bash
