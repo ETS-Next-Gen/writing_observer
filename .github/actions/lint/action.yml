@@ -25,7 +25,7 @@ runs:
     with:
       node-version-file: '.nvmrc'
   - name: Install Node dependencies
-    run: npm ci
+    run: npm install
     shell: bash
   - name: Set module directory
     run: echo "MODULEDIR=${{ inputs.module-dir }}" >> $GITHUB_ENV

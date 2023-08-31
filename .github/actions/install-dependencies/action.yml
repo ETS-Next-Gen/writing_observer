@@ -24,5 +24,5 @@ runs:
       pip install --default-timeout=1000 -r requirements.txt
       pip install modules/lo_dash_react_components
       pip install modules/lo_dash_react_components
-      npm ci
+      npm install
     shell: bash
