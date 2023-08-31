@@ -25,3 +25,4 @@ runs:
       pip install modules/lo_dash_react_components
       pip install modules/lo_dash_react_components
       npm ci
+    shell: bash
