@@ -7,10 +7,33 @@ from concurrent.futures import ThreadPoolExecutor
 import learning_observer.communication_protocol.integration
 import learning_observer.settings
 
-model = 'gpt-3.5-turbo-16k'
 template = """[Task]\n{question}\n\n[Essay]\n{text}"""
 rubric_template = """{task}\n\n[Rubric]\n{rubric}"""
-openai.api_key = learning_observer.settings.module_setting('writing_observer', 'openai_api_key', os.getenv('OPENAI_API_KEY'))
+
+
+class GPTAPI:
+    def chat_completion(self, prompt, system_prompt):
+        '''
+        Respond to user prompt
+        '''
+        raise NotImplementedError
+
+
+class OpenAIGPT(GPTAPI):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        openai.api_key = learning_observer.settings.module_setting('writing_observer', 'openai_api_key', os.getenv('OPENAI_API_KEY'))
+
+    def chat_completion(self, prompt, system_prompt):
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': prompt}
+        ]
+        return openai.ChatCompletion.create(model=self.model, messages=messages)
+
+
+gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
 
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.gpt_essay_prompt')
@@ -26,11 +49,7 @@ async def process_student_essay(text, prompt, system_prompt, rubric):
     @learning_observer.cache.async_memoization()
     async def gpt(gpt_prompt):
         loop = asyncio.get_event_loop()
-        messages = [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': gpt_prompt}
-        ]
-        partial = functools.partial(openai.ChatCompletion.create, model=model, messages=messages)
+        partial = functools.partial(gpt_responder.chat_completion, prompt=gpt_prompt, system_prompt=system_prompt)
         completion = await loop.run_in_executor(executor, partial)
         return completion["choices"][0]["message"]["content"]
 
