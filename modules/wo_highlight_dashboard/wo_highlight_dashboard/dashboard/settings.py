@@ -66,7 +66,7 @@ panel = dbc.Card(
                 # essay type
                 dbc.AccordionItem(
                     html.Div([
-                        dbc.RadioItems([
+                        dbc.RadioItems(options=[
                             {'label': 'Argumentative', 'value': 'argumentative'},
                             {'label': 'Narrative', 'value': 'narrative'}
                         ], value='argumentative', id=essay_type)
