@@ -24,7 +24,7 @@ export default class LOPanelLayout extends Component {
         {leftPanels.map(panel =>
           <div
             key={panel.id}
-            className={shown.includes(panel.id) ? 'side-panel open' : 'side-panel'}
+            className={shown.includes(panel.id) ? 'side-panel open' : 'side-panel closed'}
             style={{ width: shown.includes(panel.id) ? panel.width : 0 }}
           >
             {panel.children}
@@ -36,7 +36,7 @@ export default class LOPanelLayout extends Component {
         {rightPanels.map(panel =>
           <div
             key={panel.id}
-            className={shown.includes(panel.id) ? 'side-panel open' : 'side-panel'}
+            className={shown.includes(panel.id) ? 'side-panel open' : 'side-panel closed'}
             style={{ width: shown.includes(panel.id) ? panel.width : 0 }}
           >
             {panel.children}

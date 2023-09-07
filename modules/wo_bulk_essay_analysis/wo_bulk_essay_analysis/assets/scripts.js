@@ -98,13 +98,13 @@ const extractPDF = async function (base64String) {
   }
 
   const allTexts = await Promise.all(allTextPromises)
-  const allText = allTexts.join(' ')
+  const allText = allTexts.join('\n')
 
   return allText
 }
 
 window.dash_clientside.bulk_essay_feedback = {
-  send_to_loconnection: async function (state, hash, clicks, query, systemPrompt, rubricText) {
+  send_to_loconnection: async function (state, hash, clicks, query, systemPrompt, tags) {
     if (state === undefined) {
       return window.dash_clientside.no_update
     }
@@ -120,7 +120,7 @@ window.dash_clientside.bulk_essay_feedback = {
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
         decoded.gpt_prompt = query
         decoded.system_prompt = systemPrompt
-        decoded.rubric = rubricText
+        decoded.tags = tags
       }
 
       const message = {
@@ -139,6 +139,7 @@ window.dash_clientside.bulk_essay_feedback = {
     if (clicks > 0) {
       return ['', history.concat(query)]
     }
+    return [query, window.dash_clientside.no_update]
   },
 
   update_history_list: function (history) {
@@ -164,14 +165,74 @@ window.dash_clientside.bulk_essay_feedback = {
     return cards
   },
 
-  update_rubric: async function (contents, filename) {
+  update_attachment: async function (contents, filename, timestamp, shown) {
     if (filename === undefined) {
-      return ['', '']
+      return ['', '', shown]
     }
     let data = ''
     if (filename.endsWith('.pdf')) {
       data = await extractPDF(contents)
     }
-    return [data, `Current: ${filename}`]
+    return [data, filename.slice(0, filename.lastIndexOf('.')), shown.concat('attachment')]
+  },
+
+  add_tag_to_query: function (clicks, curr, store) {
+    const trig = window.dash_clientside.callback_context.triggered[0]
+    const trigProp = trig.prop_id
+    const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')))
+    if (trig.value > 0) {
+      return curr.concat(` {${trigJSON.index}}`)
+    }
+    return window.dash_clientside.no_update
+  },
+
+  disabled_query_submit: function (query, store) {
+    if (query.length === 0) {
+      return [true, 'Please create a request before submitting.']
+    }
+    const tags = Object.keys(store)
+    const queryTags = query.match(/[^{}]+(?=})/g) || []
+    const diffs = queryTags.filter(x => !tags.includes(x))
+    if (diffs.length > 0) {
+      return [true, `Unable to find [${diffs.join(',')}] within the tags. Please check that the spelling is correct or remove the extra tags.`]
+    }
+    return [false, '']
+  },
+
+  disable_attachment_save_button: function (label, tags) {
+    if (label.length === 0) {
+      return [true, 'Please add a unique label to your attachment']
+    } else if (tags.includes(label)) {
+      return [true, `Label ${label} is already in use.`]
+    }
+    return [false, '']
+  },
+
+  update_tag_buttons: function (tagStore) {
+    const tagLabels = Object.keys(tagStore)
+    const tags = tagLabels.map((val) => {
+      const button = {
+        namespace: 'dash_bootstrap_components',
+        type: 'Button',
+        props: {
+          children: val,
+          id: { type: 'bulk-essay-analysis-tag', index: val },
+          n_clicks: 0,
+          size: 'sm',
+          color: 'secondary'
+        }
+      }
+      return button
+    })
+    return tags
+  },
+
+  save_attachment: function (clicks, label, text, tagStore, shown) {
+    if (clicks > 0) {
+      const newStore = tagStore
+      newStore[label] = text
+      return [newStore, shown.filter(item => item !== 'attachment')]
+    }
+    return tagStore
   }
 }

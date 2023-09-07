@@ -9,4 +9,7 @@
     .side-panel {
         transition: all 0.3s ease-in-out;
     }
+    .side-panel.closed {
+        overflow: hidden
+    }
 }
