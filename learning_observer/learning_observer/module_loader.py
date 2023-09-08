@@ -394,12 +394,12 @@ def register_3rd_party(component_name, module):
                 if THIRD_PARTY[library_filename]['hash'] != module.THIRD_PARTY[library_filename]['hash']:
                     raise RuntimeError(
                         "Version Conflict in 3rd party libs\n"
-                        "Component {} has a different hash for {}"
+                        "Component {} has a different hash for {} "
                         "than previous component.\n"
                         "{} vs {}".format(
                             component_name,
                             library_filename,
-                            THIRD_PARTY[library_filename]['module'],
+                            THIRD_PARTY[library_filename],
                             module.THIRD_PARTY[library_filename]
                         )
                     )
