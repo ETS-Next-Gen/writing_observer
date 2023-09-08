@@ -27,6 +27,7 @@ lxml
 myst_parser
 names
 numpy
+openai
 pandas
 pathvalidate
 pep8
@@ -45,6 +46,7 @@ sphinx
 svgwrite
 uvloop
 watchdog
+wikipedia
 -e gitserve
 -e learning_observer
 -e modules/writing_observer
