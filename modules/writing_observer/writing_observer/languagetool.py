@@ -65,6 +65,6 @@ async def process_texts(texts):
         text = t.get('text', '')
         text_data = await process_text(text)
         text_data['text'] = text
-        text_data['providence'] = t['providence']
+        text_data['provenance'] = t['provenance']
         output.append(text_data)
     return output

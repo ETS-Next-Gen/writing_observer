@@ -180,7 +180,7 @@ def handle_join(left, right, left_on, right_on):
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
     ... )
-    [{'error': 'KeyError: key not found', 'function': 'handle_join', 'error_providence': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+    [{'error': 'KeyError: key not found', 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
     for d in right:
@@ -279,14 +279,14 @@ def map_serial(func, values, value_path):
 
 def annotate_map_metadata(function, results, values, value_path, func_kwargs):
     """
-    We annotate the list of raw results from mapping over a function with providence
+    We annotate the list of raw results from mapping over a function with provenance
     about the values passed in and the function used. Additionally, we want to
     provide the proper metadata and output for any exceptions that took place
     during execution of the map.
     """
     output = []
     for res, item in zip(results, values):
-        providence = {
+        provenance = {
             'function': function,
             'func_kwargs': func_kwargs,
             'value': item,
@@ -295,16 +295,16 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
         if isinstance(res, dict):
             out = res
         elif isinstance(res, Exception):
-            error_providence = providence.copy()
-            error_providence['error'] = str(res)
+            error_provenance = provenance.copy()
+            error_provenance['error'] = str(res)
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
-                error_providence
+                error_provenance
             ).to_dict()
         else:
             out = {'output': res}
-        out['providence'] = providence
+        out['provenance'] = provenance
         output.append(out)
     return output
 
@@ -336,13 +336,13 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
 
     Generic example of mapping a double function over [0, 1].
     >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path'))
-    [{'output': 0, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
+    [{'output': 0, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
 
     Exceptions in each function with in the map are returned with normal results
     and handled later by the DAG executor. In our text, we return both a normal result
     and the result of an exception being caught.
     >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path'))
-    [{'output': 2, 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': '', 'providence': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
+    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': '', 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
 
     Example of trying to call nonexistent function, `triple`
     >>> asyncio.run(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path'))
@@ -400,9 +400,9 @@ async def handle_select(keys, fields):
         if isinstance(k, dict) and 'key' in k:
             # output from query added to response later
             query_response_element = {
-                'providence': {
+                'provenance': {
                     'key': k['key'],
-                    'providence': k['providence']
+                    'provenance': k['provenance']
                 }
             }
         else:
@@ -458,12 +458,12 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
     reducers output.
 
     This function only supports the creation of Student keys and Student/Resource pair keys.
-    We create a list of fields needed for the `make_key()` function as well as the providence
+    We create a list of fields needed for the `make_key()` function as well as the provenance
     associated with each. These are zipped together and returned to the user.
     """
     func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
     fields = []
-    providences = []
+    provenances = []
     if STUDENTS is not None and RESOURCES is None:
         # handle only students
         fields = [
@@ -471,7 +471,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
                 learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)  # TODO catch get_nested_dict_value errors
             } for s in STUDENTS
         ]
-        providences = [s.get('providence', {'value': s}) for s in STUDENTS]
+        provenances = [s.get('provenance', {'value': s}) for s in STUDENTS]
     elif STUDENTS is not None and RESOURCES is not None:
         # handle both students and resources
         fields = [
@@ -480,15 +480,15 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
                 learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)  # TODO catch get_nested_dict_value errors
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
-        providences = [
+        provenances = [
             {
-                'STUDENT': s.get('providence', {'value': s}),
-                'RESOURCE': r.get('providence', {'value': r})
+                'STUDENT': s.get('provenance', {'value': s}),
+                'RESOURCE': r.get('provenance', {'value': r})
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
 
     keys = []
-    for f, p in zip(fields, providences):
+    for f, p in zip(fields, provenances):
         key = learning_observer.stream_analytics.helpers.make_key(
             func['function'],
             f,
@@ -497,7 +497,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         keys.append(
             {
                 'key': key,
-                'providence': p,
+                'provenance': p,
                 'default': func['default']
             }
         )
@@ -529,35 +529,35 @@ def _has_error(node):
     return None, []
 
 
-def strip_providence(variable):
+def strip_provenance(variable):
     '''
     Context is included for debugging purposes, but should not be included
-    in deployed settings. This function removes all instances of 'providence'
+    in deployed settings. This function removes all instances of 'provenance'
     from a variable.
 
-    Generic removal of `providence` key from dict.
-    >>> strip_providence({'providence': 123, 'other': 123})
+    Generic removal of `provenance` key from dict.
+    >>> strip_provenance({'provenance': 123, 'other': 123})
     {'other': 123}
 
-    Removal of `providence` from list of dicts.
-    >>> strip_providence([{'providence': 123, 'other': 123}, {'providence': 123, 'other': 123}, {'providence': 123, 'other': 123}])
+    Removal of `provenance` from list of dicts.
+    >>> strip_provenance([{'provenance': 123, 'other': 123}, {'provenance': 123, 'other': 123}, {'provenance': 123, 'other': 123}])
     [{'other': 123}, {'other': 123}, {'other': 123}]
 
     If we don't have a dict, we do not change or remove anything.
-    >>> strip_providence(1)
+    >>> strip_provenance(1)
     1
-    >>> strip_providence([1, 2, 3])
+    >>> strip_provenance([1, 2, 3])
     [1, 2, 3]
 
-    Each providence item should appear at the top-level of a dictionary, so
-    nested providence key/value pairs are still included.
-    >>> strip_providence({'nested_dict': {'providence': 123, 'other': 123}})
-    {'nested_dict': {'providence': 123, 'other': 123}}
+    Each provenance item should appear at the top-level of a dictionary, so
+    nested provenance key/value pairs are still included.
+    >>> strip_provenance({'nested_dict': {'provenance': 123, 'other': 123}})
+    {'nested_dict': {'provenance': 123, 'other': 123}}
     '''
     if isinstance(variable, dict):
-        return {key: value for key, value in variable.items() if key != 'providence'}
+        return {key: value for key, value in variable.items() if key != 'provenance'}
     elif isinstance(variable, list):
-        return [strip_providence(item) if isinstance(item, dict) else item for item in variable]
+        return [strip_provenance(item) if isinstance(item, dict) else item for item in variable]
     else:
         return variable
 
@@ -650,7 +650,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         return {e: await visit(e) for e in target_nodes}
 
     # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
-    return {e: strip_providence(await visit(e)) for e in target_nodes}
+    return {e: strip_provenance(await visit(e)) for e in target_nodes}
 
 
 if __name__ == "__main__":

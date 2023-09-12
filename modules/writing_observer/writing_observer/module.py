@@ -38,21 +38,21 @@ EXECUTION_DAG = {
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         'update_docs': update_via_google(runtime=q.parameter("runtime"), doc_ids=q.variable('doc_ids')),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("update_docs"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
-        "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT_ON='user_id'),
+        "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT_ON='user_id'),
         'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
-        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts'}),
         'activity_map': q.map(determine_activity, q.variable('time_on_task'), value_path='last_ts'),
-        'activity_combined': q.join(LEFT=q.variable('activity_map'), LEFT_ON='providence.value.providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'activity_combined': q.join(LEFT=q.variable('activity_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'single_student_latest_doc': q.select(q.keys('writing_observer.last_document', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         'single_update_doc': update_via_google(runtime=q.parameter('runtime'), doc_ids=q.variable('single_student_latest_doc')),
         'single_student_doc': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id', RESOURCES=q.variable("single_update_doc"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         'single_student_lt': languagetool(texts=q.variable('single_student_doc')),
-        'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'overall_lt': languagetool(texts=q.variable('docs')),
-        'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'gpt_map': q.map(gpt_bulk_essay, values=q.variable('docs'), value_path='text', func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})}),
-        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='providence.value.providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
+        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     "exports": {
         "docs_with_roster": {
