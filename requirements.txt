@@ -47,6 +47,6 @@ svgwrite
 uvloop
 watchdog
 wikipedia
--e gitserve
--e learning_observer
--e modules/writing_observer
+
+writing_observer @ git+https://github.com/ETS-Next-Gen/writing_observer.git#subdirectory=modules/writing_observer
+gitserve @ git+https://github.com/ETS-Next-Gen/writing_observer.git#subdirectory=gitserve
