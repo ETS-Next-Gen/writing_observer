@@ -15,7 +15,7 @@ awe_path = os.path.join(parent_path, 'awe_requirements.txt')
 
 def clean_requirements(filename):
     file_path = os.path.join(parent_path, filename)
-    requirements = [s.split("#")[0].strip() for s in open(file_path).readlines() if len(s)>1]
+    requirements = [s.strip() for s in open(file_path).readlines() if len(s)>1]
     return requirements
 
 setup(
