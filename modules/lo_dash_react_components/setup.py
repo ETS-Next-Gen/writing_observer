@@ -11,21 +11,8 @@ current_path = os.environ['PATH']
 modified_env = {'PATH': f'{new_path}{os.pathsep}{current_path}'}
 
 
-class NpmInstall(_install):
-
-    def run(self):
-        subprocess.run(['npm', 'install', os.path.abspath(os.path.dirname(__file__))], env=modified_env)
-        subprocess.run(['npm', 'run', '--prefix', os.path.abspath(os.path.dirname(__file__)), 'build'], env=modified_env)
-        _install.run(self)
-
-
-class NpmDevelop(_develop):
-
-    def run(self):
-        subprocess.run(['npm', 'install', os.path.abspath(os.path.dirname(__file__))], env=modified_env)
-        subprocess.run(['npm', 'run', '--prefix', os.path.abspath(os.path.dirname(__file__)), 'build'], env=modified_env)
-        _develop.run(self)
-
+subprocess.run(['npm', 'install', os.path.abspath(os.path.dirname(__file__))], env=modified_env)
+subprocess.run(['npm', 'run', '--prefix', os.path.abspath(os.path.dirname(__file__)), 'build'], env=modified_env)
 
 with open('package.json') as f:
     package = json.load(f)
@@ -44,8 +31,4 @@ setup(
     classifiers=[
         'Framework :: Dash',
     ],
-    cmdclass={
-        'install': NpmInstall,
-        'develop': NpmDevelop
-    },
 )
