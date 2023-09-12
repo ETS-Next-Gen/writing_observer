@@ -37,6 +37,7 @@ submit = f'{prefix}-submit-btn'
 submit_warning_message = f'{prefix}-submit-warning-msg'
 grid = f'{prefix}-essay-grid'
 
+# default prompts
 system_prompt = 'You are an assistant to a language arts teacher in a school setting. '\
     'Your task is to help the teacher assess, understand, and provide feedback on student essays.'
 
@@ -47,6 +48,7 @@ def layout():
     '''
     Generic layout function to create dashboard
     '''
+    # advanced menu for system prompt
     advanced = dbc.Col([
         lodrc.LOCollapse([
             dbc.InputGroup([
@@ -57,12 +59,14 @@ def layout():
         ], label='Advanced', id=advanced_collapse, is_open=False),
     ])
 
+    # history panel
     history_favorite_panel = dbc.Card([
         dbc.CardHeader('Prompts'),
         dbc.CardBody([], id=history_body),
         dcc.Store(id=history_store, data=[])
     ], class_name='h-100')
 
+    # attachment information panel
     attachment_panel = dbc.Card([
         dbc.CardHeader('Upload'),
         dbc.CardBody([
@@ -77,6 +81,7 @@ def layout():
         ])
     ], class_name='h-100')
 
+    # query creator panel
     input_panel = dbc.Card([
         dbc.InputGroup([
             dbc.InputGroupText([], id=tags, class_name='flex-grow-1', style={'gap': '5px'}),
@@ -90,6 +95,7 @@ def layout():
         ])
     ], class_name='h-100')
 
+    # overall container
     cont = dbc.Container([
         html.H2('Prototype: Work in Progress'),
         html.P(
@@ -114,7 +120,7 @@ def layout():
     return dcc.Loading(cont)
 
 
-# send request to LOConnection
+# send request on websocket
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='send_to_loconnection'),
     Output(websocket, 'send'),
@@ -126,6 +132,8 @@ clientside_callback(
     State(tag_store, 'data')
 )
 
+# enable/disabled submit based on query
+# makes sure there is a query and the tags are properly formatted
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='disabled_query_submit'),
     Output(submit, 'disabled'),
@@ -134,6 +142,7 @@ clientside_callback(
     State(tag_store, 'data')
 )
 
+# add submitted query to history and clear input
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_input_history_on_query_submission'),
     Output(query_input, 'value'),
@@ -143,14 +152,17 @@ clientside_callback(
     State(history_store, 'data')
 )
 
+# update history based on history browser storage
+# TODO create a history component that can handle favorites
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_history_list'),
     Output(history_body, 'children'),
     Input(history_store, 'data')
 )
 
+# show attachment panel upon uploading document and populate fields
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_attachment'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='open_and_populate_attachment_panel'),
     Output(attachment_extracted_text, 'value'),
     Output(attachment_label, 'value'),
     Output(panel_layout, 'shown'),
@@ -172,6 +184,7 @@ clientside_callback(
     Input(websocket, 'message')
 )
 
+# update student cards based on new data in storage
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_student_grid'),
     Output(grid, 'children'),
@@ -179,8 +192,9 @@ clientside_callback(
     Input(history_store, 'data')
 )
 
+# append tag in curly braces to input
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='add_tag_to_query'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='add_tag_to_input'),
     Output(query_input, 'value', allow_duplicate=True),
     Input({'type': tag, 'index': ALL}, 'n_clicks'),
     State(query_input, 'value'),
@@ -188,6 +202,7 @@ clientside_callback(
     prevent_initial_call=True
 )
 
+# enable/disable the save attachment button if tag is already in use/blank
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='disable_attachment_save_button'),
     Output(attachment_save, 'disabled'),
@@ -196,12 +211,14 @@ clientside_callback(
     State({'type': tag, 'index': ALL}, 'value')
 )
 
+# populate word bank of tags
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_tag_buttons'),
     Output(tags, 'children'),
     Input(tag_store, 'data')
 )
 
+# save attachment to tag storage
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='save_attachment'),
     Output(tag_store, 'data'),

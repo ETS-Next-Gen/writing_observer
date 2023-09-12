@@ -88,7 +88,7 @@ const extractPDF = async function (base64String) {
   const allTextPromises = []
 
   for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-    let pageTextPromise = pdf.getPage(pageNumber).then(function (page) {
+    const pageTextPromise = pdf.getPage(pageNumber).then(function (page) {
       return page.getTextContent()
     }).then(function (textContent) {
       return textContent.items.map(item => item.str).join(' ')
@@ -104,6 +104,9 @@ const extractPDF = async function (base64String) {
 }
 
 window.dash_clientside.bulk_essay_feedback = {
+  /**
+   * Sends data to server via websocket
+   */
   send_to_loconnection: async function (state, hash, clicks, query, systemPrompt, tags) {
     if (state === undefined) {
       return window.dash_clientside.no_update
@@ -135,6 +138,9 @@ window.dash_clientside.bulk_essay_feedback = {
     return window.dash_clientside.no_update
   },
 
+  /**
+   * adds submitted query to history and clear input
+   */
   update_input_history_on_query_submission: async function (clicks, query, history) {
     if (clicks > 0) {
       return ['', history.concat(query)]
@@ -142,6 +148,9 @@ window.dash_clientside.bulk_essay_feedback = {
     return [query, window.dash_clientside.no_update]
   },
 
+  /**
+   * update history based on history browser storage
+  */
   update_history_list: function (history) {
     const items = history.map((x) => {
       return {
@@ -157,6 +166,9 @@ window.dash_clientside.bulk_essay_feedback = {
     }
   },
 
+  /**
+   * update student cards based on new data in storage
+   */
   update_student_grid: function (message, history) {
     const currPrompt = history.length > 0 ? history[history.length - 1] : ''
     const cards = message.map((x) => {
@@ -165,7 +177,10 @@ window.dash_clientside.bulk_essay_feedback = {
     return cards
   },
 
-  update_attachment: async function (contents, filename, timestamp, shown) {
+  /**
+   * show attachment panel upon uploading document and populate fields
+  */
+  open_and_populate_attachment_panel: async function (contents, filename, timestamp, shown) {
     if (filename === undefined) {
       return ['', '', shown]
     }
@@ -173,10 +188,14 @@ window.dash_clientside.bulk_essay_feedback = {
     if (filename.endsWith('.pdf')) {
       data = await extractPDF(contents)
     }
+    // TODO add support for docx-like files
     return [data, filename.slice(0, filename.lastIndexOf('.')), shown.concat('attachment')]
   },
 
-  add_tag_to_query: function (clicks, curr, store) {
+  /**
+   * append tag in curly braces to input
+  */
+  add_tag_to_input: function (clicks, curr, store) {
     const trig = window.dash_clientside.callback_context.triggered[0]
     const trigProp = trig.prop_id
     const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')))
@@ -186,6 +205,10 @@ window.dash_clientside.bulk_essay_feedback = {
     return window.dash_clientside.no_update
   },
 
+  /**
+   * enable/disabled submit based on query
+   * makes sure there is a query and the tags are properly formatted
+  */
   disabled_query_submit: function (query, store) {
     if (query.length === 0) {
       return [true, 'Please create a request before submitting.']
@@ -195,10 +218,15 @@ window.dash_clientside.bulk_essay_feedback = {
     const diffs = queryTags.filter(x => !tags.includes(x))
     if (diffs.length > 0) {
       return [true, `Unable to find [${diffs.join(',')}] within the tags. Please check that the spelling is correct or remove the extra tags.`]
+    } else if (!queryTags.includes('student_text')) {
+      return [true, 'Submission requires the inclusion of {student_text} to run the request over the student essays.']
     }
     return [false, '']
   },
 
+  /**
+   * enable/disable the save attachment button if tag is already in use/blank
+   */
   disable_attachment_save_button: function (label, tags) {
     if (label.length === 0) {
       return [true, 'Please add a unique label to your attachment']
@@ -208,6 +236,9 @@ window.dash_clientside.bulk_essay_feedback = {
     return [false, '']
   },
 
+  /**
+   * populate word bank of tags
+   */
   update_tag_buttons: function (tagStore) {
     const tagLabels = Object.keys(tagStore)
     const tags = tagLabels.map((val) => {
@@ -227,6 +258,9 @@ window.dash_clientside.bulk_essay_feedback = {
     return tags
   },
 
+  /**
+   * Save attachment to tag storage
+   */
   save_attachment: function (clicks, label, text, tagStore, shown) {
     if (clicks > 0) {
       const newStore = tagStore
