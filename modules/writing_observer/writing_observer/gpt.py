@@ -37,7 +37,7 @@ gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
 
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.gpt_essay_prompt')
-async def process_student_essay(text, prompt, system_prompt, rubric):
+async def process_student_essay(text, prompt, system_prompt, tags):
     '''
     This method processes text with a prompt through GPT.
 
@@ -45,6 +45,7 @@ async def process_student_essay(text, prompt, system_prompt, rubric):
     '''
 
     executor = ThreadPoolExecutor()
+    copy_tags = tags.copy()
 
     @learning_observer.cache.async_memoization()
     async def gpt(gpt_prompt):
@@ -66,9 +67,8 @@ async def process_student_essay(text, prompt, system_prompt, rubric):
             'prompt': prompt
         }
     else:
-        formatted_prompt = template.format(question=prompt, text=text)
-        if len(rubric) > 0:
-            formatted_prompt = rubric_template.format(task=formatted_prompt, rubric=rubric)
+        copy_tags['student_text'] = text
+        formatted_prompt = prompt.format(**copy_tags)
 
         output = {
             'text': text,

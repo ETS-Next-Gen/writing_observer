@@ -7,15 +7,15 @@ from learning_observer.dash_integration import thirdparty_url, static_url
 import wo_bulk_essay_analysis.dashboard.layout
 
 
-NAME = "Writing Observer - Bulk Essay Analysis and Feedback Dashboard"
+NAME = "Writing Observer - AskGPT"
 
 DASH_PAGES = [
     {
         "MODULE": wo_bulk_essay_analysis.dashboard.layout,
         "LAYOUT": wo_bulk_essay_analysis.dashboard.layout.layout,
         "ASSETS": 'assets',
-        "TITLE": "Bulk Essay Analysis and Feedback Dashboard",
-        "DESCRIPTION": "The Bulk Essay Analysis and Feedback Dashboard is a robust educational tool that leverages AI to simultaneously analyze and provide feedback on large batches of essays, delivering comprehensive insights and constructive critiques for educators in diverse group settings.",
+        "TITLE": "AskGPT",
+        "DESCRIPTION": "The AskGPT is a robust educational tool that leverages AI to simultaneously analyze and provide feedback on large batches of essays, delivering comprehensive insights and constructive critiques for educators in diverse group settings.",
         "SUBPATH": "bulk-essay-analysis",
         "CSS": [
             thirdparty_url("css/bootstrap.min.css"),

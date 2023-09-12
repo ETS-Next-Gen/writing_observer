@@ -51,7 +51,7 @@ EXECUTION_DAG = {
         'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'overall_lt': languagetool(texts=q.variable('docs')),
         'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
-        'gpt_map': q.map(gpt_bulk_essay, values=q.variable('docs'), value_path='text', func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'rubric': q.parameter('rubric', required=False, default='')}),
+        'gpt_map': q.map(gpt_bulk_essay, values=q.variable('docs'), value_path='text', func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})}),
         'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='providence.value.providence.providence.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     "exports": {
