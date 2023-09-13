@@ -106,5 +106,6 @@ def verify_auth_precheck():
                 "mirrors the one here.\n" + \
                 "\n" + \
                 "If you are not planning to use Google auth (which is the case for most dev\n" + \
-                "settings), please disable Google authentication in creds.yaml"
+                "settings), please disable Google authentication in creds.yaml by\n" + \
+                "removing the google_auth section under auth."
             raise learning_observer.prestartup.StartupCheck(error)
