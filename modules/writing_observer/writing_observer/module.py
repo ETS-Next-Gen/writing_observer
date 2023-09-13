@@ -169,10 +169,10 @@ THIRD_PARTY = {
     "bulma.min.css": d.BULMA_CSS,
     "fontawesome.js": d.FONTAWESOME_JS,
     "showdown.js": d.SHOWDOWN_JS,
-    "showdown.js.map": SHOWDOWN_JS_MAP,
-    "mustache.min.js": MUSTACHE_JS,
-    "d3.v5.min.js": D3_V5_JS,
-    "bulma-tooltip-min.css": BULMA_TOOLTIP_CSS
+    "showdown.js.map": d.SHOWDOWN_JS_MAP,
+    "mustache.min.js": d.MUSTACHE_JS,
+    "d3.v5.min.js": d.D3_V5_JS,
+    "bulma-tooltip-min.css": d.BULMA_TOOLTIP_CSS
 }
 
 
