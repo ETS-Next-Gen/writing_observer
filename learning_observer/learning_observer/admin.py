@@ -5,18 +5,16 @@ Administrative Views
 Views for monitoring overall system operation, and eventually, for
 administering the system.
 '''
-import copy
-import numbers
 import psutil
 import sys
 
 import aiohttp
 import aiohttp.web
 
-import dash.development.base_component
 
 import learning_observer.module_loader
 from learning_observer.log_event import debug_log
+from learning_observer.util import clean_json
 
 from learning_observer.auth.utils import admin
 
@@ -71,34 +69,6 @@ async def system_status(request):
                     sinfo[key] = str(info[key])
                 resources.append(sinfo)
         return resources
-
-    def clean_json(json_object):
-        '''
-        * Deep copy a JSON object
-        * Convert list-like objects to lists
-        * Convert dictionary-like objects to dicts
-        * Convert functions to string representations
-        '''
-        if isinstance(json_object, str):
-            return str(json_object)
-        if isinstance(json_object, numbers.Number):
-            return json_object
-        if isinstance(json_object, dict):
-            return {key: clean_json(value) for key, value in json_object.items()}
-        if isinstance(json_object, list) or isinstance(json_object, tuple):
-            return [clean_json(i) for i in json_object]
-        if isinstance(json_object, learning_observer.stream_analytics.fields.Scope):
-            # We could make a nicer representation....
-            return str(json_object)
-        if callable(json_object):
-            return str(json_object)
-        if json_object is None:
-            return json_object
-        if str(type(json_object)) == "<class 'module'>":
-            return str(json_object)
-        if isinstance(json_object, dash.development.base_component.Component):
-            return f"Dash Component {json_object}"
-        raise ValueError("We don't yet handle this type in clean_json: {} (object: {})".format(type(json_object), json_object))
 
     status = {
         "status": "Alive!",

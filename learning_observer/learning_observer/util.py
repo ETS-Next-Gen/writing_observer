@@ -9,13 +9,17 @@ We can relax the design invariant, but we should think carefully
 before doing so.
 '''
 
+import dash.development.base_component
 import datetime
 import enum
 import hashlib
 import math
+import numbers
 import re
 import socket
 from dateutil import parser
+
+import learning_observer
 
 
 def paginate(data_list, nrows):
@@ -150,6 +154,39 @@ def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
                 raise KeyError(f'Key {key_str} not found in {d}')
             return default
     return d
+
+
+def clean_json(json_object):
+    '''
+    * Deep copy a JSON object
+    * Convert list-like objects to lists
+    * Convert dictionary-like objects to dicts
+    * Convert functions to string representations
+    '''
+    if isinstance(json_object, str):
+        return str(json_object)
+    if isinstance(json_object, numbers.Number):
+        return json_object
+    if isinstance(json_object, dict):
+        return {key: clean_json(value) for key, value in json_object.items()}
+    if isinstance(json_object, list) or isinstance(json_object, tuple):
+        return [clean_json(i) for i in json_object]
+    if isinstance(json_object, learning_observer.stream_analytics.fields.Scope):
+        # We could make a nicer representation....
+        return str(json_object)
+    if callable(json_object):
+        return str(json_object)
+    if json_object is None:
+        return json_object
+    if str(type(json_object)) == "<class 'module'>":
+        return str(json_object)
+    if str(type(json_object)) == "<class 'learning_observer.runtime.Runtime'>":
+        return str(json_object)
+    if isinstance(json_object, dash.development.base_component.Component):
+        return f"Dash Component {json_object}"
+    if isinstance(json_object, KeyError):
+        return str(json_object)
+    raise ValueError("We don't yet handle this type in clean_json: {} (object: {})".format(type(json_object), json_object))
 
 
 def timestamp():

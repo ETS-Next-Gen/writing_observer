@@ -21,7 +21,7 @@ version which we have not yet tested.
 '''
 
 import dash_bootstrap_components as dbc
-
+import os
 
 REQUIRE_JS = {
     "url": "https://requirejs.org/docs/release/2.3.6/comments/require.js",
@@ -93,3 +93,42 @@ BOOTSTRAP_MIN_CSS  = {
         'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
     ]
 }
+FONTAWESOME_CSS = {
+    "url": dbc.icons.FONT_AWESOME,
+    "hash": {
+        "6.1.1": "535a5f3e40bc8ddf475b56c1a39a5406052b524413dea331c4e683ca99e39"
+        "6dbbc11fdce1f8355730a73c52ac6a1062de1938406c6af8e4361fd346106acb6b0",
+        "6.3.0": "1496214e7421773324f4b332127ea77bec822fc6739292ebb19c6abcc22a5"
+        "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7"
+    },
+    "tested_versions": [
+        "https://use.fontawesome.com/releases/v6.3.0/css/all.css",
+        "https://use.fontawesome.com/releases/v6.1.1/css/all.css"
+    ]
+}
+FONTAWESOME_WOFF2 = {
+    "url": os.path.dirname(os.path.dirname(dbc.icons.FONT_AWESOME)) + "/webfonts/fa-solid-900.woff2",
+    "hash": {
+        "6.1.1": "6d3fe769cc40a5790ea2e09fb775f1bd3b130d2fdae1dd552f69559e7ca4c"
+        "a047862f795da0024737e59e3bcc7446f6eec1bab173758aef0b97ba89d722ffbde",
+        "6.3.0": "d50c68cd4b3312f50deb66ac8ab5c37b2d4161f4e00ea077"
+        "326ae76769dac650dd19e65dee8d698ba2f86a69537f38cf4010ff45227211cee8b382d9b567257a"
+    }
+}
+FONTAWESOME_TTF = {
+    "url": os.path.dirname(os.path.dirname(dbc.icons.FONT_AWESOME)) + "/webfonts/fa-solid-900.ttf",
+    "hash": {
+        "6.1.1": "0fdd341671021d04304186c197001cf2e888d3028baaf9a5dec0f0e496959"
+        "666e8a2e34aae8e79904f8e9b4c0ccae40249897cce5f5ae58d12cc1b3985e588d6",
+        "6.3.0": "5a2c2b010a2496e4ed832ede8620f3bbfa9374778f3d63e4"
+        "5a4aab041e174dafd9fffd3229b8b36f259cf2ef46ae7bf5cb041e280f2939884652788fc1e8ce58"
+    }
+}
+
+if (dbc.themes.MINTY not in BOOTSTRAP_MIN_CSS["tested_versions"]):
+    print("WARN:: Unrecognized Minty URL detected: {}".format(dbc.themes.MINTY))
+    print("You will need to update dash bootstrap components hash value.\n")
+
+if (dbc.icons.FONT_AWESOME not in FONTAWESOME_CSS["tested_versions"]):
+    print("WARN:: Unrecognized Fontawesome URL detected: {}".format(dbc.icons.FONT_AWESOME))
+    print("You will need to update the FontAwesome bootstrap components hash value.\n")
