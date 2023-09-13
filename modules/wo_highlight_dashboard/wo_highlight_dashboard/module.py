@@ -3,6 +3,7 @@ import os.path
 import dash_bootstrap_components as dbc
 
 from learning_observer.dash_integration import thirdparty_url, static_url
+import learning_observer.downloads as d
 
 import wo_highlight_dashboard.dashboard.layout
 
@@ -27,15 +28,7 @@ DASH_PAGES = [
 ]
 
 THIRD_PARTY = {
-    "css/bootstrap.min.css": {
-        "url": dbc.themes.MINTY,
-        "hash": {
-            "old": "b361dc857ee7c817afa9c3370f1d317db2c4be5572dd5ec3171caeb812281"
-            "cf900a5a9141e5d6c7069408e2615df612fbcd31094223996154e16f2f80a348532",
-            "5.1.3": "c03f5bfd8deb11ad6cec84a6201f4327f28a640e693e56466fd80d983ed54"
-            "16deff1548a0f6bbad013ec278b9750d1d253bd9c5bd1f53c85fcd62adba5eedc59"
-        }
-    },
+    "css/bootstrap.min.css": d.BOOTSTRAP_MIN_CSS,
     "css/fontawesome_all.css": {
         "url": dbc.icons.FONT_AWESOME,
         "hash": {
