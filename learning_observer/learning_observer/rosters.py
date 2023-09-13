@@ -374,11 +374,13 @@ def init():
                 raise learning_observer.prestartup.StartupCheck(
                     "Missing course roster files!\n"
                     "The following are required:\t{paths}\n\n"
-                    "Please run:\n"
+                    "If you plan to use rosters from local files, please run:\n"
                     "{commands}\n\n"
                     "(And ideally, they'll be populated with\n"
                     "a list of courses, and of students for\n"
-                    "those courses)".format(
+                    "those courses)\n\n"
+                    "If you plan to use other sources of roster,\n"
+                    "data please change creds.yaml instead".format(
                         paths=", ".join(r_paths),
                         commands="\n".join(["mkdir {path}".format(path=path) for path in r_paths])
                     )
