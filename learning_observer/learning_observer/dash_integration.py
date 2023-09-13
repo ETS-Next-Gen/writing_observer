@@ -13,6 +13,9 @@ On the other hand, there's a lot of stuff like `dash.register_page` or global
 import os.path
 import shutil
 
+from pkg_resources import resource_filename, resource_listdir
+
+
 import dash
 from dash import Dash, html, clientside_callback, Output, Input
 
@@ -121,7 +124,19 @@ def compile_dash_assets():
             module = modules[m]
             for layout in module:
                 if 'ASSETS' in layout:
-                    asset_path = os.path.join(layout['_BASE_PATH'], layout['ASSETS'])
+                    try:
+                        # This is a hack. We should be using resource_dir and then resource_filename.
+                        asset_path = resource_filename(m, layout['ASSETS'])
+                    except TypeError:
+                        print(
+                            f'\n\n'
+                            f'If you are seeing an odd exception in posixpath.py, then module {m}\n'
+                            'is probably not set up correctly. It is defining assets in module.py,\n'
+                            'but I cannot find them. It is probably either missing __init__.py in\n'
+                            'a directory, a MANIFEST.in for static assets, or a package_data field\n'
+                            'in setup.py (or the equivalent).\n\n')
+                        raise
+                    # OLD: os.path.join(layout['_BASE_PATH'], layout['ASSETS'])
                     yield asset_path
 
     def copy_files(source, destination):

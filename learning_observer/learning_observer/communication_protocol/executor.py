@@ -17,7 +17,7 @@ import learning_observer.module_loader
 import learning_observer.settings
 import learning_observer.stream_analytics.fields
 import learning_observer.stream_analytics.helpers
-from learning_observer.util import get_nested_dict_value
+from learning_observer.util import get_nested_dict_value, clean_json
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
 dispatch = learning_observer.communication_protocol.query.dispatch
@@ -647,10 +647,10 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
 
     # Include execution history in output if operating in development settings
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
-        return {e: await visit(e) for e in target_nodes}
+        return {e: clean_json(await visit(e)) for e in target_nodes}
 
     # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
-    return {e: strip_provenance(await visit(e)) for e in target_nodes}
+    return {e: clean_json(strip_provenance(await visit(e))) for e in target_nodes}
 
 
 if __name__ == "__main__":
