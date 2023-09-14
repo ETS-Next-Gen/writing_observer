@@ -48,6 +48,5 @@ uvloop
 watchdog
 wikipedia
 
-writing_observer @ git+https://github.com/ETS-Next-Gen/writing_observer.git#subdirectory=modules/writing_observer
 gitserve @ git+https://github.com/ETS-Next-Gen/writing_observer.git#subdirectory=gitserve
 lo_dash_react_components @ git+https://github.com/ETS-Next-Gen/writing_observer.git#subdirectory=modules/lo_dash_react_components

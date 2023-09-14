@@ -26,6 +26,8 @@ DASH_PAGES = [
 THIRD_PARTY = {
     "css/bootstrap.min.css": d.BOOTSTRAP_MIN_CSS,
     "css/fontawesome_all.css": d.FONTAWESOME_CSS,
+    "webfonts/fa-solid-900.woff2": d.FONTAWESOME_WOFF2,
+    "webfonts/fa-solid-900.ttf": d.FONTAWESOME_TTF
 }
 
 COURSE_DASHBOARDS = [{
