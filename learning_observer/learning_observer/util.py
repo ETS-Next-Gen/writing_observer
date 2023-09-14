@@ -212,21 +212,6 @@ def timeparse(timestamp):
     return parser.isoparse(timestamp)
 
 
-def check_service(host, port):
-    '''
-    We want to check if a service is running or not before we try and interact with it.
-    This method connects to a port and returns true if a service is running.
-    '''
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        sock.bind((host, port))
-    except socket.error:
-        return True
-    finally:
-        sock.close()
-    return False
-
-
 # And a test case
 if __name__ == '__main__':
     assert to_safe_filename('{') == '-123-'

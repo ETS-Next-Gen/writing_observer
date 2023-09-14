@@ -108,8 +108,8 @@ window.dash_clientside.common_student_errors = {
    */
   receive_populate_student_error: function (message, hash) {
     let data = message.wo.single_lt_combined
-    if (!data | data.length === 0) {
-      return ['Select a student', '']
+    if (!data | data.length === 0 | Object.prototype.hasOwnProperty.call(data, 'error')) {
+      return ['Select a student', '', [], [], 'individual-student-loaded']
     }
     data = data[0]
     const decoded = decode_string_dict(hash.slice(1))
@@ -233,10 +233,10 @@ window.dash_clientside.common_student_errors = {
    */
   receive_populate_categorical_errors: function (message) {
     const data = message.wo.lt_combined
-    if (!data) {
-      return window.dash_clientside.no_update
-    }
     const rows = []
+    if (!data | Object.prototype.hasOwnProperty.call(data, 'error')) {
+      return rows
+    }
 
     data.forEach(student => {
       // TODO we could wrap this in a link component to adjust the side view
@@ -287,8 +287,8 @@ window.dash_clientside.common_student_errors = {
    */
   receive_populate_agg_info: function (message) {
     const data = message.wo.lt_combined
-    if (!data) {
-      return window.dash_clientside.no_update
+    if (!data | Object.prototype.hasOwnProperty.call(data, 'error')) {
+      return []
     }
 
     const flatErrors = data.map((student) => {

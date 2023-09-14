@@ -2,4 +2,3 @@ AWE_SpellCorrect @ git+https://github.com/ETS-Next-Gen/AWE_SpellCorrect.git
 AWE_Components @ git+https://github.com/ETS-Next-Gen/AWE_Components.git
 AWE_Lexica @ git+https://github.com/ETS-Next-Gen/AWE_Lexica.git
 AWE_LanguageTool @ git+https://github.com/ETS-Next-Gen/AWE_LanguageTool.git
-AWE_Workbench @ git+https://github.com/ETS-Next-Gen/AWE_Workbench.git

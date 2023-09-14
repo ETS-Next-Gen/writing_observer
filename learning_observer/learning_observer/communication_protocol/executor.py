@@ -17,6 +17,7 @@ import learning_observer.module_loader
 import learning_observer.settings
 import learning_observer.stream_analytics.fields
 import learning_observer.stream_analytics.helpers
+from learning_observer.log_event import debug_log
 from learning_observer.util import get_nested_dict_value, clean_json
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
@@ -639,6 +640,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 'dispatch': nodes[node_name]['dispatch'],
                 'error_path': error_path
             }
+            debug_log(f'Error occured within execution dag at {node_name}\n{nodes[node_name]}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
 

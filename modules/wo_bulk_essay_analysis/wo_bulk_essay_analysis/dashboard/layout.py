@@ -176,7 +176,10 @@ clientside_callback(
 clientside_callback(
     '''
     function(message) {
-        const data = JSON.parse(message.data).wo.gpt_bulk
+        const data = JSON.parse(message.data).wo.gpt_bulk || []
+        if (Object.prototype.hasOwnProperty.call(data, 'error')) {
+            return []
+        }
         return data
     }
     ''',
