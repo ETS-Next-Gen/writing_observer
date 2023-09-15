@@ -1,7 +1,5 @@
 import json
 from setuptools import setup
-from setuptools.command.install import install as _install
-from setuptools.command.develop import develop as _develop
 import os
 import subprocess
 import sys
@@ -10,7 +8,14 @@ new_path = '/'.join(sys.executable.split('/')[:-1])
 current_path = os.environ['PATH']
 modified_env = {'PATH': f'{new_path}{os.pathsep}{current_path}'}
 
+# HACK we need dash installed before we run the NPM commands
+# which transform our React components into a Python package
+try:
+    import dash
+except ImportError:
+    subprocess.run([sys.executable, '-m', 'pip', 'install', 'dash'])
 
+# TODO make sure the user is using a supported version Node
 subprocess.run(['npm', 'install', os.path.abspath(os.path.dirname(__file__))], env=modified_env)
 subprocess.run(['npm', 'run', '--prefix', os.path.abspath(os.path.dirname(__file__)), 'build'], env=modified_env)
 
