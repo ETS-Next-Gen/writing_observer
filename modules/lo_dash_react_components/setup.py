@@ -13,7 +13,7 @@ modified_env = {'PATH': f'{new_path}{os.pathsep}{current_path}'}
 try:
     import dash
 except ImportError:
-    subprocess.run([sys.executable, '-m', 'pip', 'install', 'dash'])
+    subprocess.run([sys.executable, '-m', 'pip', 'install', 'dash[dev]'])
 
 # TODO make sure the user is using a supported version Node
 subprocess.run(['npm', 'install', os.path.abspath(os.path.dirname(__file__))], env=modified_env)
