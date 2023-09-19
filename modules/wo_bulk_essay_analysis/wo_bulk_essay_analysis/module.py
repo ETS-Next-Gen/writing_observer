@@ -27,7 +27,7 @@ DASH_PAGES = [
     }
 ]
 
-gpt_bulk_essay = q.call('writing_observer.gpt_essay_prompt')
+gpt_bulk_essay = q.call('wo_bulk_essay_analysis.gpt_essay_prompt')
 
 EXECUTION_DAG = {
     'execution_dag': {

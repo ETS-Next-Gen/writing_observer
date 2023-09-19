@@ -36,7 +36,7 @@ class OpenAIGPT(GPTAPI):
 gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
 
 
-@learning_observer.communication_protocol.integration.publish_function('writing_observer.gpt_essay_prompt')
+@learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
 async def process_student_essay(text, prompt, system_prompt, tags):
     '''
     This method processes text with a prompt through GPT.
