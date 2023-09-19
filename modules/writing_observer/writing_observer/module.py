@@ -17,7 +17,6 @@ from learning_observer import downloads as d
 import writing_observer.aggregator
 import writing_observer.writing_analysis
 import writing_observer.languagetool
-import writing_observer.gpt
 from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
@@ -31,7 +30,6 @@ process_texts = q.call('writing_observer.process_texts')
 determine_activity = q.call('writing_observer.activity_map')
 languagetool = q.call('writing_observer.languagetool')
 update_via_google = q.call('writing_observer.update_reconstruct_with_google_api')
-gpt_bulk_essay = q.call('writing_observer.gpt_essay_prompt')
 
 
 EXECUTION_DAG = {
@@ -53,8 +51,6 @@ EXECUTION_DAG = {
         'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'overall_lt': languagetool(texts=q.variable('docs')),
         'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
-        'gpt_map': q.map(gpt_bulk_essay, values=q.variable('docs'), value_path='text', func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})}),
-        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id')
     },
     "exports": {
         "docs_with_roster": {
@@ -80,11 +76,6 @@ EXECUTION_DAG = {
         'overall_errors': {
             'returns': 'lt_combined',
             'parameters': ['course_id'],
-            'output': ''
-        },
-        'gpt_bulk': {
-            'returns': 'gpt_bulk',
-            'parameters': ['course_id', 'gpt_prompt', 'system_prompt'],
             'output': ''
         }
     },

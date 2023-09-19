@@ -3,6 +3,7 @@ This generates dashboards from student data.
 '''
 
 import asyncio
+import copy
 import inspect
 import json
 import numbers
@@ -28,6 +29,7 @@ from learning_observer.log_event import debug_log
 
 import learning_observer.module_loader
 import learning_observer.communication_protocol.integration
+import learning_observer.communication_protocol.query
 
 
 def timelist_to_seconds(timelist):
@@ -361,6 +363,33 @@ async def DAGNotFound(dag_name):
     return f'Execution DAG, {dag_name}, not found on system.'
 
 
+def find_dependent_dags(dag, deps=None):
+    '''Check if the execution DAG has any dependencies on other DAGs
+    '''
+    if deps is None:
+        deps = set()
+
+    if isinstance(dag, dict):
+        if dag.get('dispatch') == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
+            variable_name = dag['variable_name']
+            if '.' in variable_name:
+                deps.add(variable_name.split('.')[0])
+        for key in dag:
+            find_dependent_dags(dag[key], deps)
+    return deps
+
+
+def add_prefix_to_dep_dag_variables(dag, prefix):
+    '''With dependent dags we want to prefix their internal variable calls to avoid naming conflicts.
+    '''
+    if isinstance(dag, dict):
+        if dag.get('dispatch') == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
+            dag['variable_name'] = f'{prefix}.{dag["variable_name"]}'
+        for key in dag:
+            add_prefix_to_dep_dag_variables(dag[key], prefix)
+    return dag
+
+
 async def execute_queries(client_data, request):
     execution_dags = learning_observer.module_loader.execution_dags()
     funcs = []
@@ -379,6 +408,17 @@ async def execute_queries(client_data, request):
             debug_log(f'Execution DAG, {dag_name}, not found.')
             funcs.append(DAGNotFound(dag_name))
             continue
+
+        dependent_dags = find_dependent_dags(query['execution_dag'])
+        missing_dags = dependent_dags - execution_dags.keys()
+        if missing_dags:
+            debug_log(f'Execution DAGs, {missing_dags}, not found.')
+            funcs.append([DAGNotFound(d) for d in missing_dags])
+        for dep in dependent_dags:
+            dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
+            prefixed_dag = add_prefix_to_dep_dag_variables(dep_dag, dep)
+            query['execution_dag'] = {**query['execution_dag'], **{f'{dep}.{k}': v for k, v in prefixed_dag.items()}}
+
         target_exports = client_query.get('target_exports', [])
         query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
         client_parameters = client_query.get('kwargs', {})
