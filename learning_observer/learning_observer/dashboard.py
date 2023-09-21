@@ -28,6 +28,8 @@ from learning_observer.log_event import debug_log
 
 import learning_observer.module_loader
 import learning_observer.communication_protocol.integration
+import learning_observer.communication_protocol.schema
+import learning_observer.settings
 
 
 def timelist_to_seconds(timelist):
@@ -361,6 +363,14 @@ async def DAGNotFound(dag_name):
     return f'Execution DAG, {dag_name}, not found on system.'
 
 
+async def DAGIncorrectFormat():
+    return 'Submitted Execution DAG not in valid format.'
+
+
+async def DAGUnsupportedType(t):
+    return f'Unsupported type, {t}, for execution_dag parameter.'
+
+
 async def execute_queries(client_data, request):
     execution_dags = learning_observer.module_loader.execution_dags()
     funcs = []
@@ -372,12 +382,23 @@ async def execute_queries(client_data, request):
     #     },
     # }
     for query_name, client_query in client_data.items():
-        dag_name = client_query.get('execution_dag', query_name)
-        try:
-            query = execution_dags[dag_name]
-        except KeyError:
-            debug_log(f'Execution DAG, {dag_name}, not found.')
-            funcs.append(DAGNotFound(dag_name))
+        dag = client_query.get('execution_dag', query_name)
+        if learning_observer.settings.settings.get('dangerously_allow_insecure_dags', False) and type(dag) == dict:
+            query = dag
+            if not learning_observer.communication_protocol.schema.validate_schema(query):
+                debug_log(f'Submitted execution query is not a valid form')
+                funcs.append(DAGIncorrectFormat())
+                continue
+        elif type(dag) == str:
+            try:
+                query = execution_dags[dag]
+            except KeyError:
+                debug_log(f'Execution DAG, {dag}, not found.')
+                funcs.append(DAGNotFound(dag))
+                continue
+        else:
+            debug_log('Unsupported type for execution_dag parameter')
+            funcs.append(DAGUnsupportedType(type(dag)))
             continue
         target_exports = client_query.get('target_exports', [])
         query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
