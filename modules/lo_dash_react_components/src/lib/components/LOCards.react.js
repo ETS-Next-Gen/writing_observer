@@ -3,7 +3,7 @@
   */
 
 import React from "react";
-import "./style.css";
+import "./LOCards.css";
 
 const LOCard = ({ title, description }) => {
   return (
