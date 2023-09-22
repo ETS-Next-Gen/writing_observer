@@ -23,6 +23,7 @@ loremipsum @ git+https://github.com/testlabauto/loremipsum.git@b7bd71a6651207ef8
 google-auth
 ipython
 invoke
+js2py
 lxml
 myst_parser
 names

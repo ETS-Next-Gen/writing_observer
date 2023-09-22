@@ -16,13 +16,55 @@ TextTypes = Enum('TextTypes', [
     "SHORT_STORY", "ARGUMENTATIVE", "LOREM", "WIKI_SCIENCE", "WIKI_HISTORY"
 ])
 
+# This is just a token. We could define this with Enum or otherwise
+MAX = float("inf")
+
+# All data text types
+ALL_DATA = [
+    tt for tt in TextTypes.__members__.values() if tt != TextTypes.LOREM
+]
+
 
 def sample_texts(text_type=TextTypes.LOREM, count=1):
     '''
-    Returns a sample, random essay of the appropriate type
+    Returns a list of sample texts in string format based on the specified text_type and count.
+
+    Args:
+       text_type (Enum or list): The type of text(s) to generate (e.g. argumentative essay, short story, Wikipedia science). Can be provided as an Enum or a list of Enums. See TextTypes for possibilities. ALL_DATA will do all data types (but not generated ones like Lorem Ipsum)
+       count (int or float): The number of samples to generate. Can be a single number or a list of numbers corresponding to each text type.
+
+    Returns:
+       A list of random essays of the appropriate type, formatted as strings.
+
+    Examples:
+
+    >>> len(sample_texts())  # Default is Lorem Ipsum, returns a single text
+    1
+
+    >>> len(sample_texts(TextTypes.ARGUMENTATIVE, 2))  # Returns 2 argumentative essays
+    2
+
+    >>> len(sample_texts([TextTypes.SHORT_STORY, TextTypes.WIKI_SCIENCE], [1, 3]))  # Returns 1 short story and 3 science Wikipedia pages
+    4
+
+    >>> len(sample_texts([TextTypes.SHORT_STORY, TextTypes.WIKI_SCIENCE], 5))  # Returns 3 short story and 2 science Wikipedia pages
+    5
+
+    >>> len(sample_texts(TextTypes.LOREM, MAX))  # Raises AttributeError if text_type is lorem and count is MAX
+    Traceback (most recent call last):
+    ...
+    AttributeError: Lorem needs a count which is not MAX
     '''
-    if text_type == TextTypes.LOREM:
-        return [lorem() for x in range(count)]
+    if isinstance(text_type, Enum):
+        text_type = [text_type]
+
+    if isinstance(count, (int, float)):
+        if count == MAX:
+            count = [MAX] * len(text_type)
+        else:
+            remainder = count % len(text_type)
+            count = [count // len(text_type)] * len(text_type)
+            count[0] = count[0] + remainder
 
     sources = {
         TextTypes.ARGUMENTATIVE: ARGUMENTATIVE_ESSAYS,
@@ -31,17 +73,30 @@ def sample_texts(text_type=TextTypes.LOREM, count=1):
         TextTypes.WIKI_HISTORY: WIKIPEDIA_HISTORY
     }
 
-    source = sources[text_type]
-
     essays = []
-    while count > len(source):
-        essays.extend(source)
-        count = count - len(source)
 
-    essays.extend(random.sample(source, count))
+    for tt, c in zip(text_type, count):
+        if tt == TextTypes.LOREM:
+            if c == MAX:
+                raise AttributeError("Lorem needs a count which is not MAX")
+            essays.extend([lorem() for x in range(c)])
+            continue
 
-    if text_type in [TextTypes.WIKI_SCIENCE, TextTypes.WIKI_HISTORY]:
-        essays = map(wikitext, essays)
+        source = sources[tt]
+        tt_essays = []
+
+        if c != MAX:
+            while c > len(source):
+                tt_essays.extend(source)
+                c = c - len(source)
+            tt_essays.extend(random.sample(source, c))
+        else:
+            tt_essays.extend(source)
+
+        if tt in [TextTypes.WIKI_SCIENCE, TextTypes.WIKI_HISTORY]:
+            tt_essays = map(wikitext, tt_essays)
+
+        essays.extend(tt_essays)
 
     return [e.strip() for e in essays]
 
@@ -345,3 +400,8 @@ GPT3_TEXTS = {
     'story': SHORT_STORIES,
     'argument': ARGUMENTATIVE_ESSAYS
 }
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
