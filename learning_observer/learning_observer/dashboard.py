@@ -363,9 +363,17 @@ async def DAGNotFound(dag_name):
     return f'Execution DAG, {dag_name}, not found on system.'
 
 
-def find_dependent_dags(dag, deps=None):
-    '''Check if the execution DAG has any dependencies on other DAGs
+def extract_namespaced_dags(dag, deps=None):
+    '''This will return any dependencies on other dags
+    (in other words, variables of the form namespace.variable which are not local).
+    If it finds something like writing_observer.docs, it will add that to a set,
+    and return that set of dependencies.
+
+    This is so we can have a complete list of DAG nodes we might need to reference.
+    We can take the keys from the execution_dag dictionary, but we also add all of
+    the references to DAGs in other modules.
     '''
+    # TODO move this function to the communication protocol directory
     if deps is None:
         deps = set()
 
@@ -375,18 +383,25 @@ def find_dependent_dags(dag, deps=None):
             if '.' in variable_name:
                 deps.add(variable_name.split('.')[0])
         for key in dag:
-            find_dependent_dags(dag[key], deps)
+            extract_namespaced_dags(dag[key], deps)
     return deps
 
 
-def add_prefix_to_dep_dag_variables(dag, prefix):
-    '''With dependent dags we want to prefix their internal variable calls to avoid naming conflicts.
+def fully_qualify_names_with_default_namespace(dag, namespace_prefix):
+    '''In order to avoid naming conflicts, and to have consistency, this will append
+    the default namespace to all variables without a namespace prefix.
+
+    For example, if the prefix is writing_observer, and we run into a node `docs`,
+    this node will be renamed to `writing_observer.docs`.
+
+    TODO If a node already has a prefix (e.g. dynamic_assessment.foo), it will remain unchanged.
     '''
+    # TODO move this function to the communication protocol directory
     if isinstance(dag, dict):
         if dag.get('dispatch') == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
-            dag['variable_name'] = f'{prefix}.{dag["variable_name"]}'
+            dag['variable_name'] = f'{namespace_prefix}.{dag["variable_name"]}'
         for key in dag:
-            add_prefix_to_dep_dag_variables(dag[key], prefix)
+            fully_qualify_names_with_default_namespace(dag[key], namespace_prefix)
     return dag
 
 
@@ -409,14 +424,16 @@ async def execute_queries(client_data, request):
             funcs.append(DAGNotFound(dag_name))
             continue
 
-        dependent_dags = find_dependent_dags(query['execution_dag'])
+        # NOTE dependent dags only work for on a single level dependency
+        # TODO allow multiple layers of dependency among dags
+        dependent_dags = extract_namespaced_dags(query['execution_dag'])
         missing_dags = dependent_dags - execution_dags.keys()
         if missing_dags:
             debug_log(f'Execution DAGs, {missing_dags}, not found.')
             funcs.append([DAGNotFound(d) for d in missing_dags])
         for dep in dependent_dags:
             dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
-            prefixed_dag = add_prefix_to_dep_dag_variables(dep_dag, dep)
+            prefixed_dag = fully_qualify_names_with_default_namespace(dep_dag, dep)
             query['execution_dag'] = {**query['execution_dag'], **{f'{dep}.{k}': v for k, v in prefixed_dag.items()}}
 
         target_exports = client_query.get('target_exports', [])
