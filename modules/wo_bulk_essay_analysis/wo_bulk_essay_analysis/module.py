@@ -1,6 +1,8 @@
+import learning_observer.communication_protocol.query as q
 import learning_observer.downloads as d
-from learning_observer.dash_integration import thirdparty_url, static_url
+from learning_observer.dash_integration import thirdparty_url
 
+import wo_bulk_essay_analysis.gpt
 import wo_bulk_essay_analysis.dashboard.layout
 
 
@@ -24,6 +26,22 @@ DASH_PAGES = [
         ]
     }
 ]
+
+gpt_bulk_essay = q.call('wo_bulk_essay_analysis.gpt_essay_prompt')
+
+EXECUTION_DAG = {
+    'execution_dag': {
+        'gpt_map': q.map(gpt_bulk_essay, values=q.variable('writing_observer.docs'), value_path='text', func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})}),
+        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('writing_observer.roster'), RIGHT_ON='user_id')
+    },
+    'exports': {
+        'gpt_bulk': {
+            'returns': 'gpt_bulk',
+            'parameters': ['course_id', 'gpt_prompt', 'system_prompt'],
+            'output': ''
+        }
+    }
+}
 
 THIRD_PARTY = {
     'pdf.js': {

@@ -3,6 +3,7 @@ This generates dashboards from student data.
 '''
 
 import asyncio
+import copy
 import inspect
 import json
 import numbers
@@ -28,6 +29,7 @@ from learning_observer.log_event import debug_log
 
 import learning_observer.module_loader
 import learning_observer.communication_protocol.integration
+import learning_observer.communication_protocol.query
 
 
 def timelist_to_seconds(timelist):
@@ -361,6 +363,48 @@ async def DAGNotFound(dag_name):
     return f'Execution DAG, {dag_name}, not found on system.'
 
 
+def extract_namespaced_dags(dag, deps=None):
+    '''This will return any dependencies on other dags
+    (in other words, variables of the form namespace.variable which are not local).
+    If it finds something like writing_observer.docs, it will add that to a set,
+    and return that set of dependencies.
+
+    This is so we can have a complete list of DAG nodes we might need to reference.
+    We can take the keys from the execution_dag dictionary, but we also add all of
+    the references to DAGs in other modules.
+    '''
+    # TODO move this function to the communication protocol directory
+    if deps is None:
+        deps = set()
+
+    if isinstance(dag, dict):
+        if dag.get('dispatch') == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
+            variable_name = dag['variable_name']
+            if '.' in variable_name:
+                deps.add(variable_name.split('.')[0])
+        for key in dag:
+            extract_namespaced_dags(dag[key], deps)
+    return deps
+
+
+def fully_qualify_names_with_default_namespace(dag, namespace_prefix):
+    '''In order to avoid naming conflicts, and to have consistency, this will append
+    the default namespace to all variables without a namespace prefix.
+
+    For example, if the prefix is writing_observer, and we run into a node `docs`,
+    this node will be renamed to `writing_observer.docs`.
+
+    TODO If a node already has a prefix (e.g. dynamic_assessment.foo), it will remain unchanged.
+    '''
+    # TODO move this function to the communication protocol directory
+    if isinstance(dag, dict):
+        if dag.get('dispatch') == learning_observer.communication_protocol.query.DISPATCH_MODES.VARIABLE:
+            dag['variable_name'] = f'{namespace_prefix}.{dag["variable_name"]}'
+        for key in dag:
+            fully_qualify_names_with_default_namespace(dag[key], namespace_prefix)
+    return dag
+
+
 async def execute_queries(client_data, request):
     execution_dags = learning_observer.module_loader.execution_dags()
     funcs = []
@@ -379,6 +423,19 @@ async def execute_queries(client_data, request):
             debug_log(f'Execution DAG, {dag_name}, not found.')
             funcs.append(DAGNotFound(dag_name))
             continue
+
+        # NOTE dependent dags only work for on a single level dependency
+        # TODO allow multiple layers of dependency among dags
+        dependent_dags = extract_namespaced_dags(query['execution_dag'])
+        missing_dags = dependent_dags - execution_dags.keys()
+        if missing_dags:
+            debug_log(f'Execution DAGs, {missing_dags}, not found.')
+            funcs.append([DAGNotFound(d) for d in missing_dags])
+        for dep in dependent_dags:
+            dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
+            prefixed_dag = fully_qualify_names_with_default_namespace(dep_dag, dep)
+            query['execution_dag'] = {**query['execution_dag'], **{f'{dep}.{k}': v for k, v in prefixed_dag.items()}}
+
         target_exports = client_query.get('target_exports', [])
         query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
         client_parameters = client_query.get('kwargs', {})

@@ -128,7 +128,7 @@ window.dash_clientside.bulk_essay_feedback = {
 
       const message = {
         wo: {
-          execution_dag: 'writing_observer',
+          execution_dag: 'wo_bulk_essay_analysis',
           target_exports: ['gpt_bulk'],
           kwargs: decoded
         }
