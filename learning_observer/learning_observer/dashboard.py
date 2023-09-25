@@ -6,6 +6,7 @@ import asyncio
 import copy
 import inspect
 import json
+import jsonschema
 import numbers
 import queue
 import time
@@ -30,6 +31,8 @@ from learning_observer.log_event import debug_log
 import learning_observer.module_loader
 import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query
+import learning_observer.communication_protocol.schema
+import learning_observer.settings
 
 
 def timelist_to_seconds(timelist):
@@ -359,8 +362,24 @@ async def websocket_dashboard_view(request):
             return aiohttp.web.Response(text="This never makes it back....")
 
 
-async def DAGNotFound(dag_name):
-    return f'Execution DAG, {dag_name}, not found on system.'
+# We use following functions to return an error message about the requested
+# DAG back to the user.
+async def dag_not_found(dags):
+    if type(dags) == set:
+        return f'Execution DAG{"s" if len(dags) > 1 else ""}, {", ".join(dags)}, not found on system.'
+    return f'Execution DAG, {dags}, not found on system.'
+
+
+async def dag_incorrect_format(e):
+    return f'Submitted Execution DAG not in valid format: {e}'
+
+
+async def dag_unsupported_type(t):
+    return f'Unsupported type, {t}, for execution_dag parameter.'
+
+
+async def dag_submission_not_allowed():
+    return 'Submitting fully formed DAGs is not supported.'
 
 
 def extract_namespaced_dags(dag, deps=None):
@@ -405,6 +424,38 @@ def fully_qualify_names_with_default_namespace(dag, namespace_prefix):
     return dag
 
 
+async def dispatch_named_execution_dag(dag_name, funcs):
+    available_dags = learning_observer.module_loader.execution_dags()
+    query = None
+    try:
+        query = available_dags[dag_name]
+    except KeyError:
+        debug_log(await dag_not_found(dag_name))
+        funcs.append(dag_not_found(dag_name))
+    finally:
+        return query
+
+
+async def dispatch_defined_execution_dag(dag, funcs):
+    query = None
+    if not learning_observer.settings.settings.get('dangerously_allow_insecure_dags', False):
+        debug_log(await dag_submission_not_allowed())
+        funcs.append(dag_submission_not_allowed())
+        return query
+    try:
+        learning_observer.communication_protocol.schema.prevalidate_schema(dag)
+        query = dag
+    except jsonschema.ValidationError as e:
+        debug_log(await dag_incorrect_format(e))
+        funcs.append(dag_incorrect_format(e))
+        return query
+    finally:
+        return query
+
+
+DAG_DISPATCH = {dict: dispatch_defined_execution_dag, str: dispatch_named_execution_dag}
+
+
 async def execute_queries(client_data, request):
     execution_dags = learning_observer.module_loader.execution_dags()
     funcs = []
@@ -416,12 +467,15 @@ async def execute_queries(client_data, request):
     #     },
     # }
     for query_name, client_query in client_data.items():
-        dag_name = client_query.get('execution_dag', query_name)
-        try:
-            query = execution_dags[dag_name]
-        except KeyError:
-            debug_log(f'Execution DAG, {dag_name}, not found.')
-            funcs.append(DAGNotFound(dag_name))
+        dag = client_query.get('execution_dag', query_name)
+
+        if type(dag) not in DAG_DISPATCH:
+            debug_log(await dag_unsupported_type(type(dag)))
+            funcs.append(dag_unsupported_type(type(dag)))
+            continue
+
+        query = await DAG_DISPATCH[type(dag)](dag, funcs)
+        if query is None:
             continue
 
         # NOTE dependent dags only work for on a single level dependency
@@ -429,8 +483,9 @@ async def execute_queries(client_data, request):
         dependent_dags = extract_namespaced_dags(query['execution_dag'])
         missing_dags = dependent_dags - execution_dags.keys()
         if missing_dags:
-            debug_log(f'Execution DAGs, {missing_dags}, not found.')
-            funcs.append([DAGNotFound(d) for d in missing_dags])
+            debug_log(await dag_not_found(missing_dags))
+            funcs.append(dag_not_found(missing_dags))
+            continue
         for dep in dependent_dags:
             dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
             prefixed_dag = fully_qualify_names_with_default_namespace(dep_dag, dep)
