@@ -16,5 +16,9 @@
     "url": "https://github.com/ETS-Next-Gen/writing_observer/issues"
   },
   "homepage": "https://github.com/ETS-Next-Gen/writing_observer#readme",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "indexeddb-js": "^0.0.14",
+    "sqlite3": "^5.1.6"
+  }
 }

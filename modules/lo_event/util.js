@@ -226,8 +226,8 @@ export function default_event_metadata({ source, version }) {
 	  metadata['name'] = localStorage.getItem("name");
   }
 
-  metadata['browser_info'] = getBrowserInfo();
-  metadata['profile_info'] = await profileInfoWrapper();
+  metadata['browser_info'] = getBrowserInfo();           // <-- Check these lines
+  metadata['profile_info'] = await profileInfoWrapper(); // <-- Check these lines
 
   return metadata;
 }

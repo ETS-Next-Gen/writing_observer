@@ -32,7 +32,7 @@ export function init(
   version,
   loggers,
   metadata,
-  debug:evel
+  debug
 ) {
   initialized = INIT_PROGRESS;
   dequeue();
