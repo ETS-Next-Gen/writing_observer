@@ -1,0 +1,20 @@
+{
+  "name": "lo_event",
+  "version": "0.0.1",
+  "description": "Event logging library for the Learning Observer",
+  "main": "lo_event.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ETS-Next-Gen/writing_observer.git"
+  },
+  "author": "Piotr Mitros",
+  "license": "SEE LICENSE IN license.txt",
+  "bugs": {
+    "url": "https://github.com/ETS-Next-Gen/writing_observer/issues"
+  },
+  "homepage": "https://github.com/ETS-Next-Gen/writing_observer#readme",
+  "type": "module"
+}
