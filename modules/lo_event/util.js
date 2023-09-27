@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 /*
   Browser information object, primarily for debugging. Note that not
   all fields will be available in all browsers and contexts. If not
@@ -227,7 +228,7 @@ export function default_event_metadata({ source, version }) {
   }
 
   metadata['browser_info'] = getBrowserInfo();           // <-- Check these lines
-  metadata['profile_info'] = await profileInfoWrapper(); // <-- Check these lines
+  metadata['profile_info'] = profileInfoWrapper(); // <-- Check these lines
 
   return metadata;
 }
@@ -268,4 +269,8 @@ export async function mergeMetadata(inputList) {
   }
 
   return masterDict;
+}
+
+export function delay (ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
