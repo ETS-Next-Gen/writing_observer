@@ -36,12 +36,17 @@ request.onerror = function(event) {
 };
  
 request.onupgradeneeded = function(event) {
+  console.log("Creating object store")
   db = event.target.result;
+  console.log("DB: ", db);
   const objectStore = db.createObjectStore("queue", { autoIncrement: true });
+  console.log("Store: ", objectStore);
+  console.log("DB: ", db);
 };
 
 request.onsuccess = function(event) {
   db = event.target.result;
+  console.log("DB: ", db);
   dbEnqueue();
 };
 
@@ -102,6 +107,9 @@ function dbEnqueue() {
 }
 
 // Remove and return the first item from the queue
+// This should probably be change to take a call-back, so we can remove only
+// if we're successful. We should also consider being able to dequeue multiple
+// items.
 function dequeue() {
   return new Promise((resolve, reject) => {
     if(db === null) {
@@ -179,3 +187,9 @@ function count() {
     console.log(await dequeue());
   }
 })()
+
+module.exports = {
+  enqueue, count, dequeue,
+  // for debugging
+  db, request, scope
+}
