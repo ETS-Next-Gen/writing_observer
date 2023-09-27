@@ -1,50 +1,55 @@
-const activityType_api = require("./xapi/activityType.json");
-const attachmentUsage_api = require("./xapi/attachmentUsage.json");
-const extension_api = require("./xapi/extension.json");
-const profile_api = require("./xapi/profile.json");
-const verb_api = require("./xapi/verb.json");
+const activityTypeApi = require('./xapi/activityType.json')
+const attachmentUsageApi = require('./xapi/attachmentUsage.json')
+const extensionApi = require('./xapi/extension.json')
+const profileApi = require('./xapi/profile.json')
+const verbApi = require('./xapi/verb.json')
 
-function aaev_selector(t) {
-    const name_field = t.metadata.metadata.name;
-    return name_field['en-US'] || name_field['en-us'];
+function aaevSelector (t) {
+  const nameField = t.metadata.metadata.name
+  return nameField['en-US'] || nameField['en-us']
 }
 
-function clean_name(n) {
-    return n.toUpperCase().trim().replace(/ |-|\./g, '_').replace(/[()]/g, '');
+function cleanName (n) {
+  return n.toUpperCase().trim().replace(/ |-|\./g, '_').replace(/[()]/g, '')
 }
 
-function to_dicts(json_block, selector, namesDict, objectsDict) {
-    for (let i = 0; i < json_block.length; i++) {
-        const name = clean_name(selector(json_block[i]))
-        namesDict[name] = name;
-        objectsDict[name] = json_block[i];
-      }      
+function toDicts (jsonBlock, selector, namesDict, objectsDict) {
+  for (let i = 0; i < jsonBlock.length; i++) {
+    const name = cleanName(selector(jsonBlock[i]))
+    namesDict[name] = name
+    objectsDict[name] = jsonBlock[i]
+  }
 }
 
-const ACTIVITYTYPE = {};
-const ActivityTypeObjects = {};
-to_dicts(activityType_api, aaev_selector, ACTIVITYTYPE, ActivityTypeObjects);
+const ACTIVITYTYPE = {}
+const ActivityTypeObjects = {}
+toDicts(activityTypeApi, aaevSelector, ACTIVITYTYPE, ActivityTypeObjects)
 
-const ATTACHMENTUSAGE = {};
-const AttachmentUsageObjects = {};
-to_dicts(attachmentUsage_api, aaev_selector, ATTACHMENTUSAGE, AttachmentUsageObjects);
+const ATTACHMENTUSAGE = {}
+const AttachmentUsageObjects = {}
+toDicts(attachmentUsageApi, aaevSelector, ATTACHMENTUSAGE, AttachmentUsageObjects)
 
-const EXTENSION = {};
-const ExtensionObjects = {};
-to_dicts(extension_api, aaev_selector, EXTENSION, ExtensionObjects);
+const EXTENSION = {}
+const ExtensionObjects = {}
+toDicts(extensionApi, aaevSelector, EXTENSION, ExtensionObjects)
 
-const PROFILE = {};
-const ProfileObjects = {};
-to_dicts(profile_api, (t) => t.name, PROFILE, ProfileObjects);
+const PROFILE = {}
+const ProfileObjects = {}
+toDicts(profileApi, (t) => t.name, PROFILE, ProfileObjects)
 
-const VERB = {};
-const VerbObjects = {};
-to_dicts(verb_api, aaev_selector, VERB, VerbObjects);
+const VERB = {}
+const VerbObjects = {}
+toDicts(verbApi, aaevSelector, VERB, VerbObjects)
 
 module.exports = {
-    ACTIVITYTYPE, ActivityTypeObjects,
-    ATTACHMENTUSAGE, AttachmentUsageObjects,
-    EXTENSION, ExtensionObjects,
-    PROFILE, ProfileObjects,
-    VERB, VerbObjects
-};
+  ACTIVITYTYPE,
+  ActivityTypeObjects,
+  ATTACHMENTUSAGE,
+  AttachmentUsageObjects,
+  EXTENSION,
+  ExtensionObjects,
+  PROFILE,
+  ProfileObjects,
+  VERB,
+  VerbObjects
+}

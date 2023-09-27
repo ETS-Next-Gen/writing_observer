@@ -6,190 +6,193 @@
   need to test DB, retries, errors, etc.
  */
 
-var request;
-var scope;
+let request
+let scope
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function delay (ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // This is so we continue to work even before the database has opened,
 // in case of transaction failures, etc.
-var memoryQueue = [];
+const memoryQueue = []
 
-if(typeof indexedDB === 'undefined') {
-  console.log("Importing indexedDB compatibility")
-  const sqlite3 = require('sqlite3');
-  const indexeddbjs = require('indexeddb-js');
-  const engine = new sqlite3.Database(':memory:');
-  scope = indexeddbjs.makeScope('sqlite3', engine);
-  request = scope.indexedDB.open('queueDB');
+if (typeof indexedDB === 'undefined') {
+  console.log('Importing indexedDB compatibility')
+  const sqlite3 = require('sqlite3')
+  const indexeddbjs = require('indexeddb-js')
+  const engine = new sqlite3.Database(':memory:')
+  scope = indexeddbjs.makeScope('sqlite3', engine)
+  request = scope.indexedDB.open('queueDB')
 } else {
-  console.log("Using browser consoleDB")
-  request = indexedDB.open("queueDB", 1);
+  console.log('Using browser consoleDB')
+  request = indexedDB.open('queueDB', 1)
 }
 
-let db        = null;
+let db = null
 
-request.onerror = function(event) {
-  console.log('ERROR: could not open database: ' + event.target.error);
-};
- 
-request.onupgradeneeded = function(event) {
-  console.log("Creating object store")
-  db = event.target.result;
-  console.log("DB: ", db);
-  const objectStore = db.createObjectStore("queue", { autoIncrement: true });
-  console.log("Store: ", objectStore);
-  console.log("DB: ", db);
-};
+request.onerror = function (event) {
+  console.log('ERROR: could not open database: ' + event.target.error)
+}
 
-request.onsuccess = function(event) {
-  db = event.target.result;
-  console.log("DB: ", db);
-  dbEnqueue();
-};
+request.onupgradeneeded = function (event) {
+  console.log('Creating object store')
+  db = event.target.result
+  console.log('DB: ', db)
+  const objectStore = db.createObjectStore('queue', { autoIncrement: true })
+  console.log('Store: ', objectStore)
+  console.log('DB: ', db)
+}
+
+request.onsuccess = function (event) {
+  db = event.target.result
+  console.log('DB: ', db)
+  dbEnqueue()
+}
 
 /*
   Push an item into the in-memory queue, and then into the peristent
   queue (if ready).
  */
-function enqueue(item) {
-  memoryQueue.push(item);
-  dbEnqueue();
+function enqueue (item) {
+  memoryQueue.push(item)
+  dbEnqueue()
 }
-
 
 /*
   Push items from in-memory queue into the persistent queue (if ready). If
   not ready, try again in 1 second.
 */
-function dbEnqueue() {
+function dbEnqueue () {
   // Nothing to queue!
-  if (memoryQueue.length == 0) {
-    return;
+  if (memoryQueue.length === 0) {
+    return
   }
 
-  if(db === null) {
+  if (db === null) {
     // Not initialized
     (async () => {
-      await delay(1000);
-      dbEnqueue();
+      await delay(1000)
+      dbEnqueue()
     })()
-    return null;
+    return null
   }
 
   // Enqueue the next object
-  const transaction = db.transaction(["queue"], "readwrite");
-  const objectStore = transaction.objectStore("queue");
+  const transaction = db.transaction(['queue'], 'readwrite')
+  const objectStore = transaction.objectStore('queue')
 
-  const item = memoryQueue.shift();
-  const request = objectStore.add(item);
+  const item = memoryQueue.shift()
+  const request = objectStore.add(item)
 
-  request.onsuccess = function(event) {
-    console.log("Item added to the queue", item);
+  request.onsuccess = function (event) {
+    console.log('Item added to the queue', item)
     // Add remaining items
-    dbEnqueue();
-  };
+    dbEnqueue()
+  }
 
-  request.onerror = function(event) {
-    memoryQueue.unshift(item); // return item to the queue
-    console.error("Error adding item to the queue:", event.target.error);
+  request.onerror = function (event) {
+    memoryQueue.unshift(item) // return item to the queue
+    console.error('Error adding item to the queue:', event.target.error);
 
     // Try again in one second.
     // TODO: Test this works.
     // For background, search for: immediately invoked async function expression
     (async () => {
-      await delay(1000);
-      dbEnqueue();
+      await delay(1000)
+      dbEnqueue()
     })()
-  };
+  }
 }
 
 // Remove and return the first item from the queue
 // This should probably be change to take a call-back, so we can remove only
 // if we're successful. We should also consider being able to dequeue multiple
 // items.
-function dequeue() {
+function dequeue () {
   return new Promise((resolve, reject) => {
-    if(db === null) {
-      if(memoryQueue.length > 0) {
-        resolve(memoryQueue.shift());
+    if (db === null) {
+      if (memoryQueue.length > 0) {
+        resolve(memoryQueue.shift())
       }
-      return null;
+      return null
     }
 
-    const transaction = db.transaction(["queue"], "readwrite");
-    const objectStore = transaction.objectStore("queue");
-    const request = objectStore.openCursor();
+    const transaction = db.transaction(['queue'], 'readwrite')
+    const objectStore = transaction.objectStore('queue')
+    const request = objectStore.openCursor()
 
-    request.onsuccess = function(event) {
-      const cursor = event.target.result;
+    request.onsuccess = function (event) {
+      const cursor = event.target.result
       if (cursor) {
-        const item = cursor.value;
-        const deleteRequest = cursor.delete();
+        const item = cursor.value
+        const deleteRequest = cursor.delete()
 
-        deleteRequest.onsuccess = function() {
-          console.log("Item removed from the queue");
-          resolve(item);
-        };
-
-        deleteRequest.onerror = function(event) {
-          console.error("Error removing item from the queue:", event.target.error);
-          reject(event.target.error);
-        };
-      } else {
-        console.log("DB queue is empty");
-        if(memoryQueue.length > 0) {
-          resolve(memoryQueue.shift());
+        deleteRequest.onsuccess = function () {
+          console.log('Item removed from the queue')
+          resolve(item)
         }
-        resolve(null);
-      }
-    };
 
-    request.onerror = function(event) {
-      console.error("Error reading queue cursor:", event.target.error);
-      reject(event.target.error);
-    };
-  });
+        deleteRequest.onerror = function (event) {
+          console.error('Error removing item from the queue:', event.target.error)
+          reject(event.target.error)
+        }
+      } else {
+        console.log('DB queue is empty')
+        if (memoryQueue.length > 0) {
+          resolve(memoryQueue.shift())
+        }
+        resolve(null)
+      }
+    }
+
+    request.onerror = function (event) {
+      console.error('Error reading queue cursor:', event.target.error)
+      reject(event.target.error)
+    }
+  })
 }
 
 // Get the number of items in the queue
-function count() {
-  if(db === null) {
-    return memoryQueue.length;
+function count () {
+  if (db === null) {
+    return memoryQueue.length
   }
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(["queue"]);
-    const objectStore = transaction.objectStore("queue");
-    const request = objectStore.count();
+    const transaction = db.transaction(['queue'])
+    const objectStore = transaction.objectStore('queue')
+    const request = objectStore.count()
 
-    request.onsuccess = function(event) {
-      const count = request.result;
-      console.log("Number of items in the queue:", count + memoryQueue.length);
-      resolve(count);
-    };
+    request.onsuccess = function (event) {
+      const count = request.result
+      console.log('Number of items in the queue:', count + memoryQueue.length)
+      resolve(count)
+    }
 
-    request.onerror = function(event) {
-      console.error("Error counting items in the queue:", event.target.error);
-      reject(event.target.error);
-    };
-  });
+    request.onerror = function (event) {
+      console.error('Error counting items in the queue:', event.target.error)
+      reject(event.target.error)
+    }
+  })
 }
 
 (async () => {
-  await enqueue(1);
-  await enqueue(2);
-  await enqueue(3);
+  await enqueue(1)
+  await enqueue(2)
+  await enqueue(3)
 
-  while(count() > 0) {
-    console.log(await dequeue());
+  while (count() > 0) {
+    console.log(await dequeue())
   }
 })()
 
 module.exports = {
-  enqueue, count, dequeue,
+  enqueue,
+  count,
+  dequeue,
   // for debugging
-  db, request, scope
+  db,
+  request,
+  scope
 }

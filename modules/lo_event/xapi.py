@@ -21,6 +21,7 @@ import sys
 
 sources = ["activityType", "attachmentUsage", "extension", "profile", "verb"]
 
+
 def clean_name(name):
     """
     Cleans the name of a vocabulary entry so that it is a valid Python identifier by converting to upper case, and removing or replacing special characters
@@ -33,6 +34,7 @@ def clean_name(name):
     """
     return name.upper().strip().replace(' ', '_').replace('-', '_').replace('.', '_').replace('(', '').replace(')', '')
 
+
 def get_name(x):
     """
     Retrieves the English language name of a vocabulary entry. This is a work-around since the API sometimes retrieves en-us and sometimes en-US.
@@ -44,6 +46,7 @@ def get_name(x):
     str: The English language name of the vocabulary entry.
     """
     return x.get('en-us', x.get('en-US', None))
+
 
 def parse_json(source):
     """
@@ -69,6 +72,7 @@ def parse_json(source):
 
     return names_cleaned, json_data
 
+
 def create_enum_map(names):
     """
     Creates an enum-like object with mappings from cleaned names to original names in the module namespace.
@@ -83,6 +87,7 @@ def create_enum_map(names):
     setattr(sys.modules[__name__], source.upper(), enum_map)
     for name in names:
         setattr(enum_map, name, name)
+
 
 def create_object_map(names, json_data):
     """
