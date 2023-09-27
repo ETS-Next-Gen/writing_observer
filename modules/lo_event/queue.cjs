@@ -17,11 +17,16 @@ function delay (ms) {
 // in case of transaction failures, etc.
 const memoryQueue = []
 
+// TODO replace this with util.keystamp()
+// ran into issues with importing the module
+let keyCount = 0
+
 if (typeof indexedDB === 'undefined') {
   console.log('Importing indexedDB compatibility')
   const sqlite3 = require('sqlite3')
   const indexeddbjs = require('indexeddb-js')
-  const engine = new sqlite3.Database(':memory:')
+  // const engine = new sqlite3.Database(':memory:')
+  const engine = new sqlite3.Database('queue.sqlite')
   scope = indexeddbjs.makeScope('sqlite3', engine)
   request = scope.indexedDB.open('queueDB')
 } else {
@@ -35,11 +40,12 @@ request.onerror = function (event) {
   console.log('ERROR: could not open database: ' + event.target.error)
 }
 
-request.onupgradeneeded = function (event) {
+request.onupgradeneeded = async function (event) {
   console.log('Creating object store')
   db = event.target.result
   console.log('DB: ', db)
-  const objectStore = db.createObjectStore('queue', { autoIncrement: true })
+  const objectStore = db.createObjectStore('queue', { keyPath: 'id' })
+  objectStore.createIndex('value', 'value', { unique: false })
   console.log('Store: ', objectStore)
   console.log('DB: ', db)
 }
@@ -83,7 +89,8 @@ function dbEnqueue () {
   const objectStore = transaction.objectStore('queue')
 
   const item = memoryQueue.shift()
-  const request = objectStore.add(item)
+  const request = objectStore.add({ id: keyCount, value: item })
+  keyCount = keyCount + 1
 
   request.onsuccess = function (event) {
     console.log('Item added to the queue', item)
