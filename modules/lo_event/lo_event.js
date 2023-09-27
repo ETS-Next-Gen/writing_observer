@@ -27,12 +27,14 @@ const loggers = []
 const metadata = []
 const blocked = false
 
+// TODO: We should consider specifying a set of verbs, nouns, etc. we
+// might use, and outlining what can be expected in the protocol
 export function init (
   source,
   version,
   loggers,
   metadata,
-  debug
+  debug_level
 ) {
   initialized = INIT_INPROGRESS
   dequeue()
