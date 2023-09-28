@@ -128,7 +128,7 @@ export class Queue {
         const cursor = event.target.result
         if (cursor) {
           const item = cursor.value
-          const deleteRequest = cursor.delete()
+          const deleteRequest = objectStore.delete(cursor.key)
 
           deleteRequest.onsuccess = () => {
             console.log('Item removed from the queue')
@@ -162,8 +162,8 @@ export class Queue {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['queue'])
-      const objectStore = transaction.objectStore('queue')
+      const transaction = this.db.transaction([this.queueName])
+      const objectStore = transaction.objectStore(this.queueName)
       const request = objectStore.count()
 
       request.onsuccess = (event) => {
