@@ -179,6 +179,3 @@ export class Queue {
     })
   }
 }
-
-const q1 = new Queue('queue1')
-q1.enqueue(123)

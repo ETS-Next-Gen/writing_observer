@@ -4,7 +4,7 @@
   "description": "Event logging library for the Learning Observer",
   "main": "lo_event.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jasmine \"tests/*.test.js\""
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "indexeddb-js": "^0.0.14",
+    "jasmine": "^5.1.0",
     "sqlite3": "^5.1.6"
   }
 }
