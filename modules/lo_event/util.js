@@ -133,22 +133,26 @@ export function getBrowserInfo() {
     const profileInfo = await profileInfoWrapper();
     console.log(profileInfo);
   */
-export async function profileInfoWrapper() {
+export async function profileInfoWrapper () {
   if (typeof chrome !== 'undefined' && chrome.identity) {
     try {
       return await new Promise((resolve, reject) => {
-        chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, function(data) {
-          resolve(data);
-        });
-      });
+        chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, function (data) {
+          resolve(data)
+        })
+      })
     } catch (e) {
       return await new Promise((resolve, reject) => {
-        chrome.identity.getProfileUserInfo(function(data) {
-          resolve(data);
-        });
-      });
+        chrome.identity.getProfileUserInfo(function (data) {
+          resolve(data)
+        })
+      })
     }
   }
+  // Default to an empty object
+  return new Promise((resolve, reject) => {
+    resolve({})
+  })
 }
 
 /*
@@ -201,7 +205,7 @@ export function fullyQualifiedWebsocketURL(default_relative_url, default_base_se
   debugging. For example, it's helpful to have multiple timestamps
   in order to understand timezone issues, misset clocks, etc.
  */
-export function default_event_metadata({ source, version }) {
+export function defaultEventMetadata({ source, version }) {
   const metadata = { source, version };
 
   // Check if logger_id exists in localStorage and set if it doesn't
@@ -228,7 +232,7 @@ export function default_event_metadata({ source, version }) {
   }
 
   metadata['browser_info'] = getBrowserInfo();           // <-- Check these lines
-  metadata['profile_info'] = profileInfoWrapper(); // <-- Check these lines
+  // metadata['profile_info'] = profileInfoWrapper(); // <-- Check these lines
 
   return metadata;
 }

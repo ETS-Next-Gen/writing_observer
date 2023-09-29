@@ -20,6 +20,7 @@
   "dependencies": {
     "indexeddb-js": "^0.0.14",
     "jasmine": "^5.1.0",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "ws": "^8.14.2"
   }
 }
