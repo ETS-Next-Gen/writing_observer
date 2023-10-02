@@ -1,4 +1,4 @@
-import { Queue } from '../queue.js'
+import { Queue } from '../lo_event/queue.js'
 
 describe('Queue testing', () => {
   it('What the test does', async () => {

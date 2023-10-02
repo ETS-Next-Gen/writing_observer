@@ -1,8 +1,8 @@
-const activityTypeApi = require('./xapi/activityType.json')
-const attachmentUsageApi = require('./xapi/attachmentUsage.json')
-const extensionApi = require('./xapi/extension.json')
-const profileApi = require('./xapi/profile.json')
-const verbApi = require('./xapi/verb.json')
+const activityTypeApi = require('../xapi/activityType.json')
+const attachmentUsageApi = require('../xapi/attachmentUsage.json')
+const extensionApi = require('../xapi/extension.json')
+const profileApi = require('../xapi/profile.json')
+const verbApi = require('../xapi/verb.json')
 
 function aaevSelector (t) {
   const nameField = t.metadata.metadata.name
