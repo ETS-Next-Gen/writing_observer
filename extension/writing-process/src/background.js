@@ -9,9 +9,15 @@ var RAW_DEBUG = false;
 /* This variable must be manually updated to specify the server that
  * the data will be sent to.  
 */
-var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/" 
+// var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/" 
+const WEBSOCKET_SERVER_URL = 'ws://127.0.0.1:8765/ws'
 
 import { googledocs_id_from_url } from './writing_common';
+
+import { init as loggerInit, logEvent, consoleLogger, websocketLogger, VERBS } from 'lo_event';
+
+const loggers = [consoleLogger, websocketLogger(WEBSOCKET_SERVER_URL, chrome.storage.sync)]
+loggerInit('', '', loggers, '', '')
 /*
   TODO: FSM
 
@@ -230,7 +236,8 @@ let loggers_enabled = [
 
 
     // Adapted to NCSU Setup.
-    websocket_logger(WEBSOCKET_SERVER_URL)
+    // websocket_logger(WEBSOCKET_SERVER_URL)
+    websocketLogger(WEBSOCKET_SERVER_URL, chrome.storage.sync)
 ];
 
 function log_event(event_type, event) {
@@ -269,7 +276,7 @@ function send_chrome_identity() {
        Note this function is untested, following a refactor.
     */
   chrome.identity.getProfileInfo(function (userInfo) {
-    log_event("chrome_identity_load", {
+    logEvent("chrome_identity_load", {
       email: userInfo.email,
       id: userInfo.id,
     });
@@ -329,7 +336,7 @@ chrome.runtime.onMessage.addListener(
         //chrome.extension.getBackgroundPage().console.log(request);
         //console.log(sender);
         request['wa_source'] = 'client_page';
-        log_event(request['event'], request);
+        logEvent(request['event'], request);
     }
 );
 
@@ -371,7 +378,7 @@ chrome.webRequest.onBeforeRequest.addListener(
             formdata = {};
         }
         if(RAW_DEBUG) {
-            log_event('raw_http_request', {
+            logEvent('raw_http_request', {
                 'url':  request.url,
                 'form_data': formdata
             });
@@ -391,7 +398,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'timestamp': parseInt(request.timeStamp, 10)
                 }
                 logFromServiceWorker(event);
-                log_event('google_docs_save', event);
+                logEvent('google_docs_save', event);
             } catch(err) {
                 /*
                   Oddball events, like text selections.
@@ -403,7 +410,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
                 }
-                log_event('google_docs_save_extra', event);
+                logEvent('google_docs_save_extra', event);
             }
         } else if(this_a_google_docs_bind(request)) {
             logFromServiceWorker(request);
@@ -435,11 +442,11 @@ async function reinjectContentScripts() {
 }
 
 // Let the server know we've loaded.
-log_event("extension_loaded", {});
+logEvent("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
 profileInfoWrapper(function callback(userInfo) {
-    log_event("chrome_identity", userInfo);
+    logEvent("chrome_identity", userInfo);
 });
 
 // And let the console know we've loaded

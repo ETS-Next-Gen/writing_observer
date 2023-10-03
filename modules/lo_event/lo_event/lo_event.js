@@ -2,9 +2,9 @@
   Logging library for Learning Observer clients
 */
 
-import WebSocket from 'ws'
-import { profileInfoWrapper, delay, defaultEventMetadata } from './util.js'
+import { profileInfoWrapper, delay, defaultEventMetadata, fullyQualifiedWebsocketURL } from './util.js'
 import { Queue } from './queue.js'
+import xapi from './xapi.cjs'
 
 // init() has not yet been called. Enqueue events, but don't send them on to
 // loggers.
@@ -23,13 +23,15 @@ const NONE = 'none'
 const debugLogLevel = VERBOSE
 
 // A list of all loggers which should receive events.
-const loggers = []
+let loggersEnabled = []
 // This can either be:
 // * dictionaries of metadata
 // * functions which return metadata
 // * asynchronous functions which return metadata
 const metadata = []
 const blocked = false
+
+export const VERBS = xapi.VERB
 
 // TODO: We should consider specifying a set of verbs, nouns, etc. we
 // might use, and outlining what can be expected in the protocol
@@ -38,13 +40,24 @@ export function init (
   version,
   loggers,
   metadata,
-  debug_level
+  debugLevel
 ) {
   initialized = INIT_INPROGRESS
-  dequeue()
+  // TODO handle rest of initialization
+  loggersEnabled = loggers
 }
 
 export function logEvent (eventType, event) {
+  event.event_type = eventType
+
+  if (event.wa_source === null) {
+    event.wa_source = 'background_page'
+  }
+  const jsonEncodedEvent = JSON.stringify(event)
+
+  for (let i = 0; i < loggersEnabled.length; i++) {
+    loggersEnabled[i](jsonEncodedEvent)
+  }
 }
 
 export function consoleLogger () {
@@ -208,6 +221,7 @@ export function websocketLogger (server, storage) {
 }
 
 // storage mirrors the capability of `chrome.storage.sync`
+// this is used for testing purposes
 const storage = {
   data: {},
   set: function (items, callback) {
@@ -233,6 +247,7 @@ const storage = {
   }
 }
 
-// const log = websocketLogger('http://127.0.0.1:8765/ws', storage)
+// const url = fullyQualifiedWebsocketURL('/ws', 'http://127.0.0.1:8765')
+// const log = websocketLogger(url, storage)
 // log('test')
 // log('123')
