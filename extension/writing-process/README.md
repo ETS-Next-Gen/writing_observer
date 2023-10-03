@@ -20,12 +20,14 @@ npm install
 
 | Commands | Description |
 | --- | --- |
-| `npm run start` | builds extension into `dist/`, watches for file changes |
-| `npm run build` | generate release version - `release.zip` |
-| `npm run docs` | generate source code docs into `public/documentation` |
-| `npm run clean` | removes `dist/` directory |
-| `npm run test` | run unit tests |
-| `npm run sync` | update projects config files for `extension-cli` |
+| `npm run ext:start` | builds extension into `dist/`, watches for file changes |
+| `npm run ext:build` | generate release version - `release.zip` |
+| `npm run ext:docs` | generate source code docs into `public/documentation` |
+| `npm run ext:clean` | removes `dist/` directory |
+| `npm run ext:test` | run unit tests |
+| `npm run ext:sync` | update projects config files for `extension-cli` |
+| `npm run bundle` | runs webpack to bundle dependencies into code |
+| `npm run build` | cleans dist folder, bundles code, then runs ext:build |
 
 For CLI instructions see [User Guide &rarr;](https://oss.mobilefirst.me/extension-cli/)
 
