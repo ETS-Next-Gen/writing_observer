@@ -1,4 +1,4 @@
-function treeget(tree, key) {
+export function treeget(tree, key) {
     /*
       Retrieve an element from a tree with dotted notation
 
