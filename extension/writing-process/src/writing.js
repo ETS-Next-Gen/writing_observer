@@ -5,6 +5,7 @@
 /* For debugging purposes: we know the extension is active */
 document.body.style.border = "5px solid blue";
 
+import { googledocs_id_from_url, treeget } from './writing_common';
 /*
    General Utility Functions
 */
@@ -191,14 +192,14 @@ function google_docs_version_history(token) {
       }
     */
 
-    metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true"
+    const metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true"
 
     fetch(metainfo_url).then(function(response) {
         response.text().then(function(text) {
-            tiles = JSON.parse(text.substring(5)); // Google adds a header to prevent JavaScript injection. This removes it.
+            const tiles = JSON.parse(text.substring(5)); // Google adds a header to prevent JavaScript injection. This removes it.
             var first_revision = tiles.firstRev;
             var last_revision = tiles.tileInfo[tiles.tileInfo.length - 1].end;
-            version_history_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/load?id="+doc_id()+"&start="+first_revision+"&end="+last_revision;
+            const version_history_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/load?id="+doc_id()+"&start="+first_revision+"&end="+last_revision;
             fetch(version_history_url).then(function(history_response) {
                 history_response.text().then(function(history_text) {
                     log_event(
@@ -219,7 +220,7 @@ function google_docs_version_history(token) {
 // For keystroke and mouseclick events, we capture target and parent target info
 // because it gives us info about what exactly got clicked on/changed.
 
-EVENT_LIST = {
+const EVENT_LIST = {
     "keystroke": {
         "events": [
             "keypress", "keydown", "keyup"
@@ -324,7 +325,7 @@ function generic_eventlistener(event_type, frameindex) {
         */
         var event_data = {};
         event_data["event_type"] = event_type;
-        properties = EVENT_LIST[event_type].properties;
+        const properties = EVENT_LIST[event_type].properties;
         var property_data = {};
         for (var property in properties) {
             const prop = treeget(event, properties[property]);
@@ -363,7 +364,7 @@ function refresh_stream_view_listeners() {
       comments are placed.
     */
     // Grab the comments div
-    el = document.getElementById('docos-stream-view');
+    const el = document.getElementById('docos-stream-view');
     if (!el) {
         return;
     }
@@ -397,8 +398,8 @@ frames.push({'contentDocument': document})
 // Add an event listener to each iframe in the iframes under frames.
 for(var event_type in EVENT_LIST) {
     for(var event_idx in EVENT_LIST[event_type]['events']) {
-        js_event = EVENT_LIST[event_type]['events'][event_idx];
-        target = EVENT_LIST[event_type]['target']
+        const js_event = EVENT_LIST[event_type]['events'][event_idx];
+        const target = EVENT_LIST[event_type]['target']
         if(target === 'document') {
             for(var iframe in frames) {
                 if(frames[iframe].contentDocument) {
@@ -607,11 +608,11 @@ function prepare_mutation_observer() {
     */
     var observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
-            event = {}
+            const event = {}
 
             // This list guarantees that we'll have the information we need
             // to understand what happened in a change event.
-            properties = [
+            const properties = [
                 'addedNodes.length', 'addedNodes[0].className',
                 'addedNodes[0].data', 'addedNodes[0].id',
                 'addedNodes[0].innerText', 'addedNodes[0].nodeType',
@@ -699,7 +700,7 @@ var MUTATION_OBSERVER_OPTIONS = {
 
 // OK, now create the MutationObserver and start running it
 // on the document.
-observer = prepare_mutation_observer();
+const observer = prepare_mutation_observer();
 chrome.runtime.onMessage.addListener(function(message) {
     if (message === 'startObserving') {
         // Start observing the target node for configured mutations
