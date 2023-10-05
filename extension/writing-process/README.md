@@ -18,6 +18,15 @@ npm install
 
 ### Available Commands
 
+We created these commands:
+
+| Commands | Description |
+| --- | --- |
+| `npm run bundle` | runs webpack to bundle dependencies into code |
+| `npm run build` | cleans dist folder, bundles code, then runs ext:build |
+
+In addition, for reference, we kept the following commands from `extension-cli`:
+
 | Commands | Description |
 | --- | --- |
 | `npm run ext:start` | builds extension into `dist/`, watches for file changes |
@@ -26,8 +35,6 @@ npm install
 | `npm run ext:clean` | removes `dist/` directory |
 | `npm run ext:test` | run unit tests |
 | `npm run ext:sync` | update projects config files for `extension-cli` |
-| `npm run bundle` | runs webpack to bundle dependencies into code |
-| `npm run build` | cleans dist folder, bundles code, then runs ext:build |
 
 For CLI instructions see [User Guide &rarr;](https://oss.mobilefirst.me/extension-cli/)
 
