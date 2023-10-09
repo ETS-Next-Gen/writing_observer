@@ -17,6 +17,7 @@ from learning_observer import downloads as d
 import writing_observer.aggregator
 import writing_observer.writing_analysis
 import writing_observer.languagetool
+import writing_observer.tag_docs
 from writing_observer.nlp_indicators import INDICATOR_JSONS
 
 
@@ -30,6 +31,9 @@ process_texts = q.call('writing_observer.process_texts')
 determine_activity = q.call('writing_observer.activity_map')
 languagetool = q.call('writing_observer.languagetool')
 update_via_google = q.call('writing_observer.update_reconstruct_with_google_api')
+
+unwind = q.call('unwind')
+group_by = q.call('group_by')
 
 
 EXECUTION_DAG = {
@@ -51,6 +55,12 @@ EXECUTION_DAG = {
         'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         'overall_lt': languagetool(texts=q.variable('docs')),
         'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+
+        'raw_tags': q.select(q.keys('writing_observer.document_tagging', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'), fields={'tags': 'tags'}),
+        'unwind_tags': unwind(objects=q.variable('raw_tags'), value_path=q.parameter('tag_path', required=True), new_name='doc_id'),
+        'tag_doc_text': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable('unwind_tags'), STUDENTS_path='provenance.provenance.value.user_id', RESOURCES=q.variable('unwind_tags'), RESOURCES_path='doc_id'), fields={'text': 'text'}),
+        'per_student_tagged_docs': group_by(items=q.variable('tag_doc_text'), value_path='provenance.provenance.STUDENT.provenance.value.user_id'),
+        'tag_join': q.join(LEFT=q.variable('roster'), RIGHT=q.variable('per_student_tagged_docs'), LEFT_ON='user_id', RIGHT_ON='user_id')
     },
     "exports": {
         "docs_with_roster": {
@@ -77,6 +87,10 @@ EXECUTION_DAG = {
             'returns': 'lt_combined',
             'parameters': ['course_id'],
             'output': ''
+        },
+        'tag_join': {
+            'returns': 'tag_join',
+            'parameters': ['course_id', 'tag_path']
         }
     },
 }
@@ -148,7 +162,13 @@ REDUCERS = [
         'scope': writing_observer.writing_analysis.student_scope,
         'function': writing_observer.writing_analysis.last_document,
         'default': {'document_id': ''}
-    }
+    },
+    {
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.student_scope,
+        'function': writing_observer.writing_analysis.document_tagging,
+        'default': {'tags': {}}
+    },
 ]
 
 
