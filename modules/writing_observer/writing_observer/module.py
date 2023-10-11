@@ -31,9 +31,10 @@ process_texts = q.call('writing_observer.process_texts')
 determine_activity = q.call('writing_observer.activity_map')
 languagetool = q.call('writing_observer.languagetool')
 update_via_google = q.call('writing_observer.update_reconstruct_with_google_api')
+assignment_documents = q.call('google.fetch_assignment_docs')
 
 unwind = q.call('unwind')
-group_by = q.call('group_by')
+group_docs_by = q.call('writing_observer.group_docs_by')
 
 
 EXECUTION_DAG = {
@@ -56,11 +57,23 @@ EXECUTION_DAG = {
         'overall_lt': languagetool(texts=q.variable('docs')),
         'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
 
+        # the following nodes are used to fetch a set of documents' metadata based on a given tag
+        # HACK: this could be a lot fewer nodes with some form of filter functionality
+        #  e.g. once we get the list of documents that match the inputted tag, we just filter
+        #       the student document list on those
+        #       instead we do some unwinding and joining to achieve filtering. this solution
+        #       is a bit better suited for fetching document text which is how the system was
+        #       initially built.
         'raw_tags': q.select(q.keys('writing_observer.document_tagging', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'), fields={'tags': 'tags'}),
-        'unwind_tags': unwind(objects=q.variable('raw_tags'), value_path=q.parameter('tag_path', required=True), new_name='doc_id'),
-        'tag_doc_text': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable('unwind_tags'), STUDENTS_path='provenance.provenance.value.user_id', RESOURCES=q.variable('unwind_tags'), RESOURCES_path='doc_id'), fields={'text': 'text'}),
-        'per_student_tagged_docs': group_by(items=q.variable('tag_doc_text'), value_path='provenance.provenance.STUDENT.provenance.value.user_id'),
-        'tag_join': q.join(LEFT=q.variable('roster'), RIGHT=q.variable('per_student_tagged_docs'), LEFT_ON='user_id', RIGHT_ON='user_id')
+        'unwind_tags': unwind(objects=q.variable('raw_tags'), value_path=q.parameter('tag_path', required=True), new_name='doc_id', keys_to_keep=['provenance']),
+        'doc_list': q.select(q.keys('writing_observer.document_list', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'), fields={'docs': 'docs'}),
+        'unwind_doc_list': unwind(objects=q.variable('doc_list'), value_path='docs', new_name='doc'),
+        'tagged_doc_list': q.join(LEFT=q.variable('unwind_tags'), RIGHT=q.variable('unwind_doc_list'), LEFT_ON='doc_id', RIGHT_ON='doc.id'),
+        'grouped_doc_list_by_student': group_docs_by(items=q.variable('tagged_doc_list'), value_path='provenance.provenance.value.user_id'),
+        'tagged_docs_per_student': q.join(LEFT=q.variable('roster'), RIGHT=q.variable('grouped_doc_list_by_student'), LEFT_ON='user_id', RIGHT_ON='user_id'),
+
+        # the following nodes just fetches docs related to an assignment on Google Classroom
+        'assignment_docs': assignment_documents(runtime=q.parameter('runtime'), course_id=q.parameter('course_id', required=True), assignment_id=q.parameter('assignment_id', required=True))
     },
     "exports": {
         "docs_with_roster": {
@@ -88,9 +101,13 @@ EXECUTION_DAG = {
             'parameters': ['course_id'],
             'output': ''
         },
-        'tag_join': {
-            'returns': 'tag_join',
+        'tagged_docs_per_student': {
+            'returns': 'tagged_docs_per_student',
             'parameters': ['course_id', 'tag_path']
+        },
+        'assignment_docs': {
+            'returns': 'assignment_docs',
+            'parameters': ['course_id', 'assignment_id']
         }
     },
 }
