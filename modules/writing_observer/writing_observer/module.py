@@ -57,6 +57,7 @@ EXECUTION_DAG = {
         'overall_lt': languagetool(texts=q.variable('docs')),
         'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
 
+        'latest_doc_ids': q.join(LEFT=q.variable('roster'), RIGHT=q.variable('doc_ids'), LEFT_ON='user_id', RIGHT_ON='provenance.provenance.value.user_id'),
         # the following nodes are used to fetch a set of documents' metadata based on a given tag
         # HACK: this could be a lot fewer nodes with some form of filter functionality
         #  e.g. once we get the list of documents that match the inputted tag, we just filter
@@ -108,6 +109,10 @@ EXECUTION_DAG = {
         'assignment_docs': {
             'returns': 'assignment_docs',
             'parameters': ['course_id', 'assignment_id']
+        },
+        'latest_doc_ids': {
+            'returns': 'latest_doc_ids',
+            'parameters': ['course_id']
         }
     },
 }
@@ -172,7 +177,8 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.student_scope,
-        'function': writing_observer.writing_analysis.document_list
+        'function': writing_observer.writing_analysis.document_list,
+        'default': {'docs': []}
     },
     {
         'context': "org.mitros.writing_analytics",
