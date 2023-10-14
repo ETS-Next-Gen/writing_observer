@@ -22,5 +22,8 @@
     "jasmine": "^5.1.0",
     "sqlite3": "^5.1.6",
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "redux": "^4.2.1"
   }
 }

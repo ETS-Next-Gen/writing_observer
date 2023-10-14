@@ -1,10 +1,28 @@
-# lo_event
+# Learning Observer Event Library
 
-The Learning Observer event module is used to handle the logging of event data.
+This is a module used to stream events into the Learning Observer (and, in the future, potentially other Learning Record Stores). This is in development. The requirements are:
+
+- We would like to be able to stream events with multiple loggers.
+  - In most cases, in practice, we use a websocket logger, with a persistent connection.
+  - For occasional events, we support AJAX logging.
+  - In addition, for ease-of-debugging, we can print events to the console
+- We follow the general format used in Caliper, xAPI, and Open edX of one JSON object per event
+- We use a free-form JSON format, but encourage following Caliper / xAPI guidelines where convenient
+- We currently support JavaScript, but would like to support other languages in the future
+
+Examples of places where we intentionally diverge from standards:
+
+- Good events are like onions -- they have layers. We don't assume we can e.g. trust timestamps or authentication from the system generating events, or that we will have all context up-front
+- We do need to have a header for metadata + authentication
+- We'd like to be at least sensitive to bandwidth. It's not worth resending data with each event that can be in a header or in update events. A lot of standards have large, cumbersome events (which are not human-friendly, and expensive to store and process)
+- We're a lot more freeform in what we send and accept, since learning contexts can be pretty rich (and technology evolves) in ways which standards don't always keep up with.
+
+Our goal is to simplify compatibility and to maintain compliance where reasonable, but to be more flexible than strict compliance with xAPI or Caliper.
 
 ## Installation
 
-This package supports both Node and Python.
+This package will support browser-based events, Node, and Python.
+
 However, before installing in either environment, we need to download the [xAPI](https://xapi.com/overview/) components. These components are used to determine the type of events being used.
 
 ```bash

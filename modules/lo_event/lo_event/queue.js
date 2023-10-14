@@ -1,5 +1,11 @@
 import { delay, keystamp } from './util.js'
 
+// TODO:
+// * Figure out autoincrement. This ran into issues before.
+// * Figure out correct interface (should `dequeue` await until there is
+//   data available?
+
+
 export class Queue {
   constructor (queueName) {
     this.queueName = queueName
