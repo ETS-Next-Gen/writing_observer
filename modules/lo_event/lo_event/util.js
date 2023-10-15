@@ -80,7 +80,7 @@ export function getBrowserInfo() {
   const browserInfo = {};
 
   if(typeof navigator === 'undefined') {
-    browserInfo['navigator'] = 'undefined';
+    browserInfo['navigator'] = null;
   } else {
     for (let i = 0; i < fields.length; i++) {
       browserInfo[fields[i]] = navigator[fields[i]];
@@ -95,7 +95,7 @@ export function getBrowserInfo() {
   }
 
   if(typeof document === 'undefined') {
-    browserInfo['document'] = 'undefined';
+    browserInfo['document'] = null;
   } else {
     browserInfo.document = {};
     for (let i = 0; i < documentFields.length; i++) {
@@ -104,7 +104,7 @@ export function getBrowserInfo() {
   }
 
   if(typeof window === 'undefined') {
-    browserInfo['window'] = 'undefined';
+    browserInfo['window'] = null;
   } else {
     browserInfo.window = {};
     for (let i = 0; i < windowFields.length; i++) {
@@ -112,7 +112,7 @@ export function getBrowserInfo() {
     }
   }
 
-  return browserInfo;
+  return {'browser_info': browserInfo};
 }
 
 /*
@@ -199,6 +199,16 @@ export function fullyQualifiedWebsocketURL(default_relative_url, default_base_se
   return url.href;
 }
 
+export function timestampEvent(event) {
+  if (!event['metadata']) {
+    event['metadata'] = {};
+  }
+
+  event['metadata']['ts'] = Date.now();
+  event['metadata']['human_ts'] = Date();
+  event['metadata']['iso_ts'] = new Date().toISOString();
+}
+
 /*
   We include some metadata. Much of this is primarily for
   debugging. For example, it's helpful to have multiple timestamps
@@ -221,10 +231,6 @@ export function defaultEventMetadata({ source, version }) {
   metadata['session_id'] = sessionStorage.getItem("logger_id");
   metadata['logger_id'] = keystamp()
 
-  metadata['ts'] = Date.now();
-  metadata['human_ts'] = Date();
-  metadata['iso_ts'] = new Date().toISOString;
-
   // Optional auth for demos
   if(localStorage.getItem("name") !== null) {
 	  metadata['name'] = localStorage.getItem("name");
@@ -234,6 +240,16 @@ export function defaultEventMetadata({ source, version }) {
   // metadata['profile_info'] = profileInfoWrapper(); // <-- Check these lines
 
   return metadata;
+}
+
+function mergeDictionary(target, source) {
+  for (const key in source) {
+    if (target.hasOwnProperty(key)) {
+      mergeDictionary(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
 }
 
 /**
@@ -255,14 +271,14 @@ export async function mergeMetadata(inputList) {
 
     if (typeof item === 'object') {
       // If the item is a dictionary, merge it into the master dictionary
-      Object.assign(masterDict, item);
+      mergeDictionary(masterDict, item);
     } else if (typeof item === 'function') {
       // If the item is a function (sync or async), execute it
       result = await item();
 
       if (typeof result === 'object') {
         // If the result of the function is a dictionary, merge it into the master dictionary
-        Object.assign(masterDict, result);
+        mergeDictionary(masterDict, result);
       } else {
         console.log('Ignoring non-dictionary result:', result);
       }

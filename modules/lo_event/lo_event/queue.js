@@ -94,12 +94,12 @@ export class Queue {
       const objectStore = this.db.createObjectStore(this.queueName, { keyPath: 'id' })
       objectStore.createIndex('value', 'value', { unique: false })
       console.log('Store: ', objectStore)
-      console.log('DB: ', this.db)
+      // console.log('DB: ', this.db)
     }
 
     request.onsuccess = (event) => {
       this.db = event.target.result
-      console.log('DB: ', this.db)
+      // console.log('DB: ', this.db)
       this.dbEnqueue()
     }
   }

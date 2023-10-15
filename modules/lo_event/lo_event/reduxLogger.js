@@ -13,6 +13,10 @@ const reducer = (state = {}, action) => {
   switch (action.type) {
     case 'EMIT_EVENT':
       return { ...state, event: action.payload };
+    case 'EMIT_PREAUTH':
+      return {...state, preauth: action.payload };
+    case 'EMIT_POSTAUTH':
+      return {...state, postauth: action.payload };
     default:
       return state;
   }
@@ -24,38 +28,63 @@ let eventSubscribers = [];
 
 // Action creator function
 const emitEvent = (event) => {
-  console.log("Emitting event", event);
   return {
     type: 'EMIT_EVENT',
     payload: event
   };
 };
 
+// Action creator function
+const emitPreauth = (preauth) => {
+  return {
+    type: 'EMIT_PREAUTH',
+    payload: preauth
+  };
+};
+
+// Action creator function
+const emitPostauth = (postauth) => {
+  return {
+    type: 'EMIT_POSTAUTH',
+    payload: postauth
+  };
+};
+
 const eventQueue = [];
 let promise = null;
+
+let previousEvent = null;
+
+let preauth = null;
+let postauth = 5;
 
 store.subscribe(() => {
   const state = store.getState();
   if (state.event) {
     console.log('Received event:', state.event);
   }
+  preauth = state.preauth;
+  postauth = state.postauth;
+  const event = JSON.parse(state.event);
+  if ( event === previousEvent ) {
+    return;
+  }
+  previousEvent = event;
+
   if(promise) {
-    promise.resolve(state.event);
+    promise.resolve(event);
     promise = null;
   }
   else {
     // This is only useful for awaitEvent below. Otherwise, events build up. Having
     // this event queue may be good or a memory leak. We should figure out whether
     // to have this behind a flag later.
-    eventQueue.push(state.event);
+    eventQueue.push(event);
   }
   for(i in eventSubscribers) {
-    eventSubscribers[i](state.event);
+    eventSubscribers[i](event);
   }
 });
-
-store.dispatch(emitEvent('Hello from the server!'));
-store.dispatch(emitEvent('Boo!'));
 
 export function reduxLogger(subscribers) {
   if(subscribers != null) {
@@ -63,8 +92,25 @@ export function reduxLogger(subscribers) {
   }
   emitEvent.lo_name = "Redux Logger";
   emitEvent.lo_id = "redux_logger";
-  return (event) => store.dispatch(emitEvent(event));
+
+  function logEvent(event) {
+    store.dispatch(emitEvent(event));
+  }
+
+  logEvent.get_preauth = function() { return preauth };
+  logEvent.get_postauth = function() { return postauth };
+
+  logEvent.preauth = function(preauth) {
+    store.dispatch(emitPreauth(preauth));
+  }
+
+  logEvent.postauth = function(postauth) {
+    store.dispatch(emitPostauth(postauth));
+  }
+
+  return logEvent;
 }
+
 
 // This is a convenience function which lets us simply await events.
 //
