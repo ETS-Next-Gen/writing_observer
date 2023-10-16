@@ -61,11 +61,11 @@ export function websocketLogger (server, storage) {
 
   function checkMetadata() {
     if(preauth && !preauth_sent) {
-      socket.send(JSON.stringify({ ...preauth, event_type: "set_metadata" }));
+      socket.send(JSON.stringify({ ...preauth, event_type: "lock_fields" }));
       preauth_sent = true;
     }
     if(postauth && !postauth_sent) {
-      socket.send(JSON.stringify( { ...postauth, event_type: "set_metadata"} ));
+      socket.send(JSON.stringify( { ...postauth, event_type: "lock_fields"} ));
       postauth_sent = true;
     }
   }
