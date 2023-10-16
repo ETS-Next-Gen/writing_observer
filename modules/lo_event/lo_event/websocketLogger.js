@@ -1,5 +1,6 @@
 import { Queue } from './queue.js';
 import { WebSocket } from 'ws';
+import { BlockError } from './blacklist.js';
 
 export function websocketLogger (server, storage) {
   /*
@@ -7,6 +8,7 @@ export function websocketLogger (server, storage) {
   */
   let socket, preauth, postauth, preauth_sent, postauth_sent;
   const queue = new Queue('websocketLogger');
+  let blockerror;
 
   function newWebsocket () {
     preauth_sent = false;
@@ -47,11 +49,13 @@ export function websocketLogger (server, storage) {
     const response = JSON.parse(event.data);
 
     switch (response.status) {
-      case 'allow':
-        break
-      case 'deny':
-        // TODO handle any deny status
-        break
+      case 'blocklist':
+        console.log("Received block error");
+        blockerror = new BlockError(
+          response.message,
+          response.time_limit,
+          response.action
+        );
       default:
         console.log('auth has not yet occured');
         break;
@@ -102,6 +106,12 @@ export function websocketLogger (server, storage) {
   function ws_log_data(data) {
     console.log('queue data', data);
     queue.enqueue(data);
+    if(blockerror) {
+      console.log("Throwing block error");
+      const b = blockerror;
+      blockerror = null;
+      throw br;
+    }
     dequeue();
   }
 

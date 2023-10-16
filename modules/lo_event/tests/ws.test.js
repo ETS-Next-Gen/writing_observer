@@ -36,8 +36,16 @@ const dispatch = {
   'test': function(event) {
     console.log("Test event: ", event.event_number);
   },
-  'set_metadata': function(event) {
+  'lock_fields': function(event) {
     console.log("Metadata: ", event);
+  },
+  'blocklist': function(event, ws) {
+    console.log("Sending blocklist");
+    ws.send(JSON.stringify({
+      status: "blocklist",
+      time_limit: "MINUTES",
+      action: "DROP"
+    }))
   }
 }
 
@@ -48,9 +56,6 @@ wss.on('connection', (ws) => {
     const j = JSON.parse(data.toString())
     console.log("Dispatching: ", j);
     dispatch[j.event_type](j, ws);
-
-    // Send one packet
-    //ws.send(JSON.stringify({ message: 'Hello from the server!' }));
   });
 });
 
@@ -69,6 +74,11 @@ lo_event.init(
 lo_event.logEvent("test", {"event_number": 1})
 lo_event.logEvent("test", {"event_number": 2})
 lo_event.logEvent("test", {"event_number": 3})
-lo_event.logEvent("terminate", {"event_number": 3})
+
+lo_event.logEvent("blocklist", {"action": "Send us back a block event!"})
+
+lo_event.logEvent("test", {"event_number": 4})
+lo_event.logEvent("test", {"event_number": 5})
+lo_event.logEvent("terminate", {})
 
 console.log("Done");
