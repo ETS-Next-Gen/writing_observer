@@ -35,6 +35,9 @@ const dispatch = {
   },
   'test': function(event) {
     console.log("Test event: ", event.event_number);
+  },
+  'set_metadata': function(event) {
+    console.log("Metadata: ", event);
   }
 }
 

@@ -5,11 +5,12 @@ export function websocketLogger (server, storage) {
   /*
      Log to web socket server.
   */
-  let socket;
-  let state = new Set();
+  let socket, preauth, postauth, preauth_sent, postauth_sent;
   const queue = new Queue('websocketLogger');
 
   function newWebsocket () {
+    preauth_sent = false;
+    postauth_sent = false;
     socket = new WebSocket(server);
     socket.onopen = prepareSocket;
     socket.onerror = function (e) {
@@ -32,26 +33,14 @@ export function websocketLogger (server, storage) {
 
   socket = newWebsocket();
 
-  function areWeDone () {
-    console.log('are we done yet?');
-    if (!state.has('ready')) {
-      state.add('ready');
-      dequeue();
-    }
-    return true;
-  }
-
   function prepareSocket () {
     // Send the server the user info. This might not always be available.
-    state = new Set();
     let event;
 
     event = { local_storage: {} }
     console.log(event);
-    // event = add_event_metadata('local_storage', event)
-    //socket.send(JSON.stringify(event)); // do we need this to send right here, we aren't fully ready
-    state.add('local_storage');
-    areWeDone();
+
+    dequeue();
   }
 
   function receiveMessage (event) {
@@ -59,17 +48,26 @@ export function websocketLogger (server, storage) {
 
     switch (response.status) {
       case 'allow':
-        state.add('allow');
         break
       case 'deny':
-        state.add('deny');
         // TODO handle any deny status
         break
       default:
         console.log('auth has not yet occured');
         break;
     }
-    areWeDone();
+    dequeue();
+  }
+
+  function checkMetadata() {
+    if(preauth && !preauth_sent) {
+      socket.send(JSON.stringify({ ...preauth, event_type: "set_metadata" }));
+      preauth_sent = true;
+    }
+    if(postauth && !postauth_sent) {
+      socket.send(JSON.stringify( { ...postauth, event_type: "set_metadata"} ));
+      postauth_sent = true;
+    }
   }
 
   async function dequeue () {
@@ -77,11 +75,11 @@ export function websocketLogger (server, storage) {
     if (socket === null) {
       // Do nothing. We're reconnecting.
       console.log('Event squelched; reconnecting');
-    } else if (socket.readyState === socket.OPEN &&
-      state.has('ready')) {
+    } else if (socket.readyState === socket.OPEN) {
       console.log('sending messages in queue', queue.count());
       while (await queue.count() > 0) {
         const event = await queue.dequeue();
+        checkMetadata();
         console.log('about to send', event);
         socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
       }
@@ -95,7 +93,6 @@ export function websocketLogger (server, storage) {
       */
       console.log('Re-opening connection in 1s');
       socket = null;
-      state = new Set();
       await delay(1000);
       console.log('Re-opening connection');
       socket = newWebsocket();
@@ -109,15 +106,11 @@ export function websocketLogger (server, storage) {
   }
 
   ws_log_data.preauth = function(metadata) {
-    // TODO:
-    // We want to send events with an event type of 'set_metadata' containing the metadata
+    preauth = metadata;
   }
 
-  ws_log_data.postauth = function() {
-    // TODO:
-    // We want to acknowledge any auth message.
-    // If we're locked, we want to raise an exception from `blacklist.js` which will be handled by `lo_event`
-    // We want to send events with an event type of 'set_metadata' containing the metadata
+  ws_log_data.postauth = function(metadata) {
+    postauth = metadata;
   }
 
   return ws_log_data;
