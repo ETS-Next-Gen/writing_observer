@@ -104,14 +104,14 @@ export function websocketLogger (server, storage) {
   }
 
   function ws_log_data(data) {
-    console.log('queue data', data);
-    queue.enqueue(data);
     if(blockerror) {
       console.log("Throwing block error");
       const b = blockerror;
       blockerror = null;
-      throw br;
+      throw b;
     }
+    console.log('queue data', data);
+    queue.enqueue(data);
     dequeue();
   }
 

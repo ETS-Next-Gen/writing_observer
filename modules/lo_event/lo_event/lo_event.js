@@ -168,7 +168,17 @@ export function logEvent(eventType, event) {
   }
 
   for (let i = 0; i < loggersEnabled.length; i++) {
-    loggersEnabled[i](jsonEncodedEvent);
+    try {
+      loggersEnabled[i](jsonEncodedEvent);
+    } catch (error) {
+      if (error instanceof blacklist.BlockError) {
+        // Handle BlockError exception here
+        blacklist.handleBlockError(error);
+      } else {
+        // Other types of exceptions will propagate up
+        throw error;
+      }
+    }
   }
 }
 

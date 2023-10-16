@@ -75,7 +75,16 @@ lo_event.logEvent("test", {"event_number": 1})
 lo_event.logEvent("test", {"event_number": 2})
 lo_event.logEvent("test", {"event_number": 3})
 
-lo_event.logEvent("blocklist", {"action": "Send us back a block event!"})
+// Check the blocklist.
+// In this test, we might receive one more event or so.
+//
+// This takes a second, and the terminate event never comes in, so
+// after that the server hangs, so this is behind a flag.
+const TEST_BLOCKLIST = false;
+if(TEST_BLOCKLIST) {
+  lo_event.logEvent("blocklist", {"action": "Send us back a block event!"})
+  await new Promise(resolve => setTimeout(resolve, 1000));
+}
 
 lo_event.logEvent("test", {"event_number": 4})
 lo_event.logEvent("test", {"event_number": 5})

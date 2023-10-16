@@ -40,15 +40,15 @@ export class BlockError extends Error {
   }
 }
 
-const action = EVENT_ACTION.TRANSMIT;
-const expiration = null;
+let action = EVENT_ACTION.TRANSMIT;
+let expiration = null;
 
 export function handleBlockError(error) {
   action = error.action;
   if (error.timeLimit === TIME_LIMIT.PERMANENT) {
     expiration = TIME_LIMIT.PERMANENT
   } else {
-    time_limit = Date.now() + error.timeLimit;
+    expiration = Date.now() + error.timeLimit;
   }
 }
 
