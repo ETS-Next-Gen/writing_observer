@@ -10,7 +10,6 @@ describe('Queue testing', () => {
     }
     for (let i = 0; i < max; i++) {
       const item = await queue.dequeue()
-      console.log(item)
       expect(item).toBe(i)
       expect(queue.count()).toBe(max - (i + 1))
     }
