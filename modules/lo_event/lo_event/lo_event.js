@@ -2,15 +2,15 @@
   Logging library for Learning Observer clients
 */
 
-import { profileInfoWrapper, delay, timestampEvent, fullyQualifiedWebsocketURL } from './util.js';
+import { profileInfoWrapper, delay, timestampEvent, fullyQualifiedWebsocketURL, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import xapi from './xapi.cjs';
 import { reduxLogger } from './reduxLogger.js';
 import { websocketLogger } from './websocketLogger.js';
 import { consoleLogger } from './consoleLogger.js';
-export { reduxLogger, websocketLogger, consoleLogger };
-import { mergeMetadata } from './util.js';
 import * as blacklist from './blacklist.js';
+
+export { reduxLogger, websocketLogger, consoleLogger };
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -18,6 +18,7 @@ const INIT_INPROGRESS = 'init_inprogress'; // init() has been called, but is sti
 const INIT_METADATA_READY = 'init_metadata'; // Metadata is ready, but we have not yet initialized loggers
 const INIT_LOGGERS_READY = 'init_loggers'; // Loggers ready, but we have not yet sent authenticated or sent metadata
 const INIT_AUTH_READY = 'init_auth'; // Authenticated, but we have not yet sent metadata
+const INIT_ERROR = 'init_error' // Error occured while initializing data
 
 // We are ready to send events! Note that not all loggers might be
 // ready to send events, but some might just queue them up
@@ -72,8 +73,8 @@ function load_metadata(preauth_metadata, postauth_metadata) {
 
 function initialize_loggers() {
   const initializedLoggers = loggersEnabled
-        .filter(logger => typeof logger.init === 'function') // Filter out loggers without .init property
-        .map(logger => logger.init()); // Call .init() on each logger, which may return a promise
+    .filter(logger => typeof logger.init === 'function') // Filter out loggers without .init property
+    .map(logger => logger.init()); // Call .init() on each logger, which may return a promise
 
   console.log(initializedLoggers);
 
@@ -88,10 +89,25 @@ function initialize_loggers() {
   console.log("Loggers initialized!");
 }
 
+function sendSetField (data, onSuccess, onFailure) {
+  const payload = { ...data, event_type: 'lock_fields' }
+  timestampEvent(payload)
+  const authpromises = loggersEnabled
+    .filter(logger => typeof logger.setField === 'function')
+    .map(logger => logger.setField(JSON.stringify(payload)))
+
+  Promise.all(authpromises).then(
+    () => { if (onSuccess) onSuccess() }
+  ).catch(error => {
+    if (onFailure) onFailure()
+    console.error('Auth error:', error)
+  });
+}
+
 function send_preauth() {
   const authpromises = loggersEnabled
-        .filter(logger => typeof logger.preauth === 'function')
-        .map(logger => logger.preauth(preauth));
+    .filter(logger => typeof logger.preauth === 'function')
+    .map(logger => logger.preauth(preauth));
 
   Promise.all(authpromises).then(
     () => { initialized = INIT_AUTH_READY; }
@@ -104,8 +120,8 @@ function send_preauth() {
 
 function send_postauth() {
   const metadatapromises = loggersEnabled
-        .filter(logger => typeof logger.postauth === 'function')
-        .map(logger => logger.postauth(postauth));
+    .filter(logger => typeof logger.postauth === 'function')
+    .map(logger => logger.postauth(postauth));
 
   Promise.all(metadatapromises).then(
     () => { initialized = INIT_READY; }
@@ -118,27 +134,27 @@ function send_postauth() {
 
 // TODO: We should consider specifying a set of verbs, nouns, etc. we
 // might use, and outlining what can be expected in the protocol
-export function init (
+export function init(
   source,
   version,
-  loggers,   // e.g. [console_logger(), websocket_logger("/foo/bar")]
-  preauth_metadata, // e.g. [get_chrome_identity, get_local_storage_identity] <-- Just enough to handle server-side opt-outs. E.g. block everyone from a given school
-  postauth_metadata, // e.g. [get_browser_info] <-- Enough for debugging and otherwise.
+  loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
+  preauthMetadata, // e.g. [get_chrome_identity, get_local_storage_identity] <-- Just enough to handle server-side opt-outs. E.g. block everyone from a given school
+  postauthMetadata, // e.g. [get_browser_info] <-- Enough for debugging and otherwise.
   debugLevel
 ) {
-  preauth_metadata.push({source: source, version: version})
-  console.log(preauth_metadata);
+  preauthMetadata.push({ source, version })
+  console.log(preauthMetadata);
   loggersEnabled = loggers;
   initialized = INIT_INPROGRESS;
-  load_metadata(preauth_metadata, postauth_metadata)
+  load_metadata(preauthMetadata, postauthMetadata)
     .then(initialize_loggers)
-    .then(send_preauth)
-    .then(send_postauth);
+    .then(res => sendSetField(preauth, () => { initialized = INIT_AUTH_READY; }, () => { initialized = INIT_ERROR; }))
+    .then(res => sendSetField(postauth, () => { initialized = INIT_READY; }, () => { initialized = INIT_ERROR; }))
 }
 
-export function logEvent (eventType, event) {
+export function logEvent(eventType, event) {
   // opt out / dead
-  if(!blacklist.storeEvents()) {
+  if (!blacklist.storeEvents()) {
     return;
   }
 
@@ -147,7 +163,7 @@ export function logEvent (eventType, event) {
   const jsonEncodedEvent = JSON.stringify(event);
 
   // To do: Pass these through a queue
-  if(!blacklist.streamEvents()) {
+  if (!blacklist.streamEvents()) {
     return;
   }
 
@@ -163,9 +179,9 @@ export function logXAPILite(
     context,
     attachments }
 ) {
-  logEvent ( verb,
-             { object, result, context, attachments}
-           );
+  logEvent(verb,
+    { object, result, context, attachments }
+  );
 }
 
 // const url = fullyQualifiedWebsocketURL('/ws', 'http://127.0.0.1:8765')
