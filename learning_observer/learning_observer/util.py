@@ -156,6 +156,22 @@ def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
     return d
 
 
+def remove_nested_dict_value(d, key_str):
+    """
+    Remove an item from a nested dictionary using `.` to indicate nested keys
+    """
+    keys = key_str.split('.')
+    for key in keys[:-1]:
+        if d is not None and key in d:
+            d = d[key]
+        else:
+            raise KeyError(f'Key {key_str} not found in {d}')
+    if keys[-1] in d:
+        return d.pop(keys[-1])
+    else:
+        raise KeyError(f'Key {key_str} not found in {d}')
+
+
 def clean_json(json_object):
     '''
     * Deep copy a JSON object
