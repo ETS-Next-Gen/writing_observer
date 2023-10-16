@@ -144,9 +144,23 @@ export function websocketLogger (server, storage) {
     }
   }
 
-  return function (data) {
+  function ws_log_data(data) {
     console.log('queue data', data);
     queue.enqueue(data);
     dequeue();
   }
+
+  ws_log_data.preauth = function(metadata) {
+    // TODO:
+    // We want to send events with an event type of 'set_metadata' containing the metadata
+  }
+
+  ws_log_data.postauth = function() {
+    // TODO:
+    // We want to acknowledge any auth message.
+    // If we're locked, we want to raise an exception from `blacklist.js` which will be handled by `lo_event`
+    // We want to send events with an event type of 'set_metadata' containing the metadata
+  }
+
+  return ws_log_data;
 }

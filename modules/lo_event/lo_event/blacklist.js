@@ -13,6 +13,8 @@
  *   have the extension installed, we don't want to store them
  *   client-side. 
  */
+import { storage} from './storage.js';
+
 export const EVENT_ACTION = {
   TRANSMIT: 'TRANSMIT',
   MAINTAIN: 'MAINTAIN',
