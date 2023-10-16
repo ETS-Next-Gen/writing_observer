@@ -1,3 +1,6 @@
+import * as crypto from 'crypto';
+
+
 /*
   Browser information object, primarily for debugging. Note that not
   all fields will be available in all browsers and contexts. If not
