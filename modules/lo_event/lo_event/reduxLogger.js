@@ -15,6 +15,31 @@ const reducer = (state = {}, action) => {
       return { ...state, preauth: action.payload };
     case 'EMIT_POSTAUTH':
       return { ...state, postauth: action.payload };
+
+      // ----------------------------------------
+      // This is a proposed change for discussion
+      //
+      // We'd need to export mergeDictionary, import it, and
+      // extend it to handle undefined / null, as well as
+      // all the obvious changes here.
+      //
+      // I moved fields into their own dictionary so we can
+      // add more annotations if we chose to in the future.
+      // E.g.:
+      //
+      // {event: lock_fields, fields: {...}, type: preauth}
+      //
+      // We'd remove PREAUTH and POSTAUTH.
+      // ----------------------------------------
+    case 'EMIT_LOCKFIELDS':
+      return {
+        ...state,
+        lock_fields: util.mergeDictionary(
+          action.payload.fields,
+          state.lock_fields
+        )
+      }
+
     default:
       return state;
   }
