@@ -193,8 +193,3 @@ export function logXAPILite(
     { object, result, context, attachments }
   );
 }
-
-// const url = fullyQualifiedWebsocketURL('/ws', 'http://127.0.0.1:8765')
-// const log = websocketLogger(url, storage)
-// log('test')
-// log('123')
