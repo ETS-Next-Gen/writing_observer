@@ -8,13 +8,21 @@ import redux from 'redux';
 
 // Reducer function
 const reducer = (state = {}, action) => {
+  let payload;
   switch (action.type) {
     case 'EMIT_EVENT':
       return { ...state, event: action.payload };
     case 'EMIT_LOCKFIELDS':
+      payload = JSON.parse(action.payload);
       return {
         ...state,
-        lock_fields: { ...state.lock_fields || {}, ...JSON.parse(action.payload) }
+        lock_fields: {
+          ...payload,
+          fields: {
+            ...(state.lock_fields ? state.lock_fields.fields : {}),
+            ...payload.fields
+          }
+        }
       };
 
     default:
@@ -51,10 +59,11 @@ let lockFields = null;
 
 store.subscribe(() => {
   const state = store.getState();
-  if (state.event) {
-    console.log('Received event:', state.event);
+  if (state.lock_fields) {
+    lockFields = state.lock_fields.fields;
   }
-  lockFields = state.lock_fields;
+  if (!state.event) return;
+  console.log('Received event:', state.event);
   const event = JSON.parse(state.event);
   if (event === previousEvent) {
     return;
@@ -87,8 +96,6 @@ export function reduxLogger (subscribers) {
   logEvent.lo_id = 'redux_logger';
 
   logEvent.setField = function (event) {
-    // TODO remove this before pushing
-    console.log(event);
     store.dispatch(emitSetField(event));
   };
 

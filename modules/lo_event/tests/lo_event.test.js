@@ -1,26 +1,30 @@
-import * as lo_event from '../lo_event/lo_event.js';
+import * as loEvent from '../lo_event/lo_event.js';
 import * as reduxLogger from '../lo_event/reduxLogger.js';
 import * as util from '../lo_event/util.js';
 
-const rl = lo_event.reduxLogger();
+const rl = loEvent.reduxLogger();
 
-console.log('Initializing lo_event');
-lo_event.init(
+console.log('Initializing loEvent');
+loEvent.init(
   'org.ets.lo_event.test',
   '1',
-  [lo_event.consoleLogger(), rl],
+  [loEvent.consoleLogger(), rl],
   [{ preauth_type: 'test' }],
   [{ postauth_type: 'test' }, util.getBrowserInfo()],
-  lo_event.VERBOSE
+  loEvent.VERBOSE
 );
+loEvent.setFieldSet(await util.mergeMetadata([{ preauth_type: 'test' }]));
+loEvent.setFieldSet(await util.mergeMetadata([{ postauth_type: 'test' }, util.getBrowserInfo()]));
+loEvent.go();
+
 console.log('Initialized');
-lo_event.logEvent('test', { event_number: 1 });
-lo_event.logEvent('test', { event_number: 2 });
-lo_event.logEvent('test', { event_number: 3 });
+loEvent.logEvent('test', { event_number: 1 });
+loEvent.logEvent('test', { event_number: 2 });
+loEvent.logEvent('test', { event_number: 3 });
 
 console.log('Preparing to run test cases');
 
-describe('lo_event testing', () => {
+describe('loEvent testing', () => {
   it('Check basic event handling', async () => {
     console.log('Running test cases');
     // Are events coming in in the right order?
