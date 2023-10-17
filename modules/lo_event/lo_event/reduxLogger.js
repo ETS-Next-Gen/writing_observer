@@ -11,34 +11,11 @@ const reducer = (state = {}, action) => {
   switch (action.type) {
     case 'EMIT_EVENT':
       return { ...state, event: action.payload };
-    case 'EMIT_PREAUTH':
-      return { ...state, preauth: action.payload };
-    case 'EMIT_POSTAUTH':
-      return { ...state, postauth: action.payload };
-
-      // ----------------------------------------
-      // This is a proposed change for discussion
-      //
-      // We'd need to export mergeDictionary, import it, and
-      // extend it to handle undefined / null, as well as
-      // all the obvious changes here.
-      //
-      // I moved fields into their own dictionary so we can
-      // add more annotations if we chose to in the future.
-      // E.g.:
-      //
-      // {event: lock_fields, fields: {...}, type: preauth}
-      //
-      // We'd remove PREAUTH and POSTAUTH.
-      // ----------------------------------------
     case 'EMIT_LOCKFIELDS':
       return {
         ...state,
-        lock_fields: util.mergeDictionary(
-          action.payload.fields,
-          state.lock_fields
-        )
-      }
+        lock_fields: { ...state.lock_fields || {}, ...JSON.parse(action.payload) }
+      };
 
     default:
       return state;
@@ -58,18 +35,10 @@ const emitEvent = (event) => {
 };
 
 // Action creator function
-const emitPreauth = (preauth) => {
+const emitSetField = (setField) => {
   return {
-    type: 'EMIT_PREAUTH',
-    payload: preauth
-  };
-};
-
-// Action creator function
-const emitPostauth = (postauth) => {
-  return {
-    type: 'EMIT_POSTAUTH',
-    payload: postauth
+    type: 'EMIT_LOCKFIELDS',
+    payload: setField
   };
 };
 
@@ -78,19 +47,15 @@ let promise = null;
 
 let previousEvent = null;
 
-let preauth = null;
-let postauth = 5;
+let lockFields = null;
 
 store.subscribe(() => {
   const state = store.getState();
   if (state.event) {
     console.log('Received event:', state.event);
   }
-  preauth = state.preauth;
-  postauth = state.postauth;
-  console.log('state', state);
+  lockFields = state.lock_fields;
   const event = JSON.parse(state.event);
-  console.log(event);
   if (event === previousEvent) {
     return;
   }
@@ -108,34 +73,26 @@ store.subscribe(() => {
   for (const i in eventSubscribers) {
     eventSubscribers[i](event);
   }
-})
+});
 
 export function reduxLogger (subscribers) {
   if (subscribers != null) {
     eventSubscribers = subscribers;
   }
-  emitEvent.lo_name = 'Redux Logger';
-  emitEvent.lo_id = 'redux_logger';
 
   function logEvent (event) {
-    store.dispatch(emitEvent(event))
-  }
-
-  logEvent.get_preauth = function () { return preauth };
-  logEvent.get_postauth = function () { return postauth };
-
-  logEvent.preauth = function (preauth) {
-    store.dispatch(emitPreauth(preauth));
-  }
-
-  logEvent.postauth = function (postauth) {
-    store.dispatch(emitPostauth(postauth));
-  }
-
-  logEvent.setField = function (event) {
-    console.log(event);
     store.dispatch(emitEvent(event));
   }
+  logEvent.lo_name = 'Redux Logger';
+  logEvent.lo_id = 'redux_logger';
+
+  logEvent.setField = function (event) {
+    // TODO remove this before pushing
+    console.log(event);
+    store.dispatch(emitSetField(event));
+  };
+
+  logEvent.getLockFields = function () { return lockFields; };
 
   return logEvent;
 }
@@ -162,4 +119,4 @@ export const awaitEvent = () => {
 
   promise.resolve = resolvePromise;
   return promise;
-}
+};
