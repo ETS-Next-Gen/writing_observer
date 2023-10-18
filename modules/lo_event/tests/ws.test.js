@@ -1,25 +1,24 @@
 import { WebSocketServer } from 'ws';
-import { storage } from '../lo_event/storage.js'
-import * as util from '../lo_event/util.js'
+import { storage } from '../lo_event/storage.js';
+import * as util from '../lo_event/util.js';
 
-import * as lo_event from '../lo_event/lo_event.js'
-import * as websocketLogger from '../lo_event/websocketLogger.js'
+import * as loEvent from '../lo_event/lo_event.js';
 
-console.log("Launching server");
+console.log('Launching server');
 
 console.log(storage);
 
-const host = 'localhost'
-const port = 8087
+const host = 'localhost';
+const port = 8087;
 
 const wss = new WebSocketServer({ host, port });
 let local_socket;
 
-console.log("Setting up connection");
+console.log('Setting up connection');
 
 const dispatch = {
-  'terminate': function(event, ws) {
-    console.log("Terminating")
+  terminate: function (event, ws) {
+    console.log('Terminating');
 
     // It takes a little bit of voodoo to convince the server to
     // terminate.
@@ -29,51 +28,54 @@ const dispatch = {
     // process.
     ws.close();
     wss.close(() => {
-      console.log("Server closed");
+      console.log('Server closed');
       process.exit(0);
     });
   },
-  'test': function(event) {
-    console.log("Test event: ", event.event_number);
+  test: function (event) {
+    console.log('Test event: ', event.event_number);
   },
-  'lock_fields': function(event) {
-    console.log("Metadata: ", event);
+  lock_fields: function (event) {
+    console.log('Metadata: ', event);
   },
-  'blocklist': function(event, ws) {
-    console.log("Sending blocklist");
+  blocklist: function (event, ws) {
+    console.log('Sending blocklist');
     ws.send(JSON.stringify({
-      status: "blocklist",
-      time_limit: "MINUTES",
-      action: "DROP"
-    }))
+      status: 'blocklist',
+      time_limit: 'MINUTES',
+      action: 'DROP'
+    }));
   }
-}
+};
 
 wss.on('connection', (ws) => {
-  console.log("New connection");
+  console.log('New connection');
   ws.on('message', (data) => {
     // Verify received data
-    const j = JSON.parse(data.toString())
-    console.log("Dispatching: ", j);
+    const j = JSON.parse(data.toString());
+    console.log('Dispatching: ', j);
     dispatch[j.event_type](j, ws);
   });
 });
+console.log(wss)
 
-const wsl = lo_event.websocketLogger(`ws://${host}:${port}`, storage);
+const wsl = loEvent.websocketLogger(`ws://${host}:${port}`);
 
-lo_event.init(
-  "org.ets.lo_event.test",
-  "1",
-  [ lo_event.consoleLogger(), wsl ],
-  [{'preauth_type': 'test'}],
-  [{'postauth_type': 'test'}, util.getBrowserInfo() ],
-  lo_event.VERBOSE
-)
+loEvent.init(
+  'org.ets.lo_event.test',
+  '1',
+  [wsl],
+  [{ preauth_type: 'test' }],
+  [{ postauth_type: 'test' }, util.getBrowserInfo()],
+  loEvent.VERBOSE
+);
+loEvent.setFieldSet([{ preauth_type: 'test' }]);
+loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);
+loEvent.go();
 
-
-lo_event.logEvent("test", {"event_number": 1})
-lo_event.logEvent("test", {"event_number": 2})
-lo_event.logEvent("test", {"event_number": 3})
+loEvent.logEvent('test', { event_number: 1 });
+loEvent.logEvent('test', { event_number: 2 });
+loEvent.logEvent('test', { event_number: 3 });
 
 // Check the blocklist.
 // In this test, we might receive one more event or so.
@@ -81,13 +83,13 @@ lo_event.logEvent("test", {"event_number": 3})
 // This takes a second, and the terminate event never comes in, so
 // after that the server hangs, so this is behind a flag.
 const TEST_BLOCKLIST = false;
-if(TEST_BLOCKLIST) {
-  lo_event.logEvent("blocklist", {"action": "Send us back a block event!"})
+if (TEST_BLOCKLIST) {
+  loEvent.logEvent('blocklist', { action: 'Send us back a block event!' });
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
-lo_event.logEvent("test", {"event_number": 4})
-lo_event.logEvent("test", {"event_number": 5})
-lo_event.logEvent("terminate", {})
+loEvent.logEvent('test', { event_number: 4 });
+loEvent.logEvent('test', { event_number: 5 });
+loEvent.logEvent('terminate', {});
 
-console.log("Done");
+console.log('Done');

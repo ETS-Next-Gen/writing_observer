@@ -1,46 +1,47 @@
 import { Queue } from './queue.js';
-import { WebSocket } from 'ws';
 import { BlockError } from './blacklist.js';
+import { delay } from './util.js';
 
-export function websocketLogger (server, storage) {
+export function websocketLogger (server) {
   /*
      Log to web socket server.
   */
-  let socket, preauth, postauth, preauth_sent, postauth_sent;
+  let socket;
+  let WS;
   const queue = new Queue('websocketLogger');
   let blockerror;
+  let firstConnection = true;
+  let metadata = {};
 
   function newWebsocket () {
-    preauth_sent = false;
-    postauth_sent = false;
-    socket = new WebSocket(server);
+    socket = new WS(server);
     socket.onopen = prepareSocket;
     socket.onerror = function (e) {
       console.log('Could not connect');
       let event = { issue: 'Could not connect' };
-      // event = add_event_metadata('warning', event)
       event = JSON.stringify(event);
       queue.enqueue(event);
-    }
+    };
     socket.onclose = function (e) {
       console.log('Lost connection');
       let event = { issue: 'Lost connection', code: e.code };
-      // event = add_event_metadata('warning', event)
       event = JSON.stringify(event);
       queue.enqueue(event);
-    }
+    };
     socket.onmessage = receiveMessage;
+    console.log('done with the new websocket', socket.readyState);
     return socket;
   }
 
-  socket = newWebsocket();
-
   function prepareSocket () {
-    // Send the server the user info. This might not always be available.
-    let event;
-
-    event = { local_storage: {} }
+    console.log('PREPARE SOCKET');
+    const event = { local_storage: {} };
     console.log(event);
+    if (!firstConnection) {
+      // queue.prepend(metadata);
+    } else {
+      firstConnection = false;
+    }
 
     dequeue();
   }
@@ -50,12 +51,13 @@ export function websocketLogger (server, storage) {
 
     switch (response.status) {
       case 'blocklist':
-        console.log("Received block error");
+        console.log('Received block error');
         blockerror = new BlockError(
           response.message,
           response.time_limit,
           response.action
         );
+        break;
       default:
         console.log('auth has not yet occured');
         break;
@@ -63,19 +65,8 @@ export function websocketLogger (server, storage) {
     dequeue();
   }
 
-  function checkMetadata() {
-    if(preauth && !preauth_sent) {
-      socket.send(JSON.stringify({ ...preauth, event_type: "lock_fields" }));
-      preauth_sent = true;
-    }
-    if(postauth && !postauth_sent) {
-      socket.send(JSON.stringify( { ...postauth, event_type: "lock_fields"} ));
-      postauth_sent = true;
-    }
-  }
-
   async function dequeue () {
-    console.log('dequeuing');
+    console.log('dequeuing', socket.readyState);
     if (socket === null) {
       // Do nothing. We're reconnecting.
       console.log('Event squelched; reconnecting');
@@ -83,7 +74,6 @@ export function websocketLogger (server, storage) {
       console.log('sending messages in queue', queue.count());
       while (await queue.count() > 0) {
         const event = await queue.dequeue();
-        checkMetadata();
         console.log('about to send', event);
         socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
       }
@@ -100,12 +90,14 @@ export function websocketLogger (server, storage) {
       await delay(1000);
       console.log('Re-opening connection');
       socket = newWebsocket();
+    } else if (socket.readyState === socket.CONNECTING) {
+      console.log('connecting still');
     }
   }
 
-  function ws_log_data(data) {
-    if(blockerror) {
-      console.log("Throwing block error");
+  function wsLogData (data) {
+    if (blockerror) {
+      console.log('Throwing block error');
       const b = blockerror;
       blockerror = null;
       throw b;
@@ -115,13 +107,22 @@ export function websocketLogger (server, storage) {
     dequeue();
   }
 
-  ws_log_data.preauth = function(metadata) {
-    preauth = metadata;
-  }
+  wsLogData.init = async function (metadata) {
+    if (typeof WebSocket === 'undefined') {
+      console.log('Importing ws');
+      WS = (await import('ws')).WebSocket;
+    } else {
+      console.log('Using built-in websocket');
+      WS = WebSocket;
+    }
+    socket = newWebsocket();
+    console.log('Done with WS init', socket.readyState);
+  };
 
-  ws_log_data.postauth = function(metadata) {
-    postauth = metadata;
-  }
+  wsLogData.setField = function (data) {
+    metadata = { ...metadata, ...data };
+    queue.enqueue(data);
+  };
 
-  return ws_log_data;
+  return wsLogData;
 }

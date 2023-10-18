@@ -76,7 +76,7 @@ async function setFieldSetAsync (data) {
     .filter(logger => typeof logger.setField === 'function')
     .map(logger => logger.setField(JSON.stringify(payload)));
 
-  await Promise.all(authpromises)
+  await Promise.all(authpromises);
 }
 
 // TODO: We should consider specifying a set of verbs, nouns, etc. we
