@@ -13,8 +13,8 @@ loEvent.init(
   [{ postauth_type: 'test' }, util.getBrowserInfo()],
   loEvent.VERBOSE
 );
-loEvent.setFieldSet(await util.mergeMetadata([{ preauth_type: 'test' }]));
-loEvent.setFieldSet(await util.mergeMetadata([{ postauth_type: 'test' }, util.getBrowserInfo()]));
+loEvent.setFieldSet([{ preauth_type: 'test' }]);
+loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);
 loEvent.go();
 
 console.log('Initialized');

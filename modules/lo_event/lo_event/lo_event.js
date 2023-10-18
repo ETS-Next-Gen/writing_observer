@@ -2,7 +2,7 @@
   Logging library for Learning Observer clients
 */
 
-import { timestampEvent } from './util.js';
+import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import xapi from './xapi.cjs';
 import { reduxLogger } from './reduxLogger.js';
@@ -63,20 +63,20 @@ async function initializeLoggers () {
   }
 }
 
-export async function setFieldSet (data, onSuccess, onFailure) {
-  currentState = currentState.then(() => {
-    const payload = { fields: data, event_type: 'lock_fields' };
-    timestampEvent(payload);
-    const authpromises = loggersEnabled
-      .filter(logger => typeof logger.setField === 'function')
-      .map(logger => logger.setField(JSON.stringify(payload)));
+export function setFieldSet (data) {
+  currentState = currentState.then(
+    () => setFieldSetAsync(data)
+  );
+}
 
-    Promise.all(authpromises).then(
-      () => { if (onSuccess) onSuccess(); }
-    ).catch(error => {
-      if (onFailure) onFailure(error);
-    });
-  });
+async function setFieldSetAsync (data) {
+  const payload = { fields: await mergeMetadata(data), event_type: 'lock_fields' };
+  timestampEvent(payload);
+  const authpromises = loggersEnabled
+    .filter(logger => typeof logger.setField === 'function')
+    .map(logger => logger.setField(JSON.stringify(payload)));
+
+  await Promise.all(authpromises)
 }
 
 // TODO: We should consider specifying a set of verbs, nouns, etc. we
