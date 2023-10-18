@@ -53,15 +53,14 @@ async function initializeLoggers () {
 
   console.log(initializedLoggers);
 
-  // Wait for all promises to resolve (if any)
-  Promise.all(initializedLoggers).then(
-    () => { console.log('EVERYTHING'); initialized = INIT_LOGGERS_READY; }
-  ).catch(error => {
+  try {
+    await Promise.all(initializedLoggers);
+    console.log('Loggers initialized!');
+    initialized = INIT_LOGGERS_READY;
+  } catch (error) {
     initialized = INIT_ERROR;
     console.error('Error resolving logger initializers:', error);
-  });
-
-  console.log('Loggers initialized!');
+  }
 }
 
 export async function setFieldSet (data, onSuccess, onFailure) {
