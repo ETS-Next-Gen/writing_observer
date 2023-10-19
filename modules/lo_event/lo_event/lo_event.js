@@ -10,7 +10,9 @@ import { websocketLogger } from './websocketLogger.js';
 import { consoleLogger } from './consoleLogger.js';
 import * as blacklist from './blacklist.js';
 
-export { websocketLogger, consoleLogger };
+function nullLogger () { return () => null; }
+
+export { websocketLogger, consoleLogger, nullLogger };
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.

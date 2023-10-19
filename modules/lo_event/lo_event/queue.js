@@ -117,7 +117,7 @@ export class Queue {
         if (this.memoryQueue.length > 0) {
           resolve(this.memoryQueue.shift());
         }
-        return null;
+        reject(new Error('db is null and memory queue is empty'));
       }
 
       const transaction = this.db.transaction([this.queueName], 'readwrite');
@@ -144,7 +144,7 @@ export class Queue {
           if (this.memoryQueue.length > 0) {
             resolve(this.memoryQueue.shift());
           }
-          resolve(null);
+          reject(new Error('No cursor available and memory queue is empty'));
         }
       };
 

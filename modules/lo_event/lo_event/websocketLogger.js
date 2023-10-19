@@ -69,8 +69,12 @@ export function websocketLogger (server) {
       console.log('Event squelched; reconnecting');
     } else if (socket.readyState === socket.OPEN) {
       while (await queue.count() > 0) {
-        const event = await queue.dequeue();
-        socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
+        try {
+          const event = await queue.dequeue();
+          socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
+        } catch (error) {
+          console.log('Error during dequeue', error);
+        }
       }
     } else if ((socket.readyState === socket.CLOSED) || (socket.readyState === socket.CLOSING)) {
       /*
