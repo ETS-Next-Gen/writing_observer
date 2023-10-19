@@ -20,7 +20,7 @@ const loggers = [
   lo_event.websocketLogger(WEBSOCKET_SERVER_URL)
 ]
 
-lo_event.init('org.mitros.writing', '0.01', loggers, '', '')
+lo_event.init('org.mitros.writing', '0.01', loggers)
 lo_event.setFieldSet([{ test: 'this is a test' }])
 lo_event.go()
 /*

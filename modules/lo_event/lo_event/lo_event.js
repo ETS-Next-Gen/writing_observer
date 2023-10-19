@@ -85,14 +85,22 @@ export function init (
   source,
   version,
   loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
-  preauthMetadata, // e.g. [get_chrome_identity, get_local_storage_identity] <-- Just enough to handle server-side opt-outs. E.g. block everyone from a given school
-  postauthMetadata, // e.g. [get_browser_info] <-- Enough for debugging and otherwise.
   debugLevel
 ) {
-  // TODO how should use source and version in this context?
+  if (source === null || typeof source !== 'string') {
+    throw new Error('source must be a non-null string');
+  }
+  if (version === null || typeof version !== 'string') {
+    throw new Error('version must be a non-null string');
+  }
+  // May be worth confirming that each item is one of the possible loggers
+  if (!Array.isArray(loggers) || loggers.length === 0) {
+    throw new Error('loggers must be a non-empty array of loggers you wish to use');
+  }
+
   loggersEnabled = loggers;
   initialized = INIT_INPROGRESS;
-  currentState = currentState.then(initializeLoggers);
+  currentState = currentState.then(initializeLoggers).then(setFieldSet([{ source, version }]));
 }
 
 export function go () {

@@ -9,8 +9,6 @@ loEvent.init(
   'org.ets.lo_event.test',
   '1',
   [loEvent.consoleLogger(), rl],
-  [{ preauth_type: 'test' }],
-  [{ postauth_type: 'test' }, util.getBrowserInfo()],
   loEvent.VERBOSE
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
