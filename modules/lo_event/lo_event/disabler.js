@@ -31,6 +31,8 @@ export const TIME_LIMIT = {
   DAYS: 60 * 60 * 24 * (1 + Math.random()) // 1-2 days
 };
 
+const DISABLER_STORE = 'disablerState';
+
 export class BlockError extends Error {
   constructor (message, timeLimit, action) {
     super(message);
@@ -40,8 +42,19 @@ export class BlockError extends Error {
   }
 }
 
-let action = EVENT_ACTION.TRANSMIT;
-let expiration = null;
+const DEFAULTS = {
+  action: EVENT_ACTION.TRANSMIT,
+  expiration: null
+};
+
+let { action, expiration } = DEFAULTS;
+
+// Fetch initial values from storage upon loading
+storage.get(DISABLER_STORE, function (storedState) {
+  storedState = storedState[DISABLER_STORE] || {};
+  action = storedState.action || DEFAULTS.action;
+  expiration = storedState.expiration || DEFAULTS.expiration;
+});
 
 export function handleBlockError (error) {
   action = error.action;
@@ -50,6 +63,7 @@ export function handleBlockError (error) {
   } else {
     expiration = Date.now() + error.timeLimit;
   }
+  storage.set({ [DISABLER_STORE]: { action, expiration } });
 }
 
 export function storeEvents () {

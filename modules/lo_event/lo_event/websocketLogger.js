@@ -1,5 +1,5 @@
 import { Queue } from './queue.js';
-import { BlockError } from './blacklist.js';
+import { BlockError } from './disabler.js';
 import { delay } from './util.js';
 
 export function websocketLogger (server) {
