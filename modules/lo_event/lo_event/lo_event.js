@@ -8,7 +8,7 @@ import xapi from './xapi.cjs';
 // import { reduxLogger } from './reduxLogger.js';
 import { websocketLogger } from './websocketLogger.js';
 import { consoleLogger } from './consoleLogger.js';
-import * as blacklist from './blacklist.js';
+import * as disabler from './disabler.js';
 
 function nullLogger () { return () => null; }
 
@@ -117,7 +117,7 @@ async function dequeue () {
     console.log('failure to dequeue, not initialized');
     return;
   }
-  if (!blacklist.streamEvents()) {
+  if (!disabler.streamEvents()) {
     console.log('failure to dequeue, blocked from streaming');
     return;
   }
@@ -129,9 +129,9 @@ async function dequeue () {
         try {
           logger(jsonEncodedEvent);
         } catch (error) {
-          if (error instanceof blacklist.BlockError) {
+          if (error instanceof disabler.BlockError) {
             // Handle BlockError exception here
-            blacklist.handleBlockError(error);
+            disabler.handleBlockError(error);
           } else {
             // Other types of exceptions will propagate up
             throw error;
@@ -147,7 +147,7 @@ async function dequeue () {
 
 export function logEvent (eventType, event) {
   // opt out / dead
-  if (!blacklist.storeEvents()) {
+  if (!disabler.storeEvents()) {
     return;
   }
   event.event_type = eventType;
