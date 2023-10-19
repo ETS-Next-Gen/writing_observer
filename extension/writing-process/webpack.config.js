@@ -37,6 +37,7 @@ module.exports = {
     externals: {
         'sqlite3': 'sqlite3',
         'indexeddb-js': 'indexeddb-js',
-        'crypto': 'crypto'
+        'crypto': 'crypto',
+        'redux': 'redux'
     }
 };

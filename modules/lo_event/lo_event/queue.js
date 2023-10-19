@@ -131,7 +131,9 @@ export class Queue {
           const deleteRequest = objectStore.delete(cursor.key);
 
           deleteRequest.onsuccess = () => {
-            resolve(item);
+            // when we add values to the database, the stored items
+            // are placed under the `value` key.
+            resolve(item.value);
           };
 
           deleteRequest.onerror = (event) => {

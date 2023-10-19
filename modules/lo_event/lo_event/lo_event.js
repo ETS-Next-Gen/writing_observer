@@ -5,12 +5,12 @@
 import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import xapi from './xapi.cjs';
-import { reduxLogger } from './reduxLogger.js';
+// import { reduxLogger } from './reduxLogger.js';
 import { websocketLogger } from './websocketLogger.js';
 import { consoleLogger } from './consoleLogger.js';
 import * as blacklist from './blacklist.js';
 
-export { reduxLogger, websocketLogger, consoleLogger };
+export { websocketLogger, consoleLogger };
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -115,7 +115,6 @@ async function dequeue () {
     try {
       const event = await queue.dequeue();
       const jsonEncodedEvent = JSON.stringify(event);
-
       for (const logger of loggersEnabled) {
         try {
           logger(jsonEncodedEvent);
@@ -129,7 +128,7 @@ async function dequeue () {
           }
         }
       }
-      await dequeue();
+      dequeue();
     } catch (error) {
       console.error('Error during dequeue:', error);
     }

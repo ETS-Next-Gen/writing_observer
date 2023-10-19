@@ -17,10 +17,12 @@ import * as lo_event from 'lo_event';
 
 const loggers = [
   lo_event.consoleLogger,
-  lo_event.websocketLogger(WEBSOCKET_SERVER_URL, chrome.storage.sync)
+  lo_event.websocketLogger(WEBSOCKET_SERVER_URL)
 ]
 
 lo_event.init('org.mitros.writing', '0.01', loggers, '', '')
+lo_event.setFieldSet([{ test: 'this is a test' }])
+lo_event.go()
 /*
   TODO: FSM
 
@@ -240,7 +242,7 @@ let loggers_enabled = [
 
     // Adapted to NCSU Setup.
     // websocket_logger(WEBSOCKET_SERVER_URL)
-    websocketLogger(WEBSOCKET_SERVER_URL, chrome.storage.sync)
+    // websocketLogger(WEBSOCKET_SERVER_URL, chrome.storage.sync)
 ];
 
 function log_event(event_type, event) {

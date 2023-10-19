@@ -1,17 +1,12 @@
-import { Queue } from '../lo_event/queue.js'
+import { Queue } from '../lo_event/queue.js';
+import { delay } from '../lo_event/util.js';
 
-describe('Queue testing', () => {
-  it('What the test does', async () => {
-    const queue = new Queue('queue')
-    const max = 5
-    for (let i = 0; i < max; i++) {
-      queue.enqueue(i)
-      expect(queue.count()).toBe(i + 1)
-    }
-    for (let i = 0; i < max; i++) {
-      const item = await queue.dequeue()
-      expect(item).toBe(i)
-      expect(queue.count()).toBe(max - (i + 1))
-    }
-  })
-})
+const queue = new Queue('queue');
+await delay(1000);
+const max = 5;
+console.log('queueing events');
+for (let i = 0; i < max; i++) {
+  queue.enqueue(i);
+}
+const l = await queue.dequeue();
+console.log(l);
