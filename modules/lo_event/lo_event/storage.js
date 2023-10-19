@@ -19,80 +19,80 @@
 const thunkStorage = {
   data: {},
   set: function (items, callback) {
-    this.data = { ...this.data, ...items }
-    if (callback) callback()
+    this.data = { ...this.data, ...items };
+    if (callback) callback();
   },
   get: function (keys, callback) {
-    let result = {}
+    let result = {};
     if (Array.isArray(keys)) {
       keys.forEach(key => {
         if (Object.prototype.hasOwnProperty.call(this.data, key)) {
-          result[key] = this.data[key]
+          result[key] = this.data[key];
         }
-      })
+      });
     } else if (typeof keys === 'string') {
       if (Object.prototype.hasOwnProperty.call(this.data, keys)) {
-        result[keys] = this.data[keys]
+        result[keys] = this.data[keys];
       }
     } else {
-      result = { ...this.data }
+      result = { ...this.data };
     }
-    if (callback) callback(result)
+    if (callback) callback(result);
   }
-}
+};
 
 function getWithCallback (getItem) {
   function get (items, callback) {
     if (typeof items === 'string') {
-      items = [items]
+      items = [items];
     }
-    const results = {}
+    const results = {};
     for (const item of items) {
-      results[item] = getItem(item)
+      results[item] = getItem(item);
     }
-    callback(results)
+    callback(results);
   }
-  return get
+  return get;
 }
 
 function setWithCallback (setItem) {
   function set (items, callback) {
-    console.log('setting item', items)
+    console.log('setting item', items);
     for (const item in items) {
-      setItem(item, items[item])
+      setItem(item, items[item]);
     }
-    if (callback) callback()
+    if (callback) callback();
   }
-  return set
+  return set;
 }
 
-export let storage
+export let storage;
 
-let b
+let b;
 
 if (typeof browser !== 'undefined') {
-  b = browser
+  b = browser;
 } else if (typeof chrome !== 'undefined') {
-  b = chrome
+  b = chrome;
 }
 
 if (typeof b !== 'undefined') {
   if (b.storage && b.storage.sync) {
-    storage = b.storage.sync
+    storage = b.storage.sync;
   } else if (b.storage && b.storage.local) {
-    storage = b.storage.local
+    storage = b.storage.local;
   }
 } else if (typeof localStorage !== 'undefined') {
   // Add compatibility modifications for localStorage
-  localStorage.get = getWithCallback(localStorage.getItem)
-  localStorage.set = setWithCallback(localStorage.setItem)
-  storage = localStorage
+  localStorage.get = getWithCallback(localStorage.getItem);
+  localStorage.set = setWithCallback(localStorage.setItem);
+  storage = localStorage;
 } else if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
   // Add compatibility modifications for window.localStorage
-  window.localStorage.get = getWithCallback(window.localStorage.getItem)
-  window.localStorage.set = setWithCallback(window.localStorage.setItem)
-  storage = window.localStorage
+  window.localStorage.get = getWithCallback(window.localStorage.getItem);
+  window.localStorage.set = setWithCallback(window.localStorage.setItem);
+  storage = window.localStorage;
 } else {
   // If none of the above options exist, fall back to thunkStorage or exit gracefully
-  storage = thunkStorage
+  storage = thunkStorage;
 }

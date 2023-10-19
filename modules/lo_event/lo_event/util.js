@@ -1,6 +1,5 @@
 import * as crypto from 'crypto';
 
-
 /*
   Browser information object, primarily for debugging. Note that not
   all fields will be available in all browsers and contexts. If not
@@ -10,7 +9,7 @@ import * as crypto from 'crypto';
 
   @returns {Object} An object containing the browser information.
  */
-export function getBrowserInfo() {
+export function getBrowserInfo () {
   const fields = [
     'appCodeName',
     'appName',
@@ -82,8 +81,8 @@ export function getBrowserInfo() {
 
   const browserInfo = {};
 
-  if(typeof navigator === 'undefined') {
-    browserInfo['navigator'] = null;
+  if (typeof navigator === 'undefined') {
+    browserInfo.navigator = null;
   } else {
     for (let i = 0; i < fields.length; i++) {
       browserInfo[fields[i]] = navigator[fields[i]];
@@ -97,8 +96,8 @@ export function getBrowserInfo() {
     }
   }
 
-  if(typeof document === 'undefined') {
-    browserInfo['document'] = null;
+  if (typeof document === 'undefined') {
+    browserInfo.document = null;
   } else {
     browserInfo.document = {};
     for (let i = 0; i < documentFields.length; i++) {
@@ -106,8 +105,8 @@ export function getBrowserInfo() {
     }
   }
 
-  if(typeof window === 'undefined') {
-    browserInfo['window'] = null;
+  if (typeof window === 'undefined') {
+    browserInfo.window = null;
   } else {
     browserInfo.window = {};
     for (let i = 0; i < windowFields.length; i++) {
@@ -115,7 +114,7 @@ export function getBrowserInfo() {
     }
   }
 
-  return {'browser_info': browserInfo};
+  return { browser_info: browserInfo };
 }
 
 /*
@@ -140,21 +139,21 @@ export async function profileInfoWrapper () {
     try {
       return await new Promise((resolve, reject) => {
         chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, function (data) {
-          resolve(data)
-        })
-      })
+          resolve(data);
+        });
+      });
     } catch (e) {
       return await new Promise((resolve, reject) => {
         chrome.identity.getProfileUserInfo(function (data) {
-          resolve(data)
-        })
-      })
+          resolve(data);
+        });
+      });
     }
   }
   // Default to an empty object
   return new Promise((resolve, reject) => {
-    resolve({})
-  })
+    resolve({});
+  });
 }
 
 /*
@@ -166,13 +165,12 @@ export async function profileInfoWrapper () {
   Returns:
   str: A string representing the unique key, in the format "{prefix}-{randomUUID}-{timestamp}". If no prefix is provided, the format will be "{randomUUID}-{timestamp}".
   */
-export function keystamp(prefix) {
+export function keystamp (prefix) {
   return `${prefix ? prefix + '-' : ''}${crypto.randomUUID()}-${Date.now()}`;
 }
 
-
 /*
-  Create a fully-qualified web socket URL. 
+  Create a fully-qualified web socket URL.
 
   All parameters are optional when running on a web page. On an extension,
   we need, at least, the base server.
@@ -181,73 +179,77 @@ export function keystamp(prefix) {
   * Convert relative URLs into fully-qualified ones, if necessary
   * Convert HTTP/HTTPS URLs into WS/WSS ones, if necessary
   */
-export function fullyQualifiedWebsocketURL(default_relative_url, default_base_server) {
-  const relative_url = default_relative_url || "/wsapi/in";
-  const base_server = default_base_server || (typeof document !== 'undefined' && document.location);
+export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServer) {
+  const relativeUrl = defaultRelativeUrl || '/wsapi/in';
+  const baseServer = defaultBaseServer || (typeof document !== 'undefined' && document.location);
 
-  if (!base_server) {
-    throw new Error("Base server is not provided.");
+  if (!baseServer) {
+    throw new Error('Base server is not provided.');
   }
 
-  const url = new URL(relative_url, base_server);
+  const url = new URL(relativeUrl, baseServer);
 
-  const protocol_map = {"https:": "wss:", "http:": "ws:", "ws:": "ws:", "wss:": "wss"};
+  const protocolMap = { 'https:': 'wss:', 'http:': 'ws:', 'ws:': 'ws:', 'wss:': 'wss' };
 
-  if (!protocol_map[url.protocol]) {
-    throw new Error("Protocol mapping not found.");
+  if (!protocolMap[url.protocol]) {
+    throw new Error('Protocol mapping not found.');
   }
 
-  url.protocol = protocol_map[url.protocol];
+  url.protocol = protocolMap[url.protocol];
 
   return url.href;
 }
 
-export function timestampEvent(event) {
-  if (!event['metadata']) {
-    event['metadata'] = {};
+export function timestampEvent (event) {
+  if (!event.metadata) {
+    event.metadata = {};
   }
 
-  event['metadata']['ts'] = Date.now();
-  event['metadata']['human_ts'] = Date();
-  event['metadata']['iso_ts'] = new Date().toISOString();
+  event.metadata.ts = Date.now();
+  event.metadata.human_ts = Date();
+  event.metadata.iso_ts = new Date().toISOString();
 }
 
 /*
+  This method is currently unused and needs to be reworked
+  with the newer storage element, which at the time of writing this
+  comment has not been done.
+
   We include some metadata. Much of this is primarily for
   debugging. For example, it's helpful to have multiple timestamps
   in order to understand timezone issues, misset clocks, etc.
  */
-export function defaultEventMetadata({ source, version }) {
+export function defaultEventMetadata ({ source, version }) {
   const metadata = { source, version };
 
   // Check if logger_id exists in localStorage and set if it doesn't
-  if (localStorage.getItem("logger_id") === null) {
-    localStorage.setItem("logger_id", keystamp('lid'));
+  if (localStorage.getItem('logger_id') === null) {
+    localStorage.setItem('logger_id', keystamp('lid'));
   }
 
   // Check if logger_id exists in sessionStorage and set if it doesn't
-  if (sessionStorage.getItem("logger_id") === null) {
-    sessionStorage.setItem("logger_id", keystamp('sid'));
+  if (sessionStorage.getItem('logger_id') === null) {
+    sessionStorage.setItem('logger_id', keystamp('sid'));
   }
 
-  metadata['browser_id'] = localStorage.getItem("logger_id");
-  metadata['session_id'] = sessionStorage.getItem("logger_id");
-  metadata['logger_id'] = keystamp()
+  metadata.browser_id = localStorage.getItem('logger_id');
+  metadata.session_id = sessionStorage.getItem('logger_id');
+  metadata.logger_id = keystamp();
 
   // Optional auth for demos
-  if(localStorage.getItem("name") !== null) {
-	  metadata['name'] = localStorage.getItem("name");
+  if (localStorage.getItem('name') !== null) {
+    metadata.name = localStorage.getItem('name');
   }
 
-  metadata['browser_info'] = getBrowserInfo();           // <-- Check these lines
+  metadata.browser_info = getBrowserInfo(); // <-- Check these lines
   // metadata['profile_info'] = profileInfoWrapper(); // <-- Check these lines
 
   return metadata;
 }
 
-function mergeDictionary(target, source) {
+function mergeDictionary (target, source) {
   for (const key in source) {
-    if (target.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(target, key)) {
       mergeDictionary(target[key], source[key]);
     } else {
       target[key] = source[key];
@@ -264,7 +266,7 @@ function mergeDictionary(target, source) {
  * @param {Array} inputList - List of dictionaries, sync functions, and async functions
  * @returns {Promise<Object>} - A Promise that resolves to the compiled master dictionary
  */
-export async function mergeMetadata(inputList) {
+export async function mergeMetadata (inputList) {
   // Initialize the master dictionary
   const masterDict = {};
 
@@ -294,5 +296,5 @@ export async function mergeMetadata(inputList) {
 }
 
 export function delay (ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

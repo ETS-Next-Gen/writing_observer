@@ -12,7 +12,6 @@ const host = 'localhost';
 const port = 8087;
 
 const wss = new WebSocketServer({ host, port });
-let local_socket;
 
 console.log('Setting up connection');
 
@@ -57,7 +56,7 @@ wss.on('connection', (ws) => {
     dispatch[j.event_type](j, ws);
   });
 });
-console.log(wss)
+console.log(wss);
 
 const wsl = loEvent.websocketLogger(`ws://${host}:${port}`);
 

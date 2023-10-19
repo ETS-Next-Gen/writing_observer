@@ -29,12 +29,10 @@ export function websocketLogger (server) {
       queue.enqueue(event);
     };
     socket.onmessage = receiveMessage;
-    console.log('done with the new websocket', socket.readyState);
     return socket;
   }
 
   function prepareSocket () {
-    console.log('PREPARE SOCKET');
     const event = { local_storage: {} };
     console.log(event);
     if (!firstConnection) {
@@ -66,15 +64,12 @@ export function websocketLogger (server) {
   }
 
   async function dequeue () {
-    console.log('dequeuing', socket.readyState);
     if (socket === null) {
       // Do nothing. We're reconnecting.
       console.log('Event squelched; reconnecting');
     } else if (socket.readyState === socket.OPEN) {
-      console.log('sending messages in queue', queue.count());
       while (await queue.count() > 0) {
         const event = await queue.dequeue();
-        console.log('about to send', event);
         socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
       }
     } else if ((socket.readyState === socket.CLOSED) || (socket.readyState === socket.CLOSING)) {
@@ -102,7 +97,6 @@ export function websocketLogger (server) {
       blockerror = null;
       throw b;
     }
-    console.log('queue data', data);
     queue.enqueue(data);
     dequeue();
   }
@@ -116,7 +110,6 @@ export function websocketLogger (server) {
       WS = WebSocket;
     }
     socket = newWebsocket();
-    console.log('Done with WS init', socket.readyState);
   };
 
   wsLogData.setField = function (data) {

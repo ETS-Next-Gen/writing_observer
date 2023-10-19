@@ -11,15 +11,15 @@
  *   events on the client-side pending resolution
  * - If a school or student does not want us to collect their data, but
  *   have the extension installed, we don't want to store them
- *   client-side. 
+ *   client-side.
  */
-import { storage} from './storage.js';
+import { storage } from './storage.js';
 
 export const EVENT_ACTION = {
   TRANSMIT: 'TRANSMIT',
   MAINTAIN: 'MAINTAIN',
   DROP: 'DROP'
-}
+};
 
 /*
  * We make the time limit stochastic, so we don't have all clients
@@ -27,43 +27,43 @@ export const EVENT_ACTION = {
  */
 export const TIME_LIMIT = {
   PERMANENT: -1,
-  MINUTES: 60*5*(1+Math.random()), // 5-10 minutes
-  DAYS: 60*60*24*(1+Math.random())  // 1-2 days
-}
+  MINUTES: 60 * 5 * (1 + Math.random()), // 5-10 minutes
+  DAYS: 60 * 60 * 24 * (1 + Math.random()) // 1-2 days
+};
 
 export class BlockError extends Error {
-  constructor(message, timeLimit, action) {
+  constructor (message, timeLimit, action) {
     super(message);
     this.message = message;
-    this.timeLimit = isNaN(timeLimit) ? TIME_LIMIT[timeLimit] : timeLimit ;
-    this.action = EVENT_ACTION[action];  // <-- Check we're in EVENT_ACTION.
+    this.timeLimit = isNaN(timeLimit) ? TIME_LIMIT[timeLimit] : timeLimit;
+    this.action = EVENT_ACTION[action]; // <-- Check we're in EVENT_ACTION.
   }
 }
 
 let action = EVENT_ACTION.TRANSMIT;
 let expiration = null;
 
-export function handleBlockError(error) {
+export function handleBlockError (error) {
   action = error.action;
   if (error.timeLimit === TIME_LIMIT.PERMANENT) {
-    expiration = TIME_LIMIT.PERMANENT
+    expiration = TIME_LIMIT.PERMANENT;
   } else {
     expiration = Date.now() + error.timeLimit;
   }
 }
 
-export function storeEvents() {
+export function storeEvents () {
   return action !== EVENT_ACTION.DROP;
 }
 
-export function streamEvents() {
-  return action == EVENT_ACTION.TRANSMIT;
+export function streamEvents () {
+  return action === EVENT_ACTION.TRANSMIT;
 }
 
-export function retry() {
+export function retry () {
   if (expiration === TIME_LIMIT.PERMANENT) {
-    return false
+    return false;
   }
 
-  return Date.now() > time_limit;
+  return Date.now() > expiration;
 }
