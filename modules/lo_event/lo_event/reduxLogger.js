@@ -6,34 +6,6 @@
 
 import redux from 'redux';
 
-// Reducer function
-const reducer = (state = {}, action) => {
-  let payload;
-  switch (action.type) {
-    case 'EMIT_EVENT':
-      return { ...state, event: action.payload };
-    case 'EMIT_LOCKFIELDS':
-      payload = JSON.parse(action.payload);
-      return {
-        ...state,
-        lock_fields: {
-          ...payload,
-          fields: {
-            ...(state.lock_fields ? state.lock_fields.fields : {}),
-            ...payload.fields
-          }
-        }
-      };
-
-    default:
-      return state;
-  }
-};
-
-// Create the store
-const store = redux.createStore(reducer);
-let eventSubscribers = [];
-
 // Action creator function
 const emitEvent = (event) => {
   return {
@@ -51,38 +23,67 @@ const emitSetField = (setField) => {
 };
 
 const eventQueue = [];
+let store;
 let promise = null;
-
 let previousEvent = null;
-
 let lockFields = null;
+let eventSubscribers = [];
 
-store.subscribe(() => {
-  const state = store.getState();
-  if (state.lock_fields) {
-    lockFields = state.lock_fields.fields;
-  }
-  if (!state.event) return;
-  console.log('Received event:', state.event);
-  const event = JSON.parse(state.event);
-  if (event === previousEvent) {
-    return;
-  }
-  previousEvent = event;
+function initializeStore () {
+  // Reducer function
+  const reducer = (state = {}, action) => {
+    let payload;
+    switch (action.type) {
+      case 'EMIT_EVENT':
+        return { ...state, event: action.payload };
+      case 'EMIT_LOCKFIELDS':
+        payload = JSON.parse(action.payload);
+        return {
+          ...state,
+          lock_fields: {
+            ...payload,
+            fields: {
+              ...(state.lock_fields ? state.lock_fields.fields : {}),
+              ...payload.fields
+            }
+          }
+        };
 
-  if (promise) {
-    promise.resolve(event);
-    promise = null;
-  } else {
-    // This is only useful for awaitEvent below. Otherwise, events build up. Having
-    // this event queue may be good or a memory leak. We should figure out whether
-    // to have this behind a flag later.
-    eventQueue.push(event);
-  }
-  for (const i in eventSubscribers) {
-    eventSubscribers[i](event);
-  }
-});
+      default:
+        return state;
+    }
+  };
+
+  // Create the store
+  store = redux.createStore(reducer);
+
+  store.subscribe(() => {
+    const state = store.getState();
+    if (state.lock_fields) {
+      lockFields = state.lock_fields.fields;
+    }
+    if (!state.event) return;
+    console.log('Received event:', state.event);
+    const event = JSON.parse(state.event);
+    if (event === previousEvent) {
+      return;
+    }
+    previousEvent = event;
+
+    if (promise) {
+      promise.resolve(event);
+      promise = null;
+    } else {
+      // This is only useful for awaitEvent below. Otherwise, events build up. Having
+      // this event queue may be good or a memory leak. We should figure out whether
+      // to have this behind a flag later.
+      eventQueue.push(event);
+    }
+    for (const i in eventSubscribers) {
+      eventSubscribers[i](event);
+    }
+  });
+}
 
 export function reduxLogger (subscribers) {
   if (subscribers != null) {
@@ -94,6 +95,10 @@ export function reduxLogger (subscribers) {
   }
   logEvent.lo_name = 'Redux Logger';
   logEvent.lo_id = 'redux_logger';
+
+  logEvent.init = async function () {
+    initializeStore();
+  };
 
   logEvent.setField = function (event) {
     store.dispatch(emitSetField(event));

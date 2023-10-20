@@ -5,14 +5,14 @@
 import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import xapi from './xapi.cjs';
-// import { reduxLogger } from './reduxLogger.js';
+import { reduxLogger } from './reduxLogger.js';
 import { websocketLogger } from './websocketLogger.js';
 import { consoleLogger } from './consoleLogger.js';
 import * as disabler from './disabler.js';
 
 function nullLogger () { return () => null; }
 
-export { websocketLogger, consoleLogger, nullLogger };
+export { reduxLogger, websocketLogger, consoleLogger, nullLogger };
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
