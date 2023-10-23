@@ -1,6 +1,6 @@
 import * as loEvent from '../lo_event/lo_event.js';
 import * as reduxLogger from '../lo_event/reduxLogger.js';
-import * as consoleLogger from '../lo_event/consoleLogger.js';
+import { consoleLogger } from '../lo_event/consoleLogger.js';
 import * as util from '../lo_event/util.js';
 
 const rl = reduxLogger.reduxLogger();
@@ -9,7 +9,7 @@ console.log('Initializing loEvent');
 loEvent.init(
   'org.ets.lo_event.test',
   '1',
-  [consoleLogger.consoleLogger(), rl],
+  [consoleLogger(), rl],
   loEvent.VERBOSE
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
