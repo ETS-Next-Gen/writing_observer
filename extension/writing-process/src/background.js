@@ -16,13 +16,13 @@ import { googledocs_id_from_url } from './writing_common';
 import * as lo_event from 'lo_event';
 
 const loggers = [
-  lo_event.consoleLogger,
-  lo_event.websocketLogger(WEBSOCKET_SERVER_URL)
+  lo_event.loggers.consoleLogger,
+  lo_event.loggers.websocketLogger(WEBSOCKET_SERVER_URL)
 ]
 
-lo_event.init('org.mitros.writing', '0.01', loggers)
-lo_event.setFieldSet([{ test: 'this is a test' }])
-lo_event.go()
+lo_event.logManager.init('org.mitros.writing', '0.01', loggers)
+lo_event.logManager.setFieldSet([{ test: 'this is a test' }])
+lo_event.logManager.go()
 /*
   TODO: FSM
 
@@ -281,7 +281,7 @@ function send_chrome_identity() {
        Note this function is untested, following a refactor.
     */
   chrome.identity.getProfileInfo(function (userInfo) {
-    lo_event.logEvent("chrome_identity_load", {
+    lo_event.logManager.logEvent("chrome_identity_load", {
       email: userInfo.email,
       id: userInfo.id,
     });
@@ -341,7 +341,7 @@ chrome.runtime.onMessage.addListener(
         //chrome.extension.getBackgroundPage().console.log(request);
         //console.log(sender);
         request['wa_source'] = 'client_page';
-        lo_event.logEvent(request['event'], request);
+        lo_event.logManager.logEvent(request['event'], request);
     }
 );
 
@@ -383,7 +383,7 @@ chrome.webRequest.onBeforeRequest.addListener(
             formdata = {};
         }
         if(RAW_DEBUG) {
-            lo_event.logEvent('raw_http_request', {
+            lo_event.logManager.logEvent('raw_http_request', {
                 'url':  request.url,
                 'form_data': formdata
             });
@@ -403,7 +403,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'timestamp': parseInt(request.timeStamp, 10)
                 }
                 logFromServiceWorker(event);
-                lo_event.logEvent('google_docs_save', event);
+                lo_event.logManager.logEvent('google_docs_save', event);
             } catch(err) {
                 /*
                   Oddball events, like text selections.
@@ -415,7 +415,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
                 }
-                lo_event.logEvent('google_docs_save_extra', event);
+                lo_event.logManager.logEvent('google_docs_save_extra', event);
             }
         } else if(this_a_google_docs_bind(request)) {
             logFromServiceWorker(request);
@@ -447,11 +447,11 @@ async function reinjectContentScripts() {
 }
 
 // Let the server know we've loaded.
-lo_event.logEvent("extension_loaded", {});
+lo_event.logManager.logEvent("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
 profileInfoWrapper(function callback(userInfo) {
-    lo_event.logEvent("chrome_identity", userInfo);
+    lo_event.logManager.logEvent("chrome_identity", userInfo);
 });
 
 // And let the console know we've loaded

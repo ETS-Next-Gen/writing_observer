@@ -2,7 +2,7 @@
   "name": "lo_event",
   "version": "0.0.1",
   "description": "Event logging library for the Learning Observer",
-  "main": "lo_event/lo_event.js",
+  "main": "lo_event/index.js",
   "scripts": {
     "test": "jasmine \"tests/*.test.js\""
   },

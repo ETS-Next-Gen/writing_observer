@@ -4,8 +4,6 @@
  * framework. In the future, it may be used more broadly.
  */
 
-import redux from 'redux';
-
 // Action creator function
 const emitEvent = (event) => {
   return {
@@ -23,6 +21,7 @@ const emitSetField = (setField) => {
 };
 
 const eventQueue = [];
+let redux;
 let store;
 let promise = null;
 let previousEvent = null;
@@ -97,6 +96,7 @@ export function reduxLogger (subscribers) {
   logEvent.lo_id = 'redux_logger';
 
   logEvent.init = async function () {
+    redux = await import('redux');
     initializeStore();
   };
 

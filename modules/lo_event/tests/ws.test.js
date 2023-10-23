@@ -3,6 +3,7 @@ import { storage } from '../lo_event/storage.js';
 import * as util from '../lo_event/util.js';
 
 import * as loEvent from '../lo_event/lo_event.js';
+import * as websocketLogger from '../lo_event/websocketLogger.js';
 
 console.log('Launching server');
 
@@ -58,7 +59,7 @@ wss.on('connection', (ws) => {
 });
 console.log(wss);
 
-const wsl = loEvent.websocketLogger(`ws://${host}:${port}`);
+const wsl = websocketLogger.websocketLogger(`ws://${host}:${port}`);
 
 loEvent.init(
   'org.ets.lo_event.test',

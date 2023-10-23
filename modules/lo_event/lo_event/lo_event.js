@@ -4,15 +4,7 @@
 
 import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
-import xapi from './xapi.cjs';
-import { reduxLogger } from './reduxLogger.js';
-import { websocketLogger } from './websocketLogger.js';
-import { consoleLogger } from './consoleLogger.js';
 import * as disabler from './disabler.js';
-
-function nullLogger () { return () => null; }
-
-export { reduxLogger, websocketLogger, consoleLogger, nullLogger };
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -39,8 +31,6 @@ let loggersEnabled = [];
 // * asynchronous functions which return metadata
 let currentState = new Promise((resolve, reject) => { resolve(); });
 
-export { xapi };
-
 const queue = new Queue('LOEvent');
 
 function isInitialized () {
@@ -63,6 +53,7 @@ async function initializeLoggers () {
     initialized = INIT_ERROR;
     console.error('Error resolving logger initializers:', error);
   }
+  return Promise.all(initializedLoggers);
 }
 
 export function setFieldSet (data) {
@@ -95,14 +86,11 @@ export function init (
   if (version === null || typeof version !== 'string') {
     throw new Error('version must be a non-null string');
   }
-  // May be worth confirming that each item is one of the possible loggers
-  if (!Array.isArray(loggers) || loggers.length === 0) {
-    throw new Error('loggers must be a non-empty array of loggers you wish to use');
-  }
 
   loggersEnabled = loggers;
   initialized = INIT_INPROGRESS;
-  currentState = currentState.then(initializeLoggers).then(setFieldSet([{ source, version }]));
+  currentState = currentState.then(initializeLoggers).then(
+    () => setFieldSet([{ source, version }]));
 }
 
 export function go () {
