@@ -1,3 +1,9 @@
+'''
+This file initially intended to handle any aggregators on the system.
+We've kind of strayed from that purpose and jammed a bunch of other
+code in. 
+TODO refractor the code to be more organized
+'''
 import sys
 import time
 
@@ -372,3 +378,15 @@ async def latest_data(runtime, student_data, options=None):
     debug_log("WritingObserver latest_data result: ", writing_data)
     
     return {'latest_writing_data': writing_data}
+
+
+@learning_observer.communication_protocol.integration.publish_function('google.fetch_assignment_docs')
+async def fetch_assignment_docs(runtime, course_id, assignment_id):
+    '''
+    Invoke the Google API to retrieve a list of students, where each student possesses a
+    collection of documents associated with the specified assignment.
+
+    I wasn't sure where to put this code, so I just tossed it here for now.
+    This entire file needs a bit of reworking, what's a little more?
+    '''
+    return await learning_observer.google.assigned_docs(runtime, courseId=course_id, courseWorkId=assignment_id)

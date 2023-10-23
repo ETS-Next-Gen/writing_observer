@@ -14,6 +14,7 @@ import writing_observer.reconstruct_doc
 import learning_observer.communication_protocol.integration
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
 import learning_observer.settings
+import learning_observer.util
 
 # How do we count the last action in a document? If a student steps away
 # for hours, we don't want to count all those hours.
@@ -143,6 +144,31 @@ async def event_count(event, internal_state):
     return state, state
 
 
+@kvs_pipeline(scope=student_scope, null_state={'tags': {}})
+async def document_tagging(event, internal_state):
+    '''
+    We would like to be able to group documents together to better work with
+    multi-document workflows. For example, students may work in a graphic organizer
+    or similar and then transition into their final draft.
+    '''
+    if event['client']['event'] not in ["document_history"]:
+        return False, False
+
+    document_id = get_doc_id(event)
+    if document_id is not None:
+        title = learning_observer.util.get_nested_dict_value(event, 'client.object.title', None)
+        if title is None:
+            return False, False
+        tags = re.findall(r'#(\w+)', title)
+        for tag in tags:
+            if tag not in internal_state['tags']:
+                internal_state['tags'][tag] = [document_id]
+            elif document_id not in internal_state['tags'][tag]:
+                internal_state['tags'][tag].append(document_id)
+        return internal_state, internal_state
+    return False, False
+
+
 @kvs_pipeline(scope=student_scope, null_state={"docs": {}})
 async def document_list(event, internal_state):
     '''
@@ -150,8 +176,7 @@ async def document_list(event, internal_state):
     has visited / edited. In the future, we plan to add more metadata. This can
     then be used to decide which ones to show.
     '''
-    document_id = event.get('client', {}).get('doc_id', None)
-
+    document_id = get_doc_id(event)
     if document_id is not None:
         if "docs" not in internal_state:
             internal_state["docs"] = {}
@@ -159,6 +184,12 @@ async def document_list(event, internal_state):
             # In the future, we might include things like e.g. document title.
             internal_state["docs"][document_id] = {
             }
+        # set title of document
+        try:
+            internal_state["docs"][document_id]["title"] = learning_observer.util.get_nested_dict_value(event, 'client.object.title')
+        except KeyError:
+            pass
+        # set last time accessed
         if 'server' in event and 'time' in event['server']:
             internal_state["docs"][document_id]["last_access"] = event['server']['time']
         else:
