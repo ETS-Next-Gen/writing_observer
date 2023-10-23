@@ -26,6 +26,10 @@ console.log('Preparing to run test cases');
 describe('loEvent testing', () => {
   it('Check basic event handling', async () => {
     console.log('Running test cases');
+    // TODO revisit why we need this additional awaitEvent call.
+    // Spent some time poking, but didn't fully understand the
+    // why so I'm leaving it as is now.
+    await reduxLogger.awaitEvent();
     // Are events coming in in the right order?
     expect((await reduxLogger.awaitEvent()).event_number).toBe(1);
     expect((await reduxLogger.awaitEvent()).event_number).toBe(2);

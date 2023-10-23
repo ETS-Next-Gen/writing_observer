@@ -8,5 +8,12 @@ console.log('queueing events');
 for (let i = 0; i < max; i++) {
   queue.enqueue(i);
 }
-const l = await queue.dequeue();
-console.log(l);
+while (await queue.count() > 0) {
+  console.log('iterating');
+  try {
+    const next = await queue.nextItem();
+    console.log(next);
+  } catch (error) {
+    console.error('errored', error);
+  }
+}

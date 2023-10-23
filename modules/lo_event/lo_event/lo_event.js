@@ -100,6 +100,23 @@ export function go () {
   });
 }
 
+function sendEvent (event) {
+  const jsonEncodedEvent = JSON.stringify(event);
+  for (const logger of loggersEnabled) {
+    try {
+      logger(jsonEncodedEvent);
+    } catch (error) {
+      if (error instanceof disabler.BlockError) {
+        // Handle BlockError exception here
+        disabler.handleBlockError(error);
+      } else {
+        // Other types of exceptions will propagate up
+        throw error;
+      }
+    }
+  }
+}
+
 async function dequeue () {
   if (!isInitialized()) {
     console.log('failure to dequeue, not initialized');
@@ -109,26 +126,12 @@ async function dequeue () {
     console.log('failure to dequeue, blocked from streaming');
     return;
   }
-  if (await queue.count() > 0) {
+  while (true) {
     try {
-      const event = await queue.dequeue();
-      const jsonEncodedEvent = JSON.stringify(event);
-      for (const logger of loggersEnabled) {
-        try {
-          logger(jsonEncodedEvent);
-        } catch (error) {
-          if (error instanceof disabler.BlockError) {
-            // Handle BlockError exception here
-            disabler.handleBlockError(error);
-          } else {
-            // Other types of exceptions will propagate up
-            throw error;
-          }
-        }
-      }
-      dequeue();
+      const event = await queue.nextItem();
+      sendEvent(event);
     } catch (error) {
-      console.error('Error during dequeue:', error);
+      console.error('Error during dequeue or sending of event:', error);
     }
   }
 }
@@ -142,7 +145,6 @@ export function logEvent (eventType, event) {
   timestampEvent(event);
 
   queue.enqueue(event);
-  dequeue();
 }
 
 export function logXAPILite (

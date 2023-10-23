@@ -10,11 +10,13 @@ export class Queue {
     this.queueName = queueName;
     this.memoryQueue = [];
     this.db = null;
+    this.promise = null;
 
     this.dbEnqueue = this.dbEnqueue.bind(this);
+    this.dbDequeue = this.dbDequeue.bind(this);
     this.initialize = this.initialize.bind(this);
     this.enqueue = this.enqueue.bind(this);
-    this.dequeue = this.dequeue.bind(this);
+    this.nextItem = this.nextItem.bind(this);
     this.count = this.count.bind(this);
 
     this.initialize();
@@ -47,8 +49,6 @@ export class Queue {
     const request = objectStore.add({ id: keystamp(this.queueName), value: item });
 
     request.onsuccess = (event) => {
-      // console.log('Item added to the queue', item)
-      // Add remaining items
       this.dbEnqueue();
     };
 
@@ -103,21 +103,42 @@ export class Queue {
     queue (if ready).
   */
   enqueue (item) {
-    this.memoryQueue.push(item);
-    this.dbEnqueue();
+    if (this.promise) {
+      this.promise(item);
+      this.promise = null;
+    } else {
+      this.memoryQueue.push(item);
+      this.dbEnqueue();
+    }
   }
 
-  // Remove and return the first item from the queue
-  // This should probably be change to take a call-back, so we can remove only
-  // if we're successful. We should also consider being able to dequeue multiple
-  // items.
-  dequeue () {
+  async nextItem () {
+    if (this.db === null) {
+      if (this.memoryQueue.length > 0) {
+        return this.memoryQueue.shift();
+      }
+    }
+    try {
+      const dbItem = await this.dbDequeue();
+      if (dbItem !== null) {
+        return dbItem;
+      } else if (this.memoryQueue.length > 0) {
+        return this.memoryQueue.shift();
+      } else {
+        return new Promise((resolve) => {
+          this.promise = resolve;
+        });
+      }
+    } catch (error) {
+      console.error('Error in next_item:', error);
+      throw error;
+    }
+  }
+
+  dbDequeue () {
     return new Promise((resolve, reject) => {
       if (this.db === null) {
-        if (this.memoryQueue.length > 0) {
-          resolve(this.memoryQueue.shift());
-        }
-        reject(new Error('db is null and memory queue is empty'));
+        resolve(null);
       }
 
       const transaction = this.db.transaction([this.queueName], 'readwrite');
@@ -141,10 +162,8 @@ export class Queue {
             reject(event.target.error);
           };
         } else {
-          if (this.memoryQueue.length > 0) {
-            resolve(this.memoryQueue.shift());
-          }
-          reject(new Error('No cursor available and memory queue is empty'));
+          // No more items in the IndexedDB.
+          resolve(null);
         }
       };
 

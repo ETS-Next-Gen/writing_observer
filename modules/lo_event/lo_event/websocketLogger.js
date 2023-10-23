@@ -70,7 +70,7 @@ export function websocketLogger (server) {
     } else if (socket.readyState === socket.OPEN) {
       while (await queue.count() > 0) {
         try {
-          const event = await queue.dequeue();
+          const event = await queue.nextItem();
           socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
         } catch (error) {
           console.log('Error during dequeue', error);
