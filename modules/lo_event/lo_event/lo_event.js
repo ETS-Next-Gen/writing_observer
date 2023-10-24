@@ -34,20 +34,20 @@ function isInitialized () {
 }
 
 async function initializeLoggers () {
-  debug.log('initializing loggers');
+  debug.info('initializing loggers');
   const initializedLoggers = loggersEnabled
     .filter(logger => typeof logger.init === 'function') // Filter out loggers without .init property
     .map(logger => logger.init()); // Call .init() on each logger, which may return a promise
 
-  debug.log(initializedLoggers);
+  debug.info(initializedLoggers);
 
   try {
     await Promise.all(initializedLoggers);
-    debug.log('Loggers initialized!');
+    debug.info('Loggers initialized!');
     initialized = INIT_LOGGERS_READY;
   } catch (error) {
     initialized = INIT_ERROR;
-    debug.log('Error resolving logger initializers:', error);
+    debug.error('Error resolving logger initializers:', error);
   }
   return Promise.all(initializedLoggers);
 }
@@ -118,11 +118,11 @@ function sendEvent (event) {
 
 async function dequeue () {
   if (!isInitialized()) {
-    debug.log('failure to dequeue, not initialized');
+    debug.info('failure to dequeue, not initialized');
     return;
   }
   if (!disabler.streamEvents()) {
-    debug.log('failure to dequeue, blocked from streaming');
+    debug.info('failure to dequeue, blocked from streaming');
     return;
   }
   while (true) {
@@ -130,7 +130,7 @@ async function dequeue () {
       const event = await queue.nextItem();
       sendEvent(event);
     } catch (error) {
-      debug.log('Error during dequeue or sending of event:', error);
+      debug.error('Error during dequeue or sending of event:', error);
     }
   }
 }

@@ -36,6 +36,7 @@ const DISABLER_STORE = 'disablerState';
 export class BlockError extends Error {
   constructor (message, timeLimit, action) {
     super(message);
+    this.name = 'BlockError';
     this.message = message;
     this.timeLimit = isNaN(timeLimit) ? TIME_LIMIT[timeLimit] : timeLimit;
     this.action = EVENT_ACTION[action]; // <-- Check we're in EVENT_ACTION.

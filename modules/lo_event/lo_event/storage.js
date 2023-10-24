@@ -13,6 +13,7 @@
 //
 // At the end, we export one storage object, with a consistent API,
 // using our most reliable storage.
+import * as debug from './debugLog.js';
 
 // thunkStorage mirrors the capability of `chrome.storage.sync`
 // this is used mostly for testing purposes
@@ -78,21 +79,26 @@ if (typeof browser !== 'undefined') {
 
 if (typeof b !== 'undefined') {
   if (b.storage && b.storage.sync) {
+    debug.info('Setting storage to storage.sync');
     storage = b.storage.sync;
   } else if (b.storage && b.storage.local) {
+    debug.info('Setting storage to storage.local');
     storage = b.storage.local;
   }
 } else if (typeof localStorage !== 'undefined') {
   // Add compatibility modifications for localStorage
+  debug.info('Setting storage to localStorage');
   localStorage.get = getWithCallback(localStorage.getItem);
   localStorage.set = setWithCallback(localStorage.setItem);
   storage = localStorage;
 } else if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
   // Add compatibility modifications for window.localStorage
+  debug.info('Setting storage to window.localStorage');
   window.localStorage.get = getWithCallback(window.localStorage.getItem);
   window.localStorage.set = setWithCallback(window.localStorage.setItem);
   storage = window.localStorage;
 } else {
   // If none of the above options exist, fall back to thunkStorage or exit gracefully
+  debug.info('Setting storage to default, thunkStorage');
   storage = thunkStorage;
 }

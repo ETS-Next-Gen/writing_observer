@@ -2,6 +2,7 @@ import * as loEvent from '../lo_event/lo_event.js';
 import * as reduxLogger from '../lo_event/reduxLogger.js';
 import { consoleLogger } from '../lo_event/consoleLogger.js';
 import * as util from '../lo_event/util.js';
+import * as debug from '../lo_event/debugLog.js';
 
 const rl = reduxLogger.reduxLogger();
 
@@ -10,7 +11,8 @@ loEvent.init(
   'org.ets.lo_event.test',
   '1',
   [consoleLogger(), rl],
-  loEvent.VERBOSE
+  debug.LEVEL.SIMPLE,
+  [debug.DESTINATIONS.SERVER(loEvent.logEvent)]
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
 loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);

@@ -1,6 +1,7 @@
 import { Queue } from './queue.js';
 import { BlockError } from './disabler.js';
 import { delay } from './util.js';
+import * as debug from './debugLog.js';
 
 export function websocketLogger (server) {
   /*
@@ -17,13 +18,13 @@ export function websocketLogger (server) {
     socket = new WS(server);
     socket.onopen = prepareSocket;
     socket.onerror = function (e) {
-      console.log('Could not connect');
+      debug.error('Could not connect to websocket', e);
       let event = { issue: 'Could not connect' };
       event = JSON.stringify(event);
       queue.enqueue(event);
     };
     socket.onclose = function (e) {
-      console.log('Lost connection');
+      debug.error('Lost connection to websocket', e);
       let event = { issue: 'Lost connection', code: e.code };
       event = JSON.stringify(event);
       queue.enqueue(event);
@@ -49,7 +50,7 @@ export function websocketLogger (server) {
 
     switch (response.status) {
       case 'blocklist':
-        console.log('Received block error');
+        debug.info('Received block error from server');
         blockerror = new BlockError(
           response.message,
           response.time_limit,
@@ -73,7 +74,7 @@ export function websocketLogger (server) {
           const event = await queue.nextItem();
           socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
         } catch (error) {
-          console.log('Error during dequeue', error);
+          debug.error('Error during dequeue', error);
         }
       }
     } else if ((socket.readyState === socket.CLOSED) || (socket.readyState === socket.CLOSING)) {

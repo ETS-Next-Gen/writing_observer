@@ -46,6 +46,9 @@ const dispatch = {
       time_limit: 'MINUTES',
       action: 'DROP'
     }));
+  },
+  debug: function (event) {
+    console.log('DEBUG', event);
   }
 };
 
@@ -66,8 +69,8 @@ loEvent.init(
   'org.ets.lo_event.test',
   '1',
   [wsl],
-  debug.LEVEL.NONE,
-  []
+  debug.LEVEL.SIMPLE,
+  [debug.DESTINATIONS.SERVER(loEvent.logEvent), debug.DESTINATIONS.CONSOLE]
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
 loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);

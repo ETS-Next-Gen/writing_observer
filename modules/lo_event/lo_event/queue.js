@@ -1,9 +1,8 @@
 import { delay, keystamp } from './util.js';
+import * as debug from './debugLog.js';
 
 // TODO:
 // * Figure out autoincrement. This ran into issues before.
-// * Figure out correct interface (should `dequeue` await until there is
-//   data available?
 
 export class Queue {
   constructor (queueName) {
@@ -54,7 +53,7 @@ export class Queue {
 
     request.onerror = (event) => {
       this.memoryQueue.unshift(item); // return item to the queue
-      console.error('Error adding item to the queue:', event.target.error);
+      debug.error('Error adding item to the queue:', event.target.error);
 
       // Try again in one second.
       // TODO: Test this works.
@@ -69,7 +68,7 @@ export class Queue {
   async initialize () {
     let request;
     if (typeof indexedDB === 'undefined') {
-      console.log('Importing indexedDB compatibility');
+      debug.info('Importing indexedDB compatibility');
 
       const sqlite3 = await import('sqlite3');
       const indexeddbjs = await import('indexeddb-js');
@@ -78,12 +77,12 @@ export class Queue {
       const scope = indexeddbjs.makeScope('sqlite3', engine);
       request = scope.indexedDB.open(this.queueName);
     } else {
-      console.log('Using browser consoleDB');
+      debug.info('Using browser consoleDB');
       request = indexedDB.open(this.queueName, 1);
     }
 
     request.onerror = (event) => {
-      console.log('ERROR: could not open database: ' + event.target.error);
+      debug.error('ERROR: could not open database', event.target.error);
     };
 
     request.onupgradeneeded = async (event) => {
@@ -143,7 +142,7 @@ export class Queue {
         });
       }
     } catch (error) {
-      console.error('Error in next_item:', error);
+      debug.error('Error in next_item:', error);
       throw error;
     }
   }
@@ -179,7 +178,7 @@ export class Queue {
           };
 
           deleteRequest.onerror = (event) => {
-            console.error('Error removing item from the queue:', event.target.error);
+            debug.error('Error removing item from the queue:', event.target.error);
             reject(event.target.error);
           };
         } else {
@@ -189,7 +188,7 @@ export class Queue {
       };
 
       request.onerror = (event) => {
-        console.error('Error reading queue cursor:', event.target.error);
+        debug.error('Error reading queue cursor:', event.target.error);
         reject(event.target.error);
       };
     });
@@ -212,7 +211,7 @@ export class Queue {
       };
 
       request.onerror = (event) => {
-        console.error('Error counting items in the queue:', event.target.error);
+        debug.error('Error counting items in the queue:', event.target.error);
         reject(event.target.error);
       };
     });

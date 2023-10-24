@@ -1,5 +1,28 @@
+function sendToServer (sendEvent) {
+  const counts = {};
+  return function (messageType, message, stackTrace) {
+    if (!Object.prototype.hasOwnProperty.call(counts, messageType)) {
+      counts[messageType] = 0;
+    }
+    counts[messageType]++;
+    if (Math.log10(counts[messageType]) % 1 === 0) {
+      const payload = { message_type: messageType, message };
+      if (stackTrace) {
+        payload.stack = stackTrace;
+      }
+      sendEvent('debug', payload);
+    }
+  };
+}
+
+function sendToConsole (messageType, message, stackTrace) {
+  const stackOutput = stackTrace ? `\n  Stacktrace: ${stackTrace}` : '';
+  console.log(`${messageType}, ${message} ${stackOutput}`);
+}
+
 export const DESTINATIONS = {
-  CONSOLE: 'console'
+  CONSOLE: sendToConsole,
+  SERVER: sendToServer
 };
 
 export const LEVEL = {
@@ -20,16 +43,20 @@ export function setLevel (level) {
 }
 
 export function setDestinations (dst) {
-  if (!dst.every(item => [DESTINATIONS.CONSOLE].includes(item))) {
-    throw new Error(`Invalid debug destination ${dst}`);
-  }
   debugDestinations = dst;
 }
 
-export function log (log) {
+export function info (log, stack) {
   const formattedLog = formatLog(log);
-  if (debugDestinations.includes(DESTINATIONS.CONSOLE)) {
-    console.log(formattedLog);
+  for (const logDestination of debugDestinations) {
+    logDestination('info', formattedLog, stack);
+  }
+}
+
+export function error (log, error) {
+  const formattedLog = formatLog(log);
+  for (const logDestination of debugDestinations) {
+    logDestination(error.name, formattedLog, error.stack);
   }
 }
 
@@ -42,13 +69,13 @@ function formatLog (text) {
   } else if (debugLevel === LEVEL.EXTENDED) {
     const stackTrace = getStackTrace();
     const time = new Date().toISOString();
-    message = `${time}: ${stackTrace.padEnd(60)}\t${text}`;
+    message = `${time}: ${text}\n${stackTrace.padEnd(60)}`;
   }
   return message;
 }
 
 function getStackTrace () {
   const stack = new Error().stack.split('\n');
-  const stackTrace = [stack[2], stack[3], stack[4]].map(s => s.trim()).join('/');
+  const stackTrace = [stack[2], stack[3], stack[4]].join('\n');
   return stackTrace;
 }
