@@ -99,6 +99,8 @@ export class Queue {
   }
 
   /*
+    If we are currently waiting for an item (via nextItem), then we
+    immediately return the item instead of adding it to the queues.
     Push an item into the in-memory queue, and then into the peristent
     queue (if ready).
   */
@@ -112,6 +114,17 @@ export class Queue {
     }
   }
 
+  /**
+   * This function fetches the next available item or returns a Promise
+   * that will resolve when an item is ready.
+   * If the db object is empty, we default to the memoryQueue.
+   * If the object we receive from the db is null, we default to the memoryQueue.
+   * If the memoryQueue is empty, we return a promise for the next item.
+   *
+   * This code is not thread safe, but it is async safe.
+   *
+   * @returns Next item available in queue or a Promise for the next item
+   */
   async nextItem () {
     if (this.db === null) {
       if (this.memoryQueue.length > 0) {
@@ -135,6 +148,14 @@ export class Queue {
     }
   }
 
+  /**
+   * Dequeue the next available item from the DB.
+   * If the db object is null or no items are available, we return null.
+   * When this code is ran, we already check for db equal to null; however,
+   * we ought to check if its null before trying to operate on it.
+   *
+   * @returns a Promise to fetch the next available item in the db
+   */
   dbDequeue () {
     return new Promise((resolve, reject) => {
       if (this.db === null) {
