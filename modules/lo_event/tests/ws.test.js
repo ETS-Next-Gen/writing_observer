@@ -1,6 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { storage } from '../lo_event/storage.js';
 import * as util from '../lo_event/util.js';
+import * as debug from '../lo_event/debugLog.js';
 
 import * as loEvent from '../lo_event/lo_event.js';
 import * as websocketLogger from '../lo_event/websocketLogger.js';
@@ -65,7 +66,8 @@ loEvent.init(
   'org.ets.lo_event.test',
   '1',
   [wsl],
-  loEvent.VERBOSE
+  debug.LEVEL.NONE,
+  []
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
 loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);

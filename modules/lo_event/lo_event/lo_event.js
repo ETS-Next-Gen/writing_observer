@@ -5,6 +5,7 @@
 import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import * as disabler from './disabler.js';
+import * as debug from './debugLog.js';
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -17,11 +18,6 @@ const INIT_ERROR = 'init_error'; // Error occured while initializing data
 const INIT_READY = 'init_ready';
 
 let initialized = INIT_FALSE;
-
-// To do: Define and set debug levels
-const VERBOSE = 'verbose';
-const NONE = 'none';
-const debugLogLevel = VERBOSE;
 
 // A list of all loggers which should receive events.
 let loggersEnabled = [];
@@ -38,20 +34,20 @@ function isInitialized () {
 }
 
 async function initializeLoggers () {
-  console.log('initializing loggers');
+  debug.log('initializing loggers');
   const initializedLoggers = loggersEnabled
     .filter(logger => typeof logger.init === 'function') // Filter out loggers without .init property
     .map(logger => logger.init()); // Call .init() on each logger, which may return a promise
 
-  console.log(initializedLoggers);
+  debug.log(initializedLoggers);
 
   try {
     await Promise.all(initializedLoggers);
-    console.log('Loggers initialized!');
+    debug.log('Loggers initialized!');
     initialized = INIT_LOGGERS_READY;
   } catch (error) {
     initialized = INIT_ERROR;
-    console.error('Error resolving logger initializers:', error);
+    debug.log('Error resolving logger initializers:', error);
   }
   return Promise.all(initializedLoggers);
 }
@@ -78,7 +74,8 @@ export function init (
   source,
   version,
   loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
-  debugLevel
+  debugLevel = debug.LEVEL.SIMPLE,
+  debugDest = [debug.DESTINATIONS.CONSOLE]
 ) {
   if (source === null || typeof source !== 'string') {
     throw new Error('source must be a non-null string');
@@ -86,6 +83,8 @@ export function init (
   if (version === null || typeof version !== 'string') {
     throw new Error('version must be a non-null string');
   }
+  debug.setLevel(debugLevel);
+  debug.setDestinations(debugDest);
 
   loggersEnabled = loggers;
   initialized = INIT_INPROGRESS;
@@ -119,11 +118,11 @@ function sendEvent (event) {
 
 async function dequeue () {
   if (!isInitialized()) {
-    console.log('failure to dequeue, not initialized');
+    debug.log('failure to dequeue, not initialized');
     return;
   }
   if (!disabler.streamEvents()) {
-    console.log('failure to dequeue, blocked from streaming');
+    debug.log('failure to dequeue, blocked from streaming');
     return;
   }
   while (true) {
@@ -131,7 +130,7 @@ async function dequeue () {
       const event = await queue.nextItem();
       sendEvent(event);
     } catch (error) {
-      console.error('Error during dequeue or sending of event:', error);
+      debug.log('Error during dequeue or sending of event:', error);
     }
   }
 }
