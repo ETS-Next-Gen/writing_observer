@@ -34,6 +34,7 @@ export function websocketLogger (server) {
   }
 
   function prepareSocket () {
+    // TODO fetch local storage items here
     const event = { local_storage: {} };
     console.log(event);
     if (!firstConnection) {
@@ -108,10 +109,10 @@ export function websocketLogger (server) {
 
   wsLogData.init = async function (metadata) {
     if (typeof WebSocket === 'undefined') {
-      console.log('Importing ws');
+      debug.info('Importing ws');
       WS = (await import('ws')).WebSocket;
     } else {
-      console.log('Using built-in websocket');
+      debug.info('Using built-in websocket');
       WS = WebSocket;
     }
     socket = newWebsocket();

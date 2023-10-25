@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { storage } from './storage.js';
 
 /*
   Browser information object, primarily for debugging. Note that not
@@ -134,16 +135,16 @@ export function getBrowserInfo () {
     const profileInfo = await profileInfoWrapper();
     console.log(profileInfo);
   */
-export async function profileInfoWrapper () {
+export function profileInfoWrapper () {
   if (typeof chrome !== 'undefined' && chrome.identity) {
     try {
-      return await new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, function (data) {
           resolve(data);
         });
       });
     } catch (e) {
-      return await new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         chrome.identity.getProfileUserInfo(function (data) {
           resolve(data);
         });
@@ -211,40 +212,27 @@ export function timestampEvent (event) {
 }
 
 /*
-  This method is currently unused and needs to be reworked
-  with the newer storage element, which at the time of writing this
-  comment has not been done.
-
   We include some metadata. Much of this is primarily for
   debugging. For example, it's helpful to have multiple timestamps
   in order to understand timezone issues, misset clocks, etc.
  */
-export function defaultEventMetadata ({ source, version }) {
-  const metadata = { source, version };
+export function debuggingMetadata () {
+  return new Promise((resolve, reject) => {
+    const metadata = {};
 
-  // Check if logger_id exists in localStorage and set if it doesn't
-  if (localStorage.getItem('logger_id') === null) {
-    localStorage.setItem('logger_id', keystamp('lid'));
-  }
-
-  // Check if logger_id exists in sessionStorage and set if it doesn't
-  if (sessionStorage.getItem('logger_id') === null) {
-    sessionStorage.setItem('logger_id', keystamp('sid'));
-  }
-
-  metadata.browser_id = localStorage.getItem('logger_id');
-  metadata.session_id = sessionStorage.getItem('logger_id');
-  metadata.logger_id = keystamp();
-
-  // Optional auth for demos
-  if (localStorage.getItem('name') !== null) {
-    metadata.name = localStorage.getItem('name');
-  }
-
-  metadata.browser_info = getBrowserInfo(); // <-- Check these lines
-  // metadata['profile_info'] = profileInfoWrapper(); // <-- Check these lines
-
-  return metadata;
+    storage.get(['logger_id', 'name'], (result) => {
+      if (result.logger_id) {
+        metadata.logger_id = result.logger_id;
+      } else {
+        metadata.logger_id = keystamp('lid');
+        storage.set({ logger_id: metadata.logger_id });
+      }
+      if (result.name) {
+        metadata.name = result.name;
+      }
+      resolve(metadata);
+    });
+  });
 }
 
 function mergeDictionary (target, source) {

@@ -39,8 +39,6 @@ async function initializeLoggers () {
     .filter(logger => typeof logger.init === 'function') // Filter out loggers without .init property
     .map(logger => logger.init()); // Call .init() on each logger, which may return a promise
 
-  debug.info(initializedLoggers);
-
   try {
     await Promise.all(initializedLoggers);
     debug.info('Loggers initialized!');
