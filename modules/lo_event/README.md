@@ -45,6 +45,8 @@ Then from the other node project, run
 npm link lo_event
 ```
 
+*Note:* you may need to rerun `npm link lo_event` after you run `npm install` at the target location.
+
 ### As a Python package
 
 Simply install the package as a normal python module.

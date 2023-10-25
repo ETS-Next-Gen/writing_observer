@@ -39,3 +39,41 @@ currently lacks a lot of context we would need to e.g. reconstruct
 documents.
 
 Each file has more in-depth documentation.
+
+## Setup information
+
+The extension is built as a node project to help allow for testing and use of external node packages.
+
+### Dependencies
+
+For building the extension, we rely on a handful of build tools,like webpack to bundle the code together.
+
+The extension has a dependency on the LOEvent package, located at `/modules/lo_event`. The LOEvent package handles passing messages back and forth between various clients and the Learning Observer server.
+
+The LOEvent package has a handful of downstream dependencies that are used when it does not have access to a browser environment. These are used to mirror browser behavior in testing environments.
+
+When building the extension, we found that these were not always ignored when bundling the extension together. To ignore the dependencies on building the extension, we had to add them to the `externals` portion of the `webpack.config.js` on the extension itself.
+
+### Installation
+
+To get started, run the following:
+
+```bash
+cd extention/writing-process
+npm install
+```
+
+Since the LOEvent package is not published, you'll need to install it locally via the `npm link` command. See the LOEvent installation for more information about this process.
+
+### Bundling and Building
+
+After all the installation finishes, you can bundle and build the extension. Running the following command will first bundle the code and then build the extension.
+
+```bash
+npm build
+```
+
+Two items will be produced.
+
+1. `dist/`: a directory where all the built files are copied to
+2. `release.zip`: a zip of the extension
