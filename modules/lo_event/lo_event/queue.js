@@ -1,8 +1,15 @@
-import { delay, keystamp } from './util.js';
+import { delay } from './util.js';
 import * as debug from './debugLog.js';
 
 // TODO:
-// * Figure out autoincrement. This ran into issues before.
+// This code has been tested and is working properly in the browser.
+// However, this code does not work in the node environment.
+// The issue stems from the internal workings of indexeddb-js and
+// sqlite3, the two node packages we use to mirror browser behavior.
+// It seems that indexeddb-js/sqlite3 (I'm unsure which one the problem
+// lies with) does not use the same method of indexing over the data
+// as the browser does. The browsers go in ascending order of the
+// key fields, i.e. in order of our counter.
 
 export class Queue {
   constructor (queueName) {
@@ -10,11 +17,13 @@ export class Queue {
     this.memoryQueue = [];
     this.db = null;
     this.promise = null;
+    this.counter = 0;
 
     this.dbEnqueue = this.dbEnqueue.bind(this);
     this.dbDequeue = this.dbDequeue.bind(this);
     this.initialize = this.initialize.bind(this);
     this.enqueue = this.enqueue.bind(this);
+    this.prepend = this.prepend.bind(this);
     this.nextItem = this.nextItem.bind(this);
     this.count = this.count.bind(this);
 
@@ -45,7 +54,7 @@ export class Queue {
     const objectStore = transaction.objectStore(this.queueName);
 
     const item = this.memoryQueue.shift();
-    const request = objectStore.add({ id: keystamp(this.queueName), value: item });
+    const request = objectStore.add(item);
 
     request.onsuccess = (event) => {
       this.dbEnqueue();
@@ -88,7 +97,7 @@ export class Queue {
     request.onupgradeneeded = async (event) => {
       this.db = event.target.result;
       const objectStore = this.db.createObjectStore(this.queueName, { keyPath: 'id' });
-      objectStore.createIndex('value', 'value', { unique: false });
+      objectStore.createIndex('id', 'id');
     };
 
     request.onsuccess = (event) => {
@@ -108,7 +117,19 @@ export class Queue {
       this.promise(item);
       this.promise = null;
     } else {
-      this.memoryQueue.push(item);
+      this.counter++;
+      this.memoryQueue.push({ id: this.counter, value: item });
+      this.dbEnqueue();
+    }
+  }
+
+  prepend (item) {
+    if (this.promise) {
+      this.promise(item);
+      this.promise = null;
+    } else {
+      this.counter++;
+      this.memoryQueue.unshift({ id: this.counter * -1, value: item });
       this.dbEnqueue();
     }
   }
@@ -127,7 +148,7 @@ export class Queue {
   async nextItem () {
     if (this.db === null) {
       if (this.memoryQueue.length > 0) {
-        return this.memoryQueue.shift();
+        return this.memoryQueue.shift().value;
       }
     }
     try {
@@ -135,7 +156,7 @@ export class Queue {
       if (dbItem !== null) {
         return dbItem;
       } else if (this.memoryQueue.length > 0) {
-        return this.memoryQueue.shift();
+        return this.memoryQueue.shift().value;
       } else {
         return new Promise((resolve) => {
           this.promise = resolve;

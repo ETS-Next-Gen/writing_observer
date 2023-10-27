@@ -197,7 +197,12 @@ async function reinjectContentScripts() {
 loEvent.logEvent("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
-loEvent.logEvent('chrome_identity', await loEventUtils.profileInfoWrapper());
+loEventUtils.profileInfoWrapper().then((result) => {
+    if (Object.keys(result).length > 0) {
+        loEvent.logEvent('chrome_identity', result);
+        loEvent.logEvent('metadata_finished', {})
+    }
+});
 
 // And let the console know we've loaded
 // chrome.extension.getBackgroundPage().console.log("Loaded"); remove

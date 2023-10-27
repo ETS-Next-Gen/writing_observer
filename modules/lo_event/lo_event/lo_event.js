@@ -57,7 +57,7 @@ export function setFieldSet (data) {
 }
 
 async function setFieldSetAsync (data) {
-  const payload = { fields: await mergeMetadata(data), event_type: 'lock_fields' };
+  const payload = { fields: await mergeMetadata(data), event_type: 'lock_fields', event: 'lock_fields' };
   timestampEvent(payload);
   const authpromises = loggersEnabled
     .filter(logger => typeof logger.setField === 'function')
@@ -139,6 +139,7 @@ export function logEvent (eventType, event) {
     return;
   }
   event.event_type = eventType;
+  event.event = eventType;
   timestampEvent(event);
 
   queue.enqueue(event);

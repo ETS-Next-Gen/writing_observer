@@ -38,7 +38,7 @@ export function websocketLogger (server) {
     const event = { local_storage: {} };
     console.log(event);
     if (!firstConnection) {
-      // queue.prepend(metadata);
+      queue.prepend(metadata);
     } else {
       firstConnection = false;
     }
