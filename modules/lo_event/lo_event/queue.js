@@ -61,16 +61,19 @@ export class Queue {
     };
 
     request.onerror = (event) => {
-      this.memoryQueue.unshift(item); // return item to the queue
-      debug.error('Error adding item to the queue:', event.target.error);
-
-      // Try again in one second.
-      // TODO: Test this works.
-      // For background, search for: immediately invoked async function expression
-      (async () => {
-        await delay(1000);
-        this.dbEnqueue();
-      })();
+      if (event.target.error.name === 'ConstraintError') {
+        debug.error('Item already exists', event.target.error);
+      } else {
+        debug.error('Error adding item to the queue:', event.target.error);
+        this.memoryQueue.unshift(item); // return item to the queue
+        // Try again in one second.
+        // TODO: Test this works.
+        // For background, search for: immediately invoked async function expression
+        (async () => {
+          await delay(1000);
+          this.dbEnqueue();
+        })();
+      }
     };
   }
 
