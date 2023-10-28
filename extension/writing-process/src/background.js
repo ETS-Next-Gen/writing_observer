@@ -24,7 +24,7 @@ const loggers = [
   websocketLogger(WEBSOCKET_SERVER_URL)
 ]
 
-loEvent.init('org.mitros.writing', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
+loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
 loEvent.setFieldSet([loEventUtils.getBrowserInfo(), await loEventUtils.debuggingMetadata()]);
 loEvent.go()
 
@@ -199,7 +199,7 @@ loEvent.logEvent("extension_loaded", {});
 // Send the server the user info. This might not always be available.
 loEventUtils.profileInfoWrapper().then((result) => {
     if (Object.keys(result).length > 0) {
-        loEvent.logEvent('chrome_identity', result);
+        loEvent.logEvent('chrome_identity', { chrome_identity: result });
         loEvent.logEvent('metadata_finished', {})
     }
 });

@@ -102,7 +102,6 @@ export class Queue {
 
     request.onsuccess = (event) => {
       this.db = event.target.result;
-      this.dbEnqueue();
     };
   }
 

@@ -342,14 +342,15 @@ async def incoming_websocket_handler(request):
         header_events.append(json_msg)
 
     first_event = header_events[0]
-    event_metadata['source'] = first_event['source']
+
+    any(event_metadata.update(event['fields']) for event in header_events if event['event'] == 'lock_fields')
 
     # We authenticate the student
     event_metadata['auth'] = await learning_observer.auth.events.authenticate(
         request=request,
         headers=header_events,
         first_event=first_event,  # This is obsolete
-        source=json_msg['source']
+        source=event_metadata['source']
     )
 
     print(event_metadata['auth'])
