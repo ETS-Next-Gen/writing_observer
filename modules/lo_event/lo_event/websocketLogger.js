@@ -1,6 +1,6 @@
 import { Queue } from './queue.js';
 import { BlockError } from './disabler.js';
-import { delay } from './util.js';
+import { delay, profileInfoWrapper } from './util.js';
 import * as debug from './debugLog.js';
 
 export function websocketLogger (server) {
@@ -38,7 +38,13 @@ export function websocketLogger (server) {
     const event = { local_storage: {} };
     console.log(event);
     if (!firstConnection) {
-      queue.prepend(metadata);
+      profileInfoWrapper().then((result) => {
+        if (Object.keys(result).length > 0) {
+          queue.prepend(JSON.stringify({ event: 'metadata_finished' }));
+          queue.prepend(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
+          queue.prepend(JSON.stringify(metadata));
+        }
+      });
     } else {
       firstConnection = false;
     }
@@ -119,7 +125,7 @@ export function websocketLogger (server) {
   };
 
   wsLogData.setField = function (data) {
-    metadata = { ...metadata, ...data };
+    metadata = { ...metadata, ...JSON.parse(data) };
     queue.enqueue(data);
   };
 

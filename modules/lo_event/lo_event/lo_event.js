@@ -84,7 +84,7 @@ export function init (
   }
   debug.setLevel(debugLevel);
   debug.setDestinations(debugDest);
-  if(useDisabler) {
+  if (useDisabler) {
     currentState = currentState.then(() => disabler.init(useDisabler));
   }
 
