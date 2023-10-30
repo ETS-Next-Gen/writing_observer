@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws';
-import { storage } from '../lo_event/storage.js';
+import { storage } from '../lo_event/browserStorage.js';
 import * as util from '../lo_event/util.js';
 import * as debug from '../lo_event/debugLog.js';
 

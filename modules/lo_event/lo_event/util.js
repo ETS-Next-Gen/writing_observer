@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { storage } from './storage.js';
+import { storage } from './browserStorage.js';
 
 /*
   Browser information object, primarily for debugging. Note that not

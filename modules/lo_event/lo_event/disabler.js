@@ -13,7 +13,7 @@
  *   have the extension installed, we don't want to store them
  *   client-side.
  */
-import { storage } from './storage.js';
+import { storage } from './browserStorage.js';
 
 export const EVENT_ACTION = {
   TRANSMIT: 'TRANSMIT',
