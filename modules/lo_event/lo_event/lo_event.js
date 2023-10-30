@@ -73,7 +73,8 @@ export function init (
   version,
   loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
   debugLevel = debug.LEVEL.SIMPLE,
-  debugDest = [debug.DESTINATIONS.CONSOLE]
+  debugDest = [debug.DESTINATIONS.CONSOLE],
+  useDisabler = true
 ) {
   if (source === null || typeof source !== 'string') {
     throw new Error('source must be a non-null string');
@@ -83,6 +84,9 @@ export function init (
   }
   debug.setLevel(debugLevel);
   debug.setDestinations(debugDest);
+  if(useDisabler) {
+    currentState = currentState.then(() => disabler.init(useDisabler));
+  }
 
   loggersEnabled = loggers;
   initialized = INIT_INPROGRESS;

@@ -14,6 +14,7 @@
  *   client-side.
  */
 import { storage } from './browserStorage.js';
+import * as debug from './debugLog.js';
 
 export const EVENT_ACTION = {
   TRANSMIT: 'TRANSMIT',
@@ -50,12 +51,25 @@ const DEFAULTS = {
 
 let { action, expiration } = DEFAULTS;
 
-// Fetch initial values from storage upon loading
-storage.get(DISABLER_STORE, function (storedState) {
-  storedState = storedState[DISABLER_STORE] || {};
-  action = storedState.action || DEFAULTS.action;
-  expiration = storedState.expiration || DEFAULTS.expiration;
-});
+export async function init(defaults = null) {
+  defaults = defaults || DEFAULTS;
+
+  return new Promise((resolve, reject) => {
+    // Check if storage is defined
+    if (!storage || !storage.get) {
+      debug.error("Storage is not set or storage.get is undefined. This should never happen.");
+      reject(new Error('Storage or storage.get is undefined'));
+    } else {
+      // Fetch initial values from storage upon loading
+      storage.get(DISABLER_STORE, (storedState) => {
+        storedState = storedState[DISABLER_STORE] || {};
+        action = storedState.action || DEFAULTS.action;
+        expiration = storedState.expiration || DEFAULTS.expiration;
+        resolve();
+      });
+    }
+  });
+}
 
 export function handleBlockError (error) {
   action = error.action;
