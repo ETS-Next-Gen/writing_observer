@@ -286,3 +286,18 @@ export async function mergeMetadata (inputList) {
 export function delay (ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+export async function backoff (
+  predicate,
+  errorMessage = 'Could not resolve backoff function',
+  delays = [100, 1000, 1000 * 10, 1000 * 60, 1000 * 60 * 5, 1000 * 60 * 30]
+) {
+  for (let i = 0; i < delays.length; i++) {
+    if (await predicate()) {
+      return;
+    }
+    console.log('waiting for ', delays[i]);
+    await delay(delays[i]);
+  }
+  throw new Error(errorMessage);
+}

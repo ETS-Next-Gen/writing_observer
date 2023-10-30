@@ -51,13 +51,13 @@ const DEFAULTS = {
 
 let { action, expiration } = DEFAULTS;
 
-export async function init(defaults = null) {
+export async function init (defaults = null) {
   defaults = defaults || DEFAULTS;
 
   return new Promise((resolve, reject) => {
     // Check if storage is defined
     if (!storage || !storage.get) {
-      debug.error("Storage is not set or storage.get is undefined. This should never happen.");
+      debug.error('Storage is not set or storage.get is undefined. This should never happen.');
       reject(new Error('Storage or storage.get is undefined'));
     } else {
       // Fetch initial values from storage upon loading

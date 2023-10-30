@@ -1,4 +1,4 @@
-import { delay } from './util.js';
+import { backoff, delay } from './util.js';
 import * as debug from './debugLog.js';
 
 // TODO:
@@ -16,7 +16,10 @@ export class Queue {
     this.queueName = queueName;
     this.memoryQueue = [];
     this.db = null;
-    this.promise = null;
+    this.nextItemPromise = null;
+    this.initializedDBPromise = new Promise((resolve) => {
+      this.resolveDBReady = resolve;
+    });
     this.counter = 0;
 
     this.dbEnqueue = this.dbEnqueue.bind(this);
@@ -35,46 +38,40 @@ export class Queue {
     not ready, try again in 1 second.
   */
   dbEnqueue () {
-    // Nothing to queue!
-    if (this.memoryQueue.length === 0) {
-      return;
-    }
-
-    if (this.db === null) {
-      // Not initialized
-      (async () => {
-        await delay(1000);
-        this.dbEnqueue();
-      })();
-      return null;
-    }
-
-    // Enqueue the next object
-    const transaction = this.db.transaction([this.queueName], 'readwrite');
-    const objectStore = transaction.objectStore(this.queueName);
-
-    const item = this.memoryQueue.shift();
-    const request = objectStore.add(item);
-
-    request.onsuccess = (event) => {
-      this.dbEnqueue();
-    };
-
-    request.onerror = (event) => {
-      if (event.target.error.name === 'ConstraintError') {
-        debug.error('Item already exists', event.target.error);
-      } else {
-        debug.error('Error adding item to the queue:', event.target.error);
-        this.memoryQueue.unshift(item); // return item to the queue
-        // Try again in one second.
-        // TODO: Test this works.
-        // For background, search for: immediately invoked async function expression
-        (async () => {
-          await delay(1000);
-          this.dbEnqueue();
-        })();
+    backoff(() => this.db !== null & this.resolveDBReady === null, 'Database never got ready').then(() => {
+      if (this.memoryQueue.length === 0) {
+        debug.info('Nothing in queue to return');
+        return;
       }
-    };
+      // Enqueue the next object
+      const transaction = this.db.transaction([this.queueName], 'readwrite');
+      const objectStore = transaction.objectStore(this.queueName);
+
+      const item = this.memoryQueue.shift();
+      const request = objectStore.add(item);
+
+      request.onsuccess = (event) => {
+        this.dbEnqueue();
+      };
+
+      request.onerror = (event) => {
+        if (event.target.error.name === 'ConstraintError') {
+          debug.error('Item already exists', event.target.error);
+        } else {
+          debug.error('Error adding item to the queue:', event.target.error);
+          this.memoryQueue.unshift(item); // return item to the queue
+          // Try again in one second.
+          // TODO: Test this works.
+          // For background, search for: immediately invoked async function expression
+          (async () => {
+            await delay(1000);
+            this.dbEnqueue();
+          })();
+        }
+      };
+    }).catch(error => {
+      console.error('error in backoff', error);
+    });
   }
 
   async initialize () {
@@ -104,6 +101,8 @@ export class Queue {
     };
 
     request.onsuccess = (event) => {
+      this.resolveDBReady();
+      this.resolveDBReady = null;
       this.db = event.target.result;
     };
   }
@@ -115,9 +114,9 @@ export class Queue {
     queue (if ready).
   */
   enqueue (item) {
-    if (this.promise) {
-      this.promise(item);
-      this.promise = null;
+    if (this.nextItemPromise) {
+      this.nextItemPromise(item);
+      this.nextItemPromise = null;
     } else {
       this.counter++;
       this.memoryQueue.push({ id: this.counter, value: item });
@@ -126,9 +125,9 @@ export class Queue {
   }
 
   prepend (item) {
-    if (this.promise) {
-      this.promise(item);
-      this.promise = null;
+    if (this.nextItemPromise) {
+      this.nextItemPromise(item);
+      this.nextItemPromise = null;
     } else {
       this.counter++;
       this.memoryQueue.unshift({ id: this.counter * -1, value: item });
@@ -141,7 +140,7 @@ export class Queue {
    * that will resolve when an item is ready.
    * If the db object is empty, we default to the memoryQueue.
    * If the object we receive from the db is null, we default to the memoryQueue.
-   * If the memoryQueue is empty, we return a promise for the next item.
+   * If the memoryQueue is empty, we return a nextItemPromise for the next item.
    *
    * This code is not thread safe, but it is async safe.
    *
@@ -161,7 +160,7 @@ export class Queue {
         return this.memoryQueue.shift().value;
       } else {
         return new Promise((resolve) => {
-          this.promise = resolve;
+          this.nextItemPromise = resolve;
         });
       }
     } catch (error) {
@@ -178,7 +177,13 @@ export class Queue {
    *
    * @returns a Promise to fetch the next available item in the db
    */
-  dbDequeue () {
+  async dbDequeue () {
+    try {
+      await backoff(() => this.resolveDBReady === null, 'Database never got ready');
+    } catch (error) {
+      debug.error('Backoff error occured', error);
+      throw error;
+    }
     return new Promise((resolve, reject) => {
       if (this.db === null) {
         resolve(null);
@@ -218,9 +223,16 @@ export class Queue {
   }
 
   // Get the number of items in the queue
-  count () {
+  async count () {
     if (this.db === null) {
       return this.memoryQueue.length;
+    }
+
+    try {
+      await backoff(() => this.resolveDBReady === null, 'Database never got ready');
+    } catch (error) {
+      debug.error('Backoff error occured', error);
+      throw error;
     }
 
     return new Promise((resolve, reject) => {
