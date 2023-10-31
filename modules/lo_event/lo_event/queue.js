@@ -1,7 +1,31 @@
+/**
+ * This files functions as a Queue using an indexeddb backend.
+ *
+ * If we are operating in a browser environment, we will use
+ * the built-in indexeddb. In node environments, we will use
+ * packages that mirror the functionality of indexeddb.
+ *
+ * Each item can be added to the end of the queue with `enqueue(item)`.
+ * Items can also be prepended to the queue with `prepend(item)`.
+ * Items can be retrieved from the queue with `item = dequeue()`.
+ *
+ * Each **internal** item will be stored in the queue as the following:
+ * `{ id: counter, value: item }`
+ *
+ * The `id` property of each is an auto-incrementing integer.
+ * For the prepended items, we make their `id` negative so they
+ * appear at the start of the database cursor.
+ *
+ * The item you pass in is stored in the `value` property while
+ * the item exists within the queue.
+ */
 import { backoff, delay } from './util.js';
 import * as debug from './debugLog.js';
 
 // TODO:
+// The auto-increment function is broken if items stay in queue
+// between queue restarts, since our counter will reset to 0.
+//
 // This code has been tested and is working properly in the browser.
 // However, this code does not work in the node environment.
 // The issue stems from the internal workings of indexeddb-js and
@@ -23,6 +47,7 @@ export class Queue {
     this.counter = 0;
 
     this.dbEnqueue = this.dbEnqueue.bind(this);
+    this.addItemToDB = this.addItemToDB.bind(this);
     this.dbDequeue = this.dbDequeue.bind(this);
     this.initialize = this.initialize.bind(this);
     this.enqueue = this.enqueue.bind(this);
@@ -70,41 +95,49 @@ export class Queue {
     Push items from in-memory queue into the persistent queue (if ready). If
     not ready, try again in 1 second.
   */
-  dbEnqueue () {
-    backoff(() => this.db !== null & this.resolveDBReady === null, 'Database never got ready').then(() => {
-      if (this.memoryQueue.length === 0) {
-        debug.info('Nothing in queue to return');
-        return;
+  addItemToDB () {
+    if (this.memoryQueue.length === 0) {
+      debug.info('Nothing in queue to return');
+      return;
+    }
+    // Enqueue the next object
+    const transaction = this.db.transaction([this.queueName], 'readwrite');
+    const objectStore = transaction.objectStore(this.queueName);
+
+    const item = this.memoryQueue.shift();
+    const request = objectStore.add(item);
+
+    request.onsuccess = (event) => {
+      this.dbEnqueue();
+    };
+
+    request.onerror = (event) => {
+      if (event.target.error.name === 'ConstraintError') {
+        debug.error('Item already exists', event.target.error);
+      } else {
+        debug.error('Error adding item to the queue:', event.target.error);
+        this.memoryQueue.unshift(item); // return item to the queue
+        // Try again in one second.
+        // TODO: Test this works.
+        // For background, search for: immediately invoked async function expression
+        (async () => {
+          await delay(1000);
+          this.dbEnqueue();
+        })();
       }
-      // Enqueue the next object
-      const transaction = this.db.transaction([this.queueName], 'readwrite');
-      const objectStore = transaction.objectStore(this.queueName);
+    };
+  }
 
-      const item = this.memoryQueue.shift();
-      const request = objectStore.add(item);
-
-      request.onsuccess = (event) => {
-        this.dbEnqueue();
-      };
-
-      request.onerror = (event) => {
-        if (event.target.error.name === 'ConstraintError') {
-          debug.error('Item already exists', event.target.error);
-        } else {
-          debug.error('Error adding item to the queue:', event.target.error);
-          this.memoryQueue.unshift(item); // return item to the queue
-          // Try again in one second.
-          // TODO: Test this works.
-          // For background, search for: immediately invoked async function expression
-          (async () => {
-            await delay(1000);
-            this.dbEnqueue();
-          })();
-        }
-      };
-    }).catch(error => {
-      console.error('error in backoff', error);
-    });
+  /*
+    Before we try and add items to the database, we need to make
+    db exists and is ready for transactions to be made.
+  */
+  dbEnqueue () {
+    backoff(() => this.db !== null & this.resolveDBReady === null, 'Database never got ready')
+      .then(this.addItemToDB)
+      .catch(error => {
+        debug.error('Could not enqueue item to DB. Error occured during backoff while waiting for DB to be ready.', error);
+      });
   }
 
   /*
@@ -181,7 +214,7 @@ export class Queue {
     try {
       await backoff(() => this.resolveDBReady === null, 'Database never got ready');
     } catch (error) {
-      debug.error('Backoff error occured', error);
+      debug.error('Could not read items from DB. Error occured during backoff while waiting for DB to be ready.', error);
       throw error;
     }
     return new Promise((resolve, reject) => {
@@ -231,7 +264,7 @@ export class Queue {
     try {
       await backoff(() => this.resolveDBReady === null, 'Database never got ready');
     } catch (error) {
-      debug.error('Backoff error occured', error);
+      debug.error('Could not count items in DB. Error occured during backoff while waiting for DB to be ready.', error);
       throw error;
     }
 

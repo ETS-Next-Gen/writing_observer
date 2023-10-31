@@ -56,7 +56,7 @@ export function info (log, stack) {
 export function error (log, error) {
   const formattedLog = formatLog(log);
   for (const logDestination of debugDestinations) {
-    logDestination(error.name, formattedLog, error.stack);
+    logDestination(error.name || 'Error', formattedLog, error.stack);
   }
 }
 

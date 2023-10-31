@@ -287,6 +287,17 @@ export function delay (ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * This function repeatedly tries to run another function
+ * until it returns a truthy value while waiting a set amount
+ * of time inbetween each attempt.
+ *
+ * @param {*} predicate function that returns truthy value
+ * @param {*} errorMessage message to be thrown when we run out of delays
+ * @param {*} delays list of MS values to be await in order
+ * @default delays defaults to [100ms, 1sec, 1min, 5min, 30min]
+ * @returns returns when predicate is true or throws errorMessage
+ */
 export async function backoff (
   predicate,
   errorMessage = 'Could not resolve backoff function',

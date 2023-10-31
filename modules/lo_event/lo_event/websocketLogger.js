@@ -40,8 +40,18 @@ export function websocketLogger (server) {
     if (!firstConnection) {
       profileInfoWrapper().then((result) => {
         if (Object.keys(result).length > 0) {
+          /**
+           * HACK: this code is wrong
+           * This is for backwards compatibility for the old way of handling auth.
+           * This is scaffolding as we are changing how we handle lock_fields,
+           * metedata, auth, etc. We should not be needing to call `profileInfoWrapper`
+           * as that has been abstracted up many levels. The `metedata_finished` and
+           * `chrome_identity` events should be removed when the server-side code
+           * is updated and we have a new handshake protocol.
+          */
           queue.prepend(JSON.stringify({ event: 'metadata_finished' }));
           queue.prepend(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
+
           queue.prepend(JSON.stringify(metadata));
         }
       });
