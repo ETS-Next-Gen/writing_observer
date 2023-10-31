@@ -33,6 +33,39 @@ export class Queue {
     this.initialize();
   }
 
+  async initialize () {
+    let request;
+    if (typeof indexedDB === 'undefined') {
+      debug.info('Importing indexedDB compatibility');
+
+      const sqlite3 = await import('sqlite3');
+      const indexeddbjs = await import('indexeddb-js');
+
+      const engine = new sqlite3.default.Database('queue.sqlite');
+      const scope = indexeddbjs.makeScope('sqlite3', engine);
+      request = scope.indexedDB.open(this.queueName);
+    } else {
+      debug.info('Using browser consoleDB');
+      request = indexedDB.open(this.queueName, 1);
+    }
+
+    request.onerror = (event) => {
+      debug.error('ERROR: could not open database', event.target.error);
+    };
+
+    request.onupgradeneeded = async (event) => {
+      this.db = event.target.result;
+      const objectStore = this.db.createObjectStore(this.queueName, { keyPath: 'id' });
+      objectStore.createIndex('id', 'id');
+    };
+
+    request.onsuccess = (event) => {
+      this.resolveDBReady();
+      this.resolveDBReady = null;
+      this.db = event.target.result;
+    };
+  }
+
   /*
     Push items from in-memory queue into the persistent queue (if ready). If
     not ready, try again in 1 second.
@@ -72,39 +105,6 @@ export class Queue {
     }).catch(error => {
       console.error('error in backoff', error);
     });
-  }
-
-  async initialize () {
-    let request;
-    if (typeof indexedDB === 'undefined') {
-      debug.info('Importing indexedDB compatibility');
-
-      const sqlite3 = await import('sqlite3');
-      const indexeddbjs = await import('indexeddb-js');
-
-      const engine = new sqlite3.default.Database('queue.sqlite');
-      const scope = indexeddbjs.makeScope('sqlite3', engine);
-      request = scope.indexedDB.open(this.queueName);
-    } else {
-      debug.info('Using browser consoleDB');
-      request = indexedDB.open(this.queueName, 1);
-    }
-
-    request.onerror = (event) => {
-      debug.error('ERROR: could not open database', event.target.error);
-    };
-
-    request.onupgradeneeded = async (event) => {
-      this.db = event.target.result;
-      const objectStore = this.db.createObjectStore(this.queueName, { keyPath: 'id' });
-      objectStore.createIndex('id', 'id');
-    };
-
-    request.onsuccess = (event) => {
-      this.resolveDBReady();
-      this.resolveDBReady = null;
-      this.db = event.target.result;
-    };
   }
 
   /*
