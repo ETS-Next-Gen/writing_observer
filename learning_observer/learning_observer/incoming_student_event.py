@@ -343,7 +343,10 @@ async def incoming_websocket_handler(request):
 
     first_event = header_events[0]
 
-    any(event_metadata.update(event['fields']) for event in header_events if event['event'] == 'lock_fields')
+    # Update event_metadata with any lock_field events
+    for event in header_events:
+        if event['event'] == 'lock_fields':
+            event_metadata.update(event['fields'])
 
     # We authenticate the student
     event_metadata['auth'] = await learning_observer.auth.events.authenticate(

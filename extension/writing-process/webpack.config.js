@@ -34,6 +34,8 @@ module.exports = {
             }
         ],
     },
+    // exclude these external packages from the bundling process
+    // lo_event relies on these
     externals: {
         'sqlite3': 'sqlite3',
         'indexeddb-js': 'indexeddb-js',

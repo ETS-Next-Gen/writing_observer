@@ -19,13 +19,22 @@ import { websocketLogger } from 'lo_event/lo_event/websocketLogger.js';
 import { consoleLogger } from 'lo_event/lo_event/consoleLogger.js';
 import * as loEventUtils from 'lo_event/lo_event/util.js';
 
+// We would like to support fetching the websocket server from storage
+
+// callback = new Promise((resolve, reject) => {
+//    storage.getItem('server').then((data) => resolve(data)
+// } /* and other async logic */);
+// websocketLogger( callback );
+
+// We are not sure if this should be done within `websocketLogger()`'s `init`
+// or one level up. 
 const loggers = [
   consoleLogger(),
   websocketLogger(WEBSOCKET_SERVER_URL)
 ]
 
 loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
-loEvent.setFieldSet([loEventUtils.getBrowserInfo(), await loEventUtils.debuggingMetadata()]);
+loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.debuggingMetadata()]);
 loEvent.go()
 
 // Function to serve as replacement for 
@@ -197,6 +206,8 @@ async function reinjectContentScripts() {
 loEvent.logEvent("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
+// HACK: this code will be changed pending server side changes to how we
+// handle auth and metadata.
 loEventUtils.profileInfoWrapper().then((result) => {
     if (Object.keys(result).length > 0) {
         loEvent.logEvent('chrome_identity', { chrome_identity: result });
