@@ -4,20 +4,22 @@ This is an extension which collects data from the client.
 
 ## Google Churn and Breakage
 
-1. This extension is already obsolete due to the transition from
-   [Manifest V2 to Manifest V3](https://developer.chrome.com/docs/extensions/mv3/mv2-sunset/).
-   Here, Google is apparently trying to cripple ad blockers, which
-   makes extensions like these much harder to write. For now, Manifest
-   V2 still works, but we will need to transition to worse code at
-   some point. [More info](https://www.eff.org/deeplinks/2021/12/chrome-users-beware-manifest-v3-deceitful-and-threatening)
-2. Google changed
-   [rendering on the front-end](https://workspaceupdates.googleblog.com/2021/05/Google-Docs-Canvas-Based-Rendering-Update.html)
-   such that our code to grab text is broken. On the whole, this is
-   less harmful, since we never relied on this code path. We grabbed
-   visible on-screen text to have ground truth data for debugging how
-   we reconstruct documents. We can make due without that, but it'd be
-   nice to fix. In the design of the system, we did not count on this
-   to be stable.
+Google regularly changes how they do things, breaking extensions like
+this one. We had major changes for the transition from
+[Manifest V2 to Manifest V3](https://developer.chrome.com/docs/extensions/mv3/mv2-sunset/). 
+Google was trying to cripple ad blockers, which made extensions like
+these much harder to write and maintain. This change, as is very
+Googly, was mandated by Google before Google properly documented Manifest V3.
+
+2. Google changed [rendering on the
+front-end](https://workspaceupdates.googleblog.com/2021/05/Google-Docs-Canvas-Based-Rendering-Update.html)
+such that our code to grab text is broken. On the whole, this is less
+harmful, since we never relied on this code path. We grabbed visible
+on-screen text to have ground truth data for debugging how we
+reconstruct documents. We can make due without that, but it'd be nice
+to fix at some point. In the design of the system, we did not count on
+this text to be stable (it's used for debugging). We primarily rely on
+document change events and the Google Docs API.
 
 ## System Design
 
@@ -26,9 +28,10 @@ This is an extension which collects data from the client.
   collects other data, such as document title, or commenting activity.
   Only the keystroke logging is well-tested. This is sent onto
   `background.js`
-* `background.js` is once per browser, and maintains a websocket
-  connection to the server. It also listens for Google AJAX events
-  which contain document edits.
+* `background.js` used to be once per browser, and maintain a
+  websocket connection to the server. It also listened for Google AJAX
+  events which contain document edits. This was changed with Manifest
+  V3 and still needs to be correctly documented.
 
 The document edits are short snippets, which aggregate a small number
 of keystrokes (e.g. a couple hundred milliseconds or typically 1-2
@@ -42,13 +45,13 @@ Each file has more in-depth documentation.
 
 ## Setup information
 
-The extension is built as a node project to help allow for testing and use of external node packages.
+The extension is built as a node project. This structure helps us allow for testing and for the use of external node packages.
 
 ### Dependencies
 
-For building the extension, we rely on a handful of build tools,like webpack to bundle the code together.
+For building the extension, we rely on a handful of build tools, like webpack to bundle the code together.
 
-The extension has a dependency on the LOEvent package, located at `/modules/lo_event`. The LOEvent package handles passing messages back and forth between various clients and the Learning Observer server.
+The extension has a dependency on the LOEvent package, located at `/modules/lo_event`. The LOEvent package handles passing messages from Learning Observer data sources and the Learning Observer server.
 
 The LOEvent package has a handful of downstream dependencies that are used when it does not have access to a browser environment. These are used to mirror browser behavior in testing environments.
 
@@ -63,7 +66,7 @@ cd extention/writing-process
 npm install
 ```
 
-Since the LOEvent package is not published, you'll need to install it locally via the `npm link` command. See the LOEvent installation for more information about this process.
+Since the LOEvent package is not published, you'll need to install it locally via the `npm link` command. If there are any issues with this, `npm pack`+`npm install` is more robust, but more cumbersome since it needs to be rerun whenever `lo_event` changes. See the LOEvent installation for more information about this process.
 
 ### Bundling and Building
 
