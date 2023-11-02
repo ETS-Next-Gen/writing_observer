@@ -4,11 +4,15 @@ import { storage } from './browserStorage.js';
 /*
   Browser information object, primarily for debugging. Note that not
   all fields will be available in all browsers and contexts. If not
-  available, it will return blanks (this is even usable in node.js,
+  available, it will return null (this is even usable in node.js,
   but it will simply return that there is no navigator, window, or
   document object).
 
-  @returns {Object} An object containing the browser information.
+  @returns {Object} An object containing the browser's navigator, window, and document information.
+
+  Example usage:
+    const browserInfo = getBrowserInfo();
+    console.log(browserInfo);
  */
 export function getBrowserInfo () {
   const fields = [
@@ -179,6 +183,10 @@ export function keystamp (prefix) {
   This will:
   * Convert relative URLs into fully-qualified ones, if necessary
   * Convert HTTP/HTTPS URLs into WS/WSS ones, if necessary
+
+  Example usage:
+    const serverURL = fullyQualifiedWebsocketURL('/websocket/endpoint', 'http://websocket.server');
+    websocketConnection(serverURL);
   */
 export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServer) {
   const relativeUrl = defaultRelativeUrl || '/wsapi/in';
@@ -201,6 +209,13 @@ export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServe
   return url.href;
 }
 
+/**
+ * Example usage:
+ *  event = { event: 'ADD', data: 'stuff' }
+ *  timestampEvent(event)
+ *  event
+ *  // { event: 'ADD', data: 'stuff', metadata: { ts, human_ts, iso_ts } }
+ */
 export function timestampEvent (event) {
   if (!event.metadata) {
     event.metadata = {};
@@ -211,10 +226,14 @@ export function timestampEvent (event) {
   event.metadata.iso_ts = new Date().toISOString();
 }
 
-/*
-  We include some metadata. Much of this is primarily for
-  debugging. For example, it's helpful to have multiple timestamps
-  in order to understand timezone issues, misset clocks, etc.
+/**
+ * We provide an id for each system that is stored
+ * locally with the client. This allows us to more easily
+ * parse events when debugging in specific contexts.
+ *
+ * Example usage:
+ *  const debugMetadata = await debuggingMetadata();
+ *  console.log(debugMetadata);
  */
 export function debuggingMetadata () {
   return new Promise((resolve, reject) => {
@@ -235,6 +254,19 @@ export function debuggingMetadata () {
   });
 }
 
+/**
+ * Deeply merge `source` into `target`.
+ * `target` should be passed by reference
+ *
+ * This is a helper function for `mergeMetadata`.
+ *
+ * Example usage:
+ *  const obj1 = { a: 1, b: { c: 3 } };
+ *  const obj2 = { b: { d: 4 }, e: 5 };
+ *  util.mergeDictionary(obj1, obj2);
+ *  obj1
+ *  // { a: 1, b: { c: 3, d: 4 }, e: 5 }
+ */
 function mergeDictionary (target, source) {
   for (const key in source) {
     if (Object.prototype.hasOwnProperty.call(target, key)) {
@@ -253,6 +285,11 @@ function mergeDictionary (target, source) {
  *
  * @param {Array} inputList - List of dictionaries, sync functions, and async functions
  * @returns {Promise<Object>} - A Promise that resolves to the compiled master dictionary
+ *
+ * Example usage:
+ *  const metadata = await mergeMetadata([ browserInfo(), { source: '0.0.1' }, extraMetadata() ])
+ *  console.log(metadata);
+ * // { browserInfo: {}, source: '0.0.1', metadata: { extra: 'extra data' }}
  */
 export async function mergeMetadata (inputList) {
   // Initialize the master dictionary
@@ -291,6 +328,14 @@ export function delay (ms) {
  * This function repeatedly tries to run another function
  * until it returns a truthy value while waiting a set amount
  * of time inbetween each attempt.
+ *
+ * Example usage:
+ *  util.backoff(checkCondition, 'Condition not met after retries.')
+ *    .then(() => console.log('Condition met.'))
+ *    .catch(error => console.error(error.message));
+ *
+ * TODO we ought to allow different termination conditions
+ * e.g. die vs continue retrying with last delay amount
  *
  * @param {*} predicate function that returns truthy value
  * @param {*} errorMessage message to be thrown when we run out of delays

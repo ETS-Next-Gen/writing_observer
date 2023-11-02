@@ -21,12 +21,12 @@ queue.prepend(54321);
  * data. There is a similar note in queue.js
  */
 
-// while (await queue.count() > 0) {
-//   console.log('iterating');
-//   try {
-//     const next = await queue.nextItem();
-//     console.log(next);
-//   } catch (error) {
-//     console.error('errored', error);
-//   }
-// }
+while (await queue.count() > 0) {
+  console.log('iterating');
+  try {
+    const next = await queue.nextItem();
+    console.log(next);
+  } catch (error) {
+    console.error('errored', error);
+  }
+}

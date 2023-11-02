@@ -70,7 +70,7 @@ loEvent.init(
   '1',
   [wsl],
   debug.LEVEL.SIMPLE,
-  [debug.DESTINATIONS.SERVER(loEvent.logEvent), debug.DESTINATIONS.CONSOLE]
+  [debug.LOG_OUTPUT.LOGGER(loEvent.logEvent), debug.LOG_OUTPUT.CONSOLE]
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
 loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);

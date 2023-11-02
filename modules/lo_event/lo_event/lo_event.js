@@ -21,10 +21,9 @@ let initialized = INIT_FALSE;
 
 // A list of all loggers which should receive events.
 let loggersEnabled = [];
-// This can either be:
-// * dictionaries of metadata
-// * functions which return metadata
-// * asynchronous functions which return metadata
+
+// promise pipeline to ensure we handle all initialization
+// and metadata before routing events to their loggers
 let currentState = new Promise((resolve, reject) => { resolve(); });
 
 const queue = new Queue('LOEvent');
@@ -33,6 +32,12 @@ function isInitialized () {
   return initialized === INIT_READY;
 }
 
+/**
+ * Collect all enabled loggers with an init function, call it,
+ * and wait for all of them to finish initializing. We add this
+ * function to our `currentState` pipeline to ensure loggers
+ * are ready to go before we send events.
+ */
 async function initializeLoggers () {
   debug.info('initializing loggers');
   const initializedLoggers = loggersEnabled
@@ -47,15 +52,26 @@ async function initializeLoggers () {
     initialized = INIT_ERROR;
     debug.error('Error resolving logger initializers:', error);
   }
-  return Promise.all(initializedLoggers);
 }
 
+/**
+ * Set specific key/value pairs using the `lock_fields`
+ * event. We use this to set specific fields that we want
+ * included overall for subsequent events to prevent
+ * sending the same information in each event.
+ *
+ * This is useful for items such as `source` and `version`
+ * which should be the same for every event.
+ */
 export function setFieldSet (data) {
   currentState = currentState.then(
     () => setFieldSetAsync(data)
   );
 }
 
+/**
+ * Runs and awaits for all loggers to run their `setField` command
+ */
 async function setFieldSetAsync (data) {
   const payload = { fields: await mergeMetadata(data), event: 'lock_fields' };
   timestampEvent(payload);
@@ -68,12 +84,13 @@ async function setFieldSetAsync (data) {
 
 // TODO: We should consider specifying a set of verbs, nouns, etc. we
 // might use, and outlining what can be expected in the protocol
+// TODO: We should consider structing / destructing here
 export function init (
   source,
   version,
   loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
   debugLevel = debug.LEVEL.SIMPLE,
-  debugDest = [debug.DESTINATIONS.CONSOLE],
+  debugDest = [debug.LOG_OUTPUT.CONSOLE],
   useDisabler = true
 ) {
   if (source === null || typeof source !== 'string') {
@@ -83,7 +100,7 @@ export function init (
     throw new Error('version must be a non-null string');
   }
   debug.setLevel(debugLevel);
-  debug.setDestinations(debugDest);
+  debug.setLogOutputs(debugDest);
   if (useDisabler) {
     currentState = currentState.then(() => disabler.init(useDisabler));
   }
@@ -123,11 +140,13 @@ async function dequeue () {
     debug.info('failure to dequeue, not initialized');
     return;
   }
-  if (!disabler.streamEvents()) {
-    debug.info('failure to dequeue, blocked from streaming');
-    return;
-  }
+
   while (true) {
+    // TODO test this portion of code
+    if (!disabler.streamEvents()) {
+      debug.info('failure to dequeue, blocked from streaming');
+      return;
+    }
     try {
       const event = await queue.nextItem();
       sendEvent(event);
@@ -148,6 +167,16 @@ export function logEvent (eventType, event) {
   queue.enqueue(event);
 }
 
+/**
+ * We would like to be able to log events roughly following the xAPI
+ * conventions (and possibly Caliper conventions). This allows us to
+ * explicitly structure events with the same fields as xAPI, and
+ * might have validation logic in the future. However, we have not
+ * figured out the best way to do this, so please treath this as
+ * stub / in-progress code.
+ *
+ * In the long term, we'd like to be as close to standards as possible.
+ */
 export function logXAPILite (
   {
     verb,
