@@ -6,7 +6,7 @@ global.document = {};
 async function checkCondition () {
   // Example of a condition check
   // Replace this with your actual condition check logic
-  console.log('checking', someAsyncCondition);
+  console.log('Util test: checking', someAsyncCondition);
   return someAsyncCondition;
 }
 

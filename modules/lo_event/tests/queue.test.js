@@ -4,12 +4,12 @@ import { delay } from '../lo_event/util.js';
 const queue = new Queue('queue');
 await delay(1000);
 const max = 5;
-console.log('queueing events');
+console.log('Queue test: Queueing events');
 for (let i = 0; i < max; i++) {
-  console.log('queueing', i);
+  console.log('Queue test: Queueing', i);
   queue.enqueue(i);
 }
-console.log('prepending', 54321);
+console.log('Queue test: Prepending', 54321);
 queue.prepend(54321);
 
 /**
@@ -22,11 +22,11 @@ queue.prepend(54321);
  */
 
 while (await queue.count() > 0) {
-  console.log('iterating');
+  console.log('Queue test: Iterating');
   try {
     const next = await queue.nextItem();
     console.log(next);
   } catch (error) {
-    console.error('errored', error);
+    console.error('error: ', error);
   }
 }

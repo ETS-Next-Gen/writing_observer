@@ -1,3 +1,9 @@
+/*
+ * This is a cursory test of the web socket logger.
+ *
+ * It takes some time to run, so it is not part of the main test suite.
+ */
+
 import { WebSocketServer } from 'ws';
 import { storage } from '../lo_event/browserStorage.js';
 import * as util from '../lo_event/util.js';
@@ -6,20 +12,18 @@ import * as debug from '../lo_event/debugLog.js';
 import * as loEvent from '../lo_event/lo_event.js';
 import * as websocketLogger from '../lo_event/websocketLogger.js';
 
-console.log('Launching server');
-
-console.log(storage);
+console.log('WS test: Launching server');
 
 const host = 'localhost';
 const port = 8087;
 
 const wss = new WebSocketServer({ host, port });
 
-console.log('Setting up connection');
+console.log('WS test: Setting up connection');
 
 const dispatch = {
   terminate: function (event, ws) {
-    console.log('Terminating');
+    console.log('WS test: Terminating');
 
     // It takes a little bit of voodoo to convince the server to
     // terminate.
@@ -29,18 +33,18 @@ const dispatch = {
     // process.
     ws.close();
     wss.close(() => {
-      console.log('Server closed');
+      console.log('WS test: Server closed');
       process.exit(0);
     });
   },
   test: function (event) {
-    console.log('Test event: ', event.event_number);
+    console.log('WS test: Test event: ', event.event_number);
   },
   lock_fields: function (event) {
-    console.log('Metadata: ', event);
+    console.log('WS test: Metadata: ', event);
   },
   blocklist: function (event, ws) {
-    console.log('Sending blocklist');
+    console.log('WS test: Sending blocklist');
     ws.send(JSON.stringify({
       status: 'blocklist',
       time_limit: 'MINUTES',
@@ -48,20 +52,19 @@ const dispatch = {
     }));
   },
   debug: function (event) {
-    console.log('DEBUG', event);
+    console.log('WS test: DEBUG', event);
   }
 };
 
 wss.on('connection', (ws) => {
-  console.log('New connection');
+  console.log('WS test: New connection');
   ws.on('message', (data) => {
     // Verify received data
     const j = JSON.parse(data.toString());
-    console.log('Dispatching: ', j);
+    console.log('WS test: Dispatching: ', j);
     dispatch[j.event_type](j, ws);
   });
 });
-console.log(wss);
 
 const wsl = websocketLogger.websocketLogger(`ws://${host}:${port}`);
 
@@ -95,4 +98,4 @@ loEvent.logEvent('test', { event_number: 4 });
 loEvent.logEvent('test', { event_number: 5 });
 loEvent.logEvent('terminate', {});
 
-console.log('Done');
+console.log('WS test: Done');
