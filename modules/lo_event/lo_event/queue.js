@@ -61,7 +61,7 @@ export class Queue {
   async initialize () {
     let request;
     if (typeof indexedDB === 'undefined') {
-      debug.info('Importing indexedDB compatibility');
+      debug.info('Queue: Importing indexedDB compatibility');
 
       const sqlite3 = await import('sqlite3');
       const indexeddbjs = await import('indexeddb-js');
@@ -70,12 +70,12 @@ export class Queue {
       const scope = indexeddbjs.makeScope('sqlite3', engine);
       request = scope.indexedDB.open(this.queueName);
     } else {
-      debug.info('Using browser consoleDB');
+      debug.info('Queue: Using browser consoleDB');
       request = indexedDB.open(this.queueName, 1);
     }
 
     request.onerror = (event) => {
-      debug.error('ERROR: could not open database', event.target.error);
+      debug.error('QUEUE ERROR: could not open database', event.target.error);
     };
 
     request.onupgradeneeded = async (event) => {
@@ -97,7 +97,7 @@ export class Queue {
   */
   addItemToDB () {
     if (this.memoryQueue.length === 0) {
-      debug.info('Nothing in queue to return');
+      debug.info('Queue: Nothing in queue to return');
       return;
     }
     // Enqueue the next object
@@ -113,9 +113,9 @@ export class Queue {
 
     request.onerror = (event) => {
       if (event.target.error.name === 'ConstraintError') {
-        debug.error('Item already exists', event.target.error);
+        debug.error('QUEUE ERROR: Item already exists', event.target.error);
       } else {
-        debug.error('Error adding item to the queue:', event.target.error);
+        debug.error('QUEUE ERROR: Error adding item to the queue:', event.target.error);
         this.memoryQueue.unshift(item); // return item to the queue
         // Try again in one second.
         // TODO: Test this works.
@@ -136,7 +136,7 @@ export class Queue {
     backoff(() => this.db !== null & this.resolveDBReady === null, 'Database never got ready')
       .then(this.addItemToDB)
       .catch(error => {
-        debug.error('Could not enqueue item to DB. Error occured during backoff while waiting for DB to be ready.', error);
+        debug.error('QUEUE ERROR: Could not enqueue item to DB. Error occured during backoff while waiting for DB to be ready.', error);
       });
   }
 
@@ -197,7 +197,7 @@ export class Queue {
         });
       }
     } catch (error) {
-      debug.error('Error in next_item:', error);
+      debug.error('QUEUE ERROR: Error in next_item:', error);
       throw error;
     }
   }
@@ -214,7 +214,7 @@ export class Queue {
     try {
       await backoff(() => this.resolveDBReady === null, 'Database never got ready');
     } catch (error) {
-      debug.error('Could not read items from DB. Error occured during backoff while waiting for DB to be ready.', error);
+      debug.error('QUEUE ERROR: Could not read items from DB. Error occured during backoff while waiting for DB to be ready.', error);
       throw error;
     }
     return new Promise((resolve, reject) => {
@@ -239,7 +239,7 @@ export class Queue {
           };
 
           deleteRequest.onerror = (event) => {
-            debug.error('Error removing item from the queue:', event.target.error);
+            debug.error('QUEUE ERROR: Error removing item from the queue:', event.target.error);
             reject(event.target.error);
           };
         } else {
@@ -249,7 +249,7 @@ export class Queue {
       };
 
       request.onerror = (event) => {
-        debug.error('Error reading queue cursor:', event.target.error);
+        debug.error('QUEUE ERROR: Error reading queue cursor:', event.target.error);
         reject(event.target.error);
       };
     });
@@ -264,7 +264,7 @@ export class Queue {
     try {
       await backoff(() => this.resolveDBReady === null, 'Database never got ready');
     } catch (error) {
-      debug.error('Could not count items in DB. Error occured during backoff while waiting for DB to be ready.', error);
+      debug.error('QUEUE ERROR: Could not count items in DB. Error occured during backoff while waiting for DB to be ready.', error);
       throw error;
     }
 
@@ -279,7 +279,7 @@ export class Queue {
       };
 
       request.onerror = (event) => {
-        debug.error('Error counting items in the queue:', event.target.error);
+        debug.error('QUEUE ERROR: Error counting items in the queue:', event.target.error);
         reject(event.target.error);
       };
     });

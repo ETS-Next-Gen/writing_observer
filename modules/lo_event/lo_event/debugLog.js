@@ -86,8 +86,9 @@ export function info (log, stack) {
 
 export function error (log, error) {
   const formattedLog = formatLog(log);
+  const errorString = (typeof error === 'string' ? error : (error && error.name ? error.name : "Error"));
   for (const logDestination of debugLogOutputs) {
-    logDestination(error.name || 'Error', formattedLog, error.stack);
+    logDestination(errorString, formattedLog, error.stack);
   }
 }
 
@@ -111,6 +112,6 @@ function formatLog (text) {
 // helper function for generating a stack trace to use with `LEVEL.EXTENDED`
 function getStackTrace () {
   const stack = new Error().stack.split('\n');
-  const stackTrace = [stack[2], stack[3], stack[4]].join('\n');
+  const stackTrace = [stack[2], stack[3], stack[4], stack[5], stack[6]].join('\n');
   return stackTrace;
 }
