@@ -1,6 +1,6 @@
 import { Queue } from './queue.js';
 import { BlockError } from './disabler.js';
-import { delay, profileInfoWrapper } from './util.js';
+import { profileInfoWrapper, backoff } from './util.js';
 import * as debug from './debugLog.js';
 
 export function websocketLogger (server) {
@@ -19,16 +19,8 @@ export function websocketLogger (server) {
     socket.onopen = prepareSocket;
     socket.onerror = function (e) {
       debug.error('Could not connect to websocket', e);
-      let event = { issue: 'Could not connect' };
-      event = JSON.stringify(event);
-      queue.enqueue(event);
     };
-    socket.onclose = function (e) {
-      debug.error('Lost connection to websocket', e);
-      let event = { issue: 'Lost connection', code: e.code };
-      event = JSON.stringify(event);
-      queue.enqueue(event);
-    };
+    socket.onclose = onClose;
     socket.onmessage = receiveMessage;
     return socket;
   }
@@ -75,52 +67,106 @@ export function websocketLogger (server) {
         );
         break;
       default:
-        console.log('auth has not yet occured');
+        // console.log('auth has not yet occured');
         break;
     }
-    dequeue();
+    // dequeue();
+  }
+
+  function onClose (event) {
+    debug.error('Lost connection to websocket', event);
+    backoff(() => {
+      checkForBlockError();
+      socket = newWebsocket();
+      return socket;
+    }, 'Unable to reconnect to websocket server').then(
+      // we are connected again
+    ).catch(
+      // we were unable to connect either from the block error
+      // or unable to connect to the websocket we should stop
+      // trying entirely.
+    );
+  }
+
+  // TODO Remove this commented out code:
+  // this is the old way of dequeueing while we figure out a better structure
+
+  // async function dequeue () {
+  //   if (socket === null) {
+  //     // Do nothing. We're reconnecting.
+  //     console.log('Event squelched; reconnecting');
+  //   } else if (socket.readyState === socket.OPEN) {
+  //     while (await queue.count() > 0) {
+  //       try {
+  //         const event = await queue.nextItem();
+  //         socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
+  //       } catch (error) {
+  //         debug.error('Error during dequeue', error);
+  //       }
+  //     }
+  //   } else if ((socket.readyState === socket.CLOSED) || (socket.readyState === socket.CLOSING)) {
+  //     /*
+  //       If we lost the connection, we wait a second and try to open it again.
+
+  //       Note that while socket is `null` or `CONNECTING`, we don't take either
+  //       branch -- we just queue up events. We reconnect after 1 second if closed,
+  //       or dequeue events if open.
+  //     */
+  //     console.log('Re-opening connection in 1s');
+  //     socket = null;
+  //     await delay(1000);
+  //     console.log('Re-opening connection');
+  //     socket = newWebsocket();
+  //   } else if (socket.readyState === socket.CONNECTING) {
+  //     console.log('connecting still');
+  //   }
+  // }
+
+  async function sendItem () {
+    // will this wait until the next item is available? 
+    try {
+      console.log('awaiting next item in queue');
+      const event = await queue.nextItem();
+      socket.send(event);
+    } catch (error) {
+      debug.error('Unable to dequeue event in websocketLogger', error);
+    }
   }
 
   async function dequeue () {
-    if (socket === null) {
-      // Do nothing. We're reconnecting.
-      console.log('Event squelched; reconnecting');
-    } else if (socket.readyState === socket.OPEN) {
-      while (await queue.count() > 0) {
-        try {
-          const event = await queue.nextItem();
-          socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
-        } catch (error) {
-          debug.error('Error during dequeue', error);
-        }
-      }
-    } else if ((socket.readyState === socket.CLOSED) || (socket.readyState === socket.CLOSING)) {
-      /*
-        If we lost the connection, we wait a second and try to open it again.
+    // initialization step
 
-        Note that while socket is `null` or `CONNECTING`, we don't take either
-        branch -- we just queue up events. We reconnect after 1 second if closed,
-        or dequeue events if open.
-      */
-      console.log('Re-opening connection in 1s');
-      socket = null;
-      await delay(1000);
-      console.log('Re-opening connection');
-      socket = newWebsocket();
-    } else if (socket.readyState === socket.CONNECTING) {
-      console.log('connecting still');
+    while (true) {
+      console.log('iterating over dequeue');
+      if (socket === null) {
+        // do nothing possibly break out of loop
+      }
+
+      // allowed to stream
+      if (socket.readyState === socket.OPEN) {
+        await sendItem();
+      }
+
+      // termination dequeue loop
+      if ((socket.readyState === socket.CLOSING) || (socket.readyState === socket.CLOSED)) {
+        return;
+      }
     }
   }
 
-  function wsLogData (data) {
+  function checkForBlockError () {
     if (blockerror) {
       console.log('Throwing block error');
       const b = blockerror;
       blockerror = null;
       throw b;
     }
+  }
+
+  function wsLogData (data) {
+    checkForBlockError();
     queue.enqueue(data);
-    dequeue();
+    // dequeue();
   }
 
   wsLogData.init = async function (metadata) {

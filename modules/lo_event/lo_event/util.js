@@ -352,7 +352,6 @@ export async function backoff (
     if (await predicate()) {
       return;
     }
-    console.log('waiting for ', delays[i]);
     await delay(delays[i]);
   }
   throw new Error(errorMessage);
