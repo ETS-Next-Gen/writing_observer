@@ -356,3 +356,28 @@ export async function backoff (
   }
   throw new Error(errorMessage);
 }
+
+// The `once` function is a decorater function that takes in a
+// function `func` and returns a new function. The returned function
+// can only be called once, and any subsequent calls will result in an
+// error. It is intended for the event loops in the various queue
+// code.
+//
+// This is similar to the underscore once, but in contrast to that
+// one, subsequent calls give an error rather than silently doing
+// nothing. This is important as we are debugging the code. In the
+// future, we might make this configurable or just switch, but for
+// now, we'd like to understand if this ever happens and make it very
+// obvious,
+export function once(func) {
+    var run = false;
+    return function() {
+	if(!run) {
+	    console.log(run);
+	    return func.apply(this, arguments);
+	} else {
+	    console.log(">>>> Function called more than once. This should never happen <<<<");
+	    raise("Error! Function was called more than once! This should never happen");
+	}
+    }
+}
