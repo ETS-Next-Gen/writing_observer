@@ -1,7 +1,7 @@
 import { Queue } from '../lo_event/queue.js';
 import { delay } from '../lo_event/util.js';
 
-const queue = new Queue('queue');
+const queue = new Queue('queueNew');
 await delay(1000);
 const max = 5;
 console.log('Queue test: Queueing events');
@@ -9,8 +9,6 @@ for (let i = 0; i < max; i++) {
   console.log('Queue test: Queueing', i);
   queue.enqueue(i);
 }
-console.log('Queue test: Prepending', 54321);
-queue.prepend(54321);
 
 /**
  * This test case is broken. If you uncomment the following code
@@ -20,13 +18,14 @@ queue.prepend(54321);
  * This is likely due to how indexeddb-js/sqlite3 handles indexing
  * data. There is a similar note in queue.js
  */
-
-while (await queue.count() > 0) {
+let x = 5;
+while (x > 0) {
   console.log('Queue test: Iterating');
   try {
-    const next = await queue.nextItem();
-    console.log(next);
+    const next = await queue.dequeue();
+    console.log('Queue test: Next item is', next);
   } catch (error) {
     console.error('error: ', error);
   }
+  x--;
 }

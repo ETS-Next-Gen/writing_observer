@@ -62,7 +62,7 @@ wss.on('connection', (ws) => {
     // Verify received data
     const j = JSON.parse(data.toString());
     console.log('WS test: Dispatching: ', j);
-    dispatch[j.event_type](j, ws);
+    dispatch[j.event](j, ws);
   });
 });
 

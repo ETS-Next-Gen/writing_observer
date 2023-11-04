@@ -148,8 +148,10 @@ async function dequeue () {
       return;
     }
     try {
-      const event = await queue.nextItem();
-      sendEvent(event);
+      const event = await queue.dequeue();
+      if (event !== null) {
+        sendEvent(event);
+      }
     } catch (error) {
       debug.error('Error during dequeue or sending of event:', error);
     }

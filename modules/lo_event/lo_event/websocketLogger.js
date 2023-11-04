@@ -41,10 +41,9 @@ export function websocketLogger (server) {
            * `chrome_identity` events should be removed when the server-side code
            * is updated and we have a new handshake protocol.
           */
-          queue.prepend(JSON.stringify({ event: 'metadata_finished' }));
-          queue.prepend(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
-
-          queue.prepend(JSON.stringify(metadata));
+          queue.enqueue(JSON.stringify(metadata));
+          queue.enqueue(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
+          queue.enqueue(JSON.stringify({ event: 'metadata_finished' }));
         }
       });
     } else {
@@ -123,11 +122,13 @@ export function websocketLogger (server) {
   // }
 
   async function sendItem () {
-    // will this wait until the next item is available? 
+    // will this wait until the next item is available?
     try {
       console.log('awaiting next item in queue');
-      const event = await queue.nextItem();
-      socket.send(event);
+      const event = await queue.dequeue();
+      if (event !== null) {
+        socket.send(event);
+      }
     } catch (error) {
       debug.error('Unable to dequeue event in websocketLogger', error);
     }

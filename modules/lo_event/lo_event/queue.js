@@ -6,58 +6,50 @@
  * packages that mirror the functionality of indexeddb.
  *
  * Each item can be added to the end of the queue with `enqueue(item)`.
- * Items can also be prepended to the queue with `prepend(item)`.
- * Items can be retrieved from the queue with `item = dequeue()`.
+ * Items can be retrieved from the queue with `item = await dequeue()`.
  *
- * Each **internal** item will be stored in the queue as the following:
- * `{ id: counter, value: item }`
- *
- * The `id` property of each is an auto-incrementing integer.
- * For the prepended items, we make their `id` negative so they
- * appear at the start of the database cursor.
- *
- * The item you pass in is stored in the `value` property while
- * the item exists within the queue.
+ * TODO
+ * This code works in the browser, but breaks in a node environment.
+ * autoIncrement is NOT supported when working in the node
+ * environment. We will likely need to make some form of wrapper
+ * to achieve this behavior for node.
+ * See https://github.com/metagriffin/indexeddb-js/blob/master/src/indexeddb-js.js#L418C1-L418C53
+ * NOTE: When we had our own counter for the id, we did notice that the node
+ * environment (indexeddb-js or sqlite3) handled keys differently, thus
+ * returning items out of order.
  */
-import { backoff, delay } from './util.js';
 import * as debug from './debugLog.js';
 
-// TODO:
-// The auto-increment function is broken if items stay in queue
-// between queue restarts, since our counter will reset to 0.
-//
-// This code has been tested and is working properly in the browser.
-// However, this code does not work in the node environment.
-// The issue stems from the internal workings of indexeddb-js and
-// sqlite3, the two node packages we use to mirror browser behavior.
-// It seems that indexeddb-js/sqlite3 (I'm unsure which one the problem
-// lies with) does not use the same method of indexing over the data
-// as the browser does. The browsers go in ascending order of the
-// key fields, i.e. in order of our counter.
+const ENQUEUE = 'enqueue';
+const DEQUEUE = 'dequeue';
 
 export class Queue {
   constructor (queueName) {
-    this.queueName = queueName;
-    this.memoryQueue = [];
     this.db = null;
-    this.nextItemPromise = null;
-    this.initializedDBPromise = new Promise((resolve) => {
-      this.resolveDBReady = resolve;
-    });
-    this.counter = 0;
+    this.dbOperationQueue = [];
+    this.nextDBOperationPromise = null;
+    this.queueName = queueName;
 
-    this.dbEnqueue = this.dbEnqueue.bind(this);
-    this.addItemToDB = this.addItemToDB.bind(this);
-    this.dbDequeue = this.dbDequeue.bind(this);
     this.initialize = this.initialize.bind(this);
+    this.addItemToDB = this.addItemToDB.bind(this);
+    this.nextItemFromDB = this.nextItemFromDB.bind(this);
+    this.nextDBOperation = this.nextDBOperation.bind(this);
+    this.startProcessing = this.startProcessing.bind(this);
+    this.addItemToDBOperationQueue = this.addItemToDBOperationQueue.bind(this);
     this.enqueue = this.enqueue.bind(this);
-    this.prepend = this.prepend.bind(this);
-    this.nextItem = this.nextItem.bind(this);
-    this.count = this.count.bind(this);
+    this.dequeue = this.dequeue.bind(this);
 
+    this.dbOperationDispatch = {
+      [ENQUEUE]: this.addItemToDB,
+      [DEQUEUE]: this.nextItemFromDB
+    };
     this.initialize();
   }
 
+  /**
+   * Determine which environment we are in to set
+   * the appropriate indexeddb information.
+   */
   async initialize () {
     let request;
     if (typeof indexedDB === 'undefined') {
@@ -80,35 +72,28 @@ export class Queue {
 
     request.onupgradeneeded = async (event) => {
       this.db = event.target.result;
-      const objectStore = this.db.createObjectStore(this.queueName, { keyPath: 'id' });
+      const objectStore = this.db.createObjectStore(this.queueName, { keyPath: 'id', autoIncrement: true });
       objectStore.createIndex('id', 'id');
     };
 
     request.onsuccess = (event) => {
-      this.resolveDBReady();
-      this.resolveDBReady = null;
       this.db = event.target.result;
+      this.startProcessing();
     };
   }
 
-  /*
-    Push items from in-memory queue into the persistent queue (if ready). If
-    not ready, try again in 1 second.
-  */
-  addItemToDB () {
-    if (this.memoryQueue.length === 0) {
-      debug.info('Queue: Nothing in queue to return');
-      return;
-    }
-    // Enqueue the next object
+  /**
+   * Perform transaction to add item into indexeddb
+   */
+  async addItemToDB ({ payload }) {
+    debug.info(`Queue: adding item to database, ${payload}`);
     const transaction = this.db.transaction([this.queueName], 'readwrite');
     const objectStore = transaction.objectStore(this.queueName);
 
-    const item = this.memoryQueue.shift();
-    const request = objectStore.add(item);
+    const request = objectStore.add(payload);
 
     request.onsuccess = (event) => {
-      this.dbEnqueue();
+      // successful request added
     };
 
     request.onerror = (event) => {
@@ -116,172 +101,112 @@ export class Queue {
         debug.error('QUEUE ERROR: Item already exists', event.target.error);
       } else {
         debug.error('QUEUE ERROR: Error adding item to the queue:', event.target.error);
-        this.memoryQueue.unshift(item); // return item to the queue
-        // Try again in one second.
-        // TODO: Test this works.
-        // For background, search for: immediately invoked async function expression
-        (async () => {
-          await delay(1000);
-          this.dbEnqueue();
-        })();
       }
     };
   }
 
-  /*
-    Before we try and add items to the database, we need to make
-    db exists and is ready for transactions to be made.
-  */
-  dbEnqueue () {
-    backoff(() => this.db !== null & this.resolveDBReady === null, 'Database never got ready')
-      .then(this.addItemToDB)
-      .catch(error => {
-        debug.error('QUEUE ERROR: Could not enqueue item to DB. Error occured during backoff while waiting for DB to be ready.', error);
-      });
-  }
-
-  /*
-    If we are currently waiting for an item (via nextItem), then we
-    immediately return the item instead of adding it to the queues.
-    Push an item into the in-memory queue, and then into the peristent
-    queue (if ready).
-  */
-  enqueue (item) {
-    if (this.nextItemPromise) {
-      this.nextItemPromise(item);
-      this.nextItemPromise = null;
-    } else {
-      this.counter++;
-      this.memoryQueue.push({ id: this.counter, value: item });
-      this.dbEnqueue();
-    }
-  }
-
-  prepend (item) {
-    if (this.nextItemPromise) {
-      this.nextItemPromise(item);
-      this.nextItemPromise = null;
-    } else {
-      this.counter++;
-      this.memoryQueue.unshift({ id: this.counter * -1, value: item });
-      this.dbEnqueue();
-    }
-  }
-
   /**
-   * This function fetches the next available item or returns a Promise
-   * that will resolve when an item is ready.
-   * If the db object is empty, we default to the memoryQueue.
-   * If the object we receive from the db is null, we default to the memoryQueue.
-   * If the memoryQueue is empty, we return a nextItemPromise for the next item.
-   *
-   * This code is not thread safe, but it is async safe.
-   *
-   * @returns Next item available in queue or a Promise for the next item
+   * Perform transaction to fetch next item in indexeddb
    */
-  async nextItem () {
-    if (this.db === null) {
-      if (this.memoryQueue.length > 0) {
-        return this.memoryQueue.shift().value;
-      }
-    }
-    try {
-      const dbItem = await this.dbDequeue();
-      if (dbItem !== null) {
-        return dbItem;
-      } else if (this.memoryQueue.length > 0) {
-        return this.memoryQueue.shift().value;
+  async nextItemFromDB ({ resolve, reject }) {
+    debug.info('Queue: Fetching next item from database');
+    const transaction = this.db.transaction([this.queueName], 'readwrite');
+    const objectStore = transaction.objectStore(this.queueName);
+    const request = objectStore.openCursor();
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        const item = cursor.value;
+        const deleteRequest = objectStore.delete(cursor.key);
+
+        deleteRequest.onsuccess = () => {
+          resolve(item.payload);
+        };
+
+        deleteRequest.onerror = (event) => {
+          debug.error('QUEUE ERROR: Error removing item from the queue:', event.target.error);
+          reject(event.target.error);
+        };
       } else {
-        return new Promise((resolve) => {
-          this.nextItemPromise = resolve;
-        });
-      }
-    } catch (error) {
-      debug.error('QUEUE ERROR: Error in next_item:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Dequeue the next available item from the DB.
-   * If the db object is null or no items are available, we return null.
-   * When this code is ran, we already check for db equal to null; however,
-   * we ought to check if its null before trying to operate on it.
-   *
-   * @returns a Promise to fetch the next available item in the db
-   */
-  async dbDequeue () {
-    try {
-      await backoff(() => this.resolveDBReady === null, 'Database never got ready');
-    } catch (error) {
-      debug.error('QUEUE ERROR: Could not read items from DB. Error occured during backoff while waiting for DB to be ready.', error);
-      throw error;
-    }
-    return new Promise((resolve, reject) => {
-      if (this.db === null) {
+        // No more items in the IndexedDB.
         resolve(null);
       }
+    };
 
-      const transaction = this.db.transaction([this.queueName], 'readwrite');
-      const objectStore = transaction.objectStore(this.queueName);
-      const request = objectStore.openCursor();
-
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          const item = cursor.value;
-          const deleteRequest = objectStore.delete(cursor.key);
-
-          deleteRequest.onsuccess = () => {
-            // when we add values to the database, the stored items
-            // are placed under the `value` key.
-            resolve(item.value);
-          };
-
-          deleteRequest.onerror = (event) => {
-            debug.error('QUEUE ERROR: Error removing item from the queue:', event.target.error);
-            reject(event.target.error);
-          };
-        } else {
-          // No more items in the IndexedDB.
-          resolve(null);
-        }
-      };
-
-      request.onerror = (event) => {
-        debug.error('QUEUE ERROR: Error reading queue cursor:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    request.onerror = (event) => {
+      debug.error('QUEUE ERROR: Error reading queue cursor:', event.target.error);
+      reject(event.target.error);
+    };
   }
 
-  // Get the number of items in the queue
-  async count () {
-    if (this.db === null) {
-      return this.memoryQueue.length;
+  /**
+   * The processing loop continually waits for the next
+   * dbOperation to come using the following generator.
+   */
+  async * nextDBOperation () {
+    while (true) {
+      let operation;
+      if (this.dbOperationQueue.length > 0) {
+        operation = this.dbOperationQueue.shift();
+      } else {
+        operation = await new Promise(resolve => {
+          this.nextDBOperationPromise = resolve;
+        });
+      }
+      debug.info(`Queue: Yielding next operation, ${operation}`);
+      yield operation;
     }
+  }
 
-    try {
-      await backoff(() => this.resolveDBReady === null, 'Database never got ready');
-    } catch (error) {
-      debug.error('QUEUE ERROR: Could not count items in DB. Error occured during backoff while waiting for DB to be ready.', error);
-      throw error;
+  /**
+   * This method processes incoming dbOperations
+   */
+  async startProcessing () {
+    const dbOperationStream = this.nextDBOperation();
+
+    for await (const operation of dbOperationStream) {
+      debug.info(`Queue: processing operation ${operation}`);
+      try {
+        await this.dbOperationDispatch[operation.operation](operation);
+      } catch (error) {
+        debug.error('Unable to perform operation on DB', error);
+      }
     }
+  }
 
+  // helper function for enqueue/dequeue
+  addItemToDBOperationQueue (payload) {
+    if (this.nextDBOperationPromise) {
+      this.nextDBOperationPromise(payload);
+      this.nextDBOperationPromise = null;
+    } else {
+      this.dbOperationQueue.push(payload);
+    }
+  }
+
+  /**
+   * This functions will append an enqueue message to the
+   * current operation stream.
+   */
+  enqueue (item) {
+    debug.info(`Queue: Enqueuing item ${item}`);
+    const payload = {
+      operation: ENQUEUE,
+      payload: { payload: item }
+    };
+    this.addItemToDBOperationQueue(payload);
+  }
+
+  /**
+   * This function appends a dequeue message to the operation
+   * stream and returns the result.
+   */
+  dequeue () {
+    debug.info('Queue: dequeueing item');
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.queueName]);
-      const objectStore = transaction.objectStore(this.queueName);
-      const request = objectStore.count();
-
-      request.onsuccess = (event) => {
-        const count = request.result;
-        resolve(count);
-      };
-
-      request.onerror = (event) => {
-        debug.error('QUEUE ERROR: Error counting items in the queue:', event.target.error);
-        reject(event.target.error);
-      };
+      const payload = { operation: DEQUEUE, resolve, reject };
+      this.addItemToDBOperationQueue(payload);
     });
   }
 }
