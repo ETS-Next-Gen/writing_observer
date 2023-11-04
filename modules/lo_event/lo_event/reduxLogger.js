@@ -1,7 +1,22 @@
 /*
  * This is a logger which uses redux in order to route events to one
  * or more subscribers. It is currently used for working with the test
- * framework. In the future, it may be used more broadly.
+ * framework.
+ *
+ * In the future, our goal is to make this into a 'batteries included'
+ * framework for developing `react`/`redux`/`lo_event` applications
+ * which embodies good design practices for this domain.
+ *
+ * Our goal is NOT to be universal. Integrating `lo_event` into an
+ * exiting `redux` workflow is ≈25 lines of code. This framework is
+ * opinionated, and if there's a clash of opinions, you're better
+ * off writing those 25 lines.
+ *
+ * Beyond test cases, the major use case is to make the development of
+ * a broad class of simple educational activites, well, simple. For
+ * larger applications, it probably makes more sense to start with
+ * vanilla `react`/`redux`/`lo_event` without using this file, to just
+ * use bits and pieces, or to treat this code as an examplar.
  */
 
 // Action creator function
@@ -22,35 +37,61 @@ const emitSetField = (setField) => {
 
 const eventQueue = [];
 let redux;
-let store;
+export let store;
 let promise = null;
 let previousEvent = null;
 let lockFields = null;
 let eventSubscribers = [];
 
+/*
+  Compose reducers takes a dynamic number of reducers as arguments and
+  returns a new reducer function. This applies each reducer to the
+  state in the order they are provided, ultimately returning the
+  final state after all reducers have been applied.
+
+  Example usage:
+  ```
+  const rootReducer = composeReducers(reducer1, reducer2, reducer3);
+  const finalState = rootReducer(initialState, { type: 'SOME_ACTION' });
+  ```
+*/
+function composeReducers(...reducers) {
+  return (state, action) => reducers.reduce(
+    (currentState, reducer) => reducer(currentState, action),
+    state
+  );
+}
+
+
+function store_last_event_reducer(state = {}, action) {
+  return { ...state, event: action.payload };
+};
+
+function lock_fields_reducer(state = {}, action) {
+  const payload = JSON.parse(action.payload);
+  return {
+    ...state,
+    lock_fields: {
+      ...payload,
+      fields: {
+        ...(state.lock_fields ? state.lock_fields.fields : {}),
+        ...payload.fields
+      }
+    }
+  };
+}
+
+const REDUCERS = {
+  'EMIT_EVENT': [store_last_event_reducer],
+  'EMIT_LOCKFIELDS': [lock_fields_reducer]
+}
+
 function initializeStore () {
   // Reducer function
   const reducer = (state = {}, action) => {
     let payload;
-    switch (action.type) {
-      case 'EMIT_EVENT':
-        return { ...state, event: action.payload };
-      case 'EMIT_LOCKFIELDS':
-        payload = JSON.parse(action.payload);
-        return {
-          ...state,
-          lock_fields: {
-            ...payload,
-            fields: {
-              ...(state.lock_fields ? state.lock_fields.fields : {}),
-              ...payload.fields
-            }
-          }
-        };
 
-      default:
-        return state;
-    }
+    return REDUCERS[action.type] ? composeReducers(...REDUCERS[action.type])(state, action) : state;
   };
 
   // Create the store
