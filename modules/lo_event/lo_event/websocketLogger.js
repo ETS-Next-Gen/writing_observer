@@ -2,6 +2,7 @@ import { Queue } from './queue.js';
 import { BlockError } from './disabler.js';
 import { profileInfoWrapper, backoff } from './util.js';
 import * as debug from './debugLog.js';
+import * as util from './util.js';
 
 export function websocketLogger (server) {
   /*
@@ -134,7 +135,7 @@ export function websocketLogger (server) {
     }
   }
 
-  async function dequeue () {
+  const dequeue = util.once(async function () {
     // initialization step
 
     while (true) {
@@ -153,7 +154,7 @@ export function websocketLogger (server) {
         return;
       }
     }
-  }
+  });
 
   function checkForBlockError () {
     if (blockerror) {

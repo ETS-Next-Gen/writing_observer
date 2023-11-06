@@ -19,6 +19,7 @@
  * returning items out of order.
  */
 import * as debug from './debugLog.js';
+import * as util from './util.js';
 
 const ENQUEUE = 'enqueue';
 const DEQUEUE = 'dequeue';
@@ -33,7 +34,7 @@ export class Queue {
     this.initialize = this.initialize.bind(this);
     this.addItemToDB = this.addItemToDB.bind(this);
     this.nextItemFromDB = this.nextItemFromDB.bind(this);
-    this.nextDBOperation = this.nextDBOperation.bind(this);
+    this.nextDBOperation = util.once(this.nextDBOperation.bind(this));
     this.startProcessing = this.startProcessing.bind(this);
     this.addItemToDBOperationQueue = this.addItemToDBOperationQueue.bind(this);
     this.enqueue = this.enqueue.bind(this);

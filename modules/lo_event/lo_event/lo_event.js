@@ -6,6 +6,7 @@ import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import * as disabler from './disabler.js';
 import * as debug from './debugLog.js';
+import * as util from './util.js';
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -135,7 +136,7 @@ function sendEvent (event) {
   }
 }
 
-async function dequeue () {
+const dequeue = util.once(async function () {
   if (!isInitialized()) {
     debug.info('failure to dequeue, not initialized');
     return;
@@ -156,7 +157,7 @@ async function dequeue () {
       debug.error('Error during dequeue or sending of event:', error);
     }
   }
-}
+})
 
 export function logEvent (eventType, event) {
   // opt out / dead
