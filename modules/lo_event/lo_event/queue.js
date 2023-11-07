@@ -29,6 +29,7 @@ export class Queue {
     this.db = null;
     this.dbOperationQueue = [];
     this.nextDBOperationPromise = null;
+    this.nextItemPromise = null;
     this.queueName = queueName;
 
     this.initialize = this.initialize.bind(this);
@@ -85,8 +86,16 @@ export class Queue {
 
   /**
    * Perform transaction to add item into indexeddb
+   * If we are waiting for an item to available to dequeue,
+   * we resolve the item immediately and don't add it to
+   * the indexeddb.
    */
   async addItemToDB ({ payload }) {
+    if (this.nextItemPromise) {
+      this.nextItemPromise(payload.payload);
+      this.nextItemPromise = null;
+      return;
+    }
     debug.info(`Queue: adding item to database, ${payload}`);
     const transaction = this.db.transaction([this.queueName], 'readwrite');
     const objectStore = transaction.objectStore(this.queueName);
@@ -131,7 +140,9 @@ export class Queue {
         };
       } else {
         // No more items in the IndexedDB.
-        resolve(null);
+        resolve(new Promise((resolve) => {
+          this.nextItemPromise = resolve;
+        }));
       }
     };
 
