@@ -1,4 +1,4 @@
-import { Queue } from '../lo_event/memoryQueue.js';
+import { Queue } from '../lo_event/queue.js';
 import { delay } from '../lo_event/util.js';
 
 const queue = new Queue('queueNew');

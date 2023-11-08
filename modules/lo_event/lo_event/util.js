@@ -373,7 +373,6 @@ export function once (func) {
   const run = false;
   return function () {
     if (!run) {
-      console.log(run);
       return func.apply(this, arguments);
     } else {
       console.log('>>>> Function called more than once. This should never happen <<<<');
