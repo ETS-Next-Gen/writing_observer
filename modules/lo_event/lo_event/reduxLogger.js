@@ -18,6 +18,7 @@
  * vanilla `react`/`redux`/`lo_event` without using this file, to just
  * use bits and pieces, or to treat this code as an examplar.
  */
+import * as redux from 'redux';
 
 // Action creator function
 const emitEvent = (event) => {
@@ -36,7 +37,6 @@ const emitSetField = (setField) => {
 };
 
 const eventQueue = [];
-let redux;
 export let store;
 let promise = null;
 let previousEvent = null;
@@ -137,7 +137,6 @@ export function reduxLogger (subscribers) {
   logEvent.lo_id = 'redux_logger';
 
   logEvent.init = async function () {
-    redux = await import('redux');
     initializeStore();
   };
 
