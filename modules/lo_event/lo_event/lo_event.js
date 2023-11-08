@@ -6,7 +6,6 @@ import { timestampEvent, mergeMetadata } from './util.js';
 import { Queue } from './queue.js';
 import * as disabler from './disabler.js';
 import * as debug from './debugLog.js';
-import * as util from './util.js';
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -115,7 +114,11 @@ export function init (
 export function go () {
   currentState.then(() => {
     initialized = INIT_READY;
-    dequeue();
+    queue.startDequeueLoop({
+      initialize: isInitialized,
+      shouldDequeue: disabler.streamEvents,
+      onDequeue: sendEvent
+    });
   });
 }
 
@@ -135,29 +138,6 @@ function sendEvent (event) {
     }
   }
 }
-
-const dequeue = util.once(async function () {
-  if (!isInitialized()) {
-    debug.info('failure to dequeue, not initialized');
-    return;
-  }
-
-  while (true) {
-    // TODO test this portion of code
-    if (!disabler.streamEvents()) {
-      debug.info('failure to dequeue, blocked from streaming');
-      return;
-    }
-    try {
-      const event = await queue.dequeue();
-      if (event !== null) {
-        sendEvent(event);
-      }
-    } catch (error) {
-      debug.error('Error during dequeue or sending of event:', error);
-    }
-  }
-})
 
 export function logEvent (eventType, event) {
   // opt out / dead

@@ -350,7 +350,7 @@ export async function backoff (
 ) {
   for (let i = 0; i < delays.length; i++) {
     if (await predicate()) {
-      return;
+      return true;
     }
     await delay(delays[i]);
   }
@@ -369,15 +369,15 @@ export async function backoff (
 // future, we might make this configurable or just switch, but for
 // now, we'd like to understand if this ever happens and make it very
 // obvious,
-export function once(func) {
-    var run = false;
-    return function() {
-	if(!run) {
-	    console.log(run);
-	    return func.apply(this, arguments);
-	} else {
-	    console.log(">>>> Function called more than once. This should never happen <<<<");
-	    raise("Error! Function was called more than once! This should never happen");
-	}
+export function once (func) {
+  const run = false;
+  return function () {
+    if (!run) {
+      console.log(run);
+      return func.apply(this, arguments);
+    } else {
+      console.log('>>>> Function called more than once. This should never happen <<<<');
+      throw new Error('Error! Function was called more than once! This should never happen');
     }
+  };
 }

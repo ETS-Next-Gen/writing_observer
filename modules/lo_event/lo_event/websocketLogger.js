@@ -1,8 +1,7 @@
 import { Queue } from './queue.js';
 import { BlockError } from './disabler.js';
-import { profileInfoWrapper, backoff } from './util.js';
-import * as debug from './debugLog.js';
 import * as util from './util.js';
+import * as debug from './debugLog.js';
 
 export function websocketLogger (server) {
   /*
@@ -15,15 +14,50 @@ export function websocketLogger (server) {
   let firstConnection = true;
   let metadata = {};
 
+  function calculateExponentialBackoff (n) {
+    return Math.min(1000 * Math.pow(2, n), 1000 * 60 * 15);
+  }
+
+  let failures = 0;
+  let READY = false;
+  let wsFailureResolve = null;
+  let wsFailurePromise = null;
+  let wsConnectedResolve = null;
+
+  async function startWebsocketConnectionLoop () {
+    while (true) {
+      const connected = await newWebsocket();
+      if (!connected) {
+        failures++;
+        await util.delay(calculateExponentialBackoff(failures));
+      } else {
+        READY = true;
+        failures = 0;
+        await socketClosed();
+        READY = false;
+      }
+    }
+  }
+
+  function socketClosed () { return wsFailurePromise; }
+
   function newWebsocket () {
     socket = new WS(server);
-    socket.onopen = prepareSocket;
+    wsFailurePromise = new Promise((resolve, reject) => {
+      wsFailureResolve = resolve;
+    });
+    const wsConnectedPromise = new Promise((resolve, reject) => {
+      wsConnectedResolve = resolve;
+    });
+    socket.onopen = () => { prepareSocket(); wsConnectedResolve(true); };
     socket.onerror = function (e) {
       debug.error('Could not connect to websocket', e);
+      wsConnectedResolve(false);
+      wsFailureResolve();
     };
-    socket.onclose = onClose;
+    socket.onclose = () => { wsConnectedResolve(false); wsFailureResolve(); };
     socket.onmessage = receiveMessage;
-    return socket;
+    return wsConnectedPromise;
   }
 
   function prepareSocket () {
@@ -31,7 +65,7 @@ export function websocketLogger (server) {
     const event = { local_storage: {} };
     console.log(event);
     if (!firstConnection) {
-      profileInfoWrapper().then((result) => {
+      util.profileInfoWrapper().then((result) => {
         if (Object.keys(result).length > 0) {
           /**
            * HACK: this code is wrong
@@ -51,7 +85,15 @@ export function websocketLogger (server) {
       firstConnection = false;
     }
 
-    dequeue();
+    queue.startDequeueLoop({
+      initialize: waitForWSReady,
+      shouldDequeue: waitForWSReady,
+      onDequeue: (item) => socket.send(item)
+    });
+  }
+
+  async function waitForWSReady () {
+    return await util.backoff(() => (READY));
   }
 
   function receiveMessage (event) {
@@ -67,94 +109,10 @@ export function websocketLogger (server) {
         );
         break;
       default:
-        // console.log('auth has not yet occured');
+        debug.info(`Received response we do not yet handle: ${response}`);
         break;
     }
-    // dequeue();
   }
-
-  function onClose (event) {
-    debug.error('Lost connection to websocket', event);
-    backoff(() => {
-      checkForBlockError();
-      socket = newWebsocket();
-      return socket;
-    }, 'Unable to reconnect to websocket server').then(
-      // we are connected again
-    ).catch(
-      // we were unable to connect either from the block error
-      // or unable to connect to the websocket we should stop
-      // trying entirely.
-    );
-  }
-
-  // TODO Remove this commented out code:
-  // this is the old way of dequeueing while we figure out a better structure
-
-  // async function dequeue () {
-  //   if (socket === null) {
-  //     // Do nothing. We're reconnecting.
-  //     console.log('Event squelched; reconnecting');
-  //   } else if (socket.readyState === socket.OPEN) {
-  //     while (await queue.count() > 0) {
-  //       try {
-  //         const event = await queue.nextItem();
-  //         socket.send(event); /* TODO: We should do receipt confirmation before dropping events */
-  //       } catch (error) {
-  //         debug.error('Error during dequeue', error);
-  //       }
-  //     }
-  //   } else if ((socket.readyState === socket.CLOSED) || (socket.readyState === socket.CLOSING)) {
-  //     /*
-  //       If we lost the connection, we wait a second and try to open it again.
-
-  //       Note that while socket is `null` or `CONNECTING`, we don't take either
-  //       branch -- we just queue up events. We reconnect after 1 second if closed,
-  //       or dequeue events if open.
-  //     */
-  //     console.log('Re-opening connection in 1s');
-  //     socket = null;
-  //     await delay(1000);
-  //     console.log('Re-opening connection');
-  //     socket = newWebsocket();
-  //   } else if (socket.readyState === socket.CONNECTING) {
-  //     console.log('connecting still');
-  //   }
-  // }
-
-  async function sendItem () {
-    // will this wait until the next item is available?
-    try {
-      console.log('awaiting next item in queue');
-      const event = await queue.dequeue();
-      if (event !== null) {
-        socket.send(event);
-      }
-    } catch (error) {
-      debug.error('Unable to dequeue event in websocketLogger', error);
-    }
-  }
-
-  const dequeue = util.once(async function () {
-    // initialization step
-
-    while (true) {
-      console.log('iterating over dequeue');
-      if (socket === null) {
-        // do nothing possibly break out of loop
-      }
-
-      // allowed to stream
-      if (socket.readyState === socket.OPEN) {
-        await sendItem();
-      }
-
-      // termination dequeue loop
-      if ((socket.readyState === socket.CLOSING) || (socket.readyState === socket.CLOSED)) {
-        return;
-      }
-    }
-  });
 
   function checkForBlockError () {
     if (blockerror) {
@@ -168,7 +126,6 @@ export function websocketLogger (server) {
   function wsLogData (data) {
     checkForBlockError();
     queue.enqueue(data);
-    // dequeue();
   }
 
   wsLogData.init = async function (metadata) {
@@ -179,7 +136,7 @@ export function websocketLogger (server) {
       debug.info('Using built-in websocket');
       WS = WebSocket;
     }
-    socket = newWebsocket();
+    startWebsocketConnectionLoop();
   };
 
   wsLogData.setField = function (data) {
