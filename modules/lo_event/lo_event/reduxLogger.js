@@ -36,8 +36,39 @@ const emitSetField = (setField) => {
   };
 };
 
+function store_last_event_reducer(state = {}, action) {
+  return { ...state, event: action.payload };
+};
+
+function lock_fields_reducer(state = {}, action) {
+  const payload = JSON.parse(action.payload);
+  return {
+    ...state,
+    lock_fields: {
+      ...payload,
+      fields: {
+        ...(state.lock_fields ? state.lock_fields.fields : {}),
+        ...payload.fields
+      }
+    }
+  };
+}
+
+const REDUCERS = {
+  'EMIT_EVENT': [store_last_event_reducer],
+  'EMIT_LOCKFIELDS': [lock_fields_reducer]
+}
+
+// Reducer function
+const reducer = (state = {}, action) => {
+  let payload;
+
+  return REDUCERS[action.type] ? composeReducers(...REDUCERS[action.type])(state, action) : state;
+};
+
+
 const eventQueue = [];
-export let store;
+export let store = redux.createStore(reducer);
 let promise = null;
 let previousEvent = null;
 let lockFields = null;
@@ -63,40 +94,7 @@ function composeReducers(...reducers) {
 }
 
 
-function store_last_event_reducer(state = {}, action) {
-  return { ...state, event: action.payload };
-};
-
-function lock_fields_reducer(state = {}, action) {
-  const payload = JSON.parse(action.payload);
-  return {
-    ...state,
-    lock_fields: {
-      ...payload,
-      fields: {
-        ...(state.lock_fields ? state.lock_fields.fields : {}),
-        ...payload.fields
-      }
-    }
-  };
-}
-
-const REDUCERS = {
-  'EMIT_EVENT': [store_last_event_reducer],
-  'EMIT_LOCKFIELDS': [lock_fields_reducer]
-}
-
 function initializeStore () {
-  // Reducer function
-  const reducer = (state = {}, action) => {
-    let payload;
-
-    return REDUCERS[action.type] ? composeReducers(...REDUCERS[action.type])(state, action) : state;
-  };
-
-  // Create the store
-  store = redux.createStore(reducer);
-
   store.subscribe(() => {
     const state = store.getState();
     if (state.lock_fields) {
