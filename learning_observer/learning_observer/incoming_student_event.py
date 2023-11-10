@@ -296,6 +296,7 @@ async def incoming_websocket_handler(request):
     queue = asyncio.Queue()
     state = 'UNKNOWN'
     lock_fields = {}
+    server_auth = None
     event_handler = None
 
     decoder_and_logger = event_decoder_and_logger(request)
@@ -312,9 +313,11 @@ async def incoming_websocket_handler(request):
         set up the `event_handler` and be ready to process
         events
         '''
-        if 'source' in lock_fields and 'auth' in lock_fields:
+        if 'source' in lock_fields and server_auth is not None:
             nonlocal event_handler, state
-            event_handler = await handle_incoming_client_event(metadata=lock_fields)
+            metadata = lock_fields.copy()
+            metadata['auth'] = server_auth
+            event_handler = await handle_incoming_client_event(metadata=metadata)
             state = 'READY'
 
     async def handle_auth_events(events):
@@ -328,7 +331,10 @@ async def incoming_websocket_handler(request):
         in a list. This workflow feels a little weird. We should
         re-evaluate the auth code.
         '''
+        nonlocal server_auth
         async for event in events:
+            if 'auth' in event:
+                raise ValueError('Auth already exists in event, someone may be trying to hack the system')
             try:
                 event_auth = await learning_observer.auth.events.authenticate(
                     request=request,
@@ -336,12 +342,14 @@ async def incoming_websocket_handler(request):
                     first_event={},
                     source=''
                 )
-                if event_auth != lock_fields.get('auth', {}):
-                    lock_fields['auth'] = event_auth
+                if event_auth != server_auth:
+                    server_auth = event_auth
                     await update_event_handler()
 
             except:
                 pass
+            if server_auth is not None:
+                event['auth'] = server_auth
             yield event
 
     async def decode_lock_fields(events):
@@ -374,8 +382,8 @@ async def incoming_websocket_handler(request):
         '''
         events = process_message_from_ws()
         events = decoder_and_logger(events)
-        events = handle_auth_events(events)
         events = decode_lock_fields(events)
+        events = handle_auth_events(events)
         async for event in events:
             await queue.put(event)
 
