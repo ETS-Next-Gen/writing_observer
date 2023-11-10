@@ -269,146 +269,115 @@ def event_decoder_and_logger(
     )
     COUNT += 1
 
-    def decode_and_log_event(msg):
+    async def decode_and_log_event(events):
         '''
         Take an aiohttp web sockets message, log it, and return
         a clean event.
         '''
-        if isinstance(msg, dict):
-            json_event = msg
-        else:
-            json_event = json.loads(msg.data)
-        log_event.log_event(json_event, filename=filename)
-        return json_event
+        async for msg in events:
+            if isinstance(msg, dict):
+                json_event = msg
+            else:
+                json_event = json.loads(msg.data)
+            log_event.log_event(json_event, filename=filename)
+            yield json_event
     return decode_and_log_event
 
 
 async def incoming_websocket_handler(request):
-    '''
-    This handles incoming WebSockets requests. It does some minimal
-    processing on them. It used to rely them on via PubSub to be
-    aggregated, but we've switched to polling. It also logs them.
+    '''This handles incoming WebSocket requests. We pass each event
+    through minimal processing before it is added to a queue. Once
+    we receive enough initial information (e.g. source and auth),
+    we start processing each event in our queue through the reducers.
     '''
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
+    queue = asyncio.Queue()
+    state = 'UNKNOWN'
+    lock_fields = {}
+    event_handler = None
 
-    # For now, we receive two packets to initialize:
-    # * Chrome's identity information
-    # * browser.storage identity information
-    event_metadata = {'headers': {}}
+    decoder_and_logger = event_decoder_and_logger(request)
 
-    debug_log("Init pipeline")
-    header_events = []
-
-    # This will take a little bit of explaining....
-    #
-    # We originally did not have a way to do auth/auth. Now, we do
-    # auth with a header. However, we have old log files without that
-    # header. Setting INIT_PIPELINE to False allows us to use those
-    # files in the current system.
-    #
-    # At some point, we should either:
-    #
-    # 1) Change restream.py to inject a false header, or archive the
-    # source files and migrate the files, so that we can eliminate
-    # this setting; or
-    # 2) Dispatch on type of event
-    #
-    # This should not be a config setting.
-
-    INIT_PIPELINE = settings.settings.get("init_pipeline", True)
-    json_msg = None
-    if INIT_PIPELINE:
+    async def process_message_from_ws():
+        '''This function makes sure that the ws is an
+        async generator for use in the processing pipeline
+        '''
         async for msg in ws:
-            debug_log("Auth", msg.data)
+            yield msg
+
+    async def update_event_handler():
+        '''We need source and auth ready before we can
+        set up the `event_handler` and be ready to process
+        events
+        '''
+        if 'source' in lock_fields and 'auth' in lock_fields:
+            nonlocal event_handler, state
+            event_handler = await handle_incoming_client_event(metadata=lock_fields)
+            state = 'READY'
+
+    async def handle_auth_events(events):
+        '''This method checks a single method for auth and
+        updates our `lock_fields`. If we are unauthenticated,
+        an error will be thrown and we ignore it.
+
+        HACK The auth method expects a list of events to find
+        specific auth events. Since we are yielding event by
+        event, we check for auth on an individual event wrapped
+        in a list. This workflow feels a little weird. We should
+        re-evaluate the auth code.
+        '''
+        async for event in events:
             try:
-                json_msg = json.loads(msg.data)
-            except Exception:
-                print("Bad message:", msg)
-                raise
-            header_events.append(json_msg)
-            if json_msg["event"] == "metadata_finished":
-                break
-    else:
-        # This is a path for the old way of doing auth, which was to
-        # send the auth data in the first message.
-        #
-        # It is poorly tested.
-        print("Running without an initialization pipeline / events. This is for")
-        print("development purposes, and may not continue to be supported")
-        msg = await ws.receive()
-        json_msg = json.loads(msg.data)
-        header_events.append(json_msg)
+                event_auth = await learning_observer.auth.events.authenticate(
+                    request=request,
+                    headers=[event],
+                    first_event={},
+                    source=''
+                )
+                if event_auth != lock_fields.get('auth', {}):
+                    lock_fields['auth'] = event_auth
+                    await update_event_handler()
 
-    first_event = header_events[0]
+            except:
+                pass
+            yield event
 
-    # Update event_metadata with any lock_field events
-    for event in header_events:
-        if event['event'] == 'lock_fields':
-            event_metadata.update(event['fields'])
+    async def decode_lock_fields(events):
+        '''This function updates our overall lock_field
+        object and sets those fields on other events.
+        '''
+        async for event in events:
+            if event['event'] == 'lock_fields':
+                if event['fields'].get('source', '') != lock_fields.get('source', ''):
+                    lock_fields.update(event['fields'])
+                    await update_event_handler()
+            else:
+                event.update(lock_fields)
+                yield event
 
-    # We authenticate the student
-    event_metadata['auth'] = await learning_observer.auth.events.authenticate(
-        request=request,
-        headers=header_events,
-        first_event=first_event,  # This is obsolete
-        source=event_metadata['source']
-    )
+    async def process_queue():
+        '''We use this queue to process events once the
+        system is ready to handle them.
+        '''
+        while True:
+            if state == 'READY':
+                event = await queue.get()
+                await event_handler(request, event)
+                queue.task_done()
+            else:
+                await asyncio.sleep(1)
 
-    print(event_metadata['auth'])
+    async def process_ws_message_through_pipeline():
+        '''Prepare each event we receive for processing
+        '''
+        events = process_message_from_ws()
+        events = decoder_and_logger(events)
+        events = handle_auth_events(events)
+        events = decode_lock_fields(events)
+        async for event in events:
+            await queue.put(event)
 
-    # We're now ready to make the pipeline.
-    hostname = socket.gethostname()
-    decoder_and_logger = event_decoder_and_logger(
-        request,
-        headers=header_events,
-        metadata={
-            'ip': request.remote,
-            'host': request.headers.get('Host', ''),
-            'user_agent': request.headers.get('User-Agent', ''),
-            'x_real_ip': request.headers.get('X-Real-IP', ''),
-            'timestamp': datetime.datetime.utcnow().isoformat(),
-            'session_count': COUNT,
-            'pid': os.getpid(),
-            'hostname': hostname,
-            'hostip': socket.gethostbyname(hostname),
-            'referer': request.headers.get('Referer', ''),
-            'host': request.headers.get('Host', ''),
-            'x-forwarded-for': request.headers.get('X-Forwarded-For', ''),
-            'x-forwarded-host': request.headers.get('X-Forwarded-Host', '')
-        },
-        session={
-            'student': event_metadata['auth']['safe_user_id'],
-            'source': event_metadata['source']
-        }
-    )
-
-    event_handler = await handle_incoming_client_event(metadata=event_metadata)
-
-    # Handle events which we already received, if we needed to peak
-    # ahead to authenticate user
-    if not INIT_PIPELINE:
-        for event in header_events:
-            decoder_and_logger(event)
-            await event_handler(request, event)
-
-    # And continue to receive events
-    async for msg in ws:
-        # If web socket closed, we're done.
-        if msg.type == aiohttp.WSMsgType.ERROR:
-            debug_log(f"ws connection closed with exception {ws.exception()}")
-            return
-
-        # If we receive an unknown event type, we keep going, but we
-        # print an error to the console. If we got some kind of e.g.
-        # wonky ping or keep-alive or something we're unaware of, we'd
-        # like to handle that gracefully.
-        if msg.type != aiohttp.WSMsgType.TEXT:
-            debug_log("Unknown event type: " + msg.type)
-
-        client_event = decoder_and_logger(msg)
-        await event_handler(request, client_event)
-
-    debug_log('Websocket connection closed')
-    return ws
+    # process websocket messages and begin executing events from the queue
+    await asyncio.gather(process_ws_message_through_pipeline(), process_queue())
