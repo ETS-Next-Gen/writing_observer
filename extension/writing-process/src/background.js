@@ -276,7 +276,19 @@ function send_chrome_identity() {
   });
 }
 
-function this_a_google_docs_save(request) {
+function this_is_a_google_docs_sync(request) {
+    /*
+       Check if this is a Google Docs sync request. Return true for something like:
+       https://docs.google.com/document/d/1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU/sync?....
+       And false otherwise.
+    */
+    if(request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/sync/i)) {
+        return true;
+    }
+    return false;
+}
+
+function this_is_a_google_docs_save(request) {
     /*
        Check if this is a Google Docs save request. Return true for something like:
        https://docs.google.com/document/d/1lt_lSfEM9jd7Ga6uzENS_s8ZajcxpE0cKuzXbDoBoyU/save?id=dfhjklhsjklsdhjklsdhjksdhkjlsdhkjsdhsdkjlhsd&sid=dhsjklhsdjkhsdas&vc=2&c=2&w=2&smv=2&token=lasjklhasjkhsajkhsajkhasjkashjkasaajhsjkashsajksas&includes_info_params=true
@@ -293,7 +305,7 @@ function this_a_google_docs_save(request) {
     return false;
 }
 
-function this_a_google_docs_bind(request) {
+function this_is_a_google_docs_bind(request) {
     /*
       These request correspond to some server-push features, such as collaborative
       editing. We still need to reverse-engineer these.
@@ -377,7 +389,7 @@ chrome.webRequest.onBeforeRequest.addListener(
             });
         }
 
-        if(this_a_google_docs_save(request)){
+        if(this_is_a_google_docs_save(request)){
             //chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
             try {
                 /* We should think through which time stamps we should log. These are all subtly
@@ -389,7 +401,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'bundles': JSON.parse(formdata.bundles),
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
-                }
+                };
                 logFromServiceWorker(event);
                 log_event('google_docs_save', event);
             } catch(err) {
@@ -402,10 +414,19 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'formdata': formdata,
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
-                }
+                };
                 log_event('google_docs_save_extra', event);
             }
-        } else if(this_a_google_docs_bind(request)) {
+        } else if(this_is_a_google_docs_sync(request)) {
+          event = {
+            'doc_id':  googledocs_id_from_url(request.url),
+            'url': request.url,
+            'formdata': formdata,
+            'rev': formdata.rev,
+            'timestamp': parseInt(request.timeStamp, 10)
+          }; // <-- This should be confirmed
+          log_event('google_docs_sync', event);
+        } else if(this_is_a_google_docs_bind(request)) {
             logFromServiceWorker(request);
         } else {
             logFromServiceWorker("Not a save or bind: "+request.url);
