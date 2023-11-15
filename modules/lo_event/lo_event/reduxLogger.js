@@ -90,7 +90,11 @@ const reducer = (state = {}, action) => {
 
 
 const eventQueue = [];
-export let store = redux.createStore(reducer);
+export let store = redux.createStore(
+    reducer,
+    {event: null}, // Base state
+    typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION__ ? window.__REDUX_DEVTOOLS_EXTENSION__() : undefined
+);
 let promise = null;
 let previousEvent = null;
 let lockFields = null;
