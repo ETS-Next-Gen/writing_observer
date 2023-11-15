@@ -54,16 +54,38 @@ function lock_fields_reducer(state = {}, action) {
   };
 }
 
-const REDUCERS = {
+const BASE_REDUCERS = {
   'EMIT_EVENT': [store_last_event_reducer],
   'EMIT_LOCKFIELDS': [lock_fields_reducer]
 }
+
+const APPLICATION_REDUCERS = {
+}
+
+export const registerReducer = (key, reducer) => {
+  if (!APPLICATION_REDUCERS[key])
+    APPLICATION_REDUCERS[key] = [];
+
+  APPLICATION_REDUCERS[key].push(reducer);
+
+  return reducer;
+};
 
 // Reducer function
 const reducer = (state = {}, action) => {
   let payload;
 
-  return REDUCERS[action.type] ? composeReducers(...REDUCERS[action.type])(state, action) : state;
+  state = BASE_REDUCERS[action.type] ? composeReducers(...BASE_REDUCERS[action.type])(state, action) : state;
+
+  if (action.type === 'EMIT_EVENT') {
+    payload = action.payload;
+
+    if (APPLICATION_REDUCERS[payload.eventType]) {
+      state = { ...state, payload: composeReducers(...APPLICATION_REDUCERS[payload.eventType])(state, action.payload) };
+    }
+  }
+
+  return state;
 };
 
 
