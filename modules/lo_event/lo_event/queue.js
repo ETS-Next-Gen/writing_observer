@@ -3,16 +3,41 @@ import * as memoryQueue from './memoryQueue.js';
 import * as debug from './debugLog.js';
 import * as util from './util.js';
 
+export const QueueType = {
+  AUTODETECT: 'AUTODETECT', // Persistent if available, otherwise in-memory
+  IN_MEMORY: 'IN_MEMORY',   // memoryQueue
+  PERSISTENT: 'PERSISTENT'  // SQLite or IndexedDB. Raise an exception if not available.
+};
+
+const queueClasses = {
+  [QueueType.IN_MEMORY]: memoryQueue.Queue,
+  [QueueType.PERSISTENT]: indexeddbQueue.Queue
+};
+
+function autodetect() {
+  if (typeof indexedDB === 'undefined') {
+    return QueueType.IN_MEMORY;
+  } else {
+    return QueueType.PERSISTENT;
+  }
+};
+
 export class Queue {
-  constructor (queueName) {
+  constructor (queueName, { queueType = QueueType.AUTODETECT } = {}) {
     this.queue = null;
-    if (typeof indexedDB === 'undefined') {
-      debug.info('Queue: using memeoryQueue');
-      this.queue = new memoryQueue.Queue(queueName);
-    } else {
-      debug.info('Queue: using indexeddbQueue');
-      this.queue = new indexeddbQueue.Queue(queueName);
+
+    if (queueType === QueueType.AUTODETECT) {
+      queueType = autodetect();
     }
+
+    const queueClass = queueClasses[queueType];
+    if (queueClass) {
+      debug.info(`Queue: using ${queueType.toLowerCase()}Queue`);
+      this.queue = new queueClass(queueName);
+    } else {
+      throw new Error('Invalid queue type');
+    }
+
     this.enqueue = this.enqueue.bind(this);
     this.startDequeueLoop = util.once(this.startDequeueLoop.bind(this));
   }

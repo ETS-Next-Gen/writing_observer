@@ -3,9 +3,11 @@
 */
 
 import { timestampEvent, mergeMetadata } from './util.js';
-import { Queue } from './queue.js';
+import * as Queue from './queue.js';
 import * as disabler from './disabler.js';
 import * as debug from './debugLog.js';
+
+export const QueueType = Queue.QueueType;
 
 // Queue events, but don't send them yet.
 const INIT_FALSE = false; // init() has not yet been called.
@@ -26,7 +28,7 @@ let loggersEnabled = [];
 // and metadata before routing events to their loggers
 let currentState = new Promise((resolve, reject) => { resolve(); });
 
-const queue = new Queue('LOEvent');
+let queue;
 
 function isInitialized () {
   return initialized === INIT_READY;
@@ -69,6 +71,8 @@ export function setFieldSet (data) {
   );
 }
 
+
+
 /**
  * Runs and awaits for all loggers to run their `setField` command
  */
@@ -89,10 +93,15 @@ export function init (
   source,
   version,
   loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
-  debugLevel = debug.LEVEL.SIMPLE,
-  debugDest = [debug.LOG_OUTPUT.CONSOLE],
-  useDisabler = true
+  {
+    debugLevel = debug.LEVEL.SIMPLE,
+    debugDest = [debug.LOG_OUTPUT.CONSOLE],
+    useDisabler = true,
+    queueType = Queue.QueueType.AUTODETECT
+  } = {}
 ) {
+  queue = new Queue.Queue('LOEvent', { queueType } );
+
   if (source === null || typeof source !== 'string') {
     throw new Error('source must be a non-null string');
   }
