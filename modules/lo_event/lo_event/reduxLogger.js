@@ -157,8 +157,8 @@ export function reduxLogger (subscribers) {
   function logEvent (event) {
     store.dispatch(emitEvent(event));
   }
-  logEvent.lo_name = 'Redux Logger';
-  logEvent.lo_id = 'redux_logger';
+  logEvent.lo_name = 'Redux Logger'; // A human-friendly name for the logger
+  logEvent.lo_id = 'redux_logger';   // A machine-frienly name for the logger
 
   logEvent.init = async function () {
     initializeStore();
