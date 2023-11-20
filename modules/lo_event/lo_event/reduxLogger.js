@@ -22,6 +22,7 @@ import * as redux from 'redux';
 
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
+const EMIT_SET_STATE = 'SET_STATE';
 
 // Action creator function
 const emitEvent = (event) => {
@@ -34,8 +35,15 @@ const emitEvent = (event) => {
 // Action creator function
 const emitSetField = (setField) => {
   return {
-    type: 'EMIT_LOCKFIELDS',
+    type: EMIT_LOCKFIELDS,
     payload: setField
+  };
+};
+
+const emitSetState = (state) => {
+  return {
+    type: EMIT_SET_STATE,
+    payload: state
   };
 };
 
@@ -57,9 +65,14 @@ function lock_fields_reducer(state = {}, action) {
   };
 }
 
+function set_state_reducer(state = {}, action) {
+  return action.payload;
+}
+
 const BASE_REDUCERS = {
   [EMIT_EVENT]: [store_last_event_reducer],
-  [EMIT_LOCKFIELDS]: [lock_fields_reducer]
+  [EMIT_LOCKFIELDS]: [lock_fields_reducer],
+  [EMIT_SET_STATE]: [set_state_reducer]
 }
 
 const APPLICATION_REDUCERS = {
@@ -154,7 +167,7 @@ function initializeStore () {
   });
 }
 
-export function reduxLogger (subscribers) {
+export function reduxLogger (subscribers, initialState = {}) {
   if (subscribers != null) {
     eventSubscribers = subscribers;
   }
@@ -174,6 +187,8 @@ export function reduxLogger (subscribers) {
   };
 
   logEvent.getLockFields = function () { return lockFields; };
+
+  store.dispatch(emitSetState(initialState));
 
   return logEvent;
 }
