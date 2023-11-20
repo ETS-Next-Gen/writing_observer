@@ -20,10 +20,13 @@
  */
 import * as redux from 'redux';
 
+const EMIT_EVENT = 'EMIT_EVENT';
+const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
+
 // Action creator function
 const emitEvent = (event) => {
   return {
-    type: 'EMIT_EVENT',
+    type: EMIT_EVENT,
     payload: event
   };
 };
@@ -55,8 +58,8 @@ function lock_fields_reducer(state = {}, action) {
 }
 
 const BASE_REDUCERS = {
-  'EMIT_EVENT': [store_last_event_reducer],
-  'EMIT_LOCKFIELDS': [lock_fields_reducer]
+  [EMIT_EVENT]: [store_last_event_reducer],
+  [EMIT_LOCKFIELDS]: [lock_fields_reducer]
 }
 
 const APPLICATION_REDUCERS = {
@@ -75,13 +78,15 @@ export const registerReducer = (key, reducer) => {
 const reducer = (state = {}, action) => {
   let payload;
 
+  console.log("Reducing ", action," on ", state);
   state = BASE_REDUCERS[action.type] ? composeReducers(...BASE_REDUCERS[action.type])(state, action) : state;
 
-  if (action.type === 'EMIT_EVENT') {
-    payload = action.payload;
+  if (action.type === EMIT_EVENT) {
+    payload = JSON.parse(action.payload);
+    console.log(Object.keys(payload));
 
-    if (APPLICATION_REDUCERS[payload.eventType]) {
-      state = { ...state, payload: composeReducers(...APPLICATION_REDUCERS[payload.eventType])(state, action.payload) };
+    if (APPLICATION_REDUCERS[payload.event]) {
+      state = { ...state, application_state: composeReducers(...APPLICATION_REDUCERS[payload.event])(state.application_state || {}, payload) };
     }
   }
 
