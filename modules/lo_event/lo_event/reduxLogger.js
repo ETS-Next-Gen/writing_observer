@@ -19,6 +19,7 @@
  * use bits and pieces, or to treat this code as an examplar.
  */
 import * as redux from 'redux';
+import thunk from 'redux-thunk';
 
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
@@ -108,10 +109,12 @@ const reducer = (state = {}, action) => {
 
 
 const eventQueue = [];
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || redux.compose;
 export let store = redux.createStore(
-    reducer,
-    {event: null}, // Base state
-    typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION__ ? window.__REDUX_DEVTOOLS_EXTENSION__() : undefined
+  reducer,
+  {event: null}, // Base state
+  composeEnhancers(redux.applyMiddleware(thunk))
+    //typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION__ ? window.__REDUX_DEVTOOLS_EXTENSION__() : undefined
 );
 let promise = null;
 let previousEvent = null;
@@ -137,6 +140,10 @@ function composeReducers(...reducers) {
   );
 }
 
+export function setState(state) {
+  console.log("Set state called");
+  store.dispatch(emitSetState(state));
+}
 
 function initializeStore () {
   store.subscribe(() => {
@@ -188,7 +195,7 @@ export function reduxLogger (subscribers, initialState = {}) {
 
   logEvent.getLockFields = function () { return lockFields; };
 
-  store.dispatch(emitSetState(initialState));
+  setState(initialState);
 
   return logEvent;
 }
