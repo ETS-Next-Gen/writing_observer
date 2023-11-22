@@ -294,7 +294,8 @@ async def incoming_websocket_handler(request):
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
     queue = asyncio.Queue()
-    state = 'UNKNOWN'
+    ready_to_process = asyncio.Future()
+    connection_closed = asyncio.Event()
     lock_fields = {}
     server_auth = None
     event_handler = None
@@ -306,7 +307,16 @@ async def incoming_websocket_handler(request):
         async generator for use in the processing pipeline
         '''
         async for msg in ws:
+            if msg.type == aiohttp.WSMsgType.ERROR:
+                debug_log(f"ws connection closed with exception {ws.exception()}")
+                return
+            if msg.type != aiohttp.WSMsgType.TEXT:
+                debug_log("Unknown event type: " + msg.type)
             yield msg
+
+        if ws.closed:
+            debug_log(f'ws connection closed for reason {ws.close_code}')
+            connection_closed.set()
 
     async def update_event_handler():
         '''We need source and auth ready before we can
@@ -314,11 +324,11 @@ async def incoming_websocket_handler(request):
         events
         '''
         if 'source' in lock_fields and server_auth is not None:
-            nonlocal event_handler, state
+            nonlocal event_handler
             metadata = lock_fields.copy()
             metadata['auth'] = server_auth
             event_handler = await handle_incoming_client_event(metadata=metadata)
-            state = 'READY'
+            ready_to_process.set_result(True)
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -369,13 +379,35 @@ async def incoming_websocket_handler(request):
         '''We use this queue to process events once the
         system is ready to handle them.
         '''
+        # wait for the system to be ready to process events
+        try:
+            await asyncio.wait_for(ready_to_process, 10)
+        except asyncio.TimeoutError:
+            debug_log('Waited too long for auth and source, closing connection')
+            await ws.close()
+            return
+
+        debug_log('Starting to process queue')
         while True:
-            if state == 'READY':
-                event = await queue.get()
+            # fetch either the next item from the queue OR
+            # when the connection is closed.
+            queue_task = asyncio.create_task(queue.get())
+            closed_task = asyncio.create_task(connection_closed.wait())
+
+            done, pending = await asyncio.wait([queue_task, closed_task], return_when=asyncio.FIRST_COMPLETED)
+            # cancel any remaining tasks
+            for task in pending:
+                task.cancel()
+
+            if closed_task in done:
+                debug_log('ws connection closed, exiting queue processing loop')
+                break
+
+            if queue_task in done:
+                event = queue_task.result()
                 await event_handler(request, event)
                 queue.task_done()
-            else:
-                await asyncio.sleep(1)
+        debug_log('We are no longer processing items in the queue')
 
     async def process_ws_message_through_pipeline():
         '''Prepare each event we receive for processing
@@ -389,3 +421,5 @@ async def incoming_websocket_handler(request):
 
     # process websocket messages and begin executing events from the queue
     await asyncio.gather(process_ws_message_through_pipeline(), process_queue())
+
+    return ws
