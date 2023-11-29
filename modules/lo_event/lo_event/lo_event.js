@@ -125,7 +125,7 @@ export function go () {
     initialized = INIT_READY;
     queue.startDequeueLoop({
       initialize: isInitialized,
-      shouldDequeue: disabler.streamEvents,
+      shouldDequeue: disabler.retry,
       onDequeue: sendEvent
     });
   });

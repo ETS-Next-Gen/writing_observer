@@ -15,6 +15,7 @@
  */
 import { storage } from './browserStorage.js';
 import * as debug from './debugLog.js';
+import * as util from './util.js';
 
 export const EVENT_ACTION = {
   TRANSMIT: 'TRANSMIT',
@@ -28,8 +29,8 @@ export const EVENT_ACTION = {
  */
 export const TIME_LIMIT = {
   PERMANENT: -1,
-  MINUTES: 60 * 5 * (1 + Math.random()), // 5-10 minutes
-  DAYS: 60 * 60 * 24 * (1 + Math.random()) // 1-2 days
+  MINUTES: 1000 * 60 * 5 * (1 + Math.random()), // 5-10 minutes
+  DAYS: 1000 * 60 * 60 * 24 * (1 + Math.random()) // 1-2 days
 };
 
 const DISABLER_STORE = 'disablerState';
@@ -65,6 +66,7 @@ export async function init (defaults = null) {
         storedState = storedState[DISABLER_STORE] || {};
         action = storedState.action || DEFAULTS.action;
         expiration = storedState.expiration || DEFAULTS.expiration;
+        debug.info(`Initialized disabler. action: ${action} expiration: ${new Date(expiration).toString()}`);
         resolve();
       });
     }
@@ -89,10 +91,18 @@ export function streamEvents () {
   return action === EVENT_ACTION.TRANSMIT;
 }
 
-export function retry () {
+export async function retry () {
   if (expiration === TIME_LIMIT.PERMANENT) {
     return false;
   }
-
-  return Date.now() > expiration;
+  const now = Date.now();
+  if (now < expiration) {
+    debug.info(`waiting for expiration to happen ${new Date(expiration).toString()}`);
+    await util.delay(expiration - now);
+    debug.info('we are done waiting');
+  }
+  action = DEFAULTS.action;
+  expiration = DEFAULTS.expiration;
+  storage.set({ [DISABLER_STORE]: { action, expiration } });
+  return true;
 }

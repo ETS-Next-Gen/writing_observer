@@ -38,6 +38,7 @@ import learning_observer.exceptions
 
 import learning_observer.auth.events
 import learning_observer.adapters.adapter
+import learning_observer.blacklist
 
 
 def compile_server_data(request):
@@ -340,6 +341,10 @@ async def incoming_websocket_handler(request):
         event, we check for auth on an individual event wrapped
         in a list. This workflow feels a little weird. We should
         re-evaluate the auth code.
+        This code checks every event for auth info and will throw
+        an error on 99% of them since auth isn't present. This makes
+        for some confusing debug_log output since we'll see a lot
+        of unauthorized messages.
         '''
         nonlocal server_auth
         async for event in events:
@@ -374,6 +379,20 @@ async def incoming_websocket_handler(request):
             else:
                 event.update(lock_fields)
                 yield event
+
+    async def filter_blacklist_events(events):
+        '''This function stops the event pipeline if sources
+        should be blocked.
+        '''
+        async for event in events:
+            # TODO implement the following function
+            bl_status = learning_observer.blacklist.get_blacklist_status(event)
+            if bl_status['action'] == learning_observer.blacklist.ACTIONS.TRANSMIT:
+                yield event
+            else:
+                debug_log('Event is blacklisted.')
+                await ws.send_json(bl_status)
+                await ws.close()
 
     async def process_queue():
         '''We use this queue to process events once the
@@ -416,8 +435,10 @@ async def incoming_websocket_handler(request):
         events = decoder_and_logger(events)
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
+        events = filter_blacklist_events(events)
         async for event in events:
             await queue.put(event)
+        debug_log('We are done passing events through the pipeline.')
 
     # process websocket messages and begin executing events from the queue
     await asyncio.gather(process_ws_message_through_pipeline(), process_queue())

@@ -1,5 +1,5 @@
 import { Queue } from './queue.js';
-import { BlockError } from './disabler.js';
+import * as disabler from './disabler.js';
 import * as util from './util.js';
 import * as debug from './debugLog.js';
 
@@ -88,8 +88,12 @@ export function websocketLogger (server) {
     queue.startDequeueLoop({
       initialize: waitForWSReady,
       shouldDequeue: waitForWSReady,
-      onDequeue: (item) => socket.send(item)
+      onDequeue: socketSend
     });
+  }
+
+  async function socketSend (item) {
+    socket.send(item);
   }
 
   async function waitForWSReady () {
@@ -102,7 +106,7 @@ export function websocketLogger (server) {
     switch (response.status) {
       case 'blocklist':
         debug.info('Received block error from server');
-        blockerror = new BlockError(
+        blockerror = new disabler.BlockError(
           response.message,
           response.time_limit,
           response.action
@@ -119,6 +123,7 @@ export function websocketLogger (server) {
       console.log('Throwing block error');
       const b = blockerror;
       blockerror = null;
+      socket.close();
       throw b;
     }
   }

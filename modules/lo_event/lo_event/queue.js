@@ -14,7 +14,7 @@ const queueClasses = {
   [QueueType.PERSISTENT]: indexeddbQueue.Queue
 };
 
-function autodetect() {
+function autodetect () {
   if (typeof indexedDB === 'undefined') {
     return QueueType.IN_MEMORY;
   } else {
