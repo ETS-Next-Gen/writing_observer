@@ -328,7 +328,6 @@ async def authenticate(request, headers, first_event, source):
                 )
             return auth_metadata
 
-    print("All authentication methods failed. Unauthorized.")
     raise aiohttp.web.HTTPUnauthorized()
 
 

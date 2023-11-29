@@ -1,12 +1,16 @@
+# HACK: These are Enum in nature; however, Python Enum's
+# module would require us to add a `.name` or `.value` when
+# we call the items in order to get the value. We want to
+# pass the values downstream to lo_event.
+# TODO These values ought to live in a shared space to be
+# imported by both this code and lo_event.
 class ACTIONS:
     pass
+action_modes = ['TRANSMIT', 'MAINTAIN', 'DROP']
+[setattr(ACTIONS, action, action) for action in action_modes]
 
 class TIME_LIMITS:
     pass
-
-
-action_modes = ['TRANSMIT', 'MAINTAIN', 'DROP']
-[setattr(ACTIONS, action, action) for action in action_modes]
 time_limits = ['PERMANENT', 'MINUTES', 'DAYS']
 [setattr(TIME_LIMITS, limit, limit) for limit in time_limits]
 

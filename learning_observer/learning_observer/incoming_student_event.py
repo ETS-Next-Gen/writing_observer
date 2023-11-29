@@ -294,11 +294,8 @@ async def incoming_websocket_handler(request):
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
-    queue = asyncio.Queue()
-    ready_to_process = asyncio.Future()
-    connection_closed = asyncio.Event()
     lock_fields = {}
-    server_auth = None
+    authenticated = False
     event_handler = None
 
     decoder_and_logger = event_decoder_and_logger(request)
@@ -317,20 +314,18 @@ async def incoming_websocket_handler(request):
 
         if ws.closed:
             debug_log(f'ws connection closed for reason {ws.close_code}')
-            connection_closed.set()
 
     async def update_event_handler():
         '''We need source and auth ready before we can
         set up the `event_handler` and be ready to process
         events
         '''
-        if 'source' in lock_fields and server_auth is not None:
+        if 'source' in lock_fields and authenticated:
+            debug_log('Updating the event_handler()')
             nonlocal event_handler
             metadata = lock_fields.copy()
-            metadata['auth'] = server_auth
+            metadata['auth'] = authenticated
             event_handler = await handle_incoming_client_event(metadata=metadata)
-            if not ready_to_process.done():
-                ready_to_process.set_result(True)
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -342,31 +337,35 @@ async def incoming_websocket_handler(request):
         event, we check for auth on an individual event wrapped
         in a list. This workflow feels a little weird. We should
         re-evaluate the auth code.
-        This code checks every event for auth info and will throw
-        an error on 99% of them since auth isn't present. This makes
-        for some confusing debug_log output since we'll see a lot
-        of unauthorized messages.
+
+        TODO We should consider stopping the loop if we receive
+        enough events without receiving the authentication info.
         '''
-        nonlocal server_auth
+        nonlocal authenticated
+        backlog = []
+
         async for event in events:
             if 'auth' in event:
                 raise ValueError('Auth already exists in event, someone may be trying to hack the system')
-            try:
-                event_auth = await learning_observer.auth.events.authenticate(
-                    request=request,
-                    headers=[event],
-                    first_event={},
-                    source=''
-                )
-                if event_auth != server_auth:
-                    server_auth = event_auth
+            if not authenticated:
+                try:
+                    authenticated = await learning_observer.auth.events.authenticate(
+                        request=request,
+                        headers=[event],
+                        first_event={},
+                        source=''
+                    )
                     await update_event_handler()
-
-            except:
-                pass
-            if server_auth is not None:
-                event['auth'] = server_auth
-            yield event
+                except aiohttp.web.HTTPUnauthorized:
+                    debug_log('We have not yet received messages with auth information.')
+                backlog.append(event)
+            else:
+                while backlog:
+                    prior_event = backlog.pop(0)
+                    prior_event.update({'auth': authenticated})
+                    yield prior_event
+                event.update({'auth': authenticated})
+                yield event
 
     async def decode_lock_fields(events):
         '''This function updates our overall lock_field
@@ -395,39 +394,12 @@ async def incoming_websocket_handler(request):
                 await ws.send_json(bl_status)
                 await ws.close()
 
-    async def process_queue():
-        '''We use this queue to process events once the
-        system is ready to handle them.
+    async def pass_through_reducers(events):
+        '''Pass events through the reducers
         '''
-        # wait for the system to be ready to process events
-        try:
-            await asyncio.wait_for(ready_to_process, 10)
-        except asyncio.TimeoutError:
-            debug_log('Waited too long for auth and source, closing connection')
-            await ws.close()
-            return
-
-        debug_log('Starting to process queue')
-        while True:
-            # fetch either the next item from the queue OR
-            # when the connection is closed.
-            queue_task = asyncio.create_task(queue.get())
-            closed_task = asyncio.create_task(connection_closed.wait())
-
-            done, pending = await asyncio.wait([queue_task, closed_task], return_when=asyncio.FIRST_COMPLETED)
-            # cancel any remaining tasks
-            for task in pending:
-                task.cancel()
-
-            if closed_task in done:
-                debug_log('ws connection closed, exiting queue processing loop')
-                break
-
-            if queue_task in done:
-                event = queue_task.result()
-                await event_handler(request, event)
-                queue.task_done()
-        debug_log('We are no longer processing items in the queue')
+        async for event in events:
+            await event_handler(request, event)
+            yield event
 
     async def process_ws_message_through_pipeline():
         '''Prepare each event we receive for processing
@@ -437,11 +409,13 @@ async def incoming_websocket_handler(request):
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)
+        events = pass_through_reducers(events)
+        # empty loop to start the generator pipeline
         async for event in events:
-            await queue.put(event)
+            pass
         debug_log('We are done passing events through the pipeline.')
 
     # process websocket messages and begin executing events from the queue
-    await asyncio.gather(process_ws_message_through_pipeline(), process_queue())
+    await process_ws_message_through_pipeline()
 
     return ws
