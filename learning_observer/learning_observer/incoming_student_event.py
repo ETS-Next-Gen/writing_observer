@@ -329,7 +329,8 @@ async def incoming_websocket_handler(request):
             metadata = lock_fields.copy()
             metadata['auth'] = server_auth
             event_handler = await handle_incoming_client_event(metadata=metadata)
-            ready_to_process.set_result(True)
+            if not ready_to_process.done():
+                ready_to_process.set_result(True)
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
