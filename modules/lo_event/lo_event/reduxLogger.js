@@ -25,10 +25,16 @@ const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
 const EMIT_SET_STATE = 'SET_STATE';
 
-// Action creator function
+// Action creator function This is a little bit messy, since we
+// duplicate type from the payload. It's not clear if this is a good
+// idea. We used to have `type` be set to the current contents of
+// `redux_type`. However, for debugging / logging tools
+// (e.g. redux-dev-tools), it was convenient to have this match up to
+// the internal event type.
 const emitEvent = (event) => {
   return {
-    type: EMIT_EVENT,
+    redux_type: EMIT_EVENT,
+    type: JSON.parse(event).event,
     payload: event
   };
 };
@@ -36,6 +42,7 @@ const emitEvent = (event) => {
 // Action creator function
 const emitSetField = (setField) => {
   return {
+    redux_type: EMIT_LOCKFIELDS,
     type: EMIT_LOCKFIELDS,
     payload: setField
   };
@@ -43,6 +50,7 @@ const emitSetField = (setField) => {
 
 const emitSetState = (state) => {
   return {
+    redux_type: EMIT_SET_STATE,
     type: EMIT_SET_STATE,
     payload: state
   };
@@ -79,12 +87,15 @@ const BASE_REDUCERS = {
 const APPLICATION_REDUCERS = {
 }
 
-export const registerReducer = (key, reducer) => {
-  if (!APPLICATION_REDUCERS[key])
-    APPLICATION_REDUCERS[key] = [];
+export const registerReducer = (keys, reducer) => {
+  const reducerKeys = Array.isArray(keys) ? keys : [keys];
 
-  APPLICATION_REDUCERS[key].push(reducer);
+  reducerKeys.forEach(key => {
+    if (!APPLICATION_REDUCERS[key])
+      APPLICATION_REDUCERS[key] = [];
 
+    APPLICATION_REDUCERS[key].push(reducer);
+  });
   return reducer;
 };
 
@@ -93,9 +104,9 @@ const reducer = (state = {}, action) => {
   let payload;
 
   console.log("Reducing ", action," on ", state);
-  state = BASE_REDUCERS[action.type] ? composeReducers(...BASE_REDUCERS[action.type])(state, action) : state;
+  state = BASE_REDUCERS[action.redux_type] ? composeReducers(...BASE_REDUCERS[action.redux_type])(state, action) : state;
 
-  if (action.type === EMIT_EVENT) {
+  if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
     console.log(Object.keys(payload));
 
@@ -110,10 +121,17 @@ const reducer = (state = {}, action) => {
 
 const eventQueue = [];
 const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) || redux.compose;
+
+
+// This should just be redux.applyMiddleware(thunk))
+// There is a bug in our version of redux-thunk where, in node, this must be thunk.default.
+//
+// This shows up as an error in the test case. If the error goes away, we should switch this
+// back to thunk.
 export let store = redux.createStore(
   reducer,
   {event: null}, // Base state
-  composeEnhancers(redux.applyMiddleware(thunk))
+  composeEnhancers(redux.applyMiddleware(thunk.default || thunk))
 );
 let promise = null;
 let previousEvent = null;
@@ -129,7 +147,7 @@ let eventSubscribers = [];
   Example usage:
   ```
   const rootReducer = composeReducers(reducer1, reducer2, reducer3);
-  const finalState = rootReducer(initialState, { type: 'SOME_ACTION' });
+  const finalState = rootReducer(initialState, { redux_type: 'SOME_ACTION' });
   ```
 */
 function composeReducers(...reducers) {
