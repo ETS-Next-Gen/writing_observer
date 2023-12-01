@@ -88,15 +88,17 @@ if (typeof b !== 'undefined') {
 } else if (typeof localStorage !== 'undefined') {
   // Add compatibility modifications for localStorage
   debug.info('Setting storage to localStorage');
-  localStorage.get = getWithCallback(localStorage.getItem);
-  localStorage.set = setWithCallback(localStorage.setItem);
-  storage = localStorage;
+  storage = {
+    get: getWithCallback(localStorage.getItem.bind(localStorage)),
+    set: setWithCallback(localStorage.setItem.bind(localStorage))
+  };
 } else if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
   // Add compatibility modifications for window.localStorage
   debug.info('Setting storage to window.localStorage');
-  window.localStorage.get = getWithCallback(window.localStorage.getItem);
-  window.localStorage.set = setWithCallback(window.localStorage.setItem);
-  storage = window.localStorage;
+  storage = {
+    get: getWithCallback(window.localStorage.getItem.bind(window.localStorage)),
+    set: setWithCallback(window.localStorage.setItem.bind(window.localStorage))
+  };
 } else {
   // If none of the above options exist, fall back to thunkStorage or exit gracefully
   debug.info('Setting storage to default, thunkStorage');
