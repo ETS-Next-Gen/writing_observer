@@ -348,6 +348,9 @@ async def incoming_websocket_handler(request):
             if 'auth' in event:
                 raise ValueError('Auth already exists in event, someone may be trying to hack the system')
             if not authenticated:
+                # TODO: In the current code flow, this should not be an exception
+                # Lack of authentication is now an expected behavior until we receive enough events.
+                # As the code is now, an exception is slower and less readable than an if or while statement
                 try:
                     authenticated = await learning_observer.auth.events.authenticate(
                         request=request,
