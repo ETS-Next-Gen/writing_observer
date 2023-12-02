@@ -1,3 +1,6 @@
+# TODO: Remove original files, keep only the nicely formatted .json ones
+# TODO: Consider moving into Python and main tool
+
 wget https://registry.tincanapi.com/api/v1/uris/verb
 wget https://registry.tincanapi.com/api/v1/profile
 wget https://registry.tincanapi.com/api/v1/uris/extension
