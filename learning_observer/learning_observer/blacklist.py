@@ -1,7 +1,8 @@
-# HACK: These are Enum in nature; however, Python Enum's
-# module would require us to add a `.name` or `.value` when
-# we call the items in order to get the value. We want to
-# pass the values downstream to lo_event.
+# TODO:
+# ACTIONS = enum.StrEnum("ACTIONS", names=('TRANSMIT', 'MAINTAIN', 'DROP'))
+#
+# I believe the above requires Python 3.11 or newer.
+
 # TODO These values ought to live in a shared space to be
 # imported by both this code and lo_event.
 class ACTIONS:
@@ -31,7 +32,7 @@ def get_blacklist_status(event):
         return {
             'status': 'blocklist',
             'action': ACTIONS.MAINTAIN,
-            'time_limit': TIME_LIMITS.MINUTES,
+            'time_limit': TIME_LIMITS.MINUTES,  # Note this could (and usually would) be a number, but we have a few defaults like 'MINUTES' defined
             'message': 'You are blocked for now'
         }
     if False:
