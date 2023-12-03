@@ -1,3 +1,8 @@
+// Start of a test of the queue.
+//
+// TODO: Finish, then test both types of queue, and then in node and
+// browser, as well as various failure conditions.
+
 import { Queue } from '../lo_event/queue.js';
 import { delay } from '../lo_event/util.js';
 
