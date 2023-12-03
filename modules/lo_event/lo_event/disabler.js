@@ -3,6 +3,9 @@
  *
  * Unfinished. We need to flush out storage.js and connect to make
  * this work.
+ *
+ * TODO: At least document what's unfinished and what work is remaining. It
+ * looks like there was some progress since the above was written.
  */
 
 /*
