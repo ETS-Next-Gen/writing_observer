@@ -17,6 +17,9 @@
  * NOTE: When we had our own counter for the id, we did notice that the node
  * environment (indexeddb-js or sqlite3) handled keys differently, thus
  * returning items out of order.
+ *
+ * TODO: This needs a very good code review. We weren't able to do
+ * this before merge.
  */
 import * as debug from './debugLog.js';
 import * as util from './util.js';
