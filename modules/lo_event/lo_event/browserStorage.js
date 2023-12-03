@@ -1,5 +1,14 @@
-// Most of this code is not finished. It outlines the general planned
-// logic, but we have no idea how much of this works.
+// We often need a KVS to store things like settings.
+
+// This code is not fully tested. Much of it works, but there are
+// pathways and fallbacks which might not.
+
+// TODO: Add test cases for all pathways and fallbacks. This kind of code
+// is very tough to debug otherwise.
+
+// This code is a little bit rough since it needs to work across many
+// environments (different browsers, browser permissions, in node, in
+// extensions, etc.). It's hard to know how it will behave everywhere.
 
 // The idea here is we need a key-value store for many purposes, but
 // especially, opt-out / opt-in. This allows us to use:
@@ -16,7 +25,8 @@
 import * as debug from './debugLog.js';
 
 // thunkStorage mirrors the capability of `chrome.storage.sync`
-// this is used mostly for testing purposes
+// this is used for testing purposes, as well as a fallback if
+// chrome.storage.sync is unavailable.
 const thunkStorage = {
   data: {},
   set: function (items, callback) {
@@ -42,6 +52,7 @@ const thunkStorage = {
   }
 };
 
+// TODO: Docstring
 function getWithCallback (getItem) {
   function get (items, callback) {
     if (typeof items === 'string') {
@@ -56,6 +67,7 @@ function getWithCallback (getItem) {
   return get;
 }
 
+// TODO: Docstring
 function setWithCallback (setItem) {
   function set (items, callback) {
     console.log('setting item', items);
@@ -77,6 +89,8 @@ if (typeof browser !== 'undefined') {
   b = chrome;
 }
 
+// TODO: Document general logic flow. When do we get each of these and
+// in what order?
 if (typeof b !== 'undefined') {
   if (b.storage && b.storage.sync) {
     debug.info('Setting storage to storage.sync');
