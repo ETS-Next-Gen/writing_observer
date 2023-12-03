@@ -206,8 +206,9 @@ def initialize_and_register_routes(app):
             '''
             And the actual handler....
             '''
+            runtime = learning_observer.runtime.Runtime(request)
             response = await raw_google_ajax(
-                request,
+                runtime,
                 remote_url,
                 **request.match_info
             )
@@ -425,9 +426,27 @@ def extract_text_from_google_doc_json(
     return {'text': text}
 
 
+@register_cleaner("coursework_submissions", "assigned_docs")
+def clean_assignment_docs(google_json):
+    '''
+    Retrieve set of documents per student associated with an assignment
+    '''
+    student_submissions = google_json.get('studentSubmissions', [])
+    for student_json in student_submissions:
+        google_id = student_json['user_id']
+        local_id = learning_observer.auth.google_id_to_user_id(google_id)
+        student_json['user_id'] = local_id
+        docs = [d['driveFile'] for d in learning_observer.util.get_nested_dict_value(student_json, 'assignmentSubmission.attachments', []) if 'driveFile' in d]
+        student_json['documents'] = docs
+        # TODO we should probably remove some of the keys provided
+    return student_submissions
+
+
 if __name__ == '__main__':
     import json
     import sys
     j = json.load(open(sys.argv[1]))
-    extract_text_from_google_doc_json(j, align=False, EXTRACT_DEBUG_CHECKS=True)
-    extract_text_from_google_doc_json(j, align=True, EXTRACT_DEBUG_CHECKS=True)
+    # extract_text_from_google_doc_json(j, align=False, EXTRACT_DEBUG_CHECKS=True)
+    # extract_text_from_google_doc_json(j, align=True, EXTRACT_DEBUG_CHECKS=True)
+    output = clean_assignment_docs(j)
+    print(json.dumps(output, indent=2))

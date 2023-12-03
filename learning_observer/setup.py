@@ -7,6 +7,7 @@ virtualenv, preferably.
 
 from setuptools import setup
 from setuptools.command.develop import develop as _develop
+from setuptools.command.install import install as _install
 
 import os
 import subprocess
@@ -38,7 +39,24 @@ class LOInstall(_develop):
     '''
     def run(self):
         _develop.run(self)
-        subprocess.run(['pip', 'install', '-v', '-e', 'git+https://github.com/ETS-Next-Gen/writing_observer.git#egg=lo_dash_react_components&subdirectory=modules/lo_dash_react_components'], env=modified_env)
+        result = subprocess.run(
+            ['pip', 'install', '-v', '-e', 'git+https://github.com/ETS-Next-Gen/writing_observer.git#egg=lo_dash_react_components&subdirectory=modules/lo_dash_react_components'],
+            env=modified_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+
+class LOInstallTEST(_install):
+    '''
+    LO_dash_react_components relies on Dash to be installed.
+    To ensure Dash (and any other downstream dependencies) are resolved first,
+    we install LODRC after the install_requires
+    '''
+    def run(self):
+        _install.run(self)
+        result = subprocess.run(
+            ['pip', 'install', '-v', '-e', 'git+https://github.com/ETS-Next-Gen/writing_observer.git#egg=lo_dash_react_components&subdirectory=modules/lo_dash_react_components'],
+            env=modified_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
 
 
 setup(
@@ -48,6 +66,7 @@ setup(
         "awe": clean_requirements(awe_path)
     },
     cmdclass={
-        'develop': LOInstall
+        'develop': LOInstall,
+        'install': LOInstallTEST
     }
 )
