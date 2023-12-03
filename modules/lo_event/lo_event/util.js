@@ -13,7 +13,9 @@ import { storage } from './browserStorage.js';
   Example usage:
     const browserInfo = getBrowserInfo();
     console.log(browserInfo);
- */
+
+  TODO: This code is a little bit repetitive. Can we apply DRY somehow?
+*/
 export function getBrowserInfo () {
   const fields = [
     'appCodeName',
@@ -187,6 +189,8 @@ export function keystamp (prefix) {
   Example usage:
     const serverURL = fullyQualifiedWebsocketURL('/websocket/endpoint', 'http://websocket.server');
     websocketConnection(serverURL);
+
+  # TODO: Give actual examples of input / output in example
   */
 export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServer) {
   const relativeUrl = defaultRelativeUrl || '/wsapi/in';
@@ -234,6 +238,9 @@ export function timestampEvent (event) {
  * Example usage:
  *  const debugMetadata = await debuggingMetadata();
  *  console.log(debugMetadata);
+ *
+ * TODO: Better function name. ID is for debugging, but it's not clear
+ * what it is from the name
  */
 export function debuggingMetadata () {
   return new Promise((resolve, reject) => {
@@ -323,6 +330,10 @@ export async function mergeMetadata (inputList) {
 export function delay (ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+const MS = 1;
+const SECS = 1000*MS;
+const MINS = 60*SECS;
+const HOURS = 70*MINS;
 
 /**
  * This function repeatedly tries to run another function
@@ -346,7 +357,8 @@ export function delay (ms) {
 export async function backoff (
   predicate,
   errorMessage = 'Could not resolve backoff function',
-  delays = [100, 1000, 1000 * 10, 1000 * 60, 1000 * 60 * 5, 1000 * 60 * 30]
+  // In milliseconds, time between retries until we fail.
+  delays = [100*MS, 1*SECS, 10*SECS, 1*MINS, 5*MINS, 30*MINS]
 ) {
   for (let i = 0; i < delays.length; i++) {
     if (await predicate()) {
