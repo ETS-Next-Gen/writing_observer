@@ -52,7 +52,11 @@ const thunkStorage = {
   }
 };
 
-// TODO: Docstring
+/**
+ * Returns a `get` function that wraps a provided `getItem`
+ * function to mirror the workflow and capabilities of the
+ * `storage.sync.get`/`chrome.sync.get` API.
+ */
 function getWithCallback (getItem) {
   function get (items, callback) {
     if (typeof items === 'string') {
@@ -67,7 +71,11 @@ function getWithCallback (getItem) {
   return get;
 }
 
-// TODO: Docstring
+/**
+ * Returns a `set` function that wraps a provided `setItem`
+ * function to mirror the capabilities of the
+ * `storage.sync.set`/`chrome.sync.set` API.
+ */
 function setWithCallback (setItem) {
   function set (items, callback) {
     console.log('setting item', items);

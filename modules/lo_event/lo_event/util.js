@@ -331,9 +331,9 @@ export function delay (ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 const MS = 1;
-const SECS = 1000*MS;
-const MINS = 60*SECS;
-const HOURS = 70*MINS;
+const SECS = 1000 * MS;
+const MINS = 60 * SECS;
+const HOURS = 60 * MINS;
 
 /**
  * This function repeatedly tries to run another function
@@ -358,7 +358,7 @@ export async function backoff (
   predicate,
   errorMessage = 'Could not resolve backoff function',
   // In milliseconds, time between retries until we fail.
-  delays = [100*MS, 1*SECS, 10*SECS, 1*MINS, 5*MINS, 30*MINS]
+  delays = [100 * MS, 1 * SECS, 10 * SECS, 1 * MINS, 5 * MINS, 30 * MINS]
 ) {
   for (let i = 0; i < delays.length; i++) {
     if (await predicate()) {

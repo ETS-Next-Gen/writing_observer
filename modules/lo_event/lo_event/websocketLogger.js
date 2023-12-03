@@ -11,8 +11,8 @@ export function websocketLogger (server) {
     robust about queuing events before we have a socket open or during
     a network failure.
   */
-  let socket;  // Our actual socket used to send and receive data.
-  let WSLibrary;  // For compatibility between node and browser, this either points to the browser WebSocket or to a compatibility library.
+  let socket; // Our actual socket used to send and receive data.
+  let WSLibrary; // For compatibility between node and browser, this either points to the browser WebSocket or to a compatibility library.
   const queue = new Queue('websocketLogger');
   // This holds an exception, if we're blacklisted, between the web
   // socket and the API. We generate this when we receive a message,
