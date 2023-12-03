@@ -1,7 +1,9 @@
 /*
  * This is a small in-memory queue class. It is designed to:
- * - Allow us to experiment with interfaces, as we try to abstract the queue out of lo_event, websocket, etc.
- * - Work everywhere / act as a fallback where indexeddb is unavailable
+ * - Allow us to experiment with interfaces, as we try to abstract the queue out of lo_event, websocket, etc., without moving all the indexeddb code
+ * - Works everywhere / act as a fallback where indexeddb is unavailable
+ * - Nice for dev, where we don't want to persist events from buggy code
+ * - Nice for simple use-cases
  */
 
 export class Queue {
