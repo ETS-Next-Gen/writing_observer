@@ -5,11 +5,20 @@ import * as debug from './debugLog.js';
 
 export function websocketLogger (server) {
   /*
-     Log to web socket server.
+    This is a pretty complex logger, which sends events over a web
+    socket. Most of the complexity comes from reconnections, retries,
+    etc. and the need to keep robust queues, as well as the need be
+    robust about queuing events before we have a socket open or during
+    a network failure.
   */
-  let socket;
-  let WS;
+  let socket;  // Our actual socket used to send and receive data.
+  let WSLibrary;  // For compatibility between node and browser, this either points to the browser WebSocket or to a compatibility library.
   const queue = new Queue('websocketLogger');
+  // This holds an exception, if we're blacklisted, between the web
+  // socket and the API. We generate this when we receive a message,
+  // which is not a helpful place to raise the exception from, so we
+  // keep this around until we're called from the client, and then we
+  // raise it there.
   let blockerror;
   let firstConnection = true;
   let metadata = {};
@@ -42,7 +51,7 @@ export function websocketLogger (server) {
   function socketClosed () { return wsFailurePromise; }
 
   function newWebsocket () {
-    socket = new WS(server);
+    socket = new WSLibrary(server);
     wsFailurePromise = new Promise((resolve, reject) => {
       wsFailureResolve = resolve;
     });
@@ -82,6 +91,8 @@ export function websocketLogger (server) {
         }
       });
     } else {
+      // TODO: Check if this is right. We probably want to send a lot
+      // of this stuff on future connections too.
       firstConnection = false;
     }
 
@@ -136,10 +147,10 @@ export function websocketLogger (server) {
   wsLogData.init = async function (metadata) {
     if (typeof WebSocket === 'undefined') {
       debug.info('Importing ws');
-      WS = (await import('ws')).WebSocket;
+      WSLibrary = (await import('ws')).WebSocket;
     } else {
       debug.info('Using built-in websocket');
-      WS = WebSocket;
+      WSLibrary = WebSocket;
     }
     startWebsocketConnectionLoop();
   };
