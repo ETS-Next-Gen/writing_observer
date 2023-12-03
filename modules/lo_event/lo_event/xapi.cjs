@@ -1,3 +1,7 @@
+// TODO: All of this needs better function names, comments, etc.
+//
+// We want a general code cleanup.
+
 const activityTypeApi = require('../xapi/activityType.json');
 const attachmentUsageApi = require('../xapi/attachmentUsage.json');
 const extensionApi = require('../xapi/extension.json');
