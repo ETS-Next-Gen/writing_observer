@@ -1,3 +1,8 @@
+// TODO:
+// * Document
+// * More test cases
+// * Much better description strings
+
 import * as util from '../lo_event/util.js';
 
 let someAsyncCondition = false;
