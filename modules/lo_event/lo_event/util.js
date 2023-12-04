@@ -1,6 +1,26 @@
 import * as crypto from 'crypto';
 import { storage } from './browserStorage.js';
 
+/**
+ * Helper function for copying specific field values
+ * from a given source. This is called to collect browser
+ * information if available.
+ *
+ * Example usage:
+ *  const copied = copyFields({ a: 1, b: 2, c: 3 }, ['a', 'b'])
+ *  console.log(copied)
+ *  // expected output: { a: 1, b: 2 }
+ */
+function copyFields (source, fields) {
+  const result = {};
+  if (source) {
+    fields.forEach(field => {
+      result[field] = source[field];
+    });
+  }
+  return result;
+}
+
 /*
   Browser information object, primarily for debugging. Note that not
   all fields will be available in all browsers and contexts. If not
@@ -13,8 +33,6 @@ import { storage } from './browserStorage.js';
   Example usage:
     const browserInfo = getBrowserInfo();
     console.log(browserInfo);
-
-  TODO: This code is a little bit repetitive. Can we apply DRY somehow?
 */
 export function getBrowserInfo () {
   const fields = [
@@ -86,40 +104,19 @@ export function getBrowserInfo () {
     'status'
   ];
 
-  const browserInfo = {};
-
-  if (typeof navigator === 'undefined') {
-    browserInfo.navigator = null;
-  } else {
-    for (let i = 0; i < fields.length; i++) {
-      browserInfo[fields[i]] = navigator[fields[i]];
-    }
-
-    browserInfo.connection = {};
-    if (navigator.connection) {
-      for (let i = 0; i < connectionFields.length; i++) {
-        browserInfo.connection[connectionFields[i]] = navigator.connection[connectionFields[i]];
-      }
-    }
-  }
-
-  if (typeof document === 'undefined') {
-    browserInfo.document = null;
-  } else {
-    browserInfo.document = {};
-    for (let i = 0; i < documentFields.length; i++) {
-      browserInfo.document[documentFields[i]] = document[documentFields[i]];
-    }
-  }
-
-  if (typeof window === 'undefined') {
-    browserInfo.window = null;
-  } else {
-    browserInfo.window = {};
-    for (let i = 0; i < windowFields.length; i++) {
-      browserInfo.window[windowFields[i]] = window[windowFields[i]];
-    }
-  }
+  /**
+   * You may see the code and think we should abstract the check
+   * for undefined into the `copyFields` function; however, Javascript
+   * does not allow us to pass a variable that has yet to be defined
+   * to any functions. Thus, we need to check for undefined status
+   * before passing to `copyFields`.
+   */
+  const browserInfo = {
+    navigator: typeof navigator !== 'undefined' ? copyFields(navigator, fields) : null,
+    connection: typeof navigator !== 'undefined' && navigator.connection ? copyFields(navigator.connection, connectionFields) : null,
+    document: typeof document !== 'undefined' ? copyFields(document, documentFields) : null,
+    window: typeof window !== 'undefined' ? copyFields(window, windowFields) : null
+  };
 
   return { browser_info: browserInfo };
 }
@@ -187,10 +184,9 @@ export function keystamp (prefix) {
   * Convert HTTP/HTTPS URLs into WS/WSS ones, if necessary
 
   Example usage:
-    const serverURL = fullyQualifiedWebsocketURL('/websocket/endpoint', 'http://websocket.server');
-    websocketConnection(serverURL);
-
-  # TODO: Give actual examples of input / output in example
+    fullyQualifiedWebsocketURL('/websocket/endpoint', 'http://websocket.server');
+    // Expected output: ws://websocket.server/websocket/endpoint
+    // See tests for more examples
   */
 export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServer) {
   const relativeUrl = defaultRelativeUrl || '/wsapi/in';
@@ -236,13 +232,11 @@ export function timestampEvent (event) {
  * parse events when debugging in specific contexts.
  *
  * Example usage:
- *  const debugMetadata = await debuggingMetadata();
+ *  const debugMetadata = await fetchDebuggingIdentifier();
  *  console.log(debugMetadata);
- *
- * TODO: Better function name. ID is for debugging, but it's not clear
- * what it is from the name
+ *  // Expected output: { logger_id: <unique_logger_id> }
  */
-export function debuggingMetadata () {
+export function fetchDebuggingIdentifier () {
   return new Promise((resolve, reject) => {
     const metadata = {};
 
@@ -335,36 +329,61 @@ const SECS = 1000 * MS;
 const MINS = 60 * SECS;
 const HOURS = 60 * MINS;
 
+export const TERMINATION_POLICY = {
+  DIE: 'DIE',
+  RETRY: 'RETRY'
+};
+
 /**
  * This function repeatedly tries to run another function
  * until it returns a truthy value while waiting a set amount
  * of time inbetween each attempt.
+ *
+ * The system will either terminate when we have await each
+ * delay amount in the `delays` list (TERMINATION_POLICY.DIE)
+ * OR we continue retrying using the last item in our `delays`
+ * list until we reach the `maxRetries` (TERMINATION_POLICY.RETRY).
  *
  * Example usage:
  *  util.backoff(checkCondition, 'Condition not met after retries.')
  *    .then(() => console.log('Condition met.'))
  *    .catch(error => console.error(error.message));
  *
- * TODO we ought to allow different termination conditions
- * e.g. die vs continue retrying with last delay amount
- *
  * @param {*} predicate function that returns truthy value
  * @param {*} errorMessage message to be thrown when we run out of delays
  * @param {*} delays list of MS values to be await in order
  * @default delays defaults to [100ms, 1sec, 1min, 5min, 30min]
+ * @param {*} terminationPolicy when to be done retrying
+ * @default terminationPolicy defaults to TERMINATION_POLICY.DIE
+ * @param {*} maxRetries number of maximum retries when terminationPolicy is set to RETRY
+ * @default maxRetries defaults to Infinity
  * @returns returns when predicate is true or throws errorMessage
  */
 export async function backoff (
   predicate,
   errorMessage = 'Could not resolve backoff function',
   // In milliseconds, time between retries until we fail.
-  delays = [100 * MS, 1 * SECS, 10 * SECS, 1 * MINS, 5 * MINS, 30 * MINS]
+  delays = [100 * MS, 1 * SECS, 10 * SECS, 1 * MINS, 5 * MINS, 30 * MINS],
+  terminationPolicy = TERMINATION_POLICY.DIE,
+  maxRetries = Infinity
 ) {
-  for (let i = 0; i < delays.length; i++) {
+  let retryCount = 0;
+  while (true) {
     if (await predicate()) {
       return true;
     }
-    await delay(delays[i]);
+    // terminate if we are done with delays list
+    if (terminationPolicy === TERMINATION_POLICY.DIE && retryCount >= delays.length) {
+      break;
+    }
+    const delayTime = retryCount < delays.length ? delays[retryCount] : delays[delays.length - 1];
+    await delay(delayTime);
+
+    retryCount++;
+    // terminate if past max retries
+    if (terminationPolicy === TERMINATION_POLICY.RETRY && retryCount > maxRetries) {
+      break;
+    }
   }
   throw new Error(errorMessage);
 }

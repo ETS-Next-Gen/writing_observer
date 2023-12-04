@@ -394,7 +394,6 @@ async def incoming_websocket_handler(request):
             if event['event'] == 'lock_fields':
                 if event['fields'].get('source', '') != lock_fields.get('source', ''):
                     lock_fields.update(event['fields'])
-                    await update_event_handler()
             else:
                 event.update(lock_fields)
                 yield event
