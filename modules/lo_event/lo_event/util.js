@@ -104,13 +104,6 @@ export function getBrowserInfo () {
     'status'
   ];
 
-  /**
-   * You may see the code and think we should abstract the check
-   * for undefined into the `copyFields` function; however, Javascript
-   * does not allow us to pass a variable that has yet to be defined
-   * to any functions. Thus, we need to check for undefined status
-   * before passing to `copyFields`.
-   */
   const browserInfo = {
     navigator: typeof navigator !== 'undefined' ? copyFields(navigator, fields) : null,
     connection: typeof navigator !== 'undefined' && navigator.connection ? copyFields(navigator.connection, connectionFields) : null,
