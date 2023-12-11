@@ -43,6 +43,30 @@ print(ARGS)
 STREAMS = int(ARGS["--streams"])
 
 
+def increment_port(url):
+    '''
+    http://localhost:8888/wsapi/in/ ==> http://localhost:8889/wsapi/in/
+
+    Not very general; hackish.
+    '''
+    # Split the URL into the protocol, domain, and port
+    protocol, blank, domain, *rest = url.split("/")
+
+    # Split the domain into its parts
+    parts = domain.split(":")
+
+    # Get the current port
+    current_port = int(parts[-1])
+
+    # Increment the port by 1
+    new_port = current_port + 1
+
+    # Build the new URL
+    new_url = f"{protocol}//{':'.join(parts[:-1])}:{new_port}/{'/'.join(rest)}"
+
+    return new_url
+
+
 def argument_list(argument, default):
     '''
     Parse a list argument, with defaults. Allow one global setting, or per-stream
@@ -148,15 +172,29 @@ async def stream_document(text, ici, user, doc_id):
     '''
     Send a document to the server.
     '''
-    async with aiohttp.ClientSession() as session:
-        async with session.ws_connect(ARGS["--url"]) as web_socket:
-            commands = identify(user)
-            for command in commands:
-                await web_socket.send_str(json.dumps(command))
-            for char, index in zip(text, range(len(text))):
-                command = insert(index + 1, char, doc_id)
-                await web_socket.send_str(json.dumps(command))
-                await asyncio.sleep(float(ici))
+    retries_remaining = 5
+    done = False
+    url = ARGS["--url"]
+    while not done:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(url) as web_socket:
+                    commands = identify(user)
+                    for command in commands:
+                        await web_socket.send_str(json.dumps(command))
+                    for char, index in zip(text, range(len(text))):
+                        command = insert(index + 1, char, doc_id)
+                        await web_socket.send_str(json.dumps(command))
+                        await asyncio.sleep(float(ici))
+            done = True
+        except aiohttp.client_exceptions.ClientConnectorError:
+            print("Failed to connect on " + url)
+            retries_remaining = retries_remaining - 1
+            if retries_remaining == 0:
+                print("Failed to connect. Tried ports up to "+url)
+                done = True
+            url = increment_port(url)
+            print("Trying to connect on " + url)
 
 
 async def run():
