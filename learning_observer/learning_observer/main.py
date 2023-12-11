@@ -102,13 +102,11 @@ def shutdown(app):
     return app
 
 
-def start():
+def start(app):
     '''
     Start the application.
     '''
-    global app
     # Reload all imports
-    app = create_app()
     aiohttp.web.run_app(app, port=port)
     return app
 
@@ -134,7 +132,13 @@ if args.watchdog is not None:
     )
     learning_observer.watchdog_observer.watchdog(fs_event_handler)
 
-app = start()
+app = create_app()
+
+if args.console:
+    import IPython
+    IPython.embed()
+else:
+    start(app)
 
 # Port printing:
 #

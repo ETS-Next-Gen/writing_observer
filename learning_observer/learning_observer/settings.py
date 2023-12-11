@@ -52,6 +52,12 @@ def parse_and_validate_arguments():
         help='Run in watchdog mode. This will restart on file changes.',
         default=None)
 
+    parser.add_argument(
+        '--console',
+        help='Instead of launching a web server, run a debug console.',
+        default=None,
+        action='store_true')
+
     args = parser.parse_args()
 
     if not os.path.exists(args.config_file):
