@@ -285,6 +285,17 @@ def event_decoder_and_logger(
     return decode_and_log_event
 
 
+async def failing_event_handler(*args, **kwargs):
+    '''
+    Give a proper AIO HTTP exception if we don't find an
+    appropriate event handler or another error condition happens
+    '''
+    exception_text = "Event handler not set.\n" \
+        "This probably means we do not have proper\n" \
+        "metadata sent before the event stream"
+    raise aiohttp.web.HTTPBadRequest(text=exception_text)
+
+
 async def incoming_websocket_handler(request):
     '''This handles incoming WebSocket requests. We pass each event
     through minimal processing before it is added to a queue. Once
@@ -296,7 +307,7 @@ async def incoming_websocket_handler(request):
     await ws.prepare(request)
     lock_fields = {}
     authenticated = False
-    event_handler = None
+    event_handler = failing_event_handler
 
     decoder_and_logger = event_decoder_and_logger(request)
 
@@ -315,17 +326,22 @@ async def incoming_websocket_handler(request):
         if ws.closed:
             debug_log(f'ws connection closed for reason {ws.close_code}')
 
-    async def update_event_handler():
+    async def update_event_handler(event):
         '''We need source and auth ready before we can
         set up the `event_handler` and be ready to process
         events
         '''
-        if 'source' in lock_fields and authenticated:
+        if not authenticated:
+            return
+
+        nonlocal event_handler
+        if 'source' in lock_fields:
             debug_log('Updating the event_handler()')
-            nonlocal event_handler
             metadata = lock_fields.copy()
-            metadata['auth'] = authenticated
-            event_handler = await handle_incoming_client_event(metadata=metadata)
+        else:
+            metadata = event
+        metadata['auth'] = authenticated
+        event_handler = await handle_incoming_client_event(metadata=metadata)
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -358,7 +374,7 @@ async def incoming_websocket_handler(request):
                         first_event={},
                         source=''
                     )
-                    await update_event_handler()
+                    await update_event_handler(event)
                 except aiohttp.web.HTTPUnauthorized:
                     debug_log('We have not yet received messages with auth information.')
                 backlog.append(event)

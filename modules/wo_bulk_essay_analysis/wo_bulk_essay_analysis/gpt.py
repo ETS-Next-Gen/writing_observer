@@ -5,10 +5,12 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 import learning_observer.communication_protocol.integration
+import learning_observer.prestartup
 import learning_observer.settings
 
 template = """[Task]\n{question}\n\n[Essay]\n{text}"""
 rubric_template = """{task}\n\n[Rubric]\n{rubric}"""
+gpt_responder = None
 
 
 class GPTAPI:
@@ -33,7 +35,19 @@ class OpenAIGPT(GPTAPI):
         return openai.ChatCompletion.create(model=self.model, messages=messages)
 
 
-gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
+@learning_observer.prestartup.register_startup_check
+def initialize_gpt_responder():
+    global gpt_responder
+    gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
+    if openai.api_key is None:
+        exception_text = 'OpenAI API Key Missing:\n'\
+            'Please ensure that the API Key is correctly configured in '\
+            '`creds.yaml` under `modules.writing_observer.openai_api_key`, '\
+            'or alternatively, set it as the `OPENAI_API_KEY` environment '\
+            'variable.\n'\
+            'You may also disable the `wo_bulk_essay_analysis` by '\
+            'uninstalling it from your local environment.'
+        raise learning_observer.prestartup.StartupCheck(exception_text)
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
