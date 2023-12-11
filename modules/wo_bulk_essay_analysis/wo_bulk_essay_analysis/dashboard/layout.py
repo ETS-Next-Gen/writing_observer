@@ -3,6 +3,7 @@ Define layout for dashboard that allows teachers to interface
 student essays with LLMs.
 '''
 import dash_bootstrap_components as dbc
+from dash_renderjson import DashRenderjson
 import lo_dash_react_components as lodrc
 
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
@@ -10,6 +11,11 @@ from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Inp
 prefix = 'bulk-essay-analysis'
 websocket = f'{prefix}-websocket'
 ws_store = f'{prefix}-ws-store'
+error_store = f'{prefix}-error-store'
+
+alert = f'{prefix}-alert'
+alert_text = f'{prefix}-alert-text'
+alert_error_dump = f'{prefix}-alert-error-dump'
 
 query_input = f'{prefix}-query-input'
 
@@ -95,6 +101,11 @@ def layout():
         ])
     ], class_name='h-100')
 
+    alert_component = dbc.Alert([
+        html.Div(id=alert_text),
+        html.Div(DashRenderjson(id=alert_error_dump), className='' if False else 'd-none')
+    ], id=alert, color='danger', is_open=False)
+
     # overall container
     cont = dbc.Container([
         html.H2('Prototype: Work in Progress'),
@@ -113,9 +124,11 @@ def layout():
             id=panel_layout
         ),
         dbc.Row([advanced]),
+        alert_component,
         dbc.Row(id=grid, class_name='g-2 mt-2'),
         lodrc.LOConnection(id=websocket),
-        dcc.Store(id=ws_store, data=[])
+        dcc.Store(id=ws_store, data=[]),
+        dcc.Store(id=error_store, data=False)
     ], fluid=True)
     return dcc.Loading(cont)
 
@@ -174,20 +187,19 @@ clientside_callback(
 
 # store message from LOConnection in storage for later use
 clientside_callback(
-    '''
-    function(message) {
-        const data = JSON.parse(message.data).wo.gpt_bulk || []
-        // TODO show alert on error
-        if (Object.prototype.hasOwnProperty.call(data, 'error')) {
-            console.error('Error received from server', data.error)
-            return []
-        }
-        return data
-    }
-    ''',
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='receive_ws_message'),
     Output(ws_store, 'data'),
+    Output(error_store, 'data'),
     Input(websocket, 'message'),
     prevent_initial_call=True
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_alert_with_error'),
+    Output(alert_text, 'children'),
+    Output(alert, 'is_open'),
+    Output(alert_error_dump, 'data'),
+    Input(error_store, 'data')
 )
 
 # update student cards based on new data in storage

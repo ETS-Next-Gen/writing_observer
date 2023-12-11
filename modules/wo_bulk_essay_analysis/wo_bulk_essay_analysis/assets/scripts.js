@@ -139,6 +139,18 @@ window.dash_clientside.bulk_essay_feedback = {
   },
 
   /**
+   * parse message from websocket to the data and error store
+   */
+  receive_ws_message: function (message) {
+    const data = JSON.parse(message.data).wo.gpt_bulk || [];
+    if (Object.prototype.hasOwnProperty.call(data, 'error')) {
+      console.error('Error received from server', data.error);
+      return [[], data.error];
+    }
+    return [data, false];
+  },
+
+  /**
    * adds submitted query to history and clear input
    */
   update_input_history_on_query_submission: async function (clicks, query, history) {
@@ -268,5 +280,21 @@ window.dash_clientside.bulk_essay_feedback = {
       return [newStore, shown.filter(item => item !== 'attachment')]
     }
     return tagStore
+  },
+
+  /**
+   * Check if we've received any errors and update
+   * the alert with the appropriate information
+   */
+  update_alert_with_error: function (error) {
+    if (!error) {
+      return ['', false, ''];
+    }
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, error];
   }
-}
+};
