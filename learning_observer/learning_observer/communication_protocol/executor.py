@@ -102,7 +102,8 @@ async def call_dispatch(functions, function_name, args, kwargs):
         raise DAGExecutionException(
             f'Function {function_name} did not execute properly during call.',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)}
+            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)},
+            e.__traceback__
         )
     return result
 
@@ -301,7 +302,8 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
-                error_provenance
+                error_provenance,
+                res.__traceback__
             ).to_dict()
         else:
             out = {'output': res}
@@ -359,7 +361,8 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
         raise DAGExecutionException(
             f'Could not find function `{function_name}` in available functions.',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)}
+            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)},
+            e.__traceback__
         )
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
