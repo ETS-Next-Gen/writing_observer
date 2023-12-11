@@ -119,7 +119,7 @@ window.dash_clientside.clientside = {
         // State({'type': student_indicators, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
         if (!msg) {
-            return [prev_metrics, prev_text, prev_highlights, prev_indicators, -1, 0];
+            return [prev_metrics, prev_text, prev_highlights, prev_indicators, [], -1, 0];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['docs_with_nlp']['nlp_combined'];
