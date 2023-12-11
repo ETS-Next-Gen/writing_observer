@@ -115,7 +115,7 @@ def layout():
         dbc.Row([advanced]),
         dbc.Row(id=grid, class_name='g-2 mt-2'),
         lodrc.LOConnection(id=websocket),
-        dcc.Store(id=ws_store, data={})
+        dcc.Store(id=ws_store, data=[])
     ], fluid=True)
     return dcc.Loading(cont)
 
@@ -177,14 +177,17 @@ clientside_callback(
     '''
     function(message) {
         const data = JSON.parse(message.data).wo.gpt_bulk || []
+        // TODO show alert on error
         if (Object.prototype.hasOwnProperty.call(data, 'error')) {
+            console.error('Error received from server', data.error)
             return []
         }
         return data
     }
     ''',
     Output(ws_store, 'data'),
-    Input(websocket, 'message')
+    Input(websocket, 'message'),
+    prevent_initial_call=True
 )
 
 # update student cards based on new data in storage
