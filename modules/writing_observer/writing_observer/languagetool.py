@@ -4,10 +4,14 @@ import learning_observer.cache
 import learning_observer.communication_protocol.integration
 import learning_observer.prestartup
 import learning_observer.settings
+
+from learning_observer.log_event import debug_log
+
 from awe_languagetool import languagetoolClient
 
 client = None
 DEFAULT_PORT = 8081
+lt_started = False
 
 
 @learning_observer.prestartup.register_startup_check
@@ -28,7 +32,7 @@ def check_languagetool_running():
         # the LT Client has no way of telling us whether the Server is running or not.
         # i.e. the LT Client runs normally even without the server running.
         # Thus, we manually make a request to the server to and check the response.
-        lt_started = False
+        global lt_started
         try:
             resp = requests.get(f'http://{host}:{port}/v2/check', params={'text': 'test', 'language': 'en-US'})
             lt_started = resp.status_code == 200
@@ -44,6 +48,9 @@ def check_languagetool_running():
                 'If the LanguageTool is already running on a diffrent port, make sure to adjust '
                 'the `writing_observer.languagetool_port` setting in the `creds.yaml`.'
             )
+    debug_log('WARNING:: We are not configured to try and use to LanguageTool. '\
+        'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
+        'to enable the usage of the LanguageTool client.')
 
 
 def initialize_client():
@@ -68,6 +75,12 @@ async def process_texts(texts):
     '''
 
     initialize_client()
+
+    if not lt_started:
+        error_text = 'The LanguageTool server has not started. '\
+            'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
+            'to enable the usage of the LanguageTool client.'
+        raise ConnectionError(error_text)
 
     @learning_observer.cache.async_memoization()
     async def process_text(text):

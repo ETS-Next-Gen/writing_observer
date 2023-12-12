@@ -533,6 +533,28 @@ def _has_error(node):
     return None, []
 
 
+def _find_error_messages(d):
+    '''
+    We want to collect all the error messages and return them for the user to clearly
+    see what went wrong.
+    '''
+    errors = []
+
+    def recurse(item):
+        if isinstance(item, dict):
+            for key, value in item.items():
+                if key == 'error' and type(value) == str:
+                    errors.append(value)
+                else:
+                    recurse(value)
+        elif isinstance(item, list):
+            for element in item:
+                recurse(element)
+
+    recurse(d)
+    return errors
+
+
 def strip_provenance(variable):
     '''
     Context is included for debugging purposes, but should not be included
@@ -643,7 +665,10 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 'dispatch': nodes[node_name]['dispatch'],
                 'error_path': error_path
             }
-            debug_log(f'Error occured within execution dag at {node_name}\n{nodes[node_name]}')
+            error_texts = '\n'.join((f'  {e}' for e in _find_error_messages(error)))
+            debug_log('ERROR:: Error occured within execution dag at '\
+                      f'{node_name}\n{nodes[node_name]["error"]["traceback"]}\n'\
+                      f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
 

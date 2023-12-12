@@ -8,6 +8,9 @@ import lo_dash_react_components as lodrc
 
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 
+# TODO pull this flag from settings
+DEBUG_FLAG = True
+
 prefix = 'bulk-essay-analysis'
 websocket = f'{prefix}-websocket'
 ws_store = f'{prefix}-ws-store'
@@ -103,7 +106,7 @@ def layout():
 
     alert_component = dbc.Alert([
         html.Div(id=alert_text),
-        html.Div(DashRenderjson(id=alert_error_dump), className='' if False else 'd-none')
+        html.Div(DashRenderjson(id=alert_error_dump), className='' if DEBUG_FLAG else 'd-none')
     ], id=alert, color='danger', is_open=False)
 
     # overall container
