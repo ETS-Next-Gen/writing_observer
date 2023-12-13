@@ -484,6 +484,8 @@ def fill_in_settings(course, assignment, options, essay_type):
         opt = settings_defaults.general_argumentative
     elif essay_type == 'narrative':
         opt = settings_defaults.general_narrative
+    elif essay_type == 'overall':
+        opt = settings_defaults.overall
     else:
         opt = settings_defaults.general
 
