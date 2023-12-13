@@ -32,6 +32,24 @@ function getRGBAValues(str) {
 // define functions we are calling
 window.dash_clientside.clientside = {
 
+  update_error_from_ws: function (msg) {
+    if (!msg) {
+      return ['', false, ''];
+    }
+    const data = JSON.parse(msg.data).docs_with_nlp.nlp_combined;
+
+    if (!Object.prototype.hasOwnProperty.call(data, 'error')) {
+      return ['', false, ''];
+    }
+    console.error('ERROR:: Received error from server', data);
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, data];
+  },
+
     change_sort_direction_icon: function(sort_check, sort_values) {
         // updates UI elements, does not handle sorting
         // based on the current sort, set the sort direction icon and sort text
