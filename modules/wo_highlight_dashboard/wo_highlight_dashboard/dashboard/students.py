@@ -5,6 +5,7 @@ Creates the grid of student cards
 from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, MATCH, exceptions as dash_e
 import dash_bootstrap_components as dbc
 import lo_dash_react_components as lodrc
+import writing_observer.aggregator
 
 # local imports
 from . import settings, settings_defaults, settings_options as so
@@ -64,6 +65,14 @@ def student_dashboard_view(course_id, assignment_id):
     the view periodically.
 
     """
+    alert_component = dbc.Alert(
+        dcc.Markdown('The analysis features are not enabled on the server. '\
+        'The measures provided below are synthetic for testing and debugging. '\
+        'Set `modules.writing_observer.use_nlp: true` in the `creds.yaml` '\
+        'file to enable analysis tools.'),
+        color='danger',
+        is_open=(not writing_observer.aggregator.use_nlp)
+    )
     navbar = dbc.Navbar(
         [
             # assignment title
@@ -130,6 +139,7 @@ def student_dashboard_view(course_id, assignment_id):
     )
     container = dbc.Container(
         [
+            alert_component,
             # assignment description
             html.P(id=assignment_desc),
             dbc.Alert(
