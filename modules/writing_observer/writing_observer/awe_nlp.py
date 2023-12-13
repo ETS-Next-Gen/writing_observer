@@ -38,7 +38,14 @@ def init_nlp():
     to run.
     '''
     warnings.filterwarnings('ignore', category=UserWarning, module='nltk')
-    nlp = spacy.load("en_core_web_lg")
+    try:
+        nlp = spacy.load("en_core_web_lg")
+    except OSError as e:
+        error_text = 'There was an issue loading `en_core_web_lg` from spacy. '\
+                     '`awe_components` requires various models to operate properly. '\
+                     'Run `python awe_components/setup/data.py` to install all '\
+                     'of the necessary models.'
+        raise OSError(error_text) from e
 
     # Adding all of the components, since
     # each of them turns out to be implicated in
