@@ -199,7 +199,7 @@ def clean_json(json_object):
     if str(type(json_object)) == "<class 'learning_observer.runtime.Runtime'>":
         return str(json_object)
     if str(type(json_object)) == "<class 'dict_keys'>":
-        return str(json_object)
+        return list(json_object)
     if isinstance(json_object, dash.development.base_component.Component):
         return f"Dash Component {json_object}"
     if isinstance(json_object, KeyError):

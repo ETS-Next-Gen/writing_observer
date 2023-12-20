@@ -535,23 +535,27 @@ def _has_error(node):
 
 def _find_error_messages(d):
     '''
-    We want to collect all the error messages and return them for the user to clearly
+    We want to collect all the error messages that occured within the
+    communication protocol and return them so they user can clearly
     see what went wrong.
     '''
     errors = []
 
-    def recurse(item):
+    def collect_errors(item):
+        '''Iterate over each item in the object and return any error
+        messages we find
+        '''
         if isinstance(item, dict):
             for key, value in item.items():
                 if key == 'error' and type(value) == str:
                     errors.append(value)
                 else:
-                    recurse(value)
+                    collect_errors(value)
         elif isinstance(item, list):
             for element in item:
-                recurse(element)
+                collect_errors(element)
 
-    recurse(d)
+    collect_errors(d)
     return errors
 
 

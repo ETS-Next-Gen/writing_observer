@@ -21,6 +21,7 @@ def connect_to_memoization_kvs():
         error_text = 'The memoization KVS is not configured.\n'\
             'Please add a `memoization` kvs item to the `kvs` '\
             'key in `creds.yaml`.\n'\
+            '```\nmemoization:\n  type: stub\n```\nOR\n'\
             '```\nmemoization:\n  type: redis_ephemeral\n  expiry: 60\n```'
         raise learning_observer.prestartup.StartupCheck(error_text)
 

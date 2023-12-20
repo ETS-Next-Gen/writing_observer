@@ -78,6 +78,11 @@ window.dash_clientside.common_student_errors = {
 
   /**
    * Inform the user that we received an error
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
    */
   update_alert_with_error: function (error) {
     if (!error) {
@@ -138,6 +143,18 @@ window.dash_clientside.common_student_errors = {
 
   /**
    * Populate the individual student error
+   *
+   * returns an array that updates dash components
+   * - Individual student header text (usually their name or "select a student")
+   * - Student text
+   * - List of breakpoints within student text
+   * - Extended data for the individual student sunburst chart
+   *   - items being added to the graph (object where each key
+   *     is a property of the graph and each value is a list of
+   *     new values being added)
+   *   - traces to update (always [0] in this case)
+   *   - how many points to keep
+   * - className for determining if we are loading or loaded
    */
   receive_populate_student_error: function (message, hash) {
     let data = message.wo.single_lt_combined || false;

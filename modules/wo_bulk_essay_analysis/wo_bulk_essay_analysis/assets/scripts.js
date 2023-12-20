@@ -191,6 +191,11 @@ window.dash_clientside.bulk_essay_feedback = {
 
   /**
    * show attachment panel upon uploading document and populate fields
+   *
+   * updates the following
+   * - extracted text from uploaded file
+   * - default attachment name (based on filename)
+   * - whether we show the attachment upload panel
   */
   open_and_populate_attachment_panel: async function (contents, filename, timestamp, shown) {
     if (filename === undefined) {
@@ -220,6 +225,10 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * enable/disabled submit based on query
    * makes sure there is a query and the tags are properly formatted
+   *
+   * updates the following components
+   * - submit query button disbaled status
+   * - helper text for why we disabled the submit query button
   */
   disabled_query_submit: function (query, store) {
     if (query.length === 0) {
@@ -238,6 +247,10 @@ window.dash_clientside.bulk_essay_feedback = {
 
   /**
    * enable/disable the save attachment button if tag is already in use/blank
+   *
+   * updates the following components
+   * - save button disbaled status
+   * - helper text for why we are disabled
    */
   disable_attachment_save_button: function (label, tags) {
     if (label.length === 0) {
@@ -285,6 +298,11 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * Check if we've received any errors and update
    * the alert with the appropriate information
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
    */
   update_alert_with_error: function (error) {
     if (!error) {

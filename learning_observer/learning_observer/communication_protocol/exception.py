@@ -6,6 +6,16 @@ class DAGExecutionException(Exception):
     '''
     Exception for errors raised during the execution of the dag
 
+    Generating the tracebacks may cause a decrease in performance.
+    TODO profile this code and determine how we should handle tracebacks.
+    Possibilities:
+    - hide traceback behind a feature flag (possibly the same
+      flag that determines if we show the error json on each of
+      the dashboards)
+    - create an exponential backoff strategy that only records the
+      traceback every so many times that a specific error occurs
+    - do nothing if there is not a performance decrease
+
     Attributes:
         function -- the function causing the error
         error_provenance -- any items that may be useful for debugging the error

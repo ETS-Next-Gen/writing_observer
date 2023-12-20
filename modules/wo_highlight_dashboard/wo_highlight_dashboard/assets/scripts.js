@@ -32,6 +32,15 @@ function getRGBAValues(str) {
 // define functions we are calling
 window.dash_clientside.clientside = {
 
+  /**
+   * Update error information when we receive it from the
+   * websocket connection.
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
+   */
   update_error_from_ws: function (msg) {
     if (!msg) {
       return ['', false, ''];
