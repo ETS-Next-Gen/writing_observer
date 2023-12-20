@@ -67,9 +67,10 @@ panel = dbc.Card(
                 dbc.AccordionItem(
                     html.Div([
                         dbc.RadioItems(options=[
+                            {'label': 'All', 'value': 'overall' },
                             {'label': 'Argumentative', 'value': 'argumentative'},
                             {'label': 'Narrative', 'value': 'narrative'}
-                        ], value='argumentative', id=essay_type)
+                        ], value='overall', id=essay_type)
                     ]), title='Essay Type'
                 ),
                 # sort by

@@ -58,6 +58,44 @@ window.dash_clientside.common_student_errors = {
     return [window.dash_clientside.no_update, window.dash_clientside.no_update]
   },
 
+  /**
+   * Catch any errors that come in from the server and
+   * update the error store for further usage.
+   */
+  update_error_storage: function (message) {
+    const errors = {};
+    for (const key in message.wo) {
+      if (message.wo[key].error !== undefined) {
+        errors[key] = message.wo[key];
+      }
+    }
+    if (Object.keys(errors).length === 0) {
+      return window.dash_clientside.no_update;
+    }
+    console.error('Errors received from server', errors);
+    return errors;
+  },
+
+  /**
+   * Inform the user that we received an error
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
+   */
+  update_alert_with_error: function (error) {
+    if (!error) {
+      return ['', false, ''];
+    }
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, error];
+  },
+
   update_hash_via_graph: function (selected, message) {
     /**
      * Updated the selected student in the URL hash
@@ -73,7 +111,7 @@ window.dash_clientside.common_student_errors = {
    * Parse incoming data for the student activity chart
    */
   receive_populate_activity: function (message) {
-    const data = message.wo.activity_combined
+    const data = message.wo.activity_combined || false;
     if (!data) {
       return ['No students', 'No students']
     }
@@ -105,11 +143,23 @@ window.dash_clientside.common_student_errors = {
 
   /**
    * Populate the individual student error
+   *
+   * returns an array that updates dash components
+   * - Individual student header text (usually their name or "select a student")
+   * - Student text
+   * - List of breakpoints within student text
+   * - Extended data for the individual student sunburst chart
+   *   - items being added to the graph (object where each key
+   *     is a property of the graph and each value is a list of
+   *     new values being added)
+   *   - traces to update (always [0] in this case)
+   *   - how many points to keep
+   * - className for determining if we are loading or loaded
    */
   receive_populate_student_error: function (message, hash) {
-    let data = message.wo.single_lt_combined
-    if (!data | data.length === 0 | Object.prototype.hasOwnProperty.call(data, 'error')) {
-      return ['Select a student', '', [], [], 'individual-student-loaded']
+    let data = message.wo.single_lt_combined || false;
+    if (!data | data.length === 0 | data.error !== undefined) {
+      return ['Select a student', '', [], [{}, [0], 0], 'individual-student-loaded']
     }
     data = data[0]
     const decoded = decode_string_dict(hash.slice(1))
@@ -171,7 +221,7 @@ window.dash_clientside.common_student_errors = {
    * Parse the ws message and populate the errors versus text length graph
    */
   receive_populate_error_graph: function (message) {
-    const data = message.wo.lt_combined
+    const data = message.wo.lt_combined || false;
     if (!data) {
       return window.dash_clientside.no_update
     }
@@ -232,9 +282,9 @@ window.dash_clientside.common_student_errors = {
    * Populate the table of student category aggregation errors
    */
   receive_populate_categorical_errors: function (message) {
-    const data = message.wo.lt_combined
+    const data = message.wo.lt_combined || false;
     const rows = []
-    if (!data | Object.prototype.hasOwnProperty.call(data, 'error')) {
+    if (!data | data.error !== undefined) {
       return rows
     }
 
@@ -286,8 +336,8 @@ window.dash_clientside.common_student_errors = {
    * of what we want returned from language tool/exactly how we will display it
    */
   receive_populate_agg_info: function (message) {
-    const data = message.wo.lt_combined
-    if (!data | Object.prototype.hasOwnProperty.call(data, 'error')) {
+    const data = message.wo.lt_combined || false;
+    if (!data | data.error !== undefined) {
       return []
     }
 

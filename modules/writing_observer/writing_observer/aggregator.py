@@ -217,7 +217,8 @@ async def merge_with_student_data(writing_data, student_data):
     return writing_data
 
 
-if learning_observer.settings.module_setting('writing_observer', 'use_nlp', False):
+use_nlp = learning_observer.settings.module_setting('writing_observer', 'use_nlp', False)
+if use_nlp:
     try:
         import writing_observer.awe_nlp
         processor = writing_observer.awe_nlp.process_writings_with_caching

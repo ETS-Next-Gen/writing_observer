@@ -102,7 +102,8 @@ async def call_dispatch(functions, function_name, args, kwargs):
         raise DAGExecutionException(
             f'Function {function_name} did not execute properly during call.',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)}
+            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)},
+            e.__traceback__
         )
     return result
 
@@ -301,7 +302,8 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
-                error_provenance
+                error_provenance,
+                res.__traceback__
             ).to_dict()
         else:
             out = {'output': res}
@@ -359,7 +361,8 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
         raise DAGExecutionException(
             f'Could not find function `{function_name}` in available functions.',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)}
+            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)},
+            e.__traceback__
         )
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
@@ -530,6 +533,32 @@ def _has_error(node):
     return None, []
 
 
+def _find_error_messages(d):
+    '''
+    We want to collect all the error messages that occured within the
+    communication protocol and return them so they user can clearly
+    see what went wrong.
+    '''
+    errors = []
+
+    def collect_errors(item):
+        '''Iterate over each item in the object and return any error
+        messages we find
+        '''
+        if isinstance(item, dict):
+            for key, value in item.items():
+                if key == 'error' and type(value) == str:
+                    errors.append(value)
+                else:
+                    collect_errors(value)
+        elif isinstance(item, list):
+            for element in item:
+                collect_errors(element)
+
+    collect_errors(d)
+    return errors
+
+
 def strip_provenance(variable):
     '''
     Context is included for debugging purposes, but should not be included
@@ -640,7 +669,10 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 'dispatch': nodes[node_name]['dispatch'],
                 'error_path': error_path
             }
-            debug_log(f'Error occured within execution dag at {node_name}\n{nodes[node_name]}')
+            error_texts = '\n'.join((f'  {e}' for e in _find_error_messages(error)))
+            debug_log('ERROR:: Error occured within execution dag at '\
+                      f'{node_name}\n{nodes[node_name]["error"]["traceback"]}\n'\
+                      f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
 

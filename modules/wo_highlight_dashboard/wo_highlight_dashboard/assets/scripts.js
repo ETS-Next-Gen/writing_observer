@@ -32,6 +32,33 @@ function getRGBAValues(str) {
 // define functions we are calling
 window.dash_clientside.clientside = {
 
+  /**
+   * Update error information when we receive it from the
+   * websocket connection.
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
+   */
+  update_error_from_ws: function (msg) {
+    if (!msg) {
+      return ['', false, ''];
+    }
+    const data = JSON.parse(msg.data).docs_with_nlp.nlp_combined;
+
+    if (data.error === undefined) {
+      return ['', false, ''];
+    }
+    console.error('ERROR:: Received error from server', data);
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, data];
+  },
+
     change_sort_direction_icon: function(sort_check, sort_values) {
         // updates UI elements, does not handle sorting
         // based on the current sort, set the sort direction icon and sort text
@@ -119,7 +146,7 @@ window.dash_clientside.clientside = {
         // State({'type': student_indicators, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
         if (!msg) {
-            return [prev_metrics, prev_text, prev_highlights, prev_indicators, -1, 0];
+            return [prev_metrics, prev_text, prev_highlights, prev_indicators, [], -1, 0];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['docs_with_nlp']['nlp_combined'];
