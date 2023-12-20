@@ -5,7 +5,7 @@
 
 import * as util from '../lo_event/util.js';
 
-let someAsyncCondition = false;
+let someAsyncCondition;
 global.document = {};
 
 async function checkCondition () {
@@ -15,14 +15,43 @@ async function checkCondition () {
   return someAsyncCondition;
 }
 
-describe('util testing', () => {
-  it('Check backoff functionality', async () => {
-    // Set the condition to true after some time for demonstration
-    setTimeout(() => { someAsyncCondition = true; }, 5000);
+describe('util.js testing', () => {
+  describe('Testing Backoff functionality', () => {
+    beforeEach(() => {
+      console.log('util.js:backoff Setting condition to false');
+      someAsyncCondition = false;
+    });
 
-    util.backoff(checkCondition, 'Condition not met after retries.')
-      .then(() => expect(someAsyncCondition).toBe(true))
-      .catch(error => console.error(error.message));
+    it('Check for generic backoff functionality', async () => {
+      console.log('TESTING THIS FUNCTION');
+      // Set the condition to true after some time for demonstration
+      setTimeout(() => {
+        console.log('Util test: setting someAsyncCondition');
+        someAsyncCondition = true;
+      }, 1000);
+
+      try {
+        await util.backoff(checkCondition, 'This should not be seen in the console');
+        expect(someAsyncCondition).toBe(true);
+      } catch (error) {
+        console.error(error.message);
+      }
+    }, 10000);
+
+    it('Test max retry on backoff', async () => {
+      try {
+        await util.backoff(
+          checkCondition,
+          'Condition not met after max retries.',
+          [1000, 1000, 1000],
+          util.TERMINATION_POLICY.RETRY,
+          5
+        );
+      } catch (error) {
+        console.error(error.message);
+      }
+      expect(someAsyncCondition).toBe(false);
+    }, 10000);
   });
 
   it('Test fullyQualifiedWebsocketURL', () => {

@@ -97,16 +97,23 @@ if (typeof browser !== 'undefined') {
   b = chrome;
 }
 
-// TODO: Document general logic flow. When do we get each of these and
-// in what order?
-if (typeof b !== 'undefined') {
-  if (b.storage && b.storage.sync) {
-    debug.info('Setting storage to storage.sync');
-    storage = b.storage.sync;
-  } else if (b.storage && b.storage.local) {
-    debug.info('Setting storage to storage.local');
-    storage = b.storage.local;
-  }
+/**
+ * Determine which backend storage API to use and (sometimes)
+ * add compatibility wrappers around them.
+ *
+ * Backend API priority:
+ * - Browser's storage.sync (extension only)
+ * - Browser's storage.local (extension only)
+ * - localStorage
+ * - window.localStorage
+ * - thunkStorage
+ */
+if (typeof b !== 'undefined' && b.storage && b.storage.sync) {
+  debug.info('Setting storage to storage.sync');
+  storage = b.storage.sync;
+} else if (typeof b !== 'undefined' && b.storage && b.storage.local) {
+  debug.info('Setting storage to storage.local');
+  storage = b.storage.local;
 } else if (typeof localStorage !== 'undefined') {
   // Add compatibility modifications for localStorage
   debug.info('Setting storage to localStorage');

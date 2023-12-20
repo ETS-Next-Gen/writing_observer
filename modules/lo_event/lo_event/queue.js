@@ -5,8 +5,8 @@ import * as util from './util.js';
 
 export const QueueType = {
   AUTODETECT: 'AUTODETECT', // Persistent if available, otherwise in-memory
-  IN_MEMORY: 'IN_MEMORY',   // memoryQueue
-  PERSISTENT: 'PERSISTENT'  // SQLite or IndexedDB. Raise an exception if not available.
+  IN_MEMORY: 'IN_MEMORY', // memoryQueue
+  PERSISTENT: 'PERSISTENT' // SQLite or IndexedDB. Raise an exception if not available.
 };
 
 const queueClasses = {
@@ -30,10 +30,10 @@ export class Queue {
       queueType = autodetect();
     }
 
-    const queueClass = queueClasses[queueType];
-    if (queueClass) {
+    const QueueClass = queueClasses[queueType];
+    if (QueueClass) {
       debug.info(`Queue: using ${queueType.toLowerCase()}Queue`);
-      this.queue = new queueClass(queueName);
+      this.queue = new QueueClass(queueName);
     } else {
       throw new Error('Invalid queue type');
     }

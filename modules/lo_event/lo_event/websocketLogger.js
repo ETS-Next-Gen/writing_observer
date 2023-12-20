@@ -73,6 +73,16 @@ export function websocketLogger (server) {
     // TODO fetch local storage items here
     const event = { local_storage: {} };
     console.log(event);
+    /**
+     * The extension expects some auth and metadata before processing events
+     * through the reducers. The first time this data is sent is handled by
+     * `lo_event.js`. If the websocket disconnects and reconnects without
+     * restarting the main `lo_event` module, then we need to resend the
+     * auth and metadata.
+     *
+     * This code handles adding the auth and metadata to the processing queue
+     * on all but the initial connection.
+     */
     if (!firstConnection) {
       util.profileInfoWrapper().then((result) => {
         if (Object.keys(result).length > 0) {
@@ -87,12 +97,9 @@ export function websocketLogger (server) {
           */
           queue.enqueue(JSON.stringify(metadata));
           queue.enqueue(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
-          queue.enqueue(JSON.stringify({ event: 'metadata_finished' }));
         }
       });
     } else {
-      // TODO: Check if this is right. We probably want to send a lot
-      // of this stuff on future connections too.
       firstConnection = false;
     }
 
@@ -144,7 +151,7 @@ export function websocketLogger (server) {
     queue.enqueue(data);
   }
 
-  wsLogData.init = async function (metadata) {
+  wsLogData.init = async function () {
     if (typeof WebSocket === 'undefined') {
       debug.info('Importing ws');
       WSLibrary = (await import('ws')).WebSocket;

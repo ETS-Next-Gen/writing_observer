@@ -328,7 +328,7 @@ async def authenticate(request, headers, first_event, source):
                 )
             return auth_metadata
 
-    raise aiohttp.web.HTTPUnauthorized()
+    return False
 
 
 @learning_observer.prestartup.register_startup_check

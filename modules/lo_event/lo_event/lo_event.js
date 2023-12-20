@@ -65,21 +65,17 @@ async function initializeLoggers () {
  * This is useful for items such as `source` and `version`
  * which should be the same for every event.
  *
- * Note that at the time this was written, we did not consider the use
- * case of using setFieldSet after INIT_READY. This may or may not
- * work, but has complex issues with consistency and async (e.g. if
- * setFieldSet executes after a send event) and especially with
- * disconnects (e.g. will the field set be configured for the right
- * events). At some point, this should probably be made into a queued
- * event, and reconnection issues should be figured out.
+ * This function works even after we are initialized and
+ * processing items from the queue (INIT_READY).
+ *
+ * Each individual logger should keep track of state and
+ * handle their respecitive reconnects properly.
  */
 export function setFieldSet (data) {
   currentState = currentState.then(
     () => setFieldSetAsync(data)
   );
 }
-
-
 
 /**
  * Runs and awaits for all loggers to run their `setField` command
@@ -108,7 +104,7 @@ export function init (
     queueType = Queue.QueueType.AUTODETECT
   } = {}
 ) {
-  queue = new Queue.Queue('LOEvent', { queueType } );
+  queue = new Queue.Queue('LOEvent', { queueType });
 
   if (source === null || typeof source !== 'string') {
     throw new Error('source must be a non-null string');

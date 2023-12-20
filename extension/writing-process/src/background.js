@@ -34,7 +34,7 @@ const loggers = [
 ]
 
 loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
-loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.debuggingMetadata()]);
+loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.fetchDebuggingIdentifier()]);
 loEvent.go()
 
 // Function to serve as replacement for 
