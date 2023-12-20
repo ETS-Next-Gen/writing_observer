@@ -171,21 +171,29 @@ window.dash_clientside.clientside = {
                 'link': link
             }
             for (const key in data[i]) {
-                let item = data[i][key];
-                const sum_type = (item.hasOwnProperty('summary_type') ? item['summary_type'] : '');
+                const item = data[i][key];
+                const sumType = (item.summary_type ? item.summary_type : '');
                 // we set each id to be ${key}_{type} so we can select items by class name when highlighting
-                if (sum_type === 'total') {
-                    updates[user_index]['metrics'][`${key}_metric`] = {
-                        'id': `${key}_metric`,
-                        'value': item['metric'],
-                        'label': item['label']
-                    }
-                } else if (sum_type === 'percent') {
-                    updates[user_index]['indicators'][`${key}_indicator`] = {
-                        'id': `${key}_indicator`,
-                        'value': item['metric'],
-                        'label': item['label']
-                    }
+                const metricLabel = (sumType === 'percent') ? `%  ${item.label}` : item.label;
+                let metric;
+                if (item.metric === null) {
+                    metric = 0;
+                } else if (sumType === 'counts') {
+                    // Sum all values in the object
+                    metric = Object.values(JSON.parse(item.metric)).reduce((sum, value) => sum + value, 0);
+                } else {
+                    metric = item.metric;
+                }
+                updates[user_index]['metrics'][`${key}_metric`] = {
+                    'id': `${key}_metric`,
+                    'value': metric,
+                    'label': metricLabel
+                }
+                const indicatorLabel = (sumType === 'percent') ? `${item.label} (%)` : `${item.label} (${sumType})`;
+                updates[user_index]['indicators'][`${key}_indicator`] = {
+                    'id': `${key}_indicator`,
+                    'value': metric,
+                    'label': indicatorLabel
                 }
                 const offsets = (item.hasOwnProperty('offsets') ? item['offsets'] : '');
                 if (offsets.length !== 0) {
