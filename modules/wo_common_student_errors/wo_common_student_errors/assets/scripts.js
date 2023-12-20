@@ -65,7 +65,7 @@ window.dash_clientside.common_student_errors = {
   update_error_storage: function (message) {
     const errors = {};
     for (const key in message.wo) {
-      if (Object.prototype.hasOwnProperty.call(message.wo[key], 'error')) {
+      if (message.wo[key].error !== undefined) {
         errors[key] = message.wo[key];
       }
     }
@@ -158,7 +158,7 @@ window.dash_clientside.common_student_errors = {
    */
   receive_populate_student_error: function (message, hash) {
     let data = message.wo.single_lt_combined || false;
-    if (!data | data.length === 0 | Object.prototype.hasOwnProperty.call(data, 'error')) {
+    if (!data | data.length === 0 | data.error !== undefined) {
       return ['Select a student', '', [], [{}, [0], 0], 'individual-student-loaded']
     }
     data = data[0]
@@ -284,7 +284,7 @@ window.dash_clientside.common_student_errors = {
   receive_populate_categorical_errors: function (message) {
     const data = message.wo.lt_combined || false;
     const rows = []
-    if (!data | Object.prototype.hasOwnProperty.call(data, 'error')) {
+    if (!data | data.error !== undefined) {
       return rows
     }
 
@@ -337,7 +337,7 @@ window.dash_clientside.common_student_errors = {
    */
   receive_populate_agg_info: function (message) {
     const data = message.wo.lt_combined || false;
-    if (!data | Object.prototype.hasOwnProperty.call(data, 'error')) {
+    if (!data | data.error !== undefined) {
       return []
     }
 

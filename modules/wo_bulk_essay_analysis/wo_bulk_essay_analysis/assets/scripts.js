@@ -143,7 +143,7 @@ window.dash_clientside.bulk_essay_feedback = {
    */
   receive_ws_message: function (message) {
     const data = JSON.parse(message.data).wo.gpt_bulk || [];
-    if (Object.prototype.hasOwnProperty.call(data, 'error')) {
+    if (data.error !== undefined) {
       console.error('Error received from server', data.error);
       return [[], data.error];
     }

@@ -47,7 +47,7 @@ window.dash_clientside.clientside = {
     }
     const data = JSON.parse(msg.data).docs_with_nlp.nlp_combined;
 
-    if (!Object.prototype.hasOwnProperty.call(data, 'error')) {
+    if (data.error === undefined) {
       return ['', false, ''];
     }
     console.error('ERROR:: Received error from server', data);
