@@ -257,7 +257,7 @@ class FilesystemKVS(_KVS):
             f.write(value)
 
     async def __delitem__(self, key):
-        path = key_to_safe_filename(key)
+        path = self.key_to_safe_filename(key)
         os.remove(path)
 
     async def keys(self):
@@ -278,6 +278,7 @@ KVS_MAP = {
     'stub': InMemoryKVS,
     'redis_ephemeral': EphemeralRedisKVS,
     'redis': PersistentRedisKVS
+    # TODO add filesystem KVS to this
 }
 
 

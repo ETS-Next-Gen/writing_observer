@@ -24,6 +24,7 @@ import aiohttp_session
 import learning_observer.paths
 
 from learning_observer.log_event import debug_log
+from . import roles
 
 
 def google_id_to_user_id(google_id):
@@ -48,6 +49,28 @@ def fernet_key(secret_string):
     md5_hash = hashlib.md5()
     md5_hash.update(secret_string.encode('utf-8'))
     return md5_hash.hexdigest().encode('utf-8')
+
+
+async def verify_role(user_id, email):
+    if await verify_admin_account(user_id, email):
+        return roles.ROLES.ADMIN
+    elif await verify_teacher_account(user_id, email):
+        return roles.ROLES.TEACHER
+    return roles.ROLES.STUDENT
+
+
+async def verify_admin_account(user_id, email):
+    admins = yaml.safe_load(open(learning_observer.paths.data("admins.yaml")))
+    if email not in admins:
+        # email is untrusted; repr prevents injection of newlines
+        debug_log("Email not found in admins", repr(email))
+        return False
+    if admins[email]["google_id"] != user_id:
+        # user_id is untrusted; repr prevents injection of newlines
+        debug_log("Non-matching Google ID", admins[email]["google_id"], repr(user_id))
+        return False
+    debug_log("Admin account verified")
+    return True
 
 
 async def verify_teacher_account(user_id, email):
@@ -94,6 +117,7 @@ async def logout(request):
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
     session.pop("auth_headers", None)
+    session.pop("original_user_id", None)
     request['user'] = None
 
 
@@ -138,38 +162,33 @@ async def verify_password(filename, username, password):
 # we plan to have teacher, student, and admin accounts.
 #
 # In the long term, we will probably want a little more, but not full ACLs.
-
-
-def admin(func):
+def role_required(role):
+    '''Decorator for viewing pages that require a specific role.
+    Roles can be found in user.role.
     '''
-    Decorator to mark a view as an admin view.
-
-    This should be moved to the auth/auth framework, and have more
-    granular levels (e.g. teachers and sys-admins). We probably don't
-    want a full ACL scheme (which overcomplicates things), but we will
-    want to think through auth/auth.
-    '''
-    @functools.wraps(func)
-    def wrapper(request):
-        if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
-            return func(request)
-        if 'user' in request and \
-           request['user'] is not None and \
-           'authorized' in request['user'] and \
-           request['user']['authorized']:
-            return func(request)
-        # Else, if unauthorized
-        # send user to login page /
-        # there may be a slight oddball with the url hash being
-        # included after the location updates
-        response = aiohttp.web.Response(status=302)
-        redirect_url = '/'
-        response.headers['Location'] = redirect_url
-        raise aiohttp.web.HTTPFound(location=redirect_url, headers=response.headers)
-    return wrapper
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(request):
+            if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
+                return func(request)
+            if 'user' in request and \
+            request['user'] is not None and \
+            'authorized' in request['user'] and \
+            request['user']['authorized'] and \
+            'role' in request['user'] and \
+            (request['user']['role'] == role or request['user']['role'] == roles.ROLES.ADMIN):
+                return func(request)
+            # Else, if unauthorized
+            # send user to login page /
+            # there may be a slight oddball with the url hash being
+            # included after the location updates
+            response = aiohttp.web.Response(status=302)
+            redirect_url = '/'
+            response.headers['Location'] = redirect_url
+            raise aiohttp.web.HTTPFound(location=redirect_url, headers=response.headers)
+        return wrapper
+    return decorator
 
 
-# Decorator
-#
-# For now, we don't have seperate teacher and admin accounts.
-teacher = admin
+teacher = role_required(roles.ROLES.TEACHER)
+admin = role_required(roles.ROLES.ADMIN)

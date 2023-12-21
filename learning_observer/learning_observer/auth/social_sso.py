@@ -36,6 +36,7 @@ import aiohttp_session
 import learning_observer.settings as settings
 import learning_observer.auth.handlers as handlers
 import learning_observer.auth.utils
+import learning_observer.auth.roles
 
 import learning_observer.exceptions
 
@@ -151,7 +152,9 @@ async def _google(request):
         'back_to': request.query.get('state'),
         'picture': profile['picture'],
         # TODO: Should this be immediate?
-        'authorized': await learning_observer.auth.utils.verify_teacher_account(profile['id'], profile['email'])
+        # TODO: Should this still just verify the teacher account?
+        'authorized': await learning_observer.auth.utils.verify_teacher_account(profile['id'], profile['email']),
+        'role': await learning_observer.auth.utils.verify_role(profile['id'], profile['email'])
     }
 
 

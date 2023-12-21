@@ -30,6 +30,7 @@ import re
 
 import aiohttp
 import aiohttp.web
+import aiohttp_session
 
 import learning_observer.settings as settings
 import learning_observer.log_event
@@ -125,7 +126,10 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     '''
     request = runtime.get_request()
     url = target_url.format(**kwargs)
-    cache_key = "raw_google/" + learning_observer.util.url_pathname(url)
+    session = await aiohttp_session.get_session(request)
+    user = session['user']
+
+    cache_key = "raw_google/" + user['user_id'] + '/' + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
         value = await cache[cache_key]
         if value is not None:
@@ -190,7 +194,8 @@ def initialize_and_register_routes(app):
     for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
         if key in settings.settings['feature_flags']:
             global cache
-            cache = learning_observer.kvs.FilesystemKVS(path=learning_observer.paths.data('google'), subdirs=True)
+            cache = learning_observer.kvs.KVS()
+            # cache = learning_observer.kvs.FilesystemKVS(path=learning_observer.paths.data('google'), subdirs=True)
 
     # Provide documentation on what we're doing
     app.add_routes([

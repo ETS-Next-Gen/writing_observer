@@ -26,6 +26,8 @@ import aiohttp.web
 import learning_observer.settings
 import learning_observer.prestartup
 
+import learning_observer.auth.roles
+
 from learning_observer.log_event import debug_log
 
 
@@ -160,7 +162,8 @@ def http_basic_auth(filename=None, response=lambda: None):
                 'name': "",
                 'family_name': "",
                 'picture': "",
-                'authorized': True
+                'authorized': True,
+                'role': learning_observer.auth.roles.ROLES.ADMIN
             }
         )
         # This is usually ignored, but just in case...

@@ -106,6 +106,23 @@ def validate_teacher_list():
 
 
 @register_startup_check
+def validate_admins_list():
+    '''
+    Validate the teacher list file. This is a YAML file that contains
+    a list of admins authorized to use the Learning Observer.
+    '''
+    if not os.path.exists(paths.data("admins.yaml")):
+        shutil.copyfile(
+            paths.data("admins.yaml.template"),
+            paths.data("admins.yaml")
+        )
+        raise StartupCheck(
+            "Created a blank admins file: static_data/admins.yaml\n"
+            "Populate it with admin accounts."
+        )
+
+
+@register_startup_check
 def validate_config_file():
     '''
     Validate the configuration file exists. If not, explain how to
