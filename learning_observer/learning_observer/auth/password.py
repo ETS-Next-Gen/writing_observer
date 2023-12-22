@@ -9,7 +9,7 @@ import yaml
 import aiohttp.web
 
 import learning_observer.auth.handlers
-import learning_observer.auth.roles
+import learning_observer.auth
 import learning_observer.auth.utils
 
 from learning_observer.log_event import debug_log
@@ -81,7 +81,7 @@ def password_auth(filename):
                 'family_name': user_data.get('family_name', ''),
                 'picture': user_data.get('picture', '/auth/default-avatar.svg'),
                 'authorized': True,
-                'role': learning_observer.auth.roles.ROLES.ADMIN
+                'role': user_data.get('role', learning_observer.auth.ROLES.STUDENT)
             }
         )
         return aiohttp.web.json_response({"status": "authorized"})

@@ -53,6 +53,7 @@ import sys
 # e.g. @admin_ajax @admin_html, or @admin(type=ajax)
 from learning_observer.auth.utils import admin
 from learning_observer.auth.utils import teacher
+from learning_observer.auth.roles import ROLES
 
 # Utility functions
 from learning_observer.auth.utils import fernet_key

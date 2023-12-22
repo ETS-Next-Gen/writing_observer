@@ -17,7 +17,7 @@ async def start_impersonation(request):
 
     session['original_user_id'] = session['user']['user_id']
     session['user']['user_id'] = requested_user_id
-    return aiohttp.web.Response(text=f'Masking as a new user: {requested_user_id}')
+    return aiohttp.web.Response(text=f'Impersonating: {requested_user_id}')
 
 
 async def stop_impersonation(request):
@@ -25,5 +25,5 @@ async def stop_impersonation(request):
     if 'original_user_id' in session:
         session['user']['user_id'] = session['original_user_id']
         del session['original_user_id']
-        return aiohttp.web.Response(text='Done masking user')
+        return aiohttp.web.Response(text='Done impersonating user.')
     return aiohttp.web.Response(text='Not impersonating anyone.')

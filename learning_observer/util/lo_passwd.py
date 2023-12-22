@@ -42,7 +42,8 @@ user_fields = [
     'name',
     'family_name',
     'picture',
-    'notes'
+    'notes',
+    'role'
     # 'authorized',  <-- These will be set automatically
     # 'created_at',
     # 'updated_at'

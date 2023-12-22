@@ -26,7 +26,7 @@ import aiohttp.web
 import learning_observer.settings
 import learning_observer.prestartup
 
-import learning_observer.auth.roles
+import learning_observer.auth
 
 from learning_observer.log_event import debug_log
 
@@ -163,7 +163,9 @@ def http_basic_auth(filename=None, response=lambda: None):
                 'family_name': "",
                 'picture': "",
                 'authorized': True,
-                'role': learning_observer.auth.roles.ROLES.ADMIN
+                # TODO this ought to pull from somewhere else; however, I'm not familiar
+                # how to test the http_basic code, so I'm setting this as student for now
+                'role': learning_observer.auth.ROLES.STUDENT
             }
         )
         # This is usually ignored, but just in case...

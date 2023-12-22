@@ -162,7 +162,7 @@ async def verify_password(filename, username, password):
 # we plan to have teacher, student, and admin accounts.
 #
 # In the long term, we will probably want a little more, but not full ACLs.
-def role_required(role):
+def _role_required(role):
     '''Decorator for viewing pages that require a specific role.
     Roles can be found in user.role.
     '''
@@ -190,5 +190,5 @@ def role_required(role):
     return decorator
 
 
-teacher = role_required(roles.ROLES.TEACHER)
-admin = role_required(roles.ROLES.ADMIN)
+teacher = _role_required(roles.ROLES.TEACHER)
+admin = _role_required(roles.ROLES.ADMIN)

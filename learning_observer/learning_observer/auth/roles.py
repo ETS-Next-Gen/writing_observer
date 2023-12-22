@@ -1,4 +1,8 @@
 '''
+Roles defined for the system. We explicitly do not want the complexity
+of ACLs, roles, groups, etc. We plan four levels, including later a
+school/district-level one.
+
 We create the enum for roles like this to make everything
 a string and thus, it is all json serializable. Starting in
 Python 3.11, there is an easier way to do this.
