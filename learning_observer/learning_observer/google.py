@@ -37,6 +37,7 @@ import learning_observer.log_event
 import learning_observer.util
 import learning_observer.auth
 import learning_observer.runtime
+import learning_observer.prestartup
 
 
 cache = None
@@ -129,7 +130,7 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     session = await aiohttp_session.get_session(request)
     user = session['user']
 
-    cache_key = "raw_google/" + user['user_id'] + '/' + learning_observer.util.url_pathname(url)
+    cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user['user_id']) + '/' + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
         value = await cache[cache_key]
         if value is not None:
@@ -170,6 +171,26 @@ def raw_access_partial(remote_url, name=None):
     return caller
 
 
+@learning_observer.prestartup.register_startup_check
+def connect_to_google_cache():
+    if 'google_routes' not in settings.settings['feature_flags']:
+        return
+
+    for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
+        if key in settings.settings['feature_flags']:
+            global cache
+            try:
+                cache = learning_observer.kvs.KVS.google_cache()
+            except AttributeError:
+                error_text = 'The google_cache KVS is not configured.\n'\
+                    'Please add a `google_cache` kvs item to the `kvs` '\
+                    'key in `creds.yaml`.\n'\
+                    '```\ngoogle_cache:\n  type: filesystem\n  path: ./learning_observer/static_data/google\n'\
+                    '  subdirs: true\n```\nOR\n'\
+                    '```\ngoogle_cache:\n  type: redis_ephemeral\n  expiry: 600\n```'
+                raise learning_observer.prestartup.StartupCheck(error_text) 
+
+
 def initialize_and_register_routes(app):
     '''
     This is a big 'ol function which might be broken into smaller ones at some
@@ -190,12 +211,6 @@ def initialize_and_register_routes(app):
     # staff
     if 'google_routes' not in settings.settings['feature_flags']:
         return
-
-    for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
-        if key in settings.settings['feature_flags']:
-            global cache
-            cache = learning_observer.kvs.KVS()
-            # cache = learning_observer.kvs.FilesystemKVS(path=learning_observer.paths.data('google'), subdirs=True)
 
     # Provide documentation on what we're doing
     app.add_routes([
