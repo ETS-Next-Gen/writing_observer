@@ -52,48 +52,26 @@ def fernet_key(secret_string):
 
 
 async def verify_role(user_id, email):
-    if await verify_admin_account(user_id, email):
-        return roles.ROLES.ADMIN
-    elif await verify_teacher_account(user_id, email):
-        return roles.ROLES.TEACHER
-    return roles.ROLES.STUDENT
-
-
-async def verify_admin_account(user_id, email):
-    admins = yaml.safe_load(open(learning_observer.paths.data("admins.yaml")))
-    if email not in admins:
-        # email is untrusted; repr prevents injection of newlines
-        debug_log("Email not found in admins", repr(email))
-        return False
-    if admins[email]["google_id"] != user_id:
-        # user_id is untrusted; repr prevents injection of newlines
-        debug_log("Non-matching Google ID", admins[email]["google_id"], repr(user_id))
-        return False
-    debug_log("Admin account verified")
-    return True
-
-
-async def verify_teacher_account(user_id, email):
     '''
-    Confirm the teacher is registered with the system. Eventually, we will want
+    Confirm the user is registered with the system. Eventually, we will want
     3 versions of this:
     * Always true (open system)
     * Text file backed (pilots, small deploys)
     * Database-backed (large-scale deploys)
-
-    For now, we have the file-backed version
     '''
-    teachers = yaml.safe_load(open(learning_observer.paths.data("teachers.yaml")))
-    if email not in teachers:
-        # email is untrusted; repr prevents injection of newlines
-        debug_log("Email not found in teachers", repr(email))
-        return False
-    if teachers[email]["google_id"] != user_id:
-        # user_id is untrusted; repr prevents injection of newlines
-        debug_log("Non-matching Google ID", teachers[email]["google_id"], repr(user_id))
-        return False
-    debug_log("Teacher account verified")
-    return True
+    for k in roles.USER_FILES.keys():
+        users = yaml.safe_load(open(learning_observer.paths.data(roles.USER_FILES[k])))
+        if email not in users:
+            # email is untrusted; repr prevents injection of newlines
+            debug_log(f"Email not found in {roles.USER_FILES[k]}", repr(email))
+            continue
+        if users[email]["google_id"] != user_id:
+            # user_id is untrusted; repr prevents injection of newlines
+            debug_log(f"Non-matching Google ID in {roles.USER_FILES[k]}", users[email]["google_id"], repr(user_id))
+            continue
+        debug_log(f"{k} account verified")
+        return k
+    return roles.ROLES.STUDENT
 
 
 async def update_session_user_info(request, user):
