@@ -8,6 +8,9 @@ different types of modules being plugged in (metrics/highlighter/etc.).
 This information will probably want to be handled a bit nicer once
 we understand the full workflow of the plugability.
 '''
+import writing_observer.nlp_indicators
+
+all_options = writing_observer.nlp_indicators.INDICATORS.keys()
 general = {
     'sort_by': {
         'options': [],
@@ -130,6 +133,23 @@ def combine_dicts(dicts):
     return combined
 
 
-overall = combine_dicts([general, argumentative, narrative, source_based])
+overall = {
+    'sort_by': {
+        'options': all_options,
+        'selected': []
+    },
+    'metrics': {
+        'options': all_options,
+        'selected': []
+    },
+    'highlight': {
+        'options': all_options,
+        'selected': []
+    },
+    'indicators': {
+        'options': all_options,
+        'selected': []
+    }
+}
 general_argumentative = combine_dicts([general, argumentative, source_based])
 general_narrative = combine_dicts([general, narrative, source_based])
