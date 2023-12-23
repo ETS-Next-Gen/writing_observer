@@ -127,8 +127,7 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     '''
     request = runtime.get_request()
     url = target_url.format(**kwargs)
-    session = await aiohttp_session.get_session(request)
-    user = session['user']
+    user = await learning_observer.auth.get_active_user(request)
 
     cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user['user_id']) + '/' + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:

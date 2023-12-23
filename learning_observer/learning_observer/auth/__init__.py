@@ -58,6 +58,7 @@ from learning_observer.auth.roles import ROLES
 # Utility functions
 from learning_observer.auth.utils import fernet_key
 from learning_observer.auth.utils import google_id_to_user_id
+from learning_observer.auth.utils import get_active_user
 from learning_observer.auth.events import encode_id
 
 # Utility handlers

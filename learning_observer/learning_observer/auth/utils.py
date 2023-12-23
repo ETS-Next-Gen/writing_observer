@@ -88,6 +88,16 @@ async def update_session_user_info(request, user):
     session["user"] = user
 
 
+async def get_active_user(request):
+    '''
+    Fetch current user from session
+    '''
+    session = await aiohttp_session.get_session(request)
+    if 'impersonating_as' in session:
+        return session['impersonating_as']
+    return session['user']
+
+
 async def logout(request):
     '''
     Log the user out
