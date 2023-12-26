@@ -26,6 +26,11 @@ import learning_observer.paths
 from learning_observer.log_event import debug_log
 from . import roles
 
+# TODO this is originally defined in a file that
+# imports this one, so we are unable to import it.
+# We should move the constant and import this instead.
+IMPERSONATING_AS = 'impersonating_as'
+
 
 def google_id_to_user_id(google_id):
     '''
@@ -90,11 +95,11 @@ async def update_session_user_info(request, user):
 
 async def get_active_user(request):
     '''
-    Fetch current user from session
+    Fetch current impersonated user or self from session
     '''
     session = await aiohttp_session.get_session(request)
-    if 'impersonating_as' in session:
-        return session['impersonating_as']
+    if IMPERSONATING_AS in session:
+        return session[IMPERSONATING_AS]
     return session['user']
 
 
@@ -105,7 +110,7 @@ async def logout(request):
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
     session.pop("auth_headers", None)
-    session.pop("original_user_id", None)
+    session.pop(IMPERSONATING_AS, None)
     request['user'] = None
 
 
@@ -151,14 +156,25 @@ async def verify_password(filename, username, password):
 #
 # In the long term, we will probably want a little more, but not full ACLs.
 def _role_required(role):
-    '''Decorator for viewing pages that require a specific role.
-    Roles can be found in user.role.
+    '''Returns a decorator for viewing pages that require the passed
+    in `role`. The role is stored in the user object under `user.role`.
     '''
     def decorator(func):
         @functools.wraps(func)
         def wrapper(request):
             if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
                 return func(request)
+            '''TODO evaluate how we should be using `role` with the
+            `authorized` key.
+
+            `authorized` is how the auth workflow used to work. This
+            was set to True for teachers/admins and false otherwise.
+            With the new inclusion of `role`, I'm not sure we need to
+            use `authorized` anymore.
+
+            When this is resolved, we need to update each source of
+            auth in our code (e.g. password, http_basic, google, etc.)
+            '''
             if 'user' in request and \
             request['user'] is not None and \
             'authorized' in request['user'] and \

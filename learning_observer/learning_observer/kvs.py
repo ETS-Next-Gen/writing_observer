@@ -284,6 +284,13 @@ KVS_MAP = {
 
 
 class MissingKVSParameters(AttributeError):
+    '''Raise this when required parameters are not present
+    in the KVS item trying to be created.
+
+    You will see this error if you forget to include
+    1. `expiry` in type `redis_ephemeral` OR
+    2. `path` in type `filesystem`
+    '''
     def __init__(self, key, type, param):
         msg = f'KVS, {key}, is set to type `{type}` but `{param}` is not specified. '\
               'This can be fixed in `creds.yaml`.'
