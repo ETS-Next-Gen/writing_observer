@@ -175,12 +175,9 @@ def _role_required(role):
             When this is resolved, we need to update each source of
             auth in our code (e.g. password, http_basic, google, etc.)
             '''
-            if 'user' in request and \
-            request['user'] is not None and \
-            'authorized' in request['user'] and \
-            request['user']['authorized'] and \
-            'role' in request['user'] and \
-            (request['user']['role'] == role or request['user']['role'] == roles.ROLES.ADMIN):
+            session_authorized = request.get('user', {}).get('authorized', False)
+            session_role = request.get('user', {}).get('role', roles.ROLES.STUDENT)
+            if session_authorized and session_role in [role, roles.ROLES.ADMIN]:
                 return func(request)
             # Else, if unauthorized
             # send user to login page /

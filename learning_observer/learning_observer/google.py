@@ -172,8 +172,8 @@ def raw_access_partial(remote_url, name=None):
 
 @learning_observer.prestartup.register_startup_check
 def connect_to_google_cache():
-    '''Setup cache for request to the Google API if.
-    The cache is currenlty only used with the `use_google_ajax`
+    '''Setup cache for requests to the Google API.
+    The cache is currently only used with the `use_google_ajax`
     feature flag.
     '''
     if 'google_routes' not in settings.settings['feature_flags']:
