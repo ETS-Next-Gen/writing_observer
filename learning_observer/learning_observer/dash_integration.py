@@ -15,14 +15,18 @@ import shutil
 
 from pkg_resources import resource_filename, resource_listdir
 
-
+import aiohttp_session
+import asyncio
 import dash
-from dash import Dash, html, clientside_callback, Output, Input
+from dash import Dash, html, clientside_callback, callback, Output, Input
+import dash_bootstrap_components as dbc
+from flask import request
 
 from lo_dash_react_components import LOConnection
 
 import learning_observer.prestartup
 import learning_observer.paths
+import learning_observer.impersonate
 
 
 app = None
@@ -40,6 +44,8 @@ def get_app():
 # {module}/ makes designing apps easier, since they can use relative
 # paths.
 PATH_TEMPLATE = "/{module}/dash/{subpath}/"
+
+impersonation_header_id = '_impersonation_header'
 
 
 def local_register_page(
@@ -205,6 +211,8 @@ def load_dash_pages():
         update_title=None
     )
 
+    app.layout = html.Div([html.Div(id=impersonation_header_id), dash.page_container])
+
     dash.register_page(
         __name__,
         path="/dash/test",
@@ -230,3 +238,27 @@ def load_dash_pages():
                 description=page['DESCRIPTION'],
                 path=path
             )
+
+@callback(
+    Output(impersonation_header_id, 'children'),
+    Input(impersonation_header_id, 'id') # triggers on page load
+)
+def update_impersonation_header(id):
+    '''Add impersonation header if we are impersonating
+    a user. This includes a 'Stop' button
+
+    HACK the impersonation information is stored in the aiohttp request.
+    Since we are working in the dash/flask environment, we do not
+    pass the aiohttp request around. Instead, we need to fetch it
+    from the `flask.request` object.
+    This does not feel like the optimal workflow for this, but it
+    does achieve the goal of wrapping a page in a header.
+    '''
+    session = asyncio.run(aiohttp_session.get_session(request.environ['aiohttp.request']))
+    if learning_observer.impersonate.IMPERSONATING_AS in session:
+        return html.Div([
+            # TODO clean up text for who we are impersonating
+            html.Span(f'Impersonating as {session[learning_observer.impersonate.IMPERSONATING_AS]}'),
+            dbc.Button('Stop', href='/stop-impersonation', external_link=True, color='danger', className='float-end')
+        ], className='m-1')
+    return []

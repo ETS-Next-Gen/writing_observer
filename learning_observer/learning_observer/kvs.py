@@ -257,7 +257,7 @@ class FilesystemKVS(_KVS):
             f.write(value)
 
     async def __delitem__(self, key):
-        path = key_to_safe_filename(key)
+        path = self.key_to_safe_filename(key)
         os.remove(path)
 
     async def keys(self):
@@ -274,11 +274,27 @@ class FilesystemKVS(_KVS):
                 yield self.safe_filename_to_key(f)
 
 
+# TODO change the keys to variables
 KVS_MAP = {
     'stub': InMemoryKVS,
     'redis_ephemeral': EphemeralRedisKVS,
-    'redis': PersistentRedisKVS
+    'redis': PersistentRedisKVS,
+    'filesystem': FilesystemKVS
 }
+
+
+class MissingKVSParameters(AttributeError):
+    '''Raise this when required parameters are not present
+    in the KVS item trying to be created.
+
+    You will see this error if you forget to include
+    1. `expiry` in type `redis_ephemeral` OR
+    2. `path` in type `filesystem`
+    '''
+    def __init__(self, key, type, param):
+        msg = f'KVS, {key}, is set to type `{type}` but `{param}` is not specified. '\
+              'This can be fixed in `creds.yaml`.'
+        super().__init__(msg)
 
 
 class KVSRouter:
@@ -300,7 +316,13 @@ class KVSRouter:
                     raise KeyError(f"Invalid KVS type '{kvs_type}'")
                 kvs_class = KVS_MAP[kvs_type]
                 if kvs_type == 'redis_ephemeral':
+                    if 'expiry' not in kvs_item:
+                        raise MissingKVSParameters(key, kvs_type, 'expiry')
                     kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
+                elif kvs_type == 'filesystem':
+                    if 'path' not in kvs_item:
+                        raise MissingKVSParameters(key, kvs_type, 'path')
+                    kvs_class = functools.partial(kvs_class, kvs_item['path'], kvs_item.get('subdirs', False))
                 self.add_item(key, kvs_class)
 
     def __call__(self):

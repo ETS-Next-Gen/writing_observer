@@ -24,6 +24,12 @@ import aiohttp_session
 import learning_observer.paths
 
 from learning_observer.log_event import debug_log
+from . import roles
+
+# TODO this is originally defined in a file that
+# imports this one, so we are unable to import it.
+# We should move the constant and import this instead.
+IMPERSONATING_AS = 'impersonating_as'
 
 
 def google_id_to_user_id(google_id):
@@ -50,27 +56,27 @@ def fernet_key(secret_string):
     return md5_hash.hexdigest().encode('utf-8')
 
 
-async def verify_teacher_account(user_id, email):
+async def verify_role(user_id, email):
     '''
-    Confirm the teacher is registered with the system. Eventually, we will want
+    Confirm the user is registered with the system. Eventually, we will want
     3 versions of this:
     * Always true (open system)
     * Text file backed (pilots, small deploys)
     * Database-backed (large-scale deploys)
-
-    For now, we have the file-backed version
     '''
-    teachers = yaml.safe_load(open(learning_observer.paths.data("teachers.yaml")))
-    if email not in teachers:
-        # email is untrusted; repr prevents injection of newlines
-        debug_log("Email not found in teachers", repr(email))
-        return False
-    if teachers[email]["google_id"] != user_id:
-        # user_id is untrusted; repr prevents injection of newlines
-        debug_log("Non-matching Google ID", teachers[email]["google_id"], repr(user_id))
-        return False
-    debug_log("Teacher account verified")
-    return True
+    for k in roles.USER_FILES.keys():
+        users = yaml.safe_load(open(learning_observer.paths.data(roles.USER_FILES[k])))
+        if email not in users:
+            # email is untrusted; repr prevents injection of newlines
+            debug_log(f"Email not found in {roles.USER_FILES[k]}", repr(email))
+            continue
+        if users[email]["google_id"] != user_id:
+            # user_id is untrusted; repr prevents injection of newlines
+            debug_log(f"Non-matching Google ID in {roles.USER_FILES[k]}", users[email]["google_id"], repr(user_id))
+            continue
+        debug_log(f"{k} account verified")
+        return k
+    return roles.ROLES.STUDENT
 
 
 async def update_session_user_info(request, user):
@@ -87,6 +93,16 @@ async def update_session_user_info(request, user):
     session["user"] = user
 
 
+async def get_active_user(request):
+    '''
+    Fetch current impersonated user or self from session
+    '''
+    session = await aiohttp_session.get_session(request)
+    if IMPERSONATING_AS in session:
+        return session[IMPERSONATING_AS]
+    return session['user']
+
+
 async def logout(request):
     '''
     Log the user out
@@ -94,6 +110,7 @@ async def logout(request):
     session = await aiohttp_session.get_session(request)
     session.pop("user", None)
     session.pop("auth_headers", None)
+    session.pop(IMPERSONATING_AS, None)
     request['user'] = None
 
 
@@ -138,38 +155,41 @@ async def verify_password(filename, username, password):
 # we plan to have teacher, student, and admin accounts.
 #
 # In the long term, we will probably want a little more, but not full ACLs.
-
-
-def admin(func):
+def _role_required(role):
+    '''Returns a decorator for viewing pages that require the passed
+    in `role`. The role is stored in the user object under `user.role`.
     '''
-    Decorator to mark a view as an admin view.
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(request):
+            if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
+                return func(request)
+            '''TODO evaluate how we should be using `role` with the
+            `authorized` key.
 
-    This should be moved to the auth/auth framework, and have more
-    granular levels (e.g. teachers and sys-admins). We probably don't
-    want a full ACL scheme (which overcomplicates things), but we will
-    want to think through auth/auth.
-    '''
-    @functools.wraps(func)
-    def wrapper(request):
-        if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
-            return func(request)
-        if 'user' in request and \
-           request['user'] is not None and \
-           'authorized' in request['user'] and \
-           request['user']['authorized']:
-            return func(request)
-        # Else, if unauthorized
-        # send user to login page /
-        # there may be a slight oddball with the url hash being
-        # included after the location updates
-        response = aiohttp.web.Response(status=302)
-        redirect_url = '/'
-        response.headers['Location'] = redirect_url
-        raise aiohttp.web.HTTPFound(location=redirect_url, headers=response.headers)
-    return wrapper
+            `authorized` is how the auth workflow used to work. This
+            was set to True for teachers/admins and false otherwise.
+            With the new inclusion of `role`, I'm not sure we need to
+            use `authorized` anymore.
+
+            When this is resolved, we need to update each source of
+            auth in our code (e.g. password, http_basic, google, etc.)
+            '''
+            session_authorized = request.get('user', {}).get('authorized', False)
+            session_role = request.get('user', {}).get('role', roles.ROLES.STUDENT)
+            if session_authorized and session_role in [role, roles.ROLES.ADMIN]:
+                return func(request)
+            # Else, if unauthorized
+            # send user to login page /
+            # there may be a slight oddball with the url hash being
+            # included after the location updates
+            response = aiohttp.web.Response(status=302)
+            redirect_url = '/'
+            response.headers['Location'] = redirect_url
+            raise aiohttp.web.HTTPFound(location=redirect_url, headers=response.headers)
+        return wrapper
+    return decorator
 
 
-# Decorator
-#
-# For now, we don't have seperate teacher and admin accounts.
-teacher = admin
+teacher = _role_required(roles.ROLES.TEACHER)
+admin = _role_required(roles.ROLES.ADMIN)

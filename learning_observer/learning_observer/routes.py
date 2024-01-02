@@ -18,6 +18,7 @@ import learning_observer.admin as admin
 import learning_observer.auth
 import learning_observer.auth.http_basic
 import learning_observer.client_config
+import learning_observer.impersonate
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
 import learning_observer.google
@@ -144,6 +145,9 @@ def add_routes(app):
     # above (esp. 3rd party libraries and media)
     repos = learning_observer.module_loader.static_repos()
     register_repo_routes(app, repos)
+
+    # Allow users to mask themselves as other users
+    register_impersonation_routes(app)
 
     # This is called last since we don't want wsgi routes overriding
     # our normal routes. We may change this design decision if we do
@@ -449,3 +453,16 @@ def register_wsgi_routes(app):
         wsgi_handler = learning_observer.auth.teacher(aiohttp_wsgi.WSGIHandler(wsgi_app.server))
         for pattern in wsgi_url_patterns:
             app.router.add_route("*", pattern, wsgi_handler)
+
+
+def register_impersonation_routes(app):
+    app.add_routes([
+        aiohttp.web.get(
+            '/start-impersonation/{user_id}',
+            learning_observer.impersonate.start_impersonation
+        ),
+        aiohttp.web.get(
+            '/stop-impersonation',
+            learning_observer.impersonate.stop_impersonation
+        )
+    ])

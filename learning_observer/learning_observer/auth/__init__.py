@@ -53,10 +53,13 @@ import sys
 # e.g. @admin_ajax @admin_html, or @admin(type=ajax)
 from learning_observer.auth.utils import admin
 from learning_observer.auth.utils import teacher
+from learning_observer.auth.roles import ROLES
 
 # Utility functions
 from learning_observer.auth.utils import fernet_key
 from learning_observer.auth.utils import google_id_to_user_id
+from learning_observer.auth.utils import get_active_user
+from learning_observer.auth.events import encode_id
 
 # Utility handlers
 from learning_observer.auth.handlers import logout_handler

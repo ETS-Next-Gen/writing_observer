@@ -36,6 +36,7 @@ import aiohttp_session
 import learning_observer.settings as settings
 import learning_observer.auth.handlers as handlers
 import learning_observer.auth.utils
+import learning_observer.auth.roles
 
 import learning_observer.exceptions
 
@@ -143,6 +144,7 @@ async def _google(request):
         async with client.get(url, headers=headers) as resp:
             profile = await resp.json()
 
+    role = await learning_observer.auth.utils.verify_role(profile['id'], profile['email'])
     return {
         'user_id': profile['id'],
         'email': profile['email'],
@@ -151,7 +153,13 @@ async def _google(request):
         'back_to': request.query.get('state'),
         'picture': profile['picture'],
         # TODO: Should this be immediate?
-        'authorized': await learning_observer.auth.utils.verify_teacher_account(profile['id'], profile['email'])
+        # TODO: Should authorized just take over the role?
+        # the old code relis on authorized being set to True
+        # to allow users access to various dashboards. Should
+        # we modify this behavior to check for a role or True
+        # instead of using the role attribute.
+        'authorized': role in [learning_observer.auth.ROLES.ADMIN, learning_observer.auth.ROLES.TEACHER],
+        'role': role
     }
 
 
