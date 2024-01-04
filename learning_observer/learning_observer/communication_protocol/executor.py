@@ -196,7 +196,6 @@ def handle_join(left, right, left_on, right_on):
     for left_dict in left:
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
-
             right_dict_match = right_dict.get(lookup_key)
 
             if right_dict_match:
@@ -481,7 +480,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         fields = [
             {
                 learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),  # TODO catch get_nested_dict_value errors
-                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)  # TODO catch get_nested_dict_value errors
+                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path, '')  # TODO catch get_nested_dict_value errors
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
         provenances = [
@@ -671,7 +670,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
             }
             error_texts = '\n'.join((f'  {e}' for e in _find_error_messages(error)))
             debug_log('ERROR:: Error occured within execution dag at '\
-                      f'{node_name}\n{nodes[node_name]["error"]["traceback"]}\n'\
+                      f'{node_name}\n{nodes[node_name]["error"].get("traceback", "")}\n'\
                       f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])

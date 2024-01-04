@@ -151,7 +151,7 @@ def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
             d = d
         else:
             if default == MissingType.Missing:
-                raise KeyError(f'Key {key_str} not found in {d}')
+                raise KeyError(f'Key `{key_str}` not found in {d}')
             return default
     return d
 
@@ -165,11 +165,11 @@ def remove_nested_dict_value(d, key_str):
         if d is not None and key in d:
             d = d[key]
         else:
-            raise KeyError(f'Key {key_str} not found in {d}')
+            raise KeyError(f'Key `{key_str}` not found in {d}')
     if keys[-1] in d:
         return d.pop(keys[-1])
     else:
-        raise KeyError(f'Key {key_str} not found in {d}')
+        raise KeyError(f'Key `{key_str}` not found in {d}')
 
 
 def clean_json(json_object):
