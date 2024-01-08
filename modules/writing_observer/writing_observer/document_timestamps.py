@@ -25,6 +25,8 @@ def fetch_doc_at_timestamp(timestamps, requested_timestamp=None):
     Given a dictionary of timestamps (keys) and doc_ids (values),
     fetch the doc_id closest to the requested timestamp without
     going over.
+
+    `requested_timestamp` should be a string of ms since unix epoch
     '''
     if requested_timestamp is None:
         # perhpas this should fetch the latest doc id instead
@@ -34,4 +36,4 @@ def fetch_doc_at_timestamp(timestamps, requested_timestamp=None):
     if bisect_index < 0:
         return None
     target_ts = sorted_ts[bisect_index]
-    return {'doc_id': timestamps[target_ts][0]}
+    return {'doc_id': timestamps[target_ts]}

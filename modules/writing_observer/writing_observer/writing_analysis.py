@@ -145,7 +145,7 @@ async def event_count(event, internal_state):
     return state, state
 
 
-@kvs_pipeline(scope=student_scope, null_state={'timestamps': {}})
+@kvs_pipeline(scope=student_scope, null_state={'timestamps': {}, 'last_document': ''})
 async def document_access_timestamps(event, internal_state):
     '''
     We want to fetch documents around a certian time of day.
@@ -154,32 +154,26 @@ async def document_access_timestamps(event, internal_state):
     Use case: a teacher wants to see the current version of
     the document their students had open at 10:45 AM
 
-    HACK Still not sold on the data structure used here.
-    We store the timestamp in a dictionary so when we query
-    the data, we can
-      1. sort the keys (timestamps),
-      2. figure out where to insert our requested timestamp
-      3. fetch the value directly before it in our sorted keys
-      4. grab the data associated with that key
-    Right now we maintain a list of documents accessed at a
-    given timestamp. Which one should we choose if there are
-    multiple provided back to us?
+    NOTE we only keep that latest doc for each timestamp.
+    Since we are in milliseconds, this should be okay.
     '''
-    # TODO do we want this triggered on all events?
+    # If users switch between document tabs, then the system will
+    # send mutliple `visibility` events from both tabs creating
+    # more timestamps than we want. We skip those events.
+    if event['client']['event'] in ['visibility']:
+        return False, False
 
     document_id = get_doc_id(event)
     if document_id is not None:
 
         # if events dont have timestamps present, revert to right now
-        # 'ts' is in milliseconds while datetime.now is in seconds
+        # 'ts' metadata is in milliseconds while datetime.now is in seconds
         ts = event['client'].get('metadata', {}).get('ts', datetime.datetime.now().timestamp()*1000)
-        # reduce timestamp down to seconds
-        ts = int(ts/1000)
 
-        if ts not in internal_state['timestamps']:
-            internal_state['timestamps'][ts] = []
-        if document_id not in internal_state['timestamps'][ts]:
-            internal_state['timestamps'][ts].append(document_id)
+        if document_id != internal_state['last_document']:
+            internal_state['timestamps'][ts] = document_id
+            internal_state['last_document'] = document_id
+
         return internal_state, internal_state
     return False, False
 
