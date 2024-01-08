@@ -48,9 +48,10 @@ def check_languagetool_running():
                 'If the LanguageTool is already running on a diffrent port, make sure to adjust '
                 'the `writing_observer.languagetool_port` setting in the `creds.yaml`.'
             )
-    debug_log('WARNING:: We are not configured to try and use to LanguageTool. '\
-        'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
-        'to enable the usage of the LanguageTool client.')
+    else:
+        debug_log('WARNING:: We are not configured to try and use to LanguageTool. '\
+            'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
+            'to enable the usage of the LanguageTool client.')
 
 
 def initialize_client():
