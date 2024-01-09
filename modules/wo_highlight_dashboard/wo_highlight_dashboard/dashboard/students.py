@@ -2,6 +2,7 @@
 Creates the grid of student cards
 '''
 # package imports
+import learning_observer.constants as constants
 from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, MATCH, exceptions as dash_e
 import dash_bootstrap_components as dbc
 from dash_renderjson import DashRenderjson
@@ -552,7 +553,7 @@ def create_cards(students):
                                     color='white',
                                     id={
                                         'type': student_link,
-                                        'index': s['user_id']
+                                        'index': s[constants.USER_ID]
                                     }
                                 )
                             ],
@@ -561,14 +562,14 @@ def create_cards(students):
                         lodrc.WOMetrics(
                             id={
                                 'type': student_metrics,
-                                'index': s['user_id']
+                                'index': s[constants.USER_ID]
                             }
                         ),
                         html.Div(
                             lodrc.WOTextHighlight(
                                 id={
                                     'type': student_texthighlight,
-                                    'index': s['user_id']
+                                    'index': s[constants.USER_ID]
                                 }
                             ),
                             className='student-card-text'
@@ -576,7 +577,7 @@ def create_cards(students):
                         lodrc.WOIndicatorBars(
                             id={
                                 'type': student_indicators,
-                                'index': s['user_id']
+                                'index': s[constants.USER_ID]
                             }
                         )
                     ],
@@ -587,7 +588,7 @@ def create_cards(students):
             # pattern matching callback
             id={
                 'type': student_col,
-                'index': s['user_id']
+                'index': s[constants.USER_ID]
             },
         ) for s in students
     ]

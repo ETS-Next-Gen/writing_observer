@@ -32,6 +32,7 @@ import aiohttp
 import aiohttp.web
 import aiohttp_session
 
+import learning_observer.constants as constants
 import learning_observer.settings as settings
 import learning_observer.log_event
 import learning_observer.util
@@ -129,7 +130,7 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     url = target_url.format(**kwargs)
     user = await learning_observer.auth.get_active_user(request)
 
-    cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user['user_id']) + '/' + learning_observer.util.url_pathname(url)
+    cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user[constants.USER_ID]) + '/' + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
         value = await cache[cache_key]
         if value is not None:
@@ -138,9 +139,9 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
                 GOOGLE_TO_SNAKE
             )
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
-        if 'auth_headers' not in request:
+        if constants.AUTH_HEADERS not in request:
             raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
-        async with client.get(url, headers=request["auth_headers"]) as resp:
+        async with client.get(url, headers=request[constants.AUTH_HEADERS]) as resp:
             response = await resp.json()
             learning_observer.log_event.log_ajax(target_url, response, request)
             if settings.feature_flag('use_google_ajax') is not None:
@@ -357,7 +358,7 @@ def clean_course_roster(google_json):
     for student_json in students:
         google_id = student_json['profile']['id']
         local_id = learning_observer.auth.google_id_to_user_id(google_id)
-        student_json['user_id'] = local_id
+        student_json[constants.USER_ID] = local_id
         del student_json['profile']['id']
 
         # For the present there is only one external id so we will add that directly.
@@ -456,9 +457,9 @@ def clean_assignment_docs(google_json):
     '''
     student_submissions = google_json.get('studentSubmissions', [])
     for student_json in student_submissions:
-        google_id = student_json['user_id']
+        google_id = student_json[constants.USER_ID]
         local_id = learning_observer.auth.google_id_to_user_id(google_id)
-        student_json['user_id'] = local_id
+        student_json[constants.USER_ID] = local_id
         docs = [d['driveFile'] for d in learning_observer.util.get_nested_dict_value(student_json, 'assignmentSubmission.attachments', []) if 'driveFile' in d]
         student_json['documents'] = docs
         # TODO we should probably remove some of the keys provided

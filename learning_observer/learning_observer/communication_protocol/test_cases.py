@@ -32,6 +32,7 @@ import learning_observer.communication_protocol.executor
 import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query as q
 import learning_observer.communication_protocol.util
+import learning_observer.constants as constants
 import learning_observer.offline
 
 
@@ -47,7 +48,7 @@ def dummy_roster(course):
         list: A list of student identifiers
     """
     return [{
-        'user_id': f'student-{i}'
+        constants.USER_ID: f'student-{i}'
     } for i in range(10)]
 
 

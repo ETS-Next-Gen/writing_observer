@@ -57,6 +57,7 @@ import hashlib
 import os
 import os.path
 
+import learning_observer.constants
 import learning_observer.filesystem_state
 
 import learning_observer.paths as paths
@@ -283,7 +284,7 @@ def log_ajax(url, resp_json, request):
     context of classroom activity, debug, and recover from failures
     '''
     payload = {
-        'user': request['user'],
+        learning_observer.constants.USER: request[learning_observer.constants.USER],
         'url': url,
         'response': resp_json,
         'timestamp': datetime.datetime.utcnow().isoformat()

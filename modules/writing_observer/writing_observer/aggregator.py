@@ -9,6 +9,7 @@ import time
 
 import learning_observer.cache
 import learning_observer.communication_protocol.integration
+import learning_observer.constants as constants
 import learning_observer.kvs
 import learning_observer.settings
 from learning_observer.stream_analytics.fields import KeyField, KeyStateType, EventField
@@ -164,7 +165,7 @@ async def get_latest_student_documents(student_data):
         learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
             {
-                KeyField.STUDENT: s['user_id'],
+                KeyField.STUDENT: s[constants.USER_ID],
                 EventField('doc_id'): get_last_document_id(s)
             },
             KeyStateType.INTERNAL
@@ -315,7 +316,7 @@ async def update_reconstruct_data_with_google_api(runtime, student_data):
         key = learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
             {
-                KeyField.STUDENT: student['user_id'],
+                KeyField.STUDENT: student[constants.USER_ID],
                 EventField('doc_id'): docId
             },
             KeyStateType.INTERNAL

@@ -69,6 +69,7 @@ import aiohttp.web
 import pathvalidate
 
 import learning_observer.auth as auth
+import learning_observer.constants as constants
 import learning_observer.google
 import learning_observer.kvs
 import learning_observer.log_event as log_event
@@ -153,13 +154,13 @@ def adjust_external_gc_ids(resp_json):
         google_id = auth.google_id_to_user_id(student_profile['id'])
 
         # As a cheap hack lets change the ids to match
-        # student_profile['user_id'] = google_id
+        # student_profile[constants.USER_ID] = google_id
         #
         # This hack changes the internal ID which we then use for
         # document retreival.  Going forward it should not be done
         # this way and it would be better for us to make this use
         # the externals.
-        student_json['user_id'] = google_id
+        student_json[constants.USER_ID] = google_id
 
         # For the present there is only one external id so we will add that directly.
         ext_ids = [{"source": "google", "id": google_id}]
@@ -220,7 +221,7 @@ async def all_ajax(
             # We'll created a name from the ID passed
             name = '-'.join(student.split('-')[2:]).replace("%23", "")
             return {
-                "user_id": student,
+                constants.USER_ID: student,
                 "profile": {
                     "name": {
                         "given_name": name,
@@ -254,8 +255,8 @@ async def synthetic_ajax(
             ROSTER_URL: paths.data("students.json")
         }
     elif settings.settings['roster_data']['source'] == 'filesystem':
-        debug_log(request['user'])
-        safe_userid = pathvalidate.sanitize_filename(request['user']['user_id'])
+        debug_log(request[constants.USER])
+        safe_userid = pathvalidate.sanitize_filename(request[constants.USER][constants.USER_ID])
         courselist_file = "courselist-" + safe_userid
         if parameters is not None and 'courseid' in parameters:
             safe_courseid = pathvalidate.sanitize_filename(str(parameters['courseid']))
@@ -311,7 +312,7 @@ async def google_ajax(
         # We saw this happen due to a bug, but similar bugs might come up
         # in the future (we forgot to propagate the headers from the
         # session).
-        async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
+        async with client.get(url.format(**parameters), headers=request[constants.AUTH_HEADERS]) as resp:
             resp_json = await resp.json()
             log_event.log_ajax(url, resp_json, request)
             return clean_google_ajax_data(
