@@ -46,19 +46,25 @@ EXECUTION_DAG = {
     "execution_dag": {
         "roster": course_roster(runtime=q.parameter("runtime"), course_id=q.parameter("course_id", required=True)),
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
-        'update_docs': update_via_google(runtime=q.parameter("runtime"), doc_ids=q.variable('sources')),
+        'update_docs': update_via_google(runtime=q.parameter("runtime"), doc_ids=q.variable('doc_sources')),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("update_docs"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT_ON='user_id'),
         'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
         'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
-        'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("sources"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts'}),
+        # error dashboard activity map nodes
+        'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_sources"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts'}),
         'activity_map': q.map(determine_activity, q.variable('time_on_task'), value_path='last_ts'),
         'activity_combined': q.join(LEFT=q.variable('activity_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        # single student language tool nodes
         'single_student_latest_doc': q.select(q.keys('writing_observer.last_document', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
-        'single_update_doc': update_via_google(runtime=q.parameter('runtime'), doc_ids=q.variable('single_student_latest_doc')),
+        'single_timestamped_docs': q.select(q.keys('writing_observer.document_access_timestamps', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id'), fields={'timestamps': 'timestamps'}),
+        'single_docs_at_ts': document_access_ts(overall_timestamps=q.variable('timestamped_docs'), requested_timestamp=q.parameter('requested_timestamp')),
+        'single_doc_sources': source_selector(sources={'ts': q.variable('single_docs_at_ts'), 'latest': q.variable('single_student_latest_doc')}, source=q.parameter('doc_source', required=False, default='latest')),
+        'single_update_doc': update_via_google(runtime=q.parameter('runtime'), doc_ids=q.variable('single_doc_sources')),
         'single_student_doc': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id', RESOURCES=q.variable("single_update_doc"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         'single_student_lt': languagetool(texts=q.variable('single_student_doc')),
         'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        # overall language tool nodes
         'overall_lt': languagetool(texts=q.variable('docs')),
         'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
 
@@ -83,12 +89,12 @@ EXECUTION_DAG = {
 
         # fetch the doc less than or equal to a timestamp
         'timestamped_docs': q.select(q.keys('writing_observer.document_access_timestamps', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'), fields={'timestamps': 'timestamps'}),
-        'docs_at_ts': q.map(document_access_ts, values=q.variable('timestamped_docs'), value_path='timestamps', func_kwargs={'requested_timestamp': q.parameter('requested_timestamp')}),
+        'docs_at_ts': document_access_ts(overall_timestamps=q.variable('timestamped_docs'), requested_timestamp=q.parameter('requested_timestamp')),
 
         # figure out where to source document ids from
         # current options include `ts` for a given timestamp
         # or `latest` for the most recently accessed
-        'sources': source_selector(sources={'ts': q.variable('docs_at_ts'), 'latest': q.variable('doc_ids')}, source=q.parameter('source', required=False, default='latest'))
+        'doc_sources': source_selector(sources={'ts': q.variable('docs_at_ts'), 'latest': q.variable('doc_ids')}, source=q.parameter('doc_source', required=False, default='latest')),
     },
     "exports": {
         "docs_with_roster": {

@@ -335,7 +335,10 @@ clientside_callback(
     Input(settings.highlight_checklist, 'value'),
     Input(settings.indicator_checklist, 'value'),
     Input(settings.sort_by_checklist, 'value'),
-    Input(course_store, 'data')
+    Input(course_store, 'data'),
+    Input(settings.doc_src, 'value'),
+    Input(settings.doc_src_date, 'date'),
+    Input(settings.doc_src_timestamp, 'value')
 )
 
 # show or hide the settings checklist for different components

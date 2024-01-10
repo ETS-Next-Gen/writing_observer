@@ -59,6 +59,13 @@ window.dash_clientside.clientside = {
     return [text, true, data];
   },
 
+  disable_doc_src_datetime: function (value) {
+    if (value === 'ts') {
+      return [false, false];
+    }
+    return [true, true];
+  },
+
     change_sort_direction_icon: function(sort_check, sort_values) {
         // updates UI elements, does not handle sorting
         // based on the current sort, set the sort direction icon and sort text
@@ -401,7 +408,7 @@ window.dash_clientside.clientside = {
         return true;
     },
 
-    send_options_to_server: function(types, metrics, highlights, indicators, sort_by, course_id) {
+    send_options_to_server: function(types, metrics, highlights, indicators, sort_by, course_id, doc_src, doc_date, doc_time) {
         // Send selected options to the server 
         // TODO work on protocol for communicating with the 
         //
@@ -410,7 +417,11 @@ window.dash_clientside.clientside = {
         // Input(settings.metric_checklist, 'value'),
         // Input(settings.highlight_checklist, 'value'),
         // Input(settings.indicator_checklist, 'value')
-        // Input(settings.sort_by_checklist, 'value')
+        // Input(settings.sort_by_checklist, 'value'),
+        // Input(course_store, 'data'),
+        // Input(settings.doc_src, 'value'),
+        // Input(settings.doc_src_date, 'date'),
+        // Input(settings.doc_src_timestamp, 'value')
         const options = metrics.concat(highlights).concat(indicators).concat(sort_by);
         const message = {
             docs_with_nlp: {
@@ -418,7 +429,9 @@ window.dash_clientside.clientside = {
                 target_exports: ['docs_with_nlp_annotations'],
                 kwargs: {
                     course_id: course_id,
-                    nlp_options: options
+                    nlp_options: options,
+                    doc_source: doc_src,
+                    requested_timestamp: new Date(`${doc_date}T${doc_time}`).getTime().toString()
                 }
             }
         }

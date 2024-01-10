@@ -20,20 +20,27 @@ def select_source(sources, source):
 
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.fetch_doc_at_timestamp')
-def fetch_doc_at_timestamp(timestamps, requested_timestamp=None):
+def fetch_doc_at_timestamp(overall_timestamps, requested_timestamp=None):
     '''
-    Given a dictionary of timestamps (keys) and doc_ids (values),
-    fetch the doc_id closest to the requested timestamp without
-    going over.
+    Iterate over a list of students and determine their latest document
+    in reference to the `requested_timestamp`.
 
     `requested_timestamp` should be a string of ms since unix epoch
     '''
-    if requested_timestamp is None:
-        # perhpas this should fetch the latest doc id instead
-        return {'doc_id': ''}
-    sorted_ts = sorted(timestamps.keys())
-    bisect_index = bisect.bisect_right(sorted_ts, requested_timestamp) - 1
-    if bisect_index < 0:
-        return None
-    target_ts = sorted_ts[bisect_index]
-    return {'doc_id': timestamps[target_ts]}
+    output = []
+    for student in overall_timestamps:
+        timestamps = student.get('timestamps', {})
+        student['doc_id'] = ''
+        if requested_timestamp is None:
+            # perhpas this should fetch the latest doc id instead
+            output.append(student)
+            continue
+        sorted_ts = sorted(timestamps.keys())
+        bisect_index = bisect.bisect_right(sorted_ts, requested_timestamp) - 1
+        if bisect_index < 0:
+            output.append(student)
+            continue
+        target_ts = sorted_ts[bisect_index]
+        student['doc_id'] = timestamps[target_ts]
+        output.append(student)
+    return output
