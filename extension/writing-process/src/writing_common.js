@@ -55,12 +55,15 @@ export function treeget(tree, key) {
 export function googledocs_id_from_url(url) {
     /*
       Given a URL like:
-        https://docs.google.com/document/d/jkldfhjklhdkljer8934789468976sduiyui34778dey/edit/foo/bar
+        - Most common url
+            https://docs.google.com/document/d/jkldfhjklhdkljer8934789468976sduiyui34778dey/edit/foo/bar
+        - URL of new document
+            https://docs.google.com/document/u/0/d/jkldfhjklhdkljer8934789468976sduiyui34778dey/docos/p/sync...
       extract the associated document ID:
         jkldfhjklhdkljer8934789468976sduiyui34778dey
       Return null if not a valid URL
     */
-    var match = url.match(/.*:\/\/docs\.google\.com\/document\/d\/([^\/]*)\/.*/i);
+    var match = url.match(/.*:\/\/docs\.google\.com\/document\/(?:u\/0\/)?d\/([^\/]*)\/.*/i);
     if(match) {
         return match[1];
     }
