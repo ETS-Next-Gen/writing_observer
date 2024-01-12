@@ -4,6 +4,7 @@ student essays with LLMs.
 '''
 import dash_bootstrap_components as dbc
 from dash_renderjson import DashRenderjson
+import datetime
 import lo_dash_react_components as lodrc
 
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
@@ -26,6 +27,10 @@ panel_layout = f'{prefix}-panel-layout'
 
 advanced_collapse = f'{prefix}-advanced-collapse'
 system_input = f'{prefix}-system-prompt-input'
+# document source
+doc_src = f'{prefix}-doc-src'
+doc_src_date = f'{prefix}-doc-src-date'
+doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
 attachment_upload = f'{prefix}-attachment-upload'
 attachment_label = f'{prefix}-attachment-label'
@@ -64,7 +69,17 @@ def layout():
                 dbc.InputGroupText('System prompt:'),
                 dbc.Textarea(id=system_input, value=system_prompt)
             ]),
-            dcc.Store(id=attachment_store, data='')
+            html.Div([
+                dbc.Label('Document Source'),
+                dbc.RadioItems(options=[
+                    {'label': 'Latest Document', 'value': 'latest' },
+                    {'label': 'Specific Time', 'value': 'ts'},
+                ], value='latest', id=doc_src),
+                dbc.InputGroup([
+                    dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
+                    dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
+                ])
+            ])
         ], label='Advanced', id=advanced_collapse, is_open=False),
     ])
 
@@ -87,7 +102,8 @@ def layout():
         dbc.CardFooter([
             html.Small(id=attachment_warning_message, className='text-danger'),
             dbc.Button('Save', id=attachment_save, color='primary', n_clicks=0, class_name='float-end')
-        ])
+        ]),
+        dcc.Store(id=attachment_store, data='')
     ], class_name='h-100')
 
     # query creator panel
@@ -136,6 +152,14 @@ def layout():
     return dcc.Loading(cont)
 
 
+# disbale document date/time options
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='disable_doc_src_datetime'),
+    Output(doc_src_date, 'disabled'),
+    Output(doc_src_timestamp, 'disabled'),
+    Input(doc_src, 'value')
+)
+
 # send request on websocket
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='send_to_loconnection'),
@@ -143,9 +167,12 @@ clientside_callback(
     Input(websocket, 'state'),  # used for initial setup
     Input('_pages_location', 'hash'),
     Input(submit, 'n_clicks'),
+    Input(doc_src, 'value'),
+    Input(doc_src_date, 'date'),
+    Input(doc_src_timestamp, 'value'),
     State(query_input, 'value'),
     State(system_input, 'value'),
-    State(tag_store, 'data')
+    State(tag_store, 'data'),
 )
 
 # enable/disabled submit based on query

@@ -24,7 +24,7 @@ const categoryColors = {
 }
 
 window.dash_clientside.common_student_errors = {
-  send_to_loconnection: function (state, hash) {
+  send_to_loconnection: function (state, hash, docSrc, docDate, docTime) {
     /**
      * When the hash of the URL changes, we send an updated query
      * to the Learning Observer server.
@@ -46,6 +46,8 @@ window.dash_clientside.common_student_errors = {
       } else {
         decoded.student_id = []
       }
+      decoded.doc_source = docSrc;
+      decoded.requested_timestamp = new Date(`${docDate}T${docTime}`).getTime().toString();
       const message = {
         wo: {
           execution_dag: 'writing_observer',

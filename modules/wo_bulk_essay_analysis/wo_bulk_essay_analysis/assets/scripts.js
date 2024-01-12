@@ -107,7 +107,7 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * Sends data to server via websocket
    */
-  send_to_loconnection: async function (state, hash, clicks, query, systemPrompt, tags) {
+  send_to_loconnection: async function (state, hash, clicks, docSrc, docDate, docTime, query, systemPrompt, tags) {
     if (state === undefined) {
       return window.dash_clientside.no_update
     }
@@ -116,14 +116,16 @@ window.dash_clientside.bulk_essay_feedback = {
       const decoded = decode_string_dict(hash.slice(1))
       if (!decoded.course_id) { return window.dash_clientside.no_update }
 
-      decoded.gpt_prompt = ''
-      decoded.message_id = ''
+      decoded.gpt_prompt = '';
+      decoded.message_id = '';
+      decoded.doc_source = docSrc;
+      decoded.requested_timestamp = new Date(`${docDate}T${docTime}`).getTime().toString();
 
       const trig = window.dash_clientside.callback_context.triggered[0]
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
-        decoded.gpt_prompt = query
-        decoded.system_prompt = systemPrompt
-        decoded.tags = tags
+        decoded.gpt_prompt = query;
+        decoded.system_prompt = systemPrompt;
+        decoded.tags = tags;
       }
 
       const message = {

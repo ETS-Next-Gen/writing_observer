@@ -84,14 +84,14 @@ async def call_dispatch(functions, function_name, args, kwargs):
     >>> asyncio.run(call_dispatch({'double': double}, 'nonexistent', [1], {}))
     Traceback (most recent call last):
       ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function nonexistent did not execute properly during call.', 'call_dispatch', {'function_name': 'nonexistent', 'args': [1], 'kwargs': {}, 'error': "'nonexistent'"})
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function nonexistent did not execute properly during call.', 'call_dispatch', {'function_name': 'nonexistent', 'args': [1], 'kwargs': {}, 'error': "'nonexistent'"}, ...)
 
 
     Raises an exception when the called function raises an exception.
     >>> asyncio.run(call_dispatch({'double': double}, 'double', [None], {}))
     Traceback (most recent call last):
       ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function double did not execute properly during call.', 'call_dispatch', {'function_name': 'double', 'args': [None], 'kwargs': {}, 'error': 'Input cannot be None'})
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function double did not execute properly during call.', 'call_dispatch', {'function_name': 'double', 'args': [None], 'kwargs': {}, 'error': 'Input cannot be None'}, ...)
     """
     try:
         function = functions[function_name]
@@ -182,7 +182,7 @@ def handle_join(left, right, left_on, right_on):
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
     ... )
-    [{'error': 'KeyError: key not found', 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+    [{'error': "KeyError: key `lid` not found in `dict_keys(['left'])`", 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
     for d in right:
@@ -196,7 +196,6 @@ def handle_join(left, right, left_on, right_on):
     for left_dict in left:
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
-
             right_dict_match = right_dict.get(lookup_key)
 
             if right_dict_match:
@@ -206,11 +205,12 @@ def handle_join(left, right, left_on, right_on):
                 merged_dict = left_dict
             result.append(merged_dict)
         except KeyError as e:
-            result.append(DAGExecutionException(
-                f'KeyError: key not found',
-                inspect.currentframe().f_code.co_name,
-                {'target': left_dict, 'key': left_on, 'exception': e}
-            ).to_dict())
+            result.append(left_dict)
+            # result.append(DAGExecutionException(
+            #     f'KeyError: key `{left_on}` not found in `{left_dict.keys()}`',
+            #     inspect.currentframe().f_code.co_name,
+            #     {'target': left_dict, 'key': left_on, 'exception': e}
+            # ).to_dict())
 
     return result
 
@@ -345,13 +345,13 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     and handled later by the DAG executor. In our text, we return both a normal result
     and the result of an exception being caught.
     >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path'))
-    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': '', 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
+    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': ... 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
 
     Example of trying to call nonexistent function, `triple`
     >>> asyncio.run(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path'))
     Traceback (most recent call last):
       ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"})
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, ...)
     """
     if func_kwargs is None:
         func_kwargs = {}
@@ -424,7 +424,7 @@ async def handle_select(keys, fields):
                 value = get_nested_dict_value(resulting_value, f)
             except KeyError as e:
                 value = DAGExecutionException(
-                    f'KeyError: key not found',
+                    f'KeyError: key `{f}` not found in `{resulting_value.keys()}`',
                     inspect.currentframe().f_code.co_name,
                     {'target': resulting_value, 'key': f, 'exception': e}
                 ).to_dict()
@@ -481,7 +481,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         fields = [
             {
                 learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),  # TODO catch get_nested_dict_value errors
-                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)  # TODO catch get_nested_dict_value errors
+                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path, '')  # TODO catch get_nested_dict_value errors
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
         provenances = [
@@ -670,8 +670,9 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 'error_path': error_path
             }
             error_texts = '\n'.join((f'  {e}' for e in _find_error_messages(error)))
+            tb = nodes[node_name]["error"].get("traceback", 'No traceback available')
             debug_log('ERROR:: Error occured within execution dag at '\
-                      f'{node_name}\n{nodes[node_name]["error"]["traceback"]}\n'\
+                      f'{node_name}\n{tb}\n'\
                       f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])

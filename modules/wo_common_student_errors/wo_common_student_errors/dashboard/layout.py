@@ -6,6 +6,7 @@ new ways of displaying information
 # package imports
 import dash_bootstrap_components as dbc
 from dash_renderjson import DashRenderjson
+import datetime
 import lo_dash_react_components as lodrc
 import plotly.express as px
 import writing_observer.languagetool
@@ -26,6 +27,11 @@ error_store = f'{prefix}-error-store'
 alert = f'{prefix}-alert'
 alert_text = f'{prefix}-alert-text'
 alert_error_dump = f'{prefix}-alert-error-dump'
+
+# document source
+doc_src = f'{prefix}-doc-src'
+doc_src_date = f'{prefix}-doc-src-date'
+doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
 # error per text length items
 error_per_length = f'{prefix}-errors-per-length-graph'
@@ -49,6 +55,17 @@ def layout():
 
     tooltip = dcc.Tooltip(id=error_per_length_tooltip, direction='bottom')
     overall_view = html.Div([
+        html.Div([
+            dbc.Label('Document Source'),
+            dbc.RadioItems(options=[
+                {'label': 'Latest Document', 'value': 'latest' },
+                {'label': 'Specific Time', 'value': 'ts'},
+            ], value='latest', id=doc_src),
+            dbc.InputGroup([
+                dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
+                dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
+            ])
+        ]),
         activity.layout,
         dcc.Graph(
             id=error_per_length,
@@ -99,13 +116,25 @@ def layout():
     return dcc.Loading(cont)
 
 
+
+# disbale document date/time options
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='disable_doc_src_datetime'),
+    Output(doc_src_date, 'disabled'),
+    Output(doc_src_timestamp, 'disabled'),
+    Input(doc_src, 'value')
+)
+
 # send request to LOConnection
 clientside_callback(
     ClientsideFunction(namespace='common_student_errors', function_name='send_to_loconnection'),
     Output(websocket, 'send'),
     Output(individual.prefix, 'className'),
     Input(websocket, 'state'),  # used for initial setup
-    Input('_pages_location', 'hash')
+    Input('_pages_location', 'hash'),
+    Input(doc_src, 'value'),
+    Input(doc_src_date, 'date'),
+    Input(doc_src_timestamp, 'value'),
 )
 
 # Update the url's hash based on errors per text length graph's selectedData

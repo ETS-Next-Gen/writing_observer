@@ -239,7 +239,9 @@ async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
     """
     This method updates the reconstruct reducer every so often with the ground
     truth directly from the Google API. This allows us to automatically fix
-    errors introduced by the reconstruction.
+    errors introduced by the reconstruction. If the current user does not have
+    access to the ground truth (e.g. permission), then we do not update the
+    reconstruct reducer.
 
     This method is intended for use within the communication protocol.
     Since we already select reconstruct data from the KVS, this method just
@@ -262,6 +264,10 @@ async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
         kvs = learning_observer.kvs.KVS()
 
         text = await learning_observer.google.doctext(runtime, documentId=doc_id)
+        # Only update Redis is we have text available. If `text` is missing, then
+        # we likely encountered an error, usually related to document permissions.
+        if 'text' not in text:
+            return None
         key = learning_observer.stream_analytics.helpers.make_key(
             writing_observer.writing_analysis.reconstruct,
             {

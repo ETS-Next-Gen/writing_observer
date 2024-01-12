@@ -6,6 +6,7 @@ It just routes to smaller pipelines. Currently that's:
 2) Reconstruct text (+Deane graphs, etc.)
 '''
 # Necessary for the wrapper code below.
+import datetime
 import time
 import re
 
@@ -142,6 +143,39 @@ async def event_count(event, internal_state):
     state = {"count": internal_state.get('count', 0) + 1}
 
     return state, state
+
+
+@kvs_pipeline(scope=student_scope, null_state={'timestamps': {}, 'last_document': ''})
+async def document_access_timestamps(event, internal_state):
+    '''
+    We want to fetch documents around a certian time of day.
+    We record the timestamp with a document id.
+
+    Use case: a teacher wants to see the current version of
+    the document their students had open at 10:45 AM
+
+    NOTE we only keep that latest doc for each timestamp.
+    Since we are in milliseconds, this should be okay.
+    '''
+    # If users switch between document tabs, then the system will
+    # send mutliple `visibility` events from both tabs creating
+    # more timestamps than we want. We skip those events.
+    if event['client']['event'] in ['visibility']:
+        return False, False
+
+    document_id = get_doc_id(event)
+    if document_id is not None:
+
+        # if events dont have timestamps present, revert to right now
+        # 'ts' metadata is in milliseconds while datetime.now is in seconds
+        ts = event['client'].get('metadata', {}).get('ts', datetime.datetime.now().timestamp()*1000)
+
+        if document_id != internal_state['last_document']:
+            internal_state['timestamps'][ts] = document_id
+            internal_state['last_document'] = document_id
+
+        return internal_state, internal_state
+    return False, False
 
 
 @kvs_pipeline(scope=student_scope, null_state={'tags': {}})
