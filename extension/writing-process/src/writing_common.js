@@ -62,6 +62,14 @@ export function googledocs_id_from_url(url) {
       extract the associated document ID:
         jkldfhjklhdkljer8934789468976sduiyui34778dey
       Return null if not a valid URL
+
+      Regex explanation:
+      1. `/.*:\/\/` - match any protocol (http/https) followed by ://
+      2. `docs\.google\.com\/document\/` - match google docs domain
+      3. `(?:u\/0\/)` - optionally match u/0/ which appears on new document creation
+      4. `?d\/([^\/]*)\/` - match d/ until the subsequent / which holds the doc id
+      5. `.*` - check for the remaining url
+      6. `/i` - case insensitive
     */
     var match = url.match(/.*:\/\/docs\.google\.com\/document\/(?:u\/0\/)?d\/([^\/]*)\/.*/i);
     if(match) {
