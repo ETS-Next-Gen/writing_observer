@@ -32,7 +32,7 @@ def fetch_doc_at_timestamp(overall_timestamps, requested_timestamp=None):
         timestamps = student.get('timestamps', {})
         student['doc_id'] = ''
         if requested_timestamp is None:
-            # perhpas this should fetch the latest doc id instead
+            # perhaps this should fetch the latest doc id instead
             output.append(student)
             continue
         sorted_ts = sorted(timestamps.keys())
