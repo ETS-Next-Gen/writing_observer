@@ -13,6 +13,7 @@ import os
 
 import names
 
+import learning_observer.constants
 import learning_observer.settings
 import learning_observer.stream_analytics
 import learning_observer.module_loader
@@ -129,7 +130,7 @@ async def process_file(
     metadata = {
         "source": source,
         "auth": {
-            "user_id": userid,
+            learning_observer.constants.USER_ID: userid,
             "safe_user_id": userid
         }
     }
@@ -322,7 +323,7 @@ class StubRequest():
         self.app = app
 
     def __contains__(self, item):
-        if item == 'auth_headers':
+        if item == learning_observer.constants.AUTH_HEADERS:
             return True
         return False
 

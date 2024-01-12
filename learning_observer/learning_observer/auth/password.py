@@ -11,7 +11,7 @@ import aiohttp.web
 import learning_observer.auth.handlers
 import learning_observer.auth
 import learning_observer.auth.utils
-
+import learning_observer.constants
 from learning_observer.log_event import debug_log
 
 
@@ -75,7 +75,7 @@ def password_auth(filename):
         debug_log("Password check authorized")
         await learning_observer.auth.utils.update_session_user_info(
             request, {
-                'user_id': "pwd-" + user_data['username'],  # Perhaps data['username']?
+                learning_observer.constants.USER_ID: "pwd-" + user_data['username'],  # Perhaps data['username']?
                 'email': user_data.get('email', ''),
                 'name': user_data.get('name', ''),
                 'family_name': user_data.get('family_name', ''),

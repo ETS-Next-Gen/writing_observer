@@ -14,6 +14,7 @@ import aiohttp_session
 
 import learning_observer.auth.utils
 import learning_observer.auth.http_basic
+import learning_observer.constants as constants
 import learning_observer.settings
 
 import learning_observer.graphics_helpers
@@ -45,7 +46,7 @@ async def user_info_handler(request):
     TODO: Think through what info we want to give as we add authentication
     methods. We don't want to leak data accidentally.
     '''
-    return aiohttp.web.json_response(request['user'])
+    return aiohttp.web.json_response(request[constants.USER])
 
 
 async def user_from_session(request):
@@ -53,9 +54,9 @@ async def user_from_session(request):
     Get the user object from the session.
     '''
     session = await aiohttp_session.get_session(request)
-    session_user = session.get('user', None)
-    if 'auth_headers' in session:
-        request['auth_headers'] = session['auth_headers']
+    session_user = session.get(constants.USER, None)
+    if constants.AUTH_HEADERS in session:
+        request[constants.AUTH_HEADERS] = session[constants.AUTH_HEADERS]
     return session_user
 
 
@@ -160,7 +161,7 @@ async def set_user_info_cookie(request, response):
     # This should really be abstracted away into a library which passes state
     # back-and-forth, but for now, this works.
     session = await aiohttp_session.get_session(request)
-    session_user = session.get('user', None)
+    session_user = session.get(constants.USER, None)
 
     response.set_cookie(
         "userinfo",
@@ -181,7 +182,7 @@ async def http_auth_user(request):
         "should be tested. Since this is a security issue, it should be\n"
         "tested before we remove this exception."
     )
-    request['auth_headers'] = session.get('auth_headers', None)
+    request[constants.AUTH_HEADERS] = session.get(constants.AUTH_HEADERS, None)
 
 
 @aiohttp.web.middleware
@@ -215,7 +216,7 @@ async def auth_middleware(request, handler):
     # because we want to allow the user to log in from the main page. We just
     # don't want to allow them to access sensitive pages.
 
-    request['user'] = user
+    request[constants.USER] = user
     resp = await handler(request)
 
     # We want to be able to e.g. show the user's name in the header on the
@@ -244,20 +245,20 @@ def serve_user_icon(request):
     '''
 
     # Good idea once we have a good icon
-    # if request['user'] is None:
+    # if request[constants.USER] is None:
     #    return aiohttp.web.FileResponse(
     #        learning_observer.settings.settings['auth']['default_icon']
     #    )
 
     # In the future, we might want something along the lines of:
-    # if 'picture' in request['user']:
+    # if 'picture' in request[constants.USER]:
     #    return aiohttp.web.FileResponse(
-    #        request['user']['picture']
+    #        request[constants.USER]['picture']
     #    )
     # We don't do this now -- we encode the URL and don't call this function
     # if we have a picture -- since we often serve avatars from Google.
 
-    user = request.get('user', {})
+    user = request.get(constants.USER, {})
     if user is None:
         user = {}
     name = user.get('name', None)

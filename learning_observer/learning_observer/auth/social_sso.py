@@ -38,6 +38,7 @@ import learning_observer.auth.handlers as handlers
 import learning_observer.auth.utils
 import learning_observer.auth.roles
 
+import learning_observer.constants as constants
 import learning_observer.exceptions
 
 
@@ -72,7 +73,7 @@ async def social_handler(request):
 
     user = await _google(request)
 
-    if 'user_id' in user:
+    if constants.USER_ID in user:
         await learning_observer.auth.utils.update_session_user_info(request, user)
 
     if user['authorized']:
@@ -136,8 +137,8 @@ async def _google(request):
         # get user profile
         headers = {'Authorization': 'Bearer ' + data['access_token']}
         session = await aiohttp_session.get_session(request)
-        session["auth_headers"] = headers
-        request["auth_headers"] = headers
+        session[constants.AUTH_HEADERS] = headers
+        request[constants.AUTH_HEADERS] = headers
 
         # Old G+ URL that's no longer supported.
         url = 'https://www.googleapis.com/oauth2/v1/userinfo'
@@ -146,7 +147,7 @@ async def _google(request):
 
     role = await learning_observer.auth.utils.verify_role(profile['id'], profile['email'])
     return {
-        'user_id': profile['id'],
+        constants.USER_ID: profile['id'],
         'email': profile['email'],
         'name': profile['given_name'],
         'family_name': profile['family_name'],
@@ -201,17 +202,17 @@ async def show_me_my_auth_headers(request):
         if not request.can_read_form:
             raise aiohttp.web.HTTPForbidden("Cannot read form")
 
-        auth_headers = request.form.get('auth_headers')
+        auth_headers = request.form.get(constants.AUTH_HEADERS)
         if not auth_headers:
             raise aiohttp.web.HTTPBadRequest(
                 text="Missing auth_headers"
             )
         session = await aiohttp_session.get_session(request)
-        session["auth_headers"] = auth_headers
-        request["auth_headers"] = auth_headers
+        session[constants.AUTH_HEADERS] = auth_headers
+        request[constants.AUTH_HEADERS] = auth_headers
         session.save()
 
     return aiohttp.web.json_response({
-        "auth_headers": request.get("auth_headers", None),
+        constants.AUTH_HEADERS: request.get(constants.AUTH_HEADERS, None),
         "headers": dict(request.headers)
     })

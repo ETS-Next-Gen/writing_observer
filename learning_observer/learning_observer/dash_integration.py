@@ -24,9 +24,9 @@ from flask import request
 
 from lo_dash_react_components import LOConnection
 
+import learning_observer.constants
 import learning_observer.prestartup
 import learning_observer.paths
-import learning_observer.impersonate
 
 
 app = None
@@ -255,10 +255,10 @@ def update_impersonation_header(id):
     does achieve the goal of wrapping a page in a header.
     '''
     session = asyncio.run(aiohttp_session.get_session(request.environ['aiohttp.request']))
-    if learning_observer.impersonate.IMPERSONATING_AS in session:
+    if learning_observer.constants.IMPERSONATING_AS in session:
         return html.Div([
             # TODO clean up text for who we are impersonating
-            html.Span(f'Impersonating as {session[learning_observer.impersonate.IMPERSONATING_AS]}'),
+            html.Span(f'Impersonating as {session[learning_observer.constants.IMPERSONATING_AS]}'),
             dbc.Button('Stop', href='/stop-impersonation', external_link=True, color='danger', className='float-end')
         ], className='m-1')
     return []

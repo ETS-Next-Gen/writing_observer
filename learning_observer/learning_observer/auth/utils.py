@@ -21,15 +21,11 @@ import yaml
 import aiohttp.web
 import aiohttp_session
 
+import learning_observer.constants as constants
 import learning_observer.paths
 
 from learning_observer.log_event import debug_log
 from . import roles
-
-# TODO this is originally defined in a file that
-# imports this one, so we are unable to import it.
-# We should move the constant and import this instead.
-IMPERSONATING_AS = 'impersonating_as'
 
 
 def google_id_to_user_id(google_id):
@@ -90,7 +86,7 @@ async def update_session_user_info(request, user):
 
     """
     session = await aiohttp_session.get_session(request)
-    session["user"] = user
+    session[constants.USER] = user
 
 
 async def get_active_user(request):
@@ -98,9 +94,9 @@ async def get_active_user(request):
     Fetch current impersonated user or self from session
     '''
     session = await aiohttp_session.get_session(request)
-    if IMPERSONATING_AS in session:
-        return session[IMPERSONATING_AS]
-    return session['user']
+    if constants.IMPERSONATING_AS in session:
+        return session[constants.IMPERSONATING_AS]
+    return session[constants.USER]
 
 
 async def logout(request):
@@ -108,10 +104,10 @@ async def logout(request):
     Log the user out
     '''
     session = await aiohttp_session.get_session(request)
-    session.pop("user", None)
-    session.pop("auth_headers", None)
-    session.pop(IMPERSONATING_AS, None)
-    request['user'] = None
+    session.pop(constants.USER, None)
+    session.pop(constants.AUTH_HEADERS, None)
+    session.pop(constants.IMPERSONATING_AS, None)
+    request[constants.USER] = None
 
 
 class InvalidUsername(aiohttp.web.HTTPUnauthorized):
@@ -175,7 +171,7 @@ def _role_required(role):
             When this is resolved, we need to update each source of
             auth in our code (e.g. password, http_basic, google, etc.)
             '''
-            user = request.get('user', None)
+            user = request.get(constants.USER, None)
             if user is not None:
                 session_authorized = user.get('authorized', False)
                 session_role = user.get('role', roles.ROLES.STUDENT)
