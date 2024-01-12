@@ -171,14 +171,17 @@ def _role_required(role):
             When this is resolved, we need to update each source of
             auth in our code (e.g. password, http_basic, google, etc.)
             '''
-            session_authorized = request.get(constants.USER, {}).get('authorized', False)
-            session_role = request.get(constants.USER, {}).get('role', roles.ROLES.STUDENT)
-            if session_authorized and session_role in [role, roles.ROLES.ADMIN]:
-                return func(request)
+            user = request.get(constants.USER, None)
+            if user is not None:
+                session_authorized = user.get('authorized', False)
+                session_role = user.get('role', roles.ROLES.STUDENT)
+                if session_authorized and session_role in [role, roles.ROLES.ADMIN]:
+                    return func(request)
             # Else, if unauthorized
             # send user to login page /
             # there may be a slight oddball with the url hash being
             # included after the location updates
+            # luckily these are removed after the user logs in
             response = aiohttp.web.Response(status=302)
             redirect_url = '/'
             response.headers['Location'] = redirect_url
