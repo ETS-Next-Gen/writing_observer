@@ -2,6 +2,7 @@ import os
 from openai import AsyncOpenAI, OpenAIError
 
 import learning_observer.communication_protocol.integration
+from learning_observer.log_event import debug_log
 import learning_observer.prestartup
 import learning_observer.settings
 
@@ -18,36 +19,105 @@ class GPTAPI:
         raise NotImplementedError
 
 
+class GPTInitializationError(Exception):
+    '''Raise when GPT fails to initialize.
+    This usually happens when the users forgets to
+    provide information in the `creds.yaml` file.
+    '''
+
+
+class GPTRequestErorr(Exception):
+    '''Raise when the GPT chat completion raises
+    an exception
+    '''
+
+
 class OpenAIGPT(GPTAPI):
-    def __init__(self, model):
+    def __init__(self, **kwargs):
+        import openai
         super().__init__()
-        self.model = model
-        self.client = AsyncOpenAI(api_key=learning_observer.settings.module_setting('writing_observer', 'openai_api_key', os.getenv('OPENAI_API_KEY')))
+        self.model = kwargs.get('model', 'gpt-3.5-turbo-16k')
+        try:
+            self.client = openai.AsyncOpenAI(api_key=kwargs.get('api_key', os.getenv('OPENAI_API_KEY')))
+        except OpenAIError as e:
+            exception_text = 'Error while starting openai:\n'\
+                f'{e}\n\n'\
+                'If the OpenAI API Key is missing:\n'\
+                'Please ensure that the API Key is correctly configured in '\
+                '`creds.yaml` under `modules.writing_observer.openai_api_key`, '\
+                'or alternatively, set it as the `OPENAI_API_KEY` environment '\
+                'variable.'
+            raise GPTInitializationError(exception_text)
 
     async def chat_completion(self, prompt, system_prompt):
         messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': prompt}
         ]
-        return await self.client.chat.completions.create(model=self.model, messages=messages)
+        try:
+            response = await self.client.chat.completions.create(model=self.model, messages=messages)
+            return response.choices[0].message.content
+        except OpenAIError as e:
+            exception_text = f'Error during openai chat completion:\n{e}'
+            raise GPTRequestErorr(exception_text)
+
+
+class OllamaGPT(GPTAPI):
+    def __init__(self, **kwargs):
+        import ollama
+        super().__init__()
+        self.model = kwargs.get('model', 'llama2')
+        # TODO add in support for model host
+        self.client = ollama.AsyncClient()
+
+    async def chat_completion(self, prompt, system_prompt):
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': prompt}
+        ]
+        try:
+            response = await self.client.chat(model=self.model, messages=messages)
+            print(response)
+            return response['message']['content']
+        except OpenAIError as e:
+            exception_text = f'Error during ollama chat completion:\n{e}'
+            raise GPTRequestErorr(exception_text)
+
+
+GPT_RESPONDERS = {
+    'openai': OpenAIGPT,
+    'ollama': OllamaGPT
+}
 
 
 @learning_observer.prestartup.register_startup_check
 def initialize_gpt_responder():
+    '''Iterate over the gpt_responders listed in `creds.yaml`
+    and attempt to initialize it. On successful initialization
+    of a responder, exit the this startup check. Otherwise,
+    try the next one.
+    '''
     global gpt_responder
-    try:
-        gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
-    except OpenAIError as e:
-        exception_text = 'Error while starting openai:\n'\
-            f'{e}\n\n'\
-            'If the OpenAI API Key is missing:\n'\
-            'Please ensure that the API Key is correctly configured in '\
-            '`creds.yaml` under `modules.writing_observer.openai_api_key`, '\
-            'or alternatively, set it as the `OPENAI_API_KEY` environment '\
-            'variable.\n'\
-            'You may also disable the `wo_bulk_essay_analysis` by '\
-            'uninstalling it from your local environment.'
-        raise learning_observer.prestartup.StartupCheck(exception_text)
+    responders = learning_observer.settings.module_setting('writing_observer', 'gpt_responders', {})
+    exceptions = []
+    for key in responders:
+        if key not in GPT_RESPONDERS:
+            exceptions.append(KeyError(
+                f'GPT Responder `{key}` is not yet configured on this system.\n'\
+                f'The available responders are [{", ".join(GPT_RESPONDERS.keys())}].'
+            ))
+            continue
+        try:
+            gpt_responder = GPT_RESPONDERS[key](**responders[key])
+            debug_log(f'INFO:: Using GPT responder `{key}` with model `{responders[key]["model"]}`')
+            return True
+        except GPTInitializationError as e:
+            exceptions.append(e)
+            debug_log(f'WARNING:: Unable to initialize GPT responder `{key}:`.\n{e}')
+            gpt_responder = None
+    exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
+        '\n'.join(str(e) for e in exceptions)
+    raise learning_observer.prestartup.StartupCheck(exception_text)
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
@@ -63,7 +133,7 @@ async def process_student_essay(text, prompt, system_prompt, tags):
     @learning_observer.cache.async_memoization()
     async def gpt(gpt_prompt):
         completion = await gpt_responder.chat_completion(gpt_prompt, system_prompt)
-        return completion.choices[0].message.content
+        return completion
 
     if len(prompt) == 0:
         output = {
@@ -87,3 +157,17 @@ async def process_student_essay(text, prompt, system_prompt, tags):
             'prompt': prompt
         }
     return output
+
+
+async def test_responder():
+    responder = OllamaGPT('llama2')
+    response = await responder.chat_completion('Why is the sky blue?', 'You are a helper agent, please help fulfill user requests.')
+    print('Response:', response)
+
+
+if __name__ == '__main__':
+    import asyncio
+    loop = asyncio.get_event_loop()
+    asyncio.ensure_future(test_responder())
+    loop.run_forever()
+    loop.close()
