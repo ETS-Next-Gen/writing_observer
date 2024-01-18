@@ -1,5 +1,5 @@
+import aiohttp
 import os
-from openai import AsyncOpenAI, OpenAIError
 
 import learning_observer.communication_protocol.integration
 from learning_observer.log_event import debug_log
@@ -34,32 +34,34 @@ class GPTRequestErorr(Exception):
 
 class OpenAIGPT(GPTAPI):
     def __init__(self, **kwargs):
-        import openai
         super().__init__()
         self.model = kwargs.get('model', 'gpt-3.5-turbo-16k')
-        try:
-            self.client = openai.AsyncOpenAI(api_key=kwargs.get('api_key', os.getenv('OPENAI_API_KEY')))
-        except OpenAIError as e:
+        self.api_key = kwargs.get('api_key', os.getenv('OPENAI_API_KEY'))
+        if self.api_key is None:
             exception_text = 'Error while starting openai:\n'\
-                f'{e}\n\n'\
-                'If the OpenAI API Key is missing:\n'\
                 'Please ensure that the API Key is correctly configured in '\
-                '`creds.yaml` under `modules.writing_observer.openai_api_key`, '\
+                '`creds.yaml` under `modules.writing_observer.gpt_responders.openai.api_key`, '\
                 'or alternatively, set it as the `OPENAI_API_KEY` environment '\
                 'variable.'
             raise GPTInitializationError(exception_text)
 
     async def chat_completion(self, prompt, system_prompt):
+        url = 'https://api.openai.com/v1/chat/completions'
+        headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {self.api_key}'}
         messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': prompt}
         ]
-        try:
-            response = await self.client.chat.completions.create(model=self.model, messages=messages)
-            return response.choices[0].message.content
-        except OpenAIError as e:
-            exception_text = f'Error during openai chat completion:\n{e}'
-            raise GPTRequestErorr(exception_text)
+        content = {'model': self.model, 'messages': messages}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=content) as resp:
+                json_resp = await resp.json()
+                if resp.status == 200:
+                    return json_resp['choices'][0]['message']['content']
+                error = 'Error occured while making OpenAI request'
+                if 'error' in json_resp:
+                    error += f"\n{json_resp['error']['message']}"
+                raise GPTRequestErorr(error)
 
 
 class OllamaGPT(GPTAPI):
