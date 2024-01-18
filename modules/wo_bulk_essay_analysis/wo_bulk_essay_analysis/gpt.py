@@ -77,7 +77,6 @@ class OllamaGPT(GPTAPI):
         ]
         try:
             response = await self.client.chat(model=self.model, messages=messages)
-            print(response)
             return response['message']['content']
         except OpenAIError as e:
             exception_text = f'Error during ollama chat completion:\n{e}'
