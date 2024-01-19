@@ -1,4 +1,5 @@
 import aiohttp
+import ollama
 import os
 
 import learning_observer.communication_protocol.integration
@@ -66,11 +67,19 @@ class OpenAIGPT(GPTAPI):
 
 class OllamaGPT(GPTAPI):
     def __init__(self, **kwargs):
-        import ollama
         super().__init__()
         self.model = kwargs.get('model', 'llama2')
-        # TODO add in support for model host
-        self.client = ollama.AsyncClient()
+        # the Ollama client checks for the `OLLAMA_HOST` env variable
+        # or defaults to `localhost:11434`. We provide a warning when
+        # a specific host is not found.
+        ollama_host = kwargs.get('host', os.getenv('OLLAMA_HOST', None))
+        if ollama_host is None:
+            debug_log('WARNING:: Ollama host not specified. Defaulting to '\
+                      '`localhost:11434`.\nTo set a specific host, set '\
+                      '`modules.writing_observer.gpt_responders.ollama.host` '\
+                      'in `creds.yaml` or set the `OLLAMA_HOST` environment '\
+                      'variable.')
+        self.client = ollama.AsyncClient(base_url=ollama_host)
 
     async def chat_completion(self, prompt, system_prompt):
         messages = [
@@ -80,7 +89,7 @@ class OllamaGPT(GPTAPI):
         try:
             response = await self.client.chat(model=self.model, messages=messages)
             return response['message']['content']
-        except OpenAIError as e:
+        except (ollama.ResponseError, ollama.RequestError) as e:
             exception_text = f'Error during ollama chat completion:\n{e}'
             raise GPTRequestErorr(exception_text)
 
