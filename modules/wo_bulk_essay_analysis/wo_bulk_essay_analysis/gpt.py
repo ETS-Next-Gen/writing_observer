@@ -35,6 +35,11 @@ class GPTRequestErorr(Exception):
 
 class OpenAIGPT(GPTAPI):
     def __init__(self, **kwargs):
+        '''
+        kwargs:
+        - `model`: the GPT model we should use, defaults to `gpt-3.5-turbo-16k`
+        - `api_key`: OpenAI api key, defaults to the `OPENAI_API_KEY` environment variable.
+        '''
         super().__init__()
         self.model = kwargs.get('model', 'gpt-3.5-turbo-16k')
         self.api_key = kwargs.get('api_key', os.getenv('OPENAI_API_KEY'))
@@ -67,6 +72,12 @@ class OpenAIGPT(GPTAPI):
 
 class OllamaGPT(GPTAPI):
     def __init__(self, **kwargs):
+        '''
+        kwargs
+        - `model`: the GPT model we should use, defaults to `llama2`
+        - `host`: Ollama server to connect to - the Ollama client will
+                  default to `localhost:11434`.
+        '''
         super().__init__()
         self.model = kwargs.get('model', 'llama2')
         # the Ollama client checks for the `OLLAMA_HOST` env variable
@@ -78,7 +89,11 @@ class OllamaGPT(GPTAPI):
                       '`localhost:11434`.\nTo set a specific host, set '\
                       '`modules.writing_observer.gpt_responders.ollama.host` '\
                       'in `creds.yaml` or set the `OLLAMA_HOST` environment '\
-                      'variable.')
+                      'variable.\n'\
+                      'If you wish to install Ollama and download a model, '\
+                      'run the following commands:\n'\
+                      '```bash\ncurl https://ollama.ai/install.sh | sh\n'\
+                      'ollama run <desired_model>\n```')
         self.client = ollama.AsyncClient(base_url=ollama_host)
 
     async def chat_completion(self, prompt, system_prompt):
