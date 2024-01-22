@@ -1,7 +1,9 @@
+import aiohttp
+import ollama
 import os
-from openai import AsyncOpenAI, OpenAIError
 
 import learning_observer.communication_protocol.integration
+from learning_observer.log_event import debug_log
 import learning_observer.prestartup
 import learning_observer.settings
 
@@ -18,36 +20,129 @@ class GPTAPI:
         raise NotImplementedError
 
 
+class GPTInitializationError(Exception):
+    '''Raise when GPT fails to initialize.
+    This usually happens when the users forgets to
+    provide information in the `creds.yaml` file.
+    '''
+
+
+class GPTRequestErorr(Exception):
+    '''Raise when the GPT chat completion raises
+    an exception
+    '''
+
+
 class OpenAIGPT(GPTAPI):
-    def __init__(self, model):
+    def __init__(self, **kwargs):
+        '''
+        kwargs:
+        - `model`: the GPT model we should use, defaults to `gpt-3.5-turbo-16k`
+        - `api_key`: OpenAI api key, defaults to the `OPENAI_API_KEY` environment variable.
+        '''
         super().__init__()
-        self.model = model
-        self.client = AsyncOpenAI(api_key=learning_observer.settings.module_setting('writing_observer', 'openai_api_key', os.getenv('OPENAI_API_KEY')))
+        self.model = kwargs.get('model', 'gpt-3.5-turbo-16k')
+        self.api_key = kwargs.get('api_key', os.getenv('OPENAI_API_KEY'))
+        if self.api_key is None:
+            exception_text = 'Error while starting openai:\n'\
+                'Please ensure that the API Key is correctly configured in '\
+                '`creds.yaml` under `modules.writing_observer.gpt_responders.openai.api_key`, '\
+                'or alternatively, set it as the `OPENAI_API_KEY` environment '\
+                'variable.'
+            raise GPTInitializationError(exception_text)
+
+    async def chat_completion(self, prompt, system_prompt):
+        url = 'https://api.openai.com/v1/chat/completions'
+        headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {self.api_key}'}
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': prompt}
+        ]
+        content = {'model': self.model, 'messages': messages}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=content) as resp:
+                json_resp = await resp.json()
+                if resp.status == 200:
+                    return json_resp['choices'][0]['message']['content']
+                error = 'Error occured while making OpenAI request'
+                if 'error' in json_resp:
+                    error += f"\n{json_resp['error']['message']}"
+                raise GPTRequestErorr(error)
+
+
+class OllamaGPT(GPTAPI):
+    def __init__(self, **kwargs):
+        '''
+        kwargs
+        - `model`: the GPT model we should use, defaults to `llama2`
+        - `host`: Ollama server to connect to - the Ollama client will
+                  default to `localhost:11434`.
+        '''
+        super().__init__()
+        self.model = kwargs.get('model', 'llama2')
+        # the Ollama client checks for the `OLLAMA_HOST` env variable
+        # or defaults to `localhost:11434`. We provide a warning when
+        # a specific host is not found.
+        ollama_host = kwargs.get('host', os.getenv('OLLAMA_HOST', None))
+        if ollama_host is None:
+            debug_log('WARNING:: Ollama host not specified. Defaulting to '\
+                      '`localhost:11434`.\nTo set a specific host, set '\
+                      '`modules.writing_observer.gpt_responders.ollama.host` '\
+                      'in `creds.yaml` or set the `OLLAMA_HOST` environment '\
+                      'variable.\n'\
+                      'If you wish to install Ollama and download a model, '\
+                      'run the following commands:\n'\
+                      '```bash\ncurl https://ollama.ai/install.sh | sh\n'\
+                      'ollama run <desired_model>\n```')
+        self.client = ollama.AsyncClient(base_url=ollama_host)
 
     async def chat_completion(self, prompt, system_prompt):
         messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': prompt}
         ]
-        return await self.client.chat.completions.create(model=self.model, messages=messages)
+        try:
+            response = await self.client.chat(model=self.model, messages=messages)
+            return response['message']['content']
+        except (ollama.ResponseError, ollama.RequestError) as e:
+            exception_text = f'Error during ollama chat completion:\n{e}'
+            raise GPTRequestErorr(exception_text)
+
+
+GPT_RESPONDERS = {
+    'openai': OpenAIGPT,
+    'ollama': OllamaGPT
+}
 
 
 @learning_observer.prestartup.register_startup_check
 def initialize_gpt_responder():
+    '''Iterate over the gpt_responders listed in `creds.yaml`
+    and attempt to initialize it. On successful initialization
+    of a responder, exit the this startup check. Otherwise,
+    try the next one.
+    '''
     global gpt_responder
-    try:
-        gpt_responder = OpenAIGPT('gpt-3.5-turbo-16k')
-    except OpenAIError as e:
-        exception_text = 'Error while starting openai:\n'\
-            f'{e}\n\n'\
-            'If the OpenAI API Key is missing:\n'\
-            'Please ensure that the API Key is correctly configured in '\
-            '`creds.yaml` under `modules.writing_observer.openai_api_key`, '\
-            'or alternatively, set it as the `OPENAI_API_KEY` environment '\
-            'variable.\n'\
-            'You may also disable the `wo_bulk_essay_analysis` by '\
-            'uninstalling it from your local environment.'
-        raise learning_observer.prestartup.StartupCheck(exception_text)
+    responders = learning_observer.settings.module_setting('writing_observer', 'gpt_responders', {})
+    exceptions = []
+    for key in responders:
+        if key not in GPT_RESPONDERS:
+            exceptions.append(KeyError(
+                f'GPT Responder `{key}` is not yet configured on this system.\n'\
+                f'The available responders are [{", ".join(GPT_RESPONDERS.keys())}].'
+            ))
+            continue
+        try:
+            gpt_responder = GPT_RESPONDERS[key](**responders[key])
+            debug_log(f'INFO:: Using GPT responder `{key}` with model `{responders[key]["model"]}`')
+            return True
+        except GPTInitializationError as e:
+            exceptions.append(e)
+            debug_log(f'WARNING:: Unable to initialize GPT responder `{key}:`.\n{e}')
+            gpt_responder = None
+    exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
+        '\n'.join(str(e) for e in exceptions)
+    raise learning_observer.prestartup.StartupCheck(exception_text)
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
@@ -63,7 +158,7 @@ async def process_student_essay(text, prompt, system_prompt, tags):
     @learning_observer.cache.async_memoization()
     async def gpt(gpt_prompt):
         completion = await gpt_responder.chat_completion(gpt_prompt, system_prompt)
-        return completion.choices[0].message.content
+        return completion
 
     if len(prompt) == 0:
         output = {
@@ -87,3 +182,17 @@ async def process_student_essay(text, prompt, system_prompt, tags):
             'prompt': prompt
         }
     return output
+
+
+async def test_responder():
+    responder = OllamaGPT('llama2')
+    response = await responder.chat_completion('Why is the sky blue?', 'You are a helper agent, please help fulfill user requests.')
+    print('Response:', response)
+
+
+if __name__ == '__main__':
+    import asyncio
+    loop = asyncio.get_event_loop()
+    asyncio.ensure_future(test_responder())
+    loop.run_forever()
+    loop.close()

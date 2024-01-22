@@ -9,6 +9,8 @@ Development
    :parser: myst_parser.sphinx_
 .. include:: ../modules/lo_event/README.md
    :parser: myst_parser.sphinx_
+.. include:: ../modules/writing_observer/README.md
+   :parser: myst_parser.sphinx_
 .. include:: ../docs/privacy.md
    :parser: myst_parser.sphinx_
 .. include:: ../docs/config.md
