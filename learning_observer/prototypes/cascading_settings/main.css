@@ -1,0 +1,38 @@
+system {
+    url: localhost;
+    port: 8888;
+    type: http;
+}
+
+auth {
+    password_file: "passwd.lo";
+
+    google_oauth {
+        web {
+            client_id: id;
+        }
+    }
+
+    http_basic_auth {
+        mode: password-file;
+        password_file: "passwd.lo";
+    }
+
+    item1.subitemA: 1;
+}
+
+
+roster_data {
+    source: filesystem;
+}
+
+
+roster_data[teacher="Ms Lee"] {
+    source: google_api;
+}
+
+[school=1234] {
+    source: canvas;
+    writing_observer.use_languagetool: false;
+    writing_observer.gpt_responders.ollama.model: llama2
+}
