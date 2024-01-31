@@ -1,0 +1,11 @@
+<config>
+	<roster_data>
+		<source>google_api</source>
+	</roster_data>
+	<roster_data teacher="1234">
+		<source>all</source>
+	</roster_data>
+	<roster_data school="1234">
+		<source>canvas</source>
+	</roster_data>
+</config>

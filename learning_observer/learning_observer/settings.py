@@ -18,6 +18,7 @@ import sys
 import yaml
 
 import learning_observer.paths
+import learning_observer.setting_rules
 
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -86,68 +87,6 @@ RUN_MODE = None
 settings = None
 
 
-def match_rule(condition, rule):
-    '''Check if a dictionary of conditions match a rule.
-
-    >>> match_rule({'a': 123, 'b': 456}, {'a': 123})
-    True
-    >>> match_rule({'a': 123, 'b': 456}, {'a': 123, 'c': 789})
-    False
-    '''
-    if all(condition.get(key) == value for key, value in rule['condition'].items()):
-        return True
-    return False
-
-
-RULE_PRIORITIES = {
-    'school': 1,
-    'teacher': 2,
-    'course': 3
-}
-
-
-def determine_rule_priority(rule):
-    '''Fetches the rule's priority based on the keys in the
-    rule's conditional subobject.
-    '''
-    conditionals = rule['condition'].keys()
-    max_priority = max(RULE_PRIORITIES.get(key, 0) for key in conditionals)
-    return max_priority
-
-
-class settingsRuleWrapper(dict):
-    '''This is a wrapper to allow the settings dictionary to access
-    different layers of a configuration based on rules imposed. The
-    base `settings` are treated as the default.
-    '''
-    def __init__(self, settings, rules):
-        self.settings = settings
-        self.rules = rules
-        super().__init__(settings)
-
-    def get(self, setting, default=None, condition=None):
-        # TODO we probably want some way to say no overriding certain settings
-        primary_setting = super().get(setting, default)
-        if condition is None:
-            return primary_setting
-        value = self.find_setting_based_on_rule(setting, condition, primary_setting)
-        return value
-
-    def find_setting_based_on_rule(self, setting, condition, default):
-        '''We iterate over the rules to find any matching items. We
-        sort them by priority then iterate over them to find the first
-        instance of the `setting` we are trying to locate.
-        '''
-        rules = []
-        for r in self.rules:
-            if match_rule(condition, r):
-                r['priority'] = determine_rule_priority(r)
-                rules.append(r)
-        rules = sorted(rules, key=lambda x: x['priority'], reverse=True)
-        value = next((r['config'][setting] for r in rules if setting in r['config']), default)
-        return value
-
-
 def load_settings(config):
     '''
     Load the settings file and return a dictionary of settings. Also:
@@ -183,7 +122,7 @@ def load_settings(config):
         'condition': {'school': 'eastview'},
         'config': {'example_setting': 'all-of-eastview'}
     }]
-    settings = settingsRuleWrapper(settings, rules)
+    settings = learning_observer.setting_rules.settingsRuleWrapper(settings, rules)
 
     # TODO remove testing code
     default = 'default'

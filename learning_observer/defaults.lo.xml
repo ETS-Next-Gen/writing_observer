@@ -1,0 +1,33 @@
+<config>
+  <server>
+    <hostname>localhost:8888</hostname>
+    <protocol>http</protocol>
+    <port>8888</port>
+  </server>
+  <pubsub>
+    <type description="# stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale">
+      stub
+    </type>
+  </pubsub>
+  <kvs description="stub for in-memory debugging,
+    redis_ephemeral for redis / debugging (object disappear),
+    redis for deploy.
+    If using redis_ephemeral, persist objects for 60s = 1 minute
+    I typically use:
+    * 1-10s for test cases,
+    * 1-5 minutes for interactive debugging,
+    * 6-24 hours for development.
+  ">
+    <default>
+      <type>stub</type>
+      <expiry>6000</expiry>
+    </default>
+  </kvs>
+  <roster_data>
+    <source>filesystem</source>
+  </roster_data>
+  <config>
+    <run_mode>dev</run_mode>
+    <debug></debug>
+  </config>
+</config>

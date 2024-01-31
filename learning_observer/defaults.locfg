@@ -1,0 +1,24 @@
+system {
+  hostname: localhost:8888;
+  protocol: http;
+}
+
+pubsub {
+  type: stub;
+}
+
+kvs {
+  default {
+    type: stub;
+    expire: 6000;
+  }
+}
+
+roster_data {
+  source: filesystem;
+}
+
+config {
+  run_mode: dev;
+  debug: [];
+}
