@@ -140,9 +140,9 @@ def initialize_gpt_responder():
             exceptions.append(e)
             debug_log(f'WARNING:: Unable to initialize GPT responder `{key}:`.\n{e}')
             gpt_responder = None
-    exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
-        '\n'.join(str(e) for e in exceptions)
-    raise learning_observer.prestartup.StartupCheck(exception_text)
+            exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
+                '\n'.join(str(e) for e in exceptions)
+            raise learning_observer.prestartup.StartupCheck("GPT: " + exception_text)
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
