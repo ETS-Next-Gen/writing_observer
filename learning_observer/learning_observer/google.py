@@ -192,7 +192,7 @@ def connect_to_google_cache():
                     '```\ngoogle_cache:\n  type: filesystem\n  path: ./learning_observer/static_data/google\n'\
                     '  subdirs: true\n```\nOR\n'\
                     '```\ngoogle_cache:\n  type: redis_ephemeral\n  expiry: 600\n```'
-                raise learning_observer.prestartup.StartupCheck(error_text) 
+                raise learning_observer.prestartup.StartupCheck("Google KVS: " + error_text) 
 
 
 def initialize_and_register_routes(app):
