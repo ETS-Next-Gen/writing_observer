@@ -23,6 +23,7 @@ import learning_observer.routes as routes
 import learning_observer.prestartup
 import learning_observer.webapp_helpers
 import learning_observer.watchdog_observer
+import learning_observer.ipython_integration
 
 from learning_observer.log_event import debug_log
 
@@ -135,8 +136,7 @@ if args.watchdog is not None:
 app = create_app()
 
 if args.console:
-    import IPython
-    IPython.embed()
+    learning_observer.ipython_integration.start()
 else:
     start(app)
 
