@@ -53,10 +53,24 @@ def parse_and_validate_arguments():
         default=None)
 
     parser.add_argument(
-        '--console',
+        '--loconsole',
         help='Instead of launching a web server, run a debug console.',
-        default=None,
         action='store_true')
+
+    parser.add_argument(
+        '--lokernel',
+        help='Instead of launching a web server, launch as an `ipython` kernel.',
+        default=None)
+
+    # unused by code written by us
+    # only available when `--lo-ipykernel` is true
+    # consumed when launching a new kernel with the following:
+    # `ipython_integration.py:kernelapp.launch_new_instance()`
+    parser.add_argument(
+        '-f',
+        help='Connection file for usage with starting the `kernel` from a Jupyter noteboook.',
+        default=None
+    )
 
     args = parser.parse_args()
 

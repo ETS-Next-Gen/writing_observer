@@ -135,8 +135,11 @@ if args.watchdog is not None:
 
 app = create_app()
 
-if args.console:
-    learning_observer.ipython_integration.start()
+if True:
+    learning_observer.ipython_integration.load_kernel_spec()
+
+if args.lokernel:
+    learning_observer.ipython_integration.start(kernel_only=True, connection_file=args.f)
 else:
     start(app)
 
