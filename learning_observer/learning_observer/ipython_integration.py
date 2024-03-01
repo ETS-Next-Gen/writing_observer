@@ -20,14 +20,18 @@ logging.basicConfig(filename='ZMQ.log', encoding='utf-8', level=logging.DEBUG)
 
 
 class LOKernel(ipykernel.ipkernel.IPythonKernel):
+    '''Intercept the Kernel to fix any issues with
+    in the startup configuration or insert extra code.
+    '''
     def __init__(self, **kwargs):
         import dash
         super().__init__(**kwargs)
-        # we can't capture print statements due to the system passing sysout
-        # around but this code is still being ran.
         dash.jupyter_dash = dash.jupyter_dash.__init__()
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None):
+        '''This method handles execution of code cells.
+        If there is code to be run with all cells, it should be placed here.
+        '''
         return super().do_execute(code, silent, store_history, user_expressions, allow_stdin, cell_id=cell_id)
 
 
