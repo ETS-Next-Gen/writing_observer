@@ -10,7 +10,9 @@ PYTHONFILES = $(wildcard \
 run:
 	# If you haven't done so yet, run: make install
 	# Also, run: workon learning_observer
-	cd learning_observer && python learning_observer
+	# The export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION makes this slower, but avoids
+	# annoying version issues in dev. This should be resolved at some point.
+	export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python; cd learning_observer && python learning_observer
 
 # Build browser extension
 extension-package:
