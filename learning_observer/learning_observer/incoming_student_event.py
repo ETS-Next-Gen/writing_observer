@@ -190,8 +190,7 @@ async def handle_incoming_client_event(metadata):
             json.dumps(event, sort_keys=True),
             filename, preencoded=True, timestamp=True)
         await pipeline(event)
-
-    return handler
+    return handler, filename
 
 
 COUNT = 0
@@ -282,6 +281,8 @@ def event_decoder_and_logger(
                 json_event = json.loads(msg.data)
             log_event.log_event(json_event, filename=filename)
             yield json_event
+        # done processing events, can close logfile now
+        log_event.close_logfile(filename)
     return decode_and_log_event
 
 
@@ -308,6 +309,7 @@ async def incoming_websocket_handler(request):
     lock_fields = {}
     authenticated = False
     event_handler = failing_event_handler
+    study_log_filename = None
 
     decoder_and_logger = event_decoder_and_logger(request)
 
@@ -335,13 +337,14 @@ async def incoming_websocket_handler(request):
             return
 
         nonlocal event_handler
+        nonlocal study_log_filename
         if 'source' in lock_fields:
             debug_log('Updating the event_handler()')
             metadata = lock_fields.copy()
         else:
             metadata = event
         metadata['auth'] = authenticated
-        event_handler = await handle_incoming_client_event(metadata=metadata)
+        event_handler, study_log_filename = await handle_incoming_client_event(metadata=metadata)
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -412,15 +415,20 @@ async def incoming_websocket_handler(request):
         async for event in events:
             await event_handler(request, event)
             yield event
+        # when the event handler is finished processing events, we can close the study log file
+        if study_log_filename is not None:
+            log_event.close_logfile(study_log_filename)
 
     async def process_ws_message_through_pipeline():
         '''Prepare each event we receive for processing
         '''
         events = process_message_from_ws()
+        # NOTE: EVENT LOGS ARE USED HERE
         events = decoder_and_logger(events)
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)
+        # NOTE: STUDY LOGS ARE USED HERE
         events = pass_through_reducers(events)
         # empty loop to start the generator pipeline
         async for event in events:
