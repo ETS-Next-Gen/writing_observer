@@ -1,11 +1,7 @@
-from aiohttp import web
-import asyncio
-import IPython.display
-import ipywidgets
-
 import learning_observer.communication_protocol.query as q
 import learning_observer.dashboard
 import learning_observer.module_loader
+import learning_observer.stream_analytics
 from learning_observer.stream_analytics.helpers import KeyField, Scope
 
 MODULE_NAME = 'jupyter-helper'
@@ -41,7 +37,9 @@ def add_reducer_to_execution_dag(id, reducer, module=MODULE_NAME, default=None):
     endpoint later on.
     '''
     reducer = {
-        'context': f'{module}.{id}',
+        # TODO not sure the best way to handle specifying context
+        # 'context': f'{module}.{id}',
+        'context': 'org.mitros.writing_analytics',
         'function': reducer,
         'scope': Scope([KeyField.STUDENT]),
         'default': default,
@@ -53,57 +51,4 @@ def add_reducer_to_execution_dag(id, reducer, module=MODULE_NAME, default=None):
     obj = lambda: None
     obj.EXECUTION_DAG = _transform_reducer_into_classroom_query(id)
     learning_observer.module_loader.load_execution_dags(module, obj)
-
-
-async def serve_communication_protocol_endpoint(port=8765):
-    '''Run simple aiohttp webserver to connect with communication protocol
-    This code will throw an error that the port is already in use
-    The server will not currently stop properly if connections are
-    stilll active.
-    TODO figure out a better way to start/stop this
-    '''
-    app = web.Application()
-    # users need teacher access to see this websocket method
-    # set the `auth.test_case_insecure` in `creds.yaml` to True
-    # to bypass this check
-    app.router.add_route('GET', '/ws', learning_observer.dashboard.websocket_dashboard_handler)
-
-    # Using an `AppRunner` (as opposed to `run_app`) will connect
-    # to the existing ipython kernel loop to serve the websocket.
-    runner = web.AppRunner(app, tcp_keepalive=False)
-    async def start_server():
-        await runner.setup()
-        site = web.TCPSite(runner, 'localhost', port)
-        print('Started server')
-        await site.start()
-        print('Started server')
-
-    async def stop_server():
-        await runner.cleanup()
-        print('Server stopped')
-
-    start_button = ipywidgets.Button(description="Start Server")
-    stop_button = ipywidgets.Button(description="Stop Server", disabled=True)  # Initially disabled
-
-    async def start_server_wrapper():
-        await start_server()
-        # Disable start button and enable stop button upon server start
-        start_button.disabled = True
-        stop_button.disabled = False
-
-    async def stop_server_wrapper():
-        await stop_server()
-        # Disable stop button and enable start button upon server stop
-        stop_button.disabled = True
-        start_button.disabled = False
-
-    def on_start_clicked(b):
-        asyncio.create_task(start_server_wrapper())
-
-    def on_stop_clicked(b):
-        asyncio.create_task(stop_server_wrapper())
-
-    start_button.on_click(on_start_clicked)
-    stop_button.on_click(on_stop_clicked)
-
-    IPython.display.display(start_button, stop_button)
+    learning_observer.stream_analytics.init()

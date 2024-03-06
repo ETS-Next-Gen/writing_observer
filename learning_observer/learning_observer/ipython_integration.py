@@ -4,6 +4,8 @@ via an ipython kernel.
 
 Use `start()` to launch a new kernel instance.
 '''
+from aiohttp import web
+import asyncio
 import IPython
 import ipykernel.kernelapp
 import ipykernel.ipkernel
@@ -19,20 +21,12 @@ from traitlets.config import Config
 logging.basicConfig(filename='ZMQ.log', encoding='utf-8', level=logging.DEBUG)
 
 
-class LOKernel(ipykernel.ipkernel.IPythonKernel):
-    '''Intercept the Kernel to fix any issues with
-    in the startup configuration or insert extra code.
-    '''
-    def __init__(self, **kwargs):
-        import dash
-        super().__init__(**kwargs)
-        dash.jupyter_dash = dash.jupyter_dash.__init__()
-
-    def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None):
-        '''This method handles execution of code cells.
-        If there is code to be run with all cells, it should be placed here.
-        '''
-        return super().do_execute(code, silent, store_history, user_expressions, allow_stdin, cell_id=cell_id)
+async def start_server(app):
+    runner = web.AppRunner(app)
+    await runner.setup()
+    # TODO set this to the correct port
+    site = web.TCPSite(runner, 'localhost', 9999)
+    await site.start()
 
 
 def record_iopub_port(connection_file_path):
@@ -43,7 +37,7 @@ def record_iopub_port(connection_file_path):
     return iopub_port
 
 
-def start(kernel_only=False, connection_file=None, iopub_port=None):
+def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None):
     '''Kernels can start in two ways.
     1. A user starts up a kernel(a)/interactive shell(b) OR
     2. A Jupyter client starts a kernel
@@ -73,6 +67,27 @@ def start(kernel_only=False, connection_file=None, iopub_port=None):
       by `kernelapp.launch_new_instance()`. If we pass
       conflicting flags to LO, unexpected errors may occur.
     '''
+
+    class LOKernel(ipykernel.ipkernel.IPythonKernel):
+        '''Intercept the Kernel to fix any issues with
+        in the startup configuration or insert extra code.
+        '''
+        def __init__(self, **kwargs):
+            import dash
+            super().__init__(**kwargs)
+            dash.jupyter_dash = dash.jupyter_dash.__init__()
+            self.lo_app = lo_app
+
+        def start(self):
+            super().start()
+            asyncio.run_coroutine_threadsafe(start_server(self.lo_app), self.io_loop.asyncio_loop)
+
+        def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None):
+            '''This method handles execution of code cells.
+            If there is code to be run with all cells, it should be placed here.
+            '''
+            return super().do_execute(code, silent, store_history, user_expressions, allow_stdin, cell_id=cell_id)
+
     connection_file_available = connection_file is not None
     # HACK fix this
     iopub = 12345 if iopub_port is not None else iopub_port

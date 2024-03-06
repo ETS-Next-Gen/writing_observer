@@ -139,7 +139,7 @@ if True:
     learning_observer.ipython_integration.load_kernel_spec()
 
 if args.lokernel:
-    learning_observer.ipython_integration.start(kernel_only=True, connection_file=args.f)
+    learning_observer.ipython_integration.start(kernel_only=True, connection_file=args.f, lo_app=app)
 else:
     start(app)
 
