@@ -31,10 +31,10 @@ def _transform_reducer_into_classroom_query(id):
     return dag
 
 
-def add_reducer_to_execution_dag(id, reducer, module=MODULE_NAME, default=None):
-    '''Load `reducer` into LO's available execution DAGs. This allows us
-    to query the reducer through the `dashboard.websocket_dashboard_handler`
-    endpoint later on.
+def add_reducer_to_lo(id, reducer, module=MODULE_NAME, default=None):
+    '''Load `reducer` into the LO ecosystem. This allows us to pass
+    incoming events through the reducer and query the reducer
+    through the `dashboard.websocket_dashboard_handler` endpoint later on.
     '''
     reducer = {
         # TODO not sure the best way to handle specifying context
@@ -47,8 +47,10 @@ def add_reducer_to_execution_dag(id, reducer, module=MODULE_NAME, default=None):
         'id': id
     }
     learning_observer.module_loader.add_reducer(reducer, id)
-    # create a mocked module to set load execution dags
+    # create a simple "module" to set the execution dag
     obj = lambda: None
     obj.EXECUTION_DAG = _transform_reducer_into_classroom_query(id)
     learning_observer.module_loader.load_execution_dags(module, obj)
+    # reinitialize reducers so the new reducer is accessible
+    # by other portions of the system.
     learning_observer.stream_analytics.init()

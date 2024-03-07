@@ -62,10 +62,11 @@ def parse_and_validate_arguments():
         help='Instead of launching a web server, launch as an `ipython` kernel.',
         default=None)
 
-    # unused by code written by us
-    # only available when `--lo-ipykernel` is true
-    # consumed when launching a new kernel with the following:
-    # `ipython_integration.py:kernelapp.launch_new_instance()`
+    # HACK this flag is used by ipykernel, which is only
+    # available with the `--lokernel` flag is set. The
+    # `-f` is provided by Jupyter clients when they start
+    # a kernel of their own. The include file specifies
+    # which ports to start everything on.
     parser.add_argument(
         '-f',
         help='Connection file for usage with starting the `kernel` from a Jupyter noteboook.',
