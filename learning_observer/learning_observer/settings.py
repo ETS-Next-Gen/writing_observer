@@ -67,6 +67,17 @@ def parse_and_validate_arguments():
     # `-f` is provided by Jupyter clients when they start
     # a kernel of their own. The include file specifies
     # which ports to start everything on.
+
+    # TODO:
+    # We should either:
+    # * Bypass configuration in IPython and call inner code so `argv`
+    #   is never read
+    # * Override `argv` once we've read it for what IPython wants
+    #   (e.g. `sys.argv=['-f', connection])
+    # * Monkeypatch IPython
+    #  `ipython.something.sys = out_stub_sys` or
+    #  `ipython.argreader = our_override` or similar
+
     parser.add_argument(
         '-f',
         help='Connection file for usage with starting the `kernel` from a Jupyter noteboook.',

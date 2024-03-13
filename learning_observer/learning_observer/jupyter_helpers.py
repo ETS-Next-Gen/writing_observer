@@ -54,3 +54,14 @@ def add_reducer_to_lo(id, reducer, module=MODULE_NAME, default=None):
     # reinitialize reducers so the new reducer is accessible
     # by other portions of the system.
     learning_observer.stream_analytics.init()
+
+
+# TODO: Next steps:
+#
+# * What happens when we load a reducer and want to replace it with a newer version?
+# * How do we handle old data when we add a reducer?
+# * How do we clear / handle obsolete data in the KVS from an old reducer?
+#
+# Get to where we can do iterative development
+#
+# This should be integrated with `offline.py`.

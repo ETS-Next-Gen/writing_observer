@@ -21,7 +21,15 @@ from traitlets.config import Config
 logging.basicConfig(filename='ZMQ.log', encoding='utf-8', level=logging.DEBUG)
 
 
+# TODO: Rename. start_learning_observer_application_server
 async def start_server(runner):
+    '''
+    This will start the Learning Observer application on port
+    9999 (Jupyter defaults to 8888).
+
+    We use a runner since IPython expects to control the event loop,
+    so we plug into that one instead of our own.
+    '''
     await runner.setup()
     # TODO set this to the correct port
     site = web.TCPSite(runner, 'localhost', 9999)
@@ -29,37 +37,43 @@ async def start_server(runner):
 
 
 def record_iopub_port(connection_file_path):
+    '''
+    The iopub port is one of the five IPython kernel ZeroMQ
+    port. This one has all the inputs and outputs from the server.
+
+    We will subscribe here, and listen on the the conversation between
+    the IPython kernel and the Jupyter client (e.g. notebook).
+    '''
     # Read the connection file to get the iopub_port
-    with open(connection_file_path, 'r') as f:
-        connection_info = json.load(f)
-    iopub_port = connection_info.get('iopub_port', None)
-    return iopub_port
+    connection_info = json.load(open(connection_file_path))
+    return connection_info['iopub_port']
 
 
 def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None):
-    '''Kernels can start in two ways.
-    1. A user starts up a kernel OR
-    2. A user starts up an interactive shell OR
+    '''Kernels can start in several ways:
+
+    1. A user starts up a kernel by running learning observer with `--lokernel` OR
+    2. A user starts up an interactive shell by running learning observer with `--loconsole` OR
     3. A Jupyter client (lab/notebook) starts a kernel
+
     We support 1 and 3 right now.
 
-    When the Jupyter client starts it passes in a
-    connection file to tell the system how to set up.
-    This is done with the `-f` flag. We intercept
-    this file to get the `iopub_port`. We log messages
+    When the Jupyter client starts, it passes in a connection file to
+    tell the system how to connect. This is done with the `-f`
+    flag. We inspect this file to get the `iopub_port`, and subscribe
+    to ZMQ to be able to eavesdrop on the conversation. We log messages
     published on this port.
 
     Roadblocks:
-    - To initiate the kernel properly, you must be run
-      `jupyter` from the `/learning_observer` directory.
-      The same location that we normally start the server
-      with `python learning_observer`. The `passwd.lo`
-      file is read in based on your current working directory.
-      Other files may also be read in this way. We just
+    - To initiate the kernel properly, you must be run `jupyter` from
+      the `/learning_observer` directory.  The same location that we
+      normally start the server with `python learning_observer`. The
+     `passwd.lo` file is read in based on your current working
+      directory.  Other files may also be read in this way. We just
       haven't found and fixed them all yet.
-    - We ough to know how console flags are being read in
-      by `kernelapp.launch_new_instance()`. If we pass
-      conflicting flags to LO, unexpected errors may occur.
+    - We ough to know how console flags are being read in by
+     `kernelapp.launch_new_instance()`. If we pass conflicting flags
+      to LO, unexpected errors may occur.
     '''
 
     # HACK The reason for nesting is including the
@@ -71,11 +85,22 @@ def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None)
         '''Intercept the Kernel to fix any issues with
         in the startup configuration and to start the
         learning observer platform alongside.
+
+        TODO: Document why we need this. We pass the kernel class in, and this is
+        a way to get things called at the right time?
+
+        TODO: Could we do some of this outside of a class? E.g. just
+        call dash.jupyter_dash.__init__() and start our runner?
         '''
         def __init__(self, **kwargs):
             import dash
             super().__init__(**kwargs)
+            # When dash first loads, it initializes `jupyter_dash`. However,
+            # at that point, we have not loaded Learning Observer yet. This
+            # re-initalizes it once Learning Observer is loaded.
             dash.jupyter_dash = dash.jupyter_dash.__init__()
+            # TODO: Should this just be `dash.jupyter_dash.__init__()`
+            # It seems like we're setting incompatible types.
             self.lo_runner = web.AppRunner(lo_app)
 
         def start(self):
@@ -88,22 +113,39 @@ def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None)
             asyncio.run_coroutine_threadsafe(self.lo_runner.cleanup(), self.io_loop.asyncio_loop)
             return super().do_shutdown(restart)
 
-        def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None):
+        def do_execute(self, code, silent,
+                       store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None):
             '''This method handles execution of code cells.
             If there is code to be run with all cells, it should be placed here.
             '''
-            return super().do_execute(code, silent, store_history, user_expressions, allow_stdin, cell_id=cell_id)
+            return super().do_execute(code, silent, store_history, user_expressions, allow_stdin,
+                                      cell_id=cell_id)
 
-    connection_file_available = connection_file is not None
+    # TODO:
+    # Check if `/<virtual_env>/share/jupyter/kernels/<kernel_name>/kernel.json` exists
+    # * If it does, keep going.
+    # * If it doesn't, either generate a meaningful error or run learning_observer in some stub
+    #   mode to create it.
 
     # Start the listener in a separate thread
     # HACK fix this - should this just be a setting?
     iopub = 12345 if iopub_port is None else iopub_port
-    if connection_file_available:
+    if connection_file:
         iopub = record_iopub_port(connection_file)
     thread = threading.Thread(target=monitor_iopub, args=(iopub,))
     thread.start()
 
+    # TODO:
+    # I would prefer to be able to select which things are launched as flags rather
+    # than exclusive.
+    #
+    # e.g. --server_running=false --kernel --loconsole --notebook
+    #
+    # Would run the kernel, a console, and a notebook, but no application server
+    #
+    # As the number of services grows, this is more maintainable, I think.
+    #
+    # With pss, we might also define classes for reasonable defaults.
     if kernel_only and connection_file_available:
         ipykernel.kernelapp.launch_new_instance(kernel_class=LOKernel)
         return
@@ -133,7 +175,7 @@ def load_kernel_spec():
 
     TODO copy in logo files
     '''
-    current_script_path = os.path.abspath(__file__)
+    current_script_path = os.path.abspath(__file__)  # At some point, perhaps move into / use paths.py?
     current_directory = os.path.dirname(current_script_path)
     kernel_spec = {
         # downstream arg parsers in the `ipykernel` do not like
@@ -162,8 +204,9 @@ def load_kernel_spec():
 
 
 def monitor_iopub(port):
-    '''Setup listener for the IO Pub ZMQ socket to
-    listen for and log messages.
+    '''
+    Setup listener for the IO Pub ZMQ socket to listen for and log
+    messages about which code to run and results.
 
     Incoming messages are a list with the following items:
 
@@ -177,8 +220,9 @@ def monitor_iopub(port):
     ```
 
     Jupyter recommends using `jupyter_client.session.Session` for
-    consuming messages sent back and forth. Perhaps the next
-    iteration of this code should look into that.
+    consuming messages sent back and forth. Perhaps the next iteration
+    of this code should look into that. TODO: Investigate if this is
+    better.
     '''
     context = zmq.Context()
     subscriber = context.socket(zmq.SUB)
@@ -196,8 +240,8 @@ def monitor_iopub(port):
             # msg_type = message[0].decode().split('.')[-1]
             # msg_type = json.loads(message[3].decode())
             # if msg_type.get('msg_type', None) in logged_msg_types:
-            if True:
-                logging.debug(f"Received message: {message}")
+            logging.debug(f"Received message: {message}")
+            # TODO: Figure out where to log, what to log, etc.
     except zmq.ZMQError as e:
         logging.debug(f"Subscriber terminated due to error: {e}")
     finally:

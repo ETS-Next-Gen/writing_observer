@@ -138,8 +138,7 @@ app = create_app()
 # This creates the file that tells jupyter how to run our custom
 # kernel. This command needs to be ran once (outside of Jupyter)
 # before users can get access to the LO Kernel.
-if True:
-    learning_observer.ipython_integration.load_kernel_spec()
+learning_observer.ipython_integration.load_kernel_spec()
 
 if args.lokernel:
     learning_observer.ipython_integration.start(kernel_only=True, connection_file=args.f, lo_app=app)
