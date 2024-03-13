@@ -2,7 +2,7 @@
 
 const testData = {
   id: "text-highlight-test",
-  text: "This is a test of the text highlight component.",
+  text: "This is a test of the text highlight component.\nThis is a new line of text data.\n\n\nHow about 3 new lines?",
   highlight_breakpoints: {
     testHighlight: {
       id: "testHighlight",

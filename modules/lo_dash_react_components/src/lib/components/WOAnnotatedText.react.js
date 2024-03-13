@@ -54,7 +54,7 @@ export default class WOAnnotatedText extends Component {
       return split.map((line, index) => (
         <React.Fragment key={index}>
           {line}
-          <br />
+          {split.length-1 === index ? <span/> : <br/>}
         </React.Fragment>
       ))
     }
