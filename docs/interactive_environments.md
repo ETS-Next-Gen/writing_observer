@@ -6,8 +6,8 @@ kernel. The latter allows for users to directly interact with the LO
 system. Users can connect to the kernel through the command line or a
 Jupyter clients, such as the `ipython` console, Jupyter Lab, or
 Jupyter Notebooks. This is useful for debugging or rapidly prototyping
-within the system. When starting a kernel, the normal `aiohttp` server
-is also served alongside it.
+within the system. When starting a kernel, the Learning Observer
+application can be started alongside the kernel.
 
 ## IPython Kernel Commmunications
 
@@ -48,6 +48,7 @@ the normal running method which creates a new event loop.
 ## IPython Shell/Kernel
 
 We can startup the server as:
+
 * A kernel we connect to (e.g. from Jupyter Lab)
 * An interactive shell including a kernel
 

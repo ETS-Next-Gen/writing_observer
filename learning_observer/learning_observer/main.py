@@ -140,12 +140,19 @@ app = create_app()
 # before users can get access to the LO Kernel.
 learning_observer.ipython_integration.load_kernel_spec()
 
-if args.lokernel:
-    learning_observer.ipython_integration.start(kernel_only=True, connection_file=args.f, lo_app=app)
-elif args.loconsole:
-    learning_observer.ipython_integration.start()
-else:
+if args.ipython_kernel:
+    learning_observer.ipython_integration.start(
+        kernel_only=args.ipython_kernel, lo_app=app,
+        connection_file=args.ipython_kernel_connection_file,
+        run_lo_app=args.run_lo_application)
+elif args.ipython_console:
+    learning_observer.ipython_integration.start(
+        kernel_only=False, lo_app=app,
+        run_lo_app=args.run_lo_application)
+elif args.run_lo_application:
     start(app)
+else:
+    raise RuntimeError('No services to start up.')
 
 # Port printing:
 #

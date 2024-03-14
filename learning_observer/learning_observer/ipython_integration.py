@@ -6,6 +6,7 @@ Use `start()` to launch a new kernel instance.
 '''
 from aiohttp import web
 import asyncio
+import dash
 import IPython
 import ipykernel.kernelapp
 import ipykernel.ipkernel
@@ -14,15 +15,16 @@ import logging
 import os
 import sys
 import threading
-import zmq
 from traitlets.config import Config
+import zmq
+
+KERNEL_ID = 'learning_observer_kernel'
 
 # generic log file for seeing ipython output
 logging.basicConfig(filename='ZMQ.log', encoding='utf-8', level=logging.DEBUG)
 
 
-# TODO: Rename. start_learning_observer_application_server
-async def start_server(runner):
+async def start_learning_observer_application_server(runner):
     '''
     This will start the Learning Observer application on port
     9999 (Jupyter defaults to 8888).
@@ -49,20 +51,24 @@ def record_iopub_port(connection_file_path):
     return connection_info['iopub_port']
 
 
-def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None):
+def start(kernel_only=False, connection_file=None, iopub_port=None, run_lo_app=False, lo_app=None):
     '''Kernels can start in several ways:
 
-    1. A user starts up a kernel by running learning observer with `--lokernel` OR
-    2. A user starts up an interactive shell by running learning observer with `--loconsole` OR
+    1. A user starts up a kernel by running learning observer with `--ipython-kernel` OR
+    2. A user starts up an interactive shell by running learning observer with `--ipython-console` OR
     3. A Jupyter client (lab/notebook) starts a kernel
 
-    We support 1 and 3 right now.
+    All 3 are methods are supported; however, we have not figured out
+    how to handle logging interactions with #2.
+
+    #2 should be used for debugging purposes. In the future, we want
+    to log interactions here for open science purposes.
 
     When the Jupyter client starts, it passes in a connection file to
-    tell the system how to connect. This is done with the `-f`
-    flag. We inspect this file to get the `iopub_port`, and subscribe
-    to ZMQ to be able to eavesdrop on the conversation. We log messages
-    published on this port.
+    tell the system how to connect. We pass the connection file through
+    the `--ipython-kernel-connection-file` parameter. We inspect this
+    file to get the `iopub_port`, and subscribe to ZMQ to be able to
+    eavesdrop on the conversation. We log messages published on this port.
 
     Roadblocks:
     - To initiate the kernel properly, you must be run `jupyter` from
@@ -71,46 +77,36 @@ def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None)
      `passwd.lo` file is read in based on your current working
       directory.  Other files may also be read in this way. We just
       haven't found and fixed them all yet.
-    - We ough to know how console flags are being read in by
-     `kernelapp.launch_new_instance()`. If we pass conflicting flags
-      to LO, unexpected errors may occur.
     '''
 
-    # HACK The reason for nesting is including the
-    # `lo_app` in the initialization. Spent a small
-    # amount of time trying to pass in arguments to
-    # the LOKernel constructor, but did not find
-    # initial success. Worth trying again later.
     class LOKernel(ipykernel.ipkernel.IPythonKernel):
-        '''Intercept the Kernel to fix any issues with
+        '''Intercept the kernel to fix any issues with
         in the startup configuration and to start the
         learning observer platform alongside.
 
-        TODO: Document why we need this. We pass the kernel class in, and this is
-        a way to get things called at the right time?
-
-        TODO: Could we do some of this outside of a class? E.g. just
-        call dash.jupyter_dash.__init__() and start our runner?
+        We nest this kernel class so we can start and stop the Learning
+        Observer application. The kernel classes are passed into an IPython
+        kernel launcher via the `kernel_class` parameter. This prevents
+        us from passing arguments, such as the Learning Observer application,
+        directly to the kernel.
         '''
         def __init__(self, **kwargs):
-            import dash
             super().__init__(**kwargs)
             # When dash first loads, it initializes `jupyter_dash`. However,
-            # at that point, we have not loaded Learning Observer yet. This
-            # re-initalizes it once Learning Observer is loaded.
-            dash.jupyter_dash = dash.jupyter_dash.__init__()
-            # TODO: Should this just be `dash.jupyter_dash.__init__()`
-            # It seems like we're setting incompatible types.
-            self.lo_runner = web.AppRunner(lo_app)
+            # at that point, we have not loaded the IPython module yet. This
+            # re-initalizes it now that the IPython module is loaded.
+            dash.jupyter_dash.__init__()
+            if run_lo_app:
+                self.lo_runner = web.AppRunner(lo_app)
 
         def start(self):
             super().start()
-            # TODO should starting the LO platform alongside
-            # the kernel be the default?
-            asyncio.run_coroutine_threadsafe(start_server(self.lo_runner), self.io_loop.asyncio_loop)
+            if run_lo_app:
+                asyncio.run_coroutine_threadsafe(start_learning_observer_application_server(self.lo_runner), self.io_loop.asyncio_loop)
 
         def do_shutdown(self, restart):
-            asyncio.run_coroutine_threadsafe(self.lo_runner.cleanup(), self.io_loop.asyncio_loop)
+            if run_lo_app:
+                asyncio.run_coroutine_threadsafe(self.lo_runner.cleanup(), self.io_loop.asyncio_loop)
             return super().do_shutdown(restart)
 
         def do_execute(self, code, silent,
@@ -121,18 +117,13 @@ def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None)
             return super().do_execute(code, silent, store_history, user_expressions, allow_stdin,
                                       cell_id=cell_id)
 
-    # TODO:
-    # Check if `/<virtual_env>/share/jupyter/kernels/<kernel_name>/kernel.json` exists
-    # * If it does, keep going.
-    # * If it doesn't, either generate a meaningful error or run learning_observer in some stub
-    #   mode to create it.
-
     # Start the listener in a separate thread
     # HACK fix this - should this just be a setting?
     iopub = 12345 if iopub_port is None else iopub_port
     if connection_file:
         iopub = record_iopub_port(connection_file)
-    thread = threading.Thread(target=monitor_iopub, args=(iopub,))
+    keep_monitoring_iopub = True
+    thread = threading.Thread(target=monitor_iopub, args=(iopub, lambda: keep_monitoring_iopub))
     thread.start()
 
     # TODO:
@@ -146,64 +137,59 @@ def start(kernel_only=False, connection_file=None, iopub_port=None, lo_app=None)
     # As the number of services grows, this is more maintainable, I think.
     #
     # With pss, we might also define classes for reasonable defaults.
-    if kernel_only and connection_file_available:
+
+    # The IPython kernels automatically read in sys.argv. To avoid any conflicts
+    # with the kernel, we backup the sys.argv and reset them.
+    sys_argv_backup = sys.argv
+    sys.argv = sys.argv[:1]
+    if kernel_only and connection_file:
+        sys.argv.extend(['-f', connection_file])
+        print('launching app')
         ipykernel.kernelapp.launch_new_instance(kernel_class=LOKernel)
-        return
-    if kernel_only:
+    elif kernel_only:
         c = Config()
         c.IPKernelApp.iopub_port = iopub
         IPython.embed_kernel(config=c, kernel_class=LOKernel)
-        return
-    # TODO serve an interactive shell
-    # We want to log interactions with the server. When
-    # starting `IPython.embed()`, the recommended way
-    # to start an interactive shell, we were unable to monitor
-    # messages passed on the `iopub_port`.
-    # BUG the IOPub monitor thread is still running so this
-    # will not exit the python script
-    raise NotImplementedError('Serving only an interactive shell has not yet been implemented.')
+    else:
+        # TODO figure out how to log when using `.embed()`. The `embed`
+        # funciton uses a different structure compared to serving an
+        # entire kernel. We are unable to monitor the iopub port, because
+        # it doesn't exist in this context.
+        IPython.embed()
+    keep_monitoring_iopub = False
 
 
 def load_kernel_spec():
     '''Load the `learning_observer_kernel`. This will create the
     kernel is one does not already exist.
 
-    TODO when do we run this code? This code needs to run before
-    jupyter client tries to connect. Jupyter will NOT know about
-    the LO kernel without this method running first. Should
-    jupyter be its own set of requirements on the system?
-
     TODO copy in logo files
     '''
     current_script_path = os.path.abspath(__file__)  # At some point, perhaps move into / use paths.py?
     current_directory = os.path.dirname(current_script_path)
     kernel_spec = {
-        # downstream arg parsers in the `ipykernel` do not like
-        # empty parameters, which is why we pass `1`
-        'argv': [sys.executable, current_directory, '--lokernel', '1', '-f', '{connection_file}'],
+        'argv': [sys.executable, current_directory, '--ipython-kernel', '--ipython-kernel-connection-file', '{connection_file}'],
         'display_name': 'Learning Observer Kernel',
         'language': 'python',
-        'name': 'learning_observer_kernel'
+        'name': KERNEL_ID
     }
 
-    dirname = os.path.join(sys.prefix, 'share', 'jupyter', 'kernels', kernel_spec['name'])
+    dirname = os.path.join(sys.prefix, 'share', 'jupyter', 'kernels', KERNEL_ID)
     kernel_file = os.path.join(dirname, 'kernel.json')
     # check if we should even make it
     if os.path.isfile(kernel_file):
         print('Kernel found!\nUsing the following kernel spec:')
-        with open(kernel_file, 'r') as f:
-            print(json.dumps(json.load(f), indent=2))
+        print(json.dumps(json.load(open(kernel_file)), indent=2))
         return
     print('Kernel NOT found!\nCreating a default kernel spec:')
     print(json.dumps(kernel_spec, indent=2))
     os.mkdir(dirname)
-    with open(kernel_file, 'w') as f:
-        json.dump(kernel_spec, f, sort_keys=True)
+    json.dump(kernel_spec, open(kernel_file, 'w'), sort_keys=True)
     # We can also store logos in the same directory
     # under `logo-64x64.png` or `logo-32x32.png`
 
 
-def monitor_iopub(port):
+def monitor_iopub(port, stop=None):
     '''
     Setup listener for the IO Pub ZMQ socket to listen for and log
     messages about which code to run and results.
@@ -220,10 +206,12 @@ def monitor_iopub(port):
     ```
 
     Jupyter recommends using `jupyter_client.session.Session` for
-    consuming messages sent back and forth. Perhaps the next iteration
-    of this code should look into that. TODO: Investigate if this is
-    better.
+    consuming messages sent back and forth. However, passing in a
+    session object only works when in a Jupyter notebook or lab.
+    This does not work when serving the kernel and connecting via
+    `jupyter console --existing kernel-<kernel_id>.json`
     '''
+    stop = stop if stop else lambda: False
     context = zmq.Context()
     subscriber = context.socket(zmq.SUB)
     subscriber.connect(f'tcp://localhost:{port}')
@@ -233,7 +221,7 @@ def monitor_iopub(port):
     # message types we want to record
     logged_msg_types = ['execute_input', 'execute_result']
     try:
-        while True:
+        while not stop():
             message = subscriber.recv_multipart()
             # TODO only log the types of messages we want to see
             # there are 2 different ways to fetch the message type
