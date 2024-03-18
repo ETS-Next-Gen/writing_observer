@@ -423,12 +423,10 @@ async def incoming_websocket_handler(request):
         '''Prepare each event we receive for processing
         '''
         events = process_message_from_ws()
-        # NOTE: EVENT LOGS ARE USED HERE
         events = decoder_and_logger(events)
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)
-        # NOTE: STUDY LOGS ARE USED HERE
         events = pass_through_reducers(events)
         # empty loop to start the generator pipeline
         async for event in events:

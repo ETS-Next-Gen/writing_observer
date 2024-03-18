@@ -301,4 +301,8 @@ def log_ajax(url, resp_json, request):
 
 def close_logfile(filename):
     # remove the file from the dict storing open log files and close it
-    files.pop(filename).close()
+    old_file = files.pop(filename)
+    if old_file is None:
+        raise KeyError(f"Tried to remove log file {old_file} but it was not found")
+    else:
+        old_file.close()
