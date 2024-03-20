@@ -32,6 +32,20 @@ def _transform_reducer_into_classroom_query(id):
     return dag
 
 
+def construct_reducer(reducer_id, reducer_func, module=MODULE_NAME, scope=None, default=None):
+    scope = scope if scope else Scope([KeyField.STUDENT])
+    reducer = {
+        # TODO not sure the best way to handle specifying context
+        'context': 'org.mitros.writing_analytics',
+        'function': reducer_func,
+        'scope': scope,
+        'default': default,
+        'module': module,
+        'id': reducer_id
+    }
+    return reducer
+
+
 async def remove_reducer_results_from_kvs(reducer_id):
     '''Find all keys that match the reducer and remove them
     '''
@@ -40,62 +54,84 @@ async def remove_reducer_results_from_kvs(reducer_id):
     matched_keys = [k for k in keys if reducer_id in k]
     for m in matched_keys:
         await kvs.remove(m)
-    return matched_keys
 
 
-async def reload_reducer(
-        reducer_id, reducer_func, module=MODULE_NAME,
-        scope=None, default=None, create_new=False
-    ):
-    scope = scope if scope else Scope([KeyField.STUDENT])
-    reducer = {
-        # TODO not sure the best way to handle specifying context
-        # 'context': f'{module}.{id}',
-        'context': 'org.mitros.writing_analytics',
-        'function': reducer_func,
-        'scope': scope,
-        'default': default,
-        'module': module,
-        'id': reducer_id
-    }
-
-    reducers = learning_observer.module_loader.reducers()
-    existing_reducer = any(r['id'] == reducer_id for r in reducers)
-    if not existing_reducer and not create_new:
-        error_msg = f'The reducer, `{reducer_id}`, does not currently '\
-            'exist and the `create_new` parameter is set to False. '\
-            'To create the reducer if its missing use:\n'\
-            '`reload_reducer(..., create_new=True)`'
-        raise RuntimeError(error_msg)
-
-    removed_keys = []
-    if existing_reducer:
-        # remove existing reducer from running reducers
-        # and then clear all data associated with that reducer
-        learning_observer.module_loader.remove_reducer(reducer_id)
-        learning_observer.stream_analytics.init()
-        removed_keys = await remove_reducer_results_from_kvs(reducer_id)
-
+async def _restream_prior_event_logs(reducer):
+    '''Process event logs through a reducer in the background while
+    keeping the old reducer running. Once finished, swap active
+    reducers in the event pipeline.
+    '''
     # TODO process reducer over files corresponding to the removed keys
     # files_to process = find_files(removed_keys)
     # await learning_observer.offline.process_files(files_to_process)
+    raise NotImplementedError('Restreaming of prior event logs has not yet been implemented')
 
+
+async def _drop_prior_data(reducer):
+    '''Remove the specified reducer, re-init our event pipeline, then
+    remove any data associated with the removed reducer.
+    '''
+    reducer_id = reducer['id']
+    learning_observer.module_loader.remove_reducer(reducer_id)
+    learning_observer.stream_analytics.init()
+    await remove_reducer_results_from_kvs(reducer_id)
+
+
+async def _process_curr_reducer_output_through_func(reducer):
+    '''Take the current results of a given reducer and modify them
+    based on the provided function.
+
+    The default func should just return the value
+    '''
+    raise NotImplementedError('Processing reducer output through a migration function is not yet implemented.')
+
+
+RESTREAM_PRIOR_DATA = 'restream_prior_data'
+DROP_DATA = 'drop_data'
+PROCESS_REDUCER_FUNC = 'process_reducer_function'
+MIGRATION_POLICY = {
+    RESTREAM_PRIOR_DATA: _restream_prior_event_logs,
+    DROP_DATA: _drop_prior_data,
+    PROCESS_REDUCER_FUNC: _process_curr_reducer_output_through_func
+}
+
+
+async def hot_load_reducer(reducer, reload=False, migration_function=None):
+    reducer_id = reducer['id']
+    adding_reducer = not reload
+
+    reducers = learning_observer.module_loader.reducers()
+    existing_reducer = any(r['id'] == reducer_id for r in reducers)
+
+    if migration_function is not None and migration_function not in MIGRATION_POLICY:
+        error_msg = f'Migration function, `{migration_function}`, is not a valid type. '\
+            f'Available types are: [{", ".join(MIGRATION_POLICY.keys())}, None]'
+        raise KeyError(error_msg)
+
+    if adding_reducer and existing_reducer:
+        error_msg = f'The reducer, `{reducer_id}`, currently '\
+            'exists and the `reload` parameter is set to False (this is the default). '\
+            'To add a reducer instead of reloading, use:\n'\
+            '`hot_load_reducer(..., reload=True)`'
+        raise RuntimeError(error_msg)
+
+    if adding_reducer and migration_function is not None and migration_function != RESTREAM_PRIOR_DATA:
+        error_msg = f'Migration function, `{migration_function}`, '\
+            'is not available when adding a new reducer.'
+        raise RuntimeError(error_msg)
+
+    if migration_function is not None:
+        # TODO we want to pass more args/kwargs in here for the other migration policies
+        await MIGRATION_POLICY[migration_function](reducer)
+
+    # add reducer to available reducers and re-init our pipeline
     learning_observer.module_loader.add_reducer(reducer)
     learning_observer.stream_analytics.init()
 
     return
-    # TODO update the execution dag
+    # TODO determine the best way to update the execution dag
+    # much of this is currently hardcoded for Student scope.
     # create a simple "module" to set the execution dag
     obj = lambda: None
     obj.EXECUTION_DAG = _transform_reducer_into_classroom_query(id)
     learning_observer.module_loader.load_execution_dags(module, obj)
-
-# TODO: Next steps:
-#
-# * What happens when we load a reducer and want to replace it with a newer version?
-# * How do we handle old data when we add a reducer?
-# * How do we clear / handle obsolete data in the KVS from an old reducer?
-#
-# Get to where we can do iterative development
-#
-# This should be integrated with `offline.py`.
