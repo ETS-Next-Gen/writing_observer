@@ -13,10 +13,10 @@ This should move into a config file.
 
 import collections
 import copy
-import datetime
 import functools
 import learning_observer.exceptions
 import learning_observer.module_loader
+import learning_observer.util
 
 from learning_observer.log_event import debug_log
 
@@ -85,4 +85,4 @@ def init():
 
     global REDUCER_MODULES, LAST_UPDATED
     REDUCER_MODULES = dict(srm)
-    LAST_UPDATED = datetime.datetime.now()
+    LAST_UPDATED = learning_observer.util.generate_unique_token()

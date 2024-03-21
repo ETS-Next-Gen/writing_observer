@@ -128,10 +128,11 @@ async def hot_load_reducer(reducer, reload=False, migration_function=None):
     learning_observer.module_loader.add_reducer(reducer)
     learning_observer.stream_analytics.init()
 
-    return
     # TODO determine the best way to update the execution dag
     # much of this is currently hardcoded for Student scope.
     # create a simple "module" to set the execution dag
     obj = lambda: None
-    obj.EXECUTION_DAG = _transform_reducer_into_classroom_query(id)
-    learning_observer.module_loader.load_execution_dags(module, obj)
+    obj.EXECUTION_DAG = _transform_reducer_into_classroom_query(reducer_id)
+    learning_observer.module_loader.load_execution_dags(reducer['module'], obj)
+
+    return
