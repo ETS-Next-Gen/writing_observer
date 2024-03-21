@@ -30,7 +30,6 @@ multiprocess
 myst_parser
 names
 numpy
-openai
 pandas
 pathvalidate
 pep8
