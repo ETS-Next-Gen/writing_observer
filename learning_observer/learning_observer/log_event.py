@@ -304,5 +304,4 @@ def close_logfile(filename):
     old_file = files.pop(filename)
     if old_file is None:
         raise KeyError(f"Tried to remove log file {old_file} but it was not found")
-    else:
-        old_file.close()
+    old_file.close()
