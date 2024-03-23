@@ -19,6 +19,7 @@ import traceback
 import urllib.parse
 import uuid
 import socket
+import weakref
 
 import aiohttp
 
@@ -191,6 +192,10 @@ async def handle_incoming_client_event(metadata):
             filename, preencoded=True, timestamp=True)
         await pipeline(event)
 
+    # when the handler garbage collected (no more events are being passed through),
+    # close the log file associated with this connection
+    weakref.finalize(handler, log_event.close_logfile, filename)
+
     return handler
 
 
@@ -282,6 +287,8 @@ def event_decoder_and_logger(
                 json_event = json.loads(msg.data)
             log_event.log_event(json_event, filename=filename)
             yield json_event
+        # done processing events, can close logfile now
+        log_event.close_logfile(filename)
     return decode_and_log_event
 
 

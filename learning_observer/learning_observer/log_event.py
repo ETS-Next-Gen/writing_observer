@@ -298,3 +298,10 @@ def log_ajax(url, resp_json, request):
     )
     with open(filename, "w") as ajax_log_fp:
         ajax_log_fp.write(encoded_payload)
+
+def close_logfile(filename):
+    # remove the file from the dict storing open log files and close it
+    old_file = files.pop(filename)
+    if old_file is None:
+        raise KeyError(f"Tried to remove log file {old_file} but it was not found")
+    old_file.close()
