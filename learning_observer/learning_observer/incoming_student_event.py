@@ -17,11 +17,7 @@ import os
 import time
 import traceback
 import uuid
-<<<<<<< HEAD
-import socket
 import weakref
-=======
->>>>>>> 63bbd61 (added v0 prototype for reloading reducers)
 
 import aiohttp
 
