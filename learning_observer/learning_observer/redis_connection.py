@@ -57,3 +57,10 @@ async def set(key, value, expiry=None):
     Set a key. We should eventually do multi-sets. Returns a future.
     '''
     return await (await connection()).set(key, value, expiry)
+
+
+async def delete(key):
+    '''
+    Delete a key. Returns a future.
+    '''
+    return await (await connection()).delete(key)

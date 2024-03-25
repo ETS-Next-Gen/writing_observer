@@ -16,10 +16,12 @@ import copy
 import functools
 import learning_observer.exceptions
 import learning_observer.module_loader
+import learning_observer.util
 
 from learning_observer.log_event import debug_log
 
 REDUCER_MODULES = None
+LAST_UPDATED = None
 
 
 def reducer_modules(source):
@@ -81,5 +83,6 @@ def init():
             'scope': scope
         })
 
-    global REDUCER_MODULES
+    global REDUCER_MODULES, LAST_UPDATED
     REDUCER_MODULES = dict(srm)
+    LAST_UPDATED = learning_observer.util.generate_unique_token()

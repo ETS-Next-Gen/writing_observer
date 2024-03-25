@@ -29,6 +29,7 @@ lxml
 multiprocess
 myst_parser
 names
+notebook
 numpy
 openai
 pandas

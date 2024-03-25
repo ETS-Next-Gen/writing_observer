@@ -31,6 +31,15 @@ if not __name__.startswith("learning_observer."):
 args = None
 parser = None
 
+def str_to_bool(arg):
+    if isinstance(arg, bool):
+        return arg
+    if arg.lower() in ['true', '1']:
+        return True
+    if arg.lower() in ['false', '0']:
+        return False
+    raise argparse.ArgumentTypeError('Boolean like value expected.')
+
 
 def parse_and_validate_arguments():
     '''
@@ -53,10 +62,25 @@ def parse_and_validate_arguments():
         default=None)
 
     parser.add_argument(
-        '--console',
+        '--ipython-console',
         help='Instead of launching a web server, run a debug console.',
-        default=None,
         action='store_true')
+
+    parser.add_argument(
+        '--ipython-kernel',
+        help='Launch an `ipython` kernel',
+        default=False, action='store_true')
+
+    parser.add_argument(
+        '--ipython-kernel-connection-file',
+        help='Connection file passed into ipython-kernel. This is used by Juptyer Clients.',
+        type=str)
+    # TODO possibly include a --ipython-iopub-port param for monitoring purposes
+
+    parser.add_argument(
+        '--run-lo-application',
+        help='Launce the Learning Observer application. This can be used with `--ipython-console` and `--ipython-kernel`.',
+        default=True, nargs='?', const=True, type=str_to_bool)
 
     args = parser.parse_args()
 

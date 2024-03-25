@@ -16,9 +16,7 @@ import json
 import os
 import time
 import traceback
-import urllib.parse
 import uuid
-import socket
 import weakref
 
 import aiohttp
@@ -314,6 +312,7 @@ async def incoming_websocket_handler(request):
     await ws.prepare(request)
     lock_fields = {}
     authenticated = False
+    reducers_last_updated = None
     event_handler = failing_event_handler
 
     decoder_and_logger = event_decoder_and_logger(request)
@@ -341,7 +340,7 @@ async def incoming_websocket_handler(request):
         if not authenticated:
             return
 
-        nonlocal event_handler
+        nonlocal event_handler, reducers_last_updated
         if 'source' in lock_fields:
             debug_log('Updating the event_handler()')
             metadata = lock_fields.copy()
@@ -349,6 +348,7 @@ async def incoming_websocket_handler(request):
             metadata = event
         metadata['auth'] = authenticated
         event_handler = await handle_incoming_client_event(metadata=metadata)
+        reducers_last_updated = learning_observer.stream_analytics.LAST_UPDATED
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -413,6 +413,14 @@ async def incoming_websocket_handler(request):
                 await ws.send_json(bl_status)
                 await ws.close()
 
+    async def check_for_reducer_update(events):
+        '''Check to see if the reducers updated
+        '''
+        async for event in events:
+            if reducers_last_updated != learning_observer.stream_analytics.LAST_UPDATED:
+                await update_event_handler(event)
+            yield event
+
     async def pass_through_reducers(events):
         '''Pass events through the reducers
         '''
@@ -428,6 +436,7 @@ async def incoming_websocket_handler(request):
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)
+        events = check_for_reducer_update(events)
         events = pass_through_reducers(events)
         # empty loop to start the generator pipeline
         async for event in events:
