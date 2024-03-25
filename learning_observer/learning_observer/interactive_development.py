@@ -48,6 +48,10 @@ def construct_reducer(reducer_id, reducer_func, module=MODULE_NAME, scope=None, 
 
 async def remove_reducer_results_from_kvs(reducer_id):
     '''Find all keys that match the reducer and remove them
+
+    TODO: Figure out if we should move this into kvs.py or otherwise bubble
+    it up. It seems like it may be more broadly applicable than just
+    interactive development.
     '''
     kvs = learning_observer.kvs.KVS()
     keys = await kvs.keys()
