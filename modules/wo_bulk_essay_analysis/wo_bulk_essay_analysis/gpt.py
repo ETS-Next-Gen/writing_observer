@@ -71,6 +71,11 @@ class OpenAIGPT(GPTAPI):
 
 
 class OllamaGPT(GPTAPI):
+    '''GPT responder for handling request to the Ollama API
+    TODO this ought to just use requests instead of the specific ollama package
+    the format *should* be the same as the OpenAI responder. This will be one
+    less external module to rely on.
+    '''
     def __init__(self, **kwargs):
         '''
         kwargs
@@ -94,7 +99,7 @@ class OllamaGPT(GPTAPI):
                       'run the following commands:\n'\
                       '```bash\ncurl https://ollama.ai/install.sh | sh\n'\
                       'ollama run <desired_model>\n```')
-        self.client = ollama.AsyncClient(base_url=ollama_host)
+        self.client = ollama.AsyncClient(base_url=ollama_host) if ollama_host is not None else ollama.AsyncClient()
 
     async def chat_completion(self, prompt, system_prompt):
         messages = [
@@ -140,9 +145,13 @@ def initialize_gpt_responder():
             exceptions.append(e)
             debug_log(f'WARNING:: Unable to initialize GPT responder `{key}:`.\n{e}')
             gpt_responder = None
-            exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
-                '\n'.join(str(e) for e in exceptions)
-            raise learning_observer.prestartup.StartupCheck("GPT: " + exception_text)
+    no_responders = 'No GPT responders found in `creds.yaml`. To add a responder, add either'\
+        '`openai` or `ollama` along with any subsettings to `modules.writing_observer.gpt_responders`.\n'\
+        'Example:\n```\ngpt_responders:\n  ollama:\n    model: llama2\n```'
+    exception_strings = '\n'.join(str(e) for e in exceptions) if len(exceptions) > 0 else no_responders
+    exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
+        f'{exception_strings}'
+    raise learning_observer.prestartup.StartupCheck("GPT: " + exception_text)
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
