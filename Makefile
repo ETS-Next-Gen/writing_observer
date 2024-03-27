@@ -19,7 +19,9 @@ clean-venv:
 
 install: venv
 	# The following only works with specified packages
-	${PIP} install --no-cache-dir learning_observer/[${PACKAGES}]
+	# we need to install learning_observer in dev mode to
+	# more easily pass in specific files we need, such as creds
+	${PIP} install --no-cache-dir -e learning_observer/[${PACKAGES}]
 	# TODO resolve the lodrc-current symlink and fetch that url instead
 	@LODRC_CURRENT=$$(curl -s https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/lo_dash_react_components-current.tar.gz); \
 	${PIP} install https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/$${LODRC_CURRENT}
@@ -37,3 +39,6 @@ test:
 linting:
 	# we ought to handle linting at this level
 	# we should combine both the old and whatever else I did
+
+sphinx:
+	# this is where we build our sphinx doctests
