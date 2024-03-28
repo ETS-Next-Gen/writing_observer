@@ -17,6 +17,7 @@ clean-venv:
 	# Removing the virtual environment
 	rm -rf ${VENV}
 
+# install commands
 install: venv
 	# The following only works with specified packages
 	# we need to install learning_observer in dev mode to
@@ -33,12 +34,28 @@ install-dev: venv
 	. ${HOME}/.nvm/nvm.sh && nvm use && ${PIP} install -v -e modules/lo_dash_react_components/
 	${PIP} install ollama
 
+# testing commands
 test:
 	# this is where we run doctests
+	pytest modules/wo_highlight_dashboard
 
-linting:
-	# we ought to handle linting at this level
-	# we should combine both the old and whatever else I did
+# Linting commands
+linting-python:
+	# Linting Python modules
+	${PIP} install pycodestyle
+	pycodestyle --ignore=E501,W503 $$(git ls-files 'learning_observer/*.py' 'modules/*.py')
 
-sphinx:
-	# this is where we build our sphinx doctests
+linting-node:
+	# TODO each of these have lots of errors and block
+	# the next item from running
+	# Starting to lint Node modules
+	npm install
+	# Linting Javascript
+	npm run lint:js
+	# Linting CSS
+	npm run lint:css
+	# Finding any unused CSS files
+	npm run find-unused-css
+
+linting: linting-python
+	# Finished linting
