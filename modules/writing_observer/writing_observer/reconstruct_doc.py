@@ -23,6 +23,7 @@ class google_text(object):
         new_object = object.__new__(cls)
         new_object._text = ""
         new_object._position = 0
+        new_object._startindex = 0 
         new_object._edit_metadata = {}
         new_object.fix_validity()
         return new_object
@@ -154,6 +155,18 @@ def command_list(doc, commands):
     '''
     for item in commands:
         if item['ty'] in dispatch:
+            if item.get('ibi') and doc._startindex == 0:
+                doc._startindex = item.get('ibi') - 1
+            
+            if doc._startindex == 0:
+                continue
+
+            if item.get('ibi'):
+                item['ibi'] -=doc._startindex
+            if item.get('si'):
+                item['si'] -= doc._startindex
+                item['ei'] -= doc._startindex
+
             doc = dispatch[item['ty']](doc, **item)
         else:
             print("Unrecogized Google Docs command: " + repr(item['ty']))
