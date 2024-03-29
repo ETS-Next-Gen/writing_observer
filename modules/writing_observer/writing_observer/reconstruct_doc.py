@@ -24,7 +24,6 @@ class google_text(object):
         new_object = object.__new__(cls)
         new_object._text = ""
         new_object._position = 0
-        new_object._startindex = 0 
         new_object._edit_metadata = {}
         new_object.fix_validity()
         return new_object
@@ -247,6 +246,29 @@ def alter(doc, si, ei, st, sm, ty):
 
     We ignore these for now.
     '''
+    return doc
+
+def image_index(doc,ty, id, spi):
+    '''
+    Called whenever an image is added or when an image's position is changed
+    * `ty` is always `te`
+    * `id` is the unique image id
+    * `spi` is the image index
+    '''
+    doc.edit_metadata['images'][id] = spi
+    return doc
+
+def image_delete(doc,ty,id,et):
+    '''
+    Called whenever an image is deleted
+    * `ty` is always `de`
+    * `id` is the unique image id
+    '''
+    try:
+        doc.edit_metadata['images'].pop(id)
+    except KeyError:
+        # This happens when logfile is incomplete
+        pass
     return doc
 
 
