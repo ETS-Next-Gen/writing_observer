@@ -9,7 +9,10 @@ See: `http://features.jsomers.net/how-i-reverse-engineered-google-docs/`
 
 import json
 
+# The placeholder character that is used for filling gaps in the document.
+# (occurs when there is mismatch between the index and the doc._text length)
 PLACEHOLDER = '\x00'
+
 
 class google_text(object):
     '''
@@ -17,6 +20,7 @@ class google_text(object):
     point in time. Right now, this adds cursor position. In the future,
     we might annotate formatting and similar properties.
     '''
+
     def __new__(cls):
         '''
         Constructor. We create a blank document to be populated.
@@ -38,9 +42,7 @@ class google_text(object):
         textlength_array_length = len(self._edit_metadata["length"])
         length_difference = cursor_array_length - textlength_array_length
         if length_difference != 0:
-            raise Exception(
-                "Edit metadata length doesn't match. This should never happen."
-            )
+            raise Exception("Edit metadata length doesn't match. This should never happen.")
 
     def fix_validity(self):
         '''
@@ -48,6 +50,9 @@ class google_text(object):
         for graceful degredation. We also use this to initalize the object.
         '''
         errors_found = []
+
+        # store image indexes
+        self._edit_metadata['images'] = {}
 
         if "cursor" not in self._edit_metadata:
             self._edit_metadata["cursor"] = []
@@ -140,31 +145,28 @@ class google_text(object):
         '''
         This serializes to JSON.
         '''
-        return {
-            'text': self._text,
-            'position': self._position,
-            'edit_metadata': self._edit_metadata
-        }
-    
+        return {'text': self._text, 'position': self._position, 'edit_metadata': self._edit_metadata}
+
     def get_parsed_text(self):
         '''
         Returns the text ignoring the image placeholders as well as
         normal placeholders
         '''
-        self._text = self._text.replace(PLACEHOLDER,"")
+        self._text = self._text.replace(PLACEHOLDER, "") #remove all placeholder characters
         new_text = []
-        for idx,s in enumerate(self._text,start=1):
+        #ignore all the image indexes
+        for idx, s in enumerate(self._text, start=1):
             if idx in self._edit_metadata['images'].values():
                 continue
             new_text.append(s)
         return ''.join(new_text)
-    
-    def update_image_index(self,si,offset):
+
+    def update_image_index(self, si, offset):
         '''
         Updates the image index by offset characters
         Called by insert() and delete() events
         '''
-        for image_id,idx in self._edit_metadata['images'].items():
+        for image_id, idx in self._edit_metadata['images'].items():
             if si <= idx:
                 self._edit_metadata['images'][image_id] += offset
 
@@ -202,17 +204,18 @@ def insert(doc, ty, ibi, s):
     * `ibi` is where the insert happens
     * `s` is the string to insert
     '''
-    base_index = len(doc._text) + 1
-    if ibi > base_index:
-        insert(doc,ty,base_index,PLACEHOLDER*(ibi-base_index))
+    # The index of the next character after the last character of the text
+    nextchar_index = len(doc._text) + 1
+    # If the insert index is greater than nextchar_index, insert placeholders to fill the gap
+    # This occurs when the document has undergone modifications before the logger has been initialized
+    if ibi > nextchar_index:
+        insert(doc, ty, nextchar_index, PLACEHOLDER * (ibi - nextchar_index))
 
-    doc.update("{start}{insert}{end}".format(
-        start=doc._text[0:ibi - 1],
-        insert=s,
-        end=doc._text[ibi - 1:]
-    ))
+    doc.update("{start}{insert}{end}".format(start=doc._text[0 : ibi - 1], insert=s, end=doc._text[ibi - 1 :]))
 
     doc.position = ibi + len(s)
+
+    doc.update_image_index(ibi, len(s))
 
     return doc
 
@@ -224,18 +227,21 @@ def delete(doc, ty, si, ei):
     * `si` is the index of the start of deletion
     * `ei` is the end
     '''
+    #Index of the last character in the text. `si` and `ei` shouldn't go beyond that
     lastchar_index = len(doc._text)
+    # If the deletion indexes are greater than nextchar_index, insert placeholders to fill the gap
+    # This occurs when the document has undergone modifications before the logger has been initialized
     if si > lastchar_index:
-        insert(doc,ty,lastchar_index + 1,PLACEHOLDER*(si-lastchar_index))
+        insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (si - lastchar_index))
     if ei > lastchar_index:
-        insert(doc,ty,lastchar_index + 1,PLACEHOLDER*(ei-lastchar_index))
+        insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (ei - lastchar_index))
 
-    doc.update("{start}{end}".format(
-        start=doc._text[0:si - 1],
-        end=doc._text[ei:]
-    ))
+    doc.update("{start}{end}".format(start=doc._text[0 : si - 1], end=doc._text[ei:]))
 
     doc.position = si
+
+    offset = ei - si + 1
+    doc.update_image_index(si, -offset)
 
     return doc
 
@@ -248,7 +254,8 @@ def alter(doc, si, ei, st, sm, ty):
     '''
     return doc
 
-def image_index(doc,ty, id, spi):
+
+def image_index(doc, ty, id, spi):
     '''
     Called whenever an image is added or when an image's position is changed
     * `ty` is always `te`
@@ -258,7 +265,8 @@ def image_index(doc,ty, id, spi):
     doc.edit_metadata['images'][id] = spi
     return doc
 
-def image_delete(doc,ty,id,et):
+
+def image_delete(doc, ty, id, et):
     '''
     Called whenever an image is deleted
     * `ty` is always `de`
@@ -299,7 +307,7 @@ dispatch = {
     'is': insert,
     'mlti': multi,
     'null': null,
-    'sl': null
+    'sl': null,
 }
 
 if __name__ == '__main__':
