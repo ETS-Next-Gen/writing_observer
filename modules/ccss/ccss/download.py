@@ -12,6 +12,7 @@ import json
 # Fetch the webpage
 subjects = ["ELA-Literacy", "Math"]
 
+
 def fetch_urls(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -23,6 +24,7 @@ def fetch_urls(url):
         for u in all_urls
         if 'pdf' not in u and 'http' not in u
     ]
+
 
 def fetch_standards(url):
     response = requests.get(url)
@@ -49,16 +51,18 @@ def fetch_standards(url):
     # Output the JSON document
     return standards_json, substandards_json
 
+
 all_standards = {}
 
 for subject in subjects:
     base_url = f"https://www.thecorestandards.org/{subject}"
     for u in fetch_urls(base_url):
         try:
-            standards, substandards = fetch_standards(f"https://www.thecorestandards.org/{u}")
+            standards, substandards = fetch_standards(
+                f"https://www.thecorestandards.org/{u}")
             all_standards.update(standards)
             all_standards.update(substandards)
-        except:
+        except Exception:
             print(f"Skipping {u}")
 
 print(json.dumps(all_standards, indent=2))

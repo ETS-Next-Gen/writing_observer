@@ -7,6 +7,7 @@ import unittest
 
 import ccss
 
+
 class TestStandards(unittest.TestCase):
     def test_math(self):
         math_standards = ccss.standards.math()
@@ -43,6 +44,7 @@ class TestStandards(unittest.TestCase):
     def test_grade_with_int(self):
         sub_standards = ccss.standards.grade(1)
         self.assertIsInstance(sub_standards, ccss.Standards)
+
 
 if __name__ == '__main__':
     unittest.main()

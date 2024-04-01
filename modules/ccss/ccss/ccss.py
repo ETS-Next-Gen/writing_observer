@@ -8,6 +8,7 @@ import json
 ELA = 'ELA-Literacy'
 MATH = 'Math'
 
+
 class Standard:
     def __init__(self, standard_str):
         self.standard_str = standard_str.replace("Math.Content", "Math")
@@ -30,7 +31,13 @@ class Standard:
 
 class Standards(dict):
     def query(self, func):
-        return Standards({key: value for key, value in self.items() if func(Standard(key))})
+        return Standards(
+            {
+                key: value
+                for key, value in self.items()
+                if func(Standard(key))
+            }
+        )
 
     def math(self):
         # Return a new Standards object with just math items
@@ -74,6 +81,7 @@ class Standards(dict):
     def grades(self):
         all_grades = {Standard(key).grade for key in self}
         return sorted(all_grades)
+
 
 json_file_path = resource_filename(__name__, 'ccss.json')
 
