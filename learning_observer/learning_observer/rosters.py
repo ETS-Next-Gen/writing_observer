@@ -69,6 +69,7 @@ import aiohttp.web
 import pathvalidate
 
 import learning_observer.auth as auth
+import learning_observer.cache
 import learning_observer.constants as constants
 import learning_observer.google
 import learning_observer.kvs
@@ -410,12 +411,29 @@ async def courselist(request):
     return course_list
 
 
-@learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
 async def courseroster_runtime(runtime, course_id):
     '''
     Wrapper to call courseroster with a runtime object
     '''
     return await courseroster(runtime.get_request(), course_id)
+
+
+@learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
+async def memoize_courseroster_runtime(runtime, course_id):
+    '''Wrapper function for calling the course roster with runtime from
+    within the communication protocol. This is so we can memoize the
+    result without modifying the behavior of `courseroster_runtime`
+    when used outside of the communication protocol.
+
+    TODO this node should only be ran once in the communication protocol.
+    For now, we use memoization to limit how often this node is called.
+    In the future, we ought to be able to specify how the values from
+    individual nodes are handled: static, dynamic (current), or memoized.
+    '''
+    @learning_observer.cache.async_memoization()
+    async def memoization_layer(c):
+        return await courseroster_runtime(runtime, c)
+    return await memoization_layer(course_id)
 
 
 async def courseroster(request, course_id):
