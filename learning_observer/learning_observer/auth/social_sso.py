@@ -41,6 +41,32 @@ import learning_observer.auth.roles
 import learning_observer.constants as constants
 import learning_observer.exceptions
 
+import pss
+pss.register_field(
+    name="hostname",
+    type=pss.psstypes.TYPES.hostname,
+    description="The hostname of the server",
+    required=True
+)
+pss.register_field(
+    name="protocol",
+    type=pss.psstypes.TYPES.protocol,
+    description="The protocol (http / https)",
+    required=True
+)
+pss.register_field(
+    name="client_id",
+    type=pss.psstypes.TYPES.string,
+    description="The Google OAuth client ID",
+    required=True
+)
+pss.register_field(
+    name="client_secret",
+    type=pss.psstypes.TYPES.string,
+    description="The Google OAuth client secret",
+    required=True
+)
+
 
 DEFAULT_GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/userinfo.profile',
@@ -59,6 +85,20 @@ DEFAULT_GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/documents.readonly',
     'https://www.googleapis.com/auth/classroom.announcements.readonly'
 ]
+
+# TODO Type list is not yet supported by PSS 4/11/24
+# pss.register_field(
+#     name='base_scopes',
+#     type='list',
+#     description='List of Google URLs to look for.',
+#     default=DEFAULT_GOOGLE_SCOPES
+# )
+# pss.register_field(
+#     name='additional_scopes',
+#     type='list',
+#     description='List of additional URLs to look for.',
+#     default=[]
+# )
 
 
 async def social_handler(request):
@@ -91,10 +131,10 @@ async def _google(request):
     if 'error' in request.query:
         return {}
 
-    hostname = settings.settings['hostname']
-    protocol = settings.settings.get('protocol', 'https')
+    hostname = settings.pss_settings.hostname()
+    protocol = settings.pss_settings.protocol()
     common_params = {
-        'client_id': settings.settings['auth']['google_oauth']['web']['client_id'],
+        'client_id': settings.pss_settings.client_id(types=['auth', 'google_oauth', 'web']),
         'redirect_uri': f"{protocol}://{hostname}/auth/login/google"
     }
 
@@ -125,7 +165,7 @@ async def _google(request):
     url = 'https://accounts.google.com/o/oauth2/token'
     params = common_params.copy()
     params.update({
-        'client_secret': settings.settings['auth']['google_oauth']['web']['client_secret'],
+        'client_secret': settings.pss_settings.client_secret(types=['auth', 'google_oauth', 'web']),
         'code': request.query['code'],
         'grant_type': 'authorization_code',
     })

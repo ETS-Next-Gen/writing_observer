@@ -1,3 +1,4 @@
+import pss
 import requests
 
 import learning_observer.cache
@@ -13,6 +14,25 @@ client = None
 DEFAULT_PORT = 8081
 lt_started = False
 
+pss.register_field(
+    name='use_languagetool',
+    description='Flag for connecting to and using LanguageTool',
+    type=pss.psstypes.TYPES.boolean,
+    default=False
+)
+pss.register_field(
+    name='languagetool_host',
+    description='Hostname of the system LanguageTool is running on.',
+    type=pss.psstypes.TYPES.hostname,
+    default='localhost'
+)
+pss.register_field(
+    name='languagetool_port',
+    description='Port of the system LanguageTool is running on.',
+    type=pss.psstypes.TYPES.port,
+    default=DEFAULT_PORT
+)
+
 
 @learning_observer.prestartup.register_startup_check
 def check_languagetool_running():
@@ -23,9 +43,9 @@ def check_languagetool_running():
     TODO create a stub function for language tool to return dummy data when testing.
     See aggregator.py:214 for stubbing in the function
     '''
-    if learning_observer.settings.module_setting('writing_observer', 'use_languagetool', False):
-        host = learning_observer.settings.module_setting('writing_observer', 'languagetool_host', 'localhost')
-        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port', DEFAULT_PORT)
+    if learning_observer.settings.pss_settings.use_languagetool(types=['modules', 'writing_observer']):
+        host = learning_observer.settings.pss_settings.languagetool_host(types=['modules', 'writing_observer'])
+        port = learning_observer.settings.pss_settings.languagetool_port(types=['modules', 'writing_observer'])
 
         # HACK the following code is a hack to check if the LanguageTool Server is up and running or not
         # We ought to set the LT Client object on startup (here); however,
@@ -62,7 +82,7 @@ def initialize_client():
     '''
     global client
     if client is None:
-        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port', DEFAULT_PORT)
+        port = learning_observer.settings.pss_settings.languagetool_port(types=['modules', 'writing_observer'])
         client = languagetoolClient.languagetoolClient(port=port)
 
 

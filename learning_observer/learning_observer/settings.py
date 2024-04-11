@@ -19,6 +19,14 @@ import yaml
 
 import learning_observer.paths
 
+import pss
+
+pss_settings = pss.init(
+    prog=__name__,
+    description="A system for monitoring",
+    epilog="For more information, see PSS documentation.",
+    rulesets=[pss.YAMLFileRuleset(filename=learning_observer.paths.config_file())]
+)
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
