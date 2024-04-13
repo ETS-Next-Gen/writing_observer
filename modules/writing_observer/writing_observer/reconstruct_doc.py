@@ -152,10 +152,10 @@ class google_text(object):
         Returns the text ignoring the image placeholders as well as
         normal placeholders
         '''
-        self._text = self._text.replace(PLACEHOLDER, "") #remove all placeholder characters
+        parsed_text = self._text.replace(PLACEHOLDER, "") #remove all placeholder characters
         new_text = []
         #ignore all the image indexes
-        for idx, s in enumerate(self._text, start=1):
+        for idx, s in enumerate(parsed_text, start=1):
             if idx in self._edit_metadata['images'].values():
                 continue
             new_text.append(s)
