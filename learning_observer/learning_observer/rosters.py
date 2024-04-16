@@ -67,6 +67,7 @@ import aiohttp
 import aiohttp.web
 
 import pathvalidate
+import pss
 
 import learning_observer.auth as auth
 import learning_observer.cache
@@ -84,6 +85,17 @@ import learning_observer.communication_protocol.integration
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
+
+@pss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'])
+def _convert_roster_source(value):
+    return value
+
+pss.register_field(
+    name='source',
+    type='roster_source',
+    description='Source to use for rosters.',
+    required=True
+)
 
 
 def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
@@ -250,12 +262,13 @@ async def synthetic_ajax(
     Google is an amazingly unreliable B2B company, and this lets us
     develop without relying on them.
     '''
-    if settings.settings['roster_data']['source'] == 'test':
+    roster_source = settings.pss_settings.source(types=['roster_data'])
+    if roster_source == 'test':
         synthetic_data = {
             COURSE_URL: paths.data("courses.json"),
             ROSTER_URL: paths.data("students.json")
         }
-    elif settings.settings['roster_data']['source'] == 'filesystem':
+    elif roster_source == 'filesystem':
         debug_log(request[constants.USER])
         safe_userid = pathvalidate.sanitize_filename(request[constants.USER][constants.USER_ID])
         courselist_file = "courselist-" + safe_userid
@@ -271,8 +284,8 @@ async def synthetic_ajax(
                 courselist_file=courselist_file))
         }
     else:
-        debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
-        raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
+        debug_log("Roster data source is not recognized:", roster_source)
+        raise ValueError("Roster data source is not recognized: {}".format(roster_source)
                          + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
@@ -334,6 +347,7 @@ def init():
     or smaller functions otherwise.
     '''
     global ajax
+    roster_source = settings.pss_settings.source(types=['roster_data'])
     if 'roster_data' not in settings.settings:
         print(settings.settings)
         raise learning_observer.prestartup.StartupCheck(
@@ -343,11 +357,11 @@ def init():
         raise learning_observer.prestartup.StartupCheck(
             "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
         )
-    elif settings.settings['roster_data']['source'] in ['test', 'filesystem']:
+    elif roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
-    elif settings.settings['roster_data']['source'] in ["google_api"]:
+    elif roster_source in ["google_api"]:
         ajax = google_ajax
-    elif settings.settings['roster_data']['source'] in ["all"]:
+    elif roster_source in ["all"]:
         ajax = all_ajax
     else:
         raise learning_observer.prestartup.StartupCheck(
@@ -369,8 +383,8 @@ def init():
         ]
     }
 
-    if settings.settings['roster_data']['source'] in REQUIRED_PATHS:
-        r_paths = REQUIRED_PATHS[settings.settings['roster_data']['source']]
+    if roster_source in REQUIRED_PATHS:
+        r_paths = REQUIRED_PATHS[roster_source]
         for p in r_paths:
             if not os.path.exists(p):
                 raise learning_observer.prestartup.StartupCheck(
@@ -396,7 +410,7 @@ async def courselist(request):
     List all of the courses a teacher manages: Helper
     '''
     # New code
-    if settings.settings['roster_data']['source'] in ["google_api"]:
+    if settings.pss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.courses(runtime)
 
@@ -440,7 +454,7 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
-    if settings.settings['roster_data']['source'] in ["google_api"]:
+    if settings.pss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.roster(runtime, courseId=course_id)
 

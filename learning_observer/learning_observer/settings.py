@@ -109,11 +109,25 @@ def parse_and_validate_arguments():
     return args
 
 
+# TODO we ought to refactor how this enum is built
+# so the values are strings instead of integers
+#
 # DEV = Development, with full debugging
 # DEPLOY = Running on a server, with good performance
 # INTERACTIVE = Processing data offline
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY INTERACTIVE')
 RUN_MODE = None
+
+@pss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'])
+def _parse_run_mode(value):
+    return value
+
+pss.register_field(
+    name='run_mode',
+    type='run_mode',
+    description="Which mode the server is running in.",
+    required=True
+)
 
 settings = None
 
@@ -153,11 +167,12 @@ def load_settings(config):
     # Development versus deployment. This is helpful for logging, verbose
     # output, etc.
     global RUN_MODE
-    if settings['config']['run_mode'] == 'dev':
+    settings_run_mode = pss_settings.run_mode(types=['config'])
+    if settings_run_mode == 'dev':
         RUN_MODE = RUN_MODES.DEV
-    elif settings['config']['run_mode'] == 'deploy':
+    elif settings_run_mode == 'deploy':
         RUN_MODE = RUN_MODES.DEPLOY
-    elif settings['config']['run_mode'] == 'interactive':
+    elif settings_run_mode == 'interactive':
         RUN_MODE = RUN_MODES.INTERACTIVE
     else:
         raise ValueError("Configuration setting for run_mode must be either 'dev', 'deploy', or 'interactive'")
