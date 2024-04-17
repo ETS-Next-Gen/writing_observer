@@ -59,3 +59,9 @@ linting-node:
 
 linting: linting-python
 	# Finished linting
+
+build-writing-ext:
+	# Installing LO Event
+	cd modules/lo_event && npm install & npm link lo_event
+	# Building extension
+	cd extension/writing-process && npm install && npm run build
