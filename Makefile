@@ -40,16 +40,20 @@ test:
 	pytest modules/wo_highlight_dashboard
 
 # Linting commands
+linting-setup:
+	# Setting up linting related packages
+	${PIP} install pycodestyle pylint
+	npm install
+
 linting-python:
 	# Linting Python modules
-	${PIP} install pycodestyle
-	pycodestyle --ignore=E501,W503 $$(git ls-files 'learning_observer/*.py' 'modules/*.py')
+	${VENV}/bin/pycodestyle --ignore=E501,W503 $$(git ls-files 'learning_observer/*.py' 'modules/*.py')
+	${VENV}/bin/pylint -d W0613,W0511,C0301,R0913,too-few-public-methods $$(git ls-files 'learning_observer/*.py' 'modules/*.py')
 
 linting-node:
 	# TODO each of these have lots of errors and block
 	# the next item from running
 	# Starting to lint Node modules
-	npm install
 	# Linting Javascript
 	npm run lint:js
 	# Linting CSS
@@ -57,7 +61,7 @@ linting-node:
 	# Finding any unused CSS files
 	npm run find-unused-css
 
-linting: linting-python
+linting: linting-setup linting-python linting-node
 	# Finished linting
 
 build-writing-ext:
