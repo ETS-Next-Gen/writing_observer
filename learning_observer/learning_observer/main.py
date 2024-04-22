@@ -30,7 +30,7 @@ from learning_observer.log_event import debug_log
 pss.register_field(
     name='port',
     type=pss.psstypes.TYPES.port,
-    description='Determine which port to run the server on.',
+    description='Determine which port to run the LO webapp on.',
     # BUG the code breaks when we default to None since
     # `TYPES.port` expects an integer.
     # Before PSS, if the port was None, then we would try

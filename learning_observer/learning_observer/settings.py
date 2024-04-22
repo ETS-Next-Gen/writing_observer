@@ -55,6 +55,7 @@ def parse_and_validate_arguments():
     configuration file location.
     '''
     global args, parser
+    # TODO use PSS instead of argparse to track these settings
     parser = argparse.ArgumentParser(
         description='The Learning Observer',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -125,7 +126,10 @@ def _parse_run_mode(value):
 pss.register_field(
     name='run_mode',
     type='run_mode',
-    description="Which mode the server is running in.",
+    description="Set which mode the server is running in.\n"\
+                "`dev` for local development with full debugging\n"\
+                "`deploy` for running on a server with better performance\n"\
+                "`interactive` for processing data offline",
     required=True
 )
 

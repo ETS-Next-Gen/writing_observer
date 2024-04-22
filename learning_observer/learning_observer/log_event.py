@@ -111,7 +111,10 @@ def _convert_debug_log_level(value):
 pss.register_field(
     name='debug_log_level',
     type='debug_log_level',
-    description='How much information do we want to log.'
+    description='How much information do we want to log.\n'\
+                '`NONE`: do not print anything\n'\
+                '`SIMPLE`: print simple debug messages\n'\
+                '`EXTENDED`: print debug message with stack trace and timestamp'
 )
 
 class LogDestination(Enum):

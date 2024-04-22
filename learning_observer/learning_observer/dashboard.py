@@ -39,7 +39,10 @@ import learning_observer.settings
 pss.register_field(
     name='dangerously_allow_insecure_dags',
     type=pss.psstypes.TYPES.boolean,
-    description='Determine whether we should allow self-made dags on the system.',
+    description='Data can be queried either by system defined execution DAGs '\
+                '(directed acyclic graphs) or user created execution DAGs. '\
+                'This is useful for developing new system queries, but should not '\
+                'be used in production.',
     default=False
 )
 

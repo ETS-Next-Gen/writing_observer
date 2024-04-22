@@ -42,16 +42,19 @@ import learning_observer.constants as constants
 import learning_observer.exceptions
 
 import pss
+# TODO the hostname setting currently expect the port
+# to specified within the hostname. We ought to
+# remove the port and instead use the port setting.
 pss.register_field(
     name="hostname",
     type=pss.psstypes.TYPES.hostname,
-    description="The hostname of the server",
+    description="The hostname of the LO webapp. Used to redirect OAuth clients.",
     required=True
 )
 pss.register_field(
     name="protocol",
     type=pss.psstypes.TYPES.protocol,
-    description="The protocol (http / https)",
+    description="The protocol (http / https) of the LO webapp. Used to redirect OAuth clients.",
     required=True
 )
 pss.register_field(

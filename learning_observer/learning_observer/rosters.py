@@ -93,7 +93,11 @@ def _convert_roster_source(value):
 pss.register_field(
     name='source',
     type='roster_source',
-    description='Source to use for rosters.',
+    description='Source to use for student class rosters. This can be\n'\
+                '`all`: aggregate all available students into a single class\n'\
+                '`test`: use sample course and student files\n'\
+                '`filesystem`: read rosters defined on filesystem\n'\
+                '`google_api`: fetch from Google API',
     required=True
 )
 

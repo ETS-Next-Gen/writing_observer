@@ -20,13 +20,17 @@ import learning_observer.util
 
 pss.register_field(
     name='use_nlp',
-    description='Flag for loading in and using AWE Components. When enabled, server start up takes longer.',
+    description='Flag for loading in and using AWE Components. These are '\
+                'used to extract NLP metrics from text. When enabled, the '\
+                'server start-up time takes longer.',
     type=pss.psstypes.TYPES.boolean,
     default=False
 )
 pss.register_field(
     name='use_google_documents',
-    description="Flag for whether we should fetch a document's text from the Google API.",
+    description="Flag for whether we should fetch the ground truth of a "\
+                "document's text from the Google API to fix any errors "\
+                "in the reconstruction reducer.",
     type=pss.psstypes.TYPES.boolean,
     default=False
 )
@@ -231,6 +235,8 @@ async def merge_with_student_data(writing_data, student_data):
     return writing_data
 
 
+# TODO the use_nlp initialization code ought to live in a
+# registered startup function
 use_nlp = learning_observer.settings.pss_settings.use_nlp(types=['modules', 'writing_observer'])
 if use_nlp:
     try:
@@ -352,7 +358,7 @@ async def update_reconstruct_data_with_google_api(runtime, student_data):
     return writing_data
 
 
-# NOTE This is old way of querying data from the system.
+# TODO This is old way of querying data from the system.
 # The code should all still function, but the proper way to
 # do this is using the Communication Protocol.
 # This function and any references should be removed.

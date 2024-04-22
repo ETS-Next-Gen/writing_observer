@@ -18,7 +18,8 @@ import learning_observer.settings as settings
 pss.register_field(
     name='session_secret',
     type=pss.TYPES.passwordtoken,
-    description='Unique secret key for YOUR deployment.',
+    description='Unique secret key for YOUR deployment to encrypt/decrypt '\
+                'data stored in the session object.',
     required=True
 )
 pss.register_field(
@@ -65,8 +66,6 @@ def setup_session_storage(app):
     '''
     This is a helper function to setup session storage.
     '''
-    print('--------', settings.pss_settings.session_max_age(types=['aio']), type(settings.pss_settings.session_max_age(types=['aio'])))
-
     aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
         learning_observer.auth.fernet_key(settings.pss_settings.session_secret(types=['aio'])),
         max_age=settings.pss_settings.session_max_age(types=['aio'])))

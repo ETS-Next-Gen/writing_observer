@@ -16,7 +16,8 @@ lt_started = False
 
 pss.register_field(
     name='use_languagetool',
-    description='Flag for connecting to and using LanguageTool',
+    description='Flag for connecting to and using LT (LanguageTool).  LT is'\
+                'used to find language and mechanical errors in text.',
     type=pss.psstypes.TYPES.boolean,
     default=False
 )
