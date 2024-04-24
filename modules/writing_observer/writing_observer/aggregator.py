@@ -4,7 +4,7 @@ We've kind of strayed from that purpose and jammed a bunch of other
 code in. 
 TODO refractor the code to be more organized
 '''
-import pss
+import pmss
 import sys
 import time
 
@@ -18,20 +18,20 @@ import learning_observer.stream_analytics.helpers
 # import traceback
 import learning_observer.util
 
-pss.register_field(
+pmss.register_field(
     name='use_nlp',
     description='Flag for loading in and using AWE Components. These are '\
                 'used to extract NLP metrics from text. When enabled, the '\
                 'server start-up time takes longer.',
-    type=pss.psstypes.TYPES.boolean,
+    type=pmss.pmsstypes.TYPES.boolean,
     default=False
 )
-pss.register_field(
+pmss.register_field(
     name='use_google_documents',
     description="Flag for whether we should fetch the ground truth of a "\
                 "document's text from the Google API to fix any errors "\
                 "in the reconstruction reducer.",
-    type=pss.psstypes.TYPES.boolean,
+    type=pmss.pmsstypes.TYPES.boolean,
     default=False
 )
 

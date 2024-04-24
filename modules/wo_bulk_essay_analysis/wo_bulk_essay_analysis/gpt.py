@@ -129,7 +129,7 @@ def initialize_gpt_responder():
     '''
     global gpt_responder
     # TODO change this to use settings.module_settings() instead
-    # that method now uses pss which doesn't support lists and
+    # that method now uses pmss which doesn't support lists and
     # dictionaries yet.
     responders = learning_observer.settings.settings['modules']['writing_observer'].get('gpt_responders', {})
     exceptions = []

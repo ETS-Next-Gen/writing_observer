@@ -19,13 +19,13 @@ import yaml
 
 import learning_observer.paths
 
-import pss
+import pmss
 
-pss_settings = pss.init(
+pmss_settings = pmss.init(
     prog=__name__,
     description="A system for monitoring",
-    epilog="For more information, see PSS documentation.",
-    rulesets=[pss.YAMLFileRuleset(filename=learning_observer.paths.config_file())]
+    epilog="For more information, see PMSS documentation.",
+    rulesets=[pmss.YAMLFileRuleset(filename=learning_observer.paths.config_file())]
 )
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -55,7 +55,7 @@ def parse_and_validate_arguments():
     configuration file location.
     '''
     global args, parser
-    # TODO use PSS instead of argparse to track these settings
+    # TODO use PMSS instead of argparse to track these settings
     parser = argparse.ArgumentParser(
         description='The Learning Observer',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -119,8 +119,8 @@ def parse_and_validate_arguments():
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY INTERACTIVE')
 RUN_MODE = None
 
-pss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'])
-pss.register_field(
+pmss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'], transform=None)
+pmss.register_field(
     name='run_mode',
     type='run_mode',
     description="Set which mode the server is running in.\n"\
@@ -168,7 +168,7 @@ def load_settings(config):
     # Development versus deployment. This is helpful for logging, verbose
     # output, etc.
     global RUN_MODE
-    settings_run_mode = pss_settings.run_mode(types=['config'])
+    settings_run_mode = pmss_settings.run_mode(types=['config'])
     if settings_run_mode == 'dev':
         RUN_MODE = RUN_MODES.DEV
     elif settings_run_mode == 'deploy':
@@ -259,4 +259,4 @@ def module_setting(module_name, setting=None, default=None):
     Returns `default` if no setting (or `None` if not set)
     '''
     initialized()
-    return getattr(pss_settings, setting)(types=['modules', module_name])
+    return getattr(pmss_settings, setting)(types=['modules', module_name])

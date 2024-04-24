@@ -136,7 +136,7 @@ def start(kernel_only=False, connection_file=None, iopub_port=None, run_lo_app=F
     #
     # As the number of services grows, this is more maintainable, I think.
     #
-    # With pss, we might also define classes for reasonable defaults.
+    # With pmss, we might also define classes for reasonable defaults.
 
     # The IPython kernels automatically read in sys.argv. To avoid any conflicts
     # with the kernel, we backup the sys.argv and reset them.

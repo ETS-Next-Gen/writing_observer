@@ -8,7 +8,7 @@ import inspect
 import json
 import jsonschema
 import numbers
-import pss
+import pmss
 import queue
 import time
 
@@ -36,9 +36,9 @@ import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.schema
 import learning_observer.settings
 
-pss.register_field(
+pmss.register_field(
     name='dangerously_allow_insecure_dags',
-    type=pss.psstypes.TYPES.boolean,
+    type=pmss.pmsstypes.TYPES.boolean,
     description='Data can be queried either by system defined execution DAGs '\
                 '(directed acyclic graphs) or user created execution DAGs. '\
                 'This is useful for developing new system queries, but should not '\
@@ -450,7 +450,7 @@ async def dispatch_named_execution_dag(dag_name, funcs):
 
 async def dispatch_defined_execution_dag(dag, funcs):
     query = None
-    if not learning_observer.settings.pss_settings.dangerously_allow_insecure_dags():
+    if not learning_observer.settings.pmss_settings.dangerously_allow_insecure_dags():
         debug_log(await dag_submission_not_allowed())
         funcs.append(dag_submission_not_allowed())
         return query

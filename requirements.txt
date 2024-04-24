@@ -36,6 +36,7 @@ openai
 pandas
 pathvalidate
 pep8
+pmss
 psutil
 pyasn1
 py-bcrypt

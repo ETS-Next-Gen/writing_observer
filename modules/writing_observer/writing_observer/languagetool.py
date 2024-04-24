@@ -1,4 +1,4 @@
-import pss
+import pmss
 import requests
 
 import learning_observer.cache
@@ -14,23 +14,23 @@ client = None
 DEFAULT_PORT = 8081
 lt_started = False
 
-pss.register_field(
+pmss.register_field(
     name='use_languagetool',
     description='Flag for connecting to and using LT (LanguageTool).  LT is'\
                 'used to find language and mechanical errors in text.',
-    type=pss.psstypes.TYPES.boolean,
+    type=pmss.pmsstypes.TYPES.boolean,
     default=False
 )
-pss.register_field(
+pmss.register_field(
     name='languagetool_host',
     description='Hostname of the system LanguageTool is running on.',
-    type=pss.psstypes.TYPES.hostname,
+    type=pmss.pmsstypes.TYPES.hostname,
     default='localhost'
 )
-pss.register_field(
+pmss.register_field(
     name='languagetool_port',
     description='Port of the system LanguageTool is running on.',
-    type=pss.psstypes.TYPES.port,
+    type=pmss.pmsstypes.TYPES.port,
     default=DEFAULT_PORT
 )
 

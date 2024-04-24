@@ -67,7 +67,7 @@ import aiohttp
 import aiohttp.web
 
 import pathvalidate
-import pss
+import pmss
 
 import learning_observer.auth as auth
 import learning_observer.cache
@@ -86,8 +86,8 @@ import learning_observer.communication_protocol.integration
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-pss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'])
-pss.register_field(
+pmss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'], transform=None)
+pmss.register_field(
     name='source',
     type='roster_source',
     description='Source to use for student class rosters. This can be\n'\
@@ -263,7 +263,7 @@ async def synthetic_ajax(
     Google is an amazingly unreliable B2B company, and this lets us
     develop without relying on them.
     '''
-    roster_source = settings.pss_settings.source(types=['roster_data'])
+    roster_source = settings.pmss_settings.source(types=['roster_data'])
     if roster_source == 'test':
         synthetic_data = {
             COURSE_URL: paths.data("courses.json"),
@@ -348,7 +348,7 @@ def init():
     or smaller functions otherwise.
     '''
     global ajax
-    roster_source = settings.pss_settings.source(types=['roster_data'])
+    roster_source = settings.pmss_settings.source(types=['roster_data'])
     if 'roster_data' not in settings.settings:
         print(settings.settings)
         raise learning_observer.prestartup.StartupCheck(
@@ -411,7 +411,7 @@ async def courselist(request):
     List all of the courses a teacher manages: Helper
     '''
     # New code
-    if settings.pss_settings.source(types=['roster_data']) in ["google_api"]:
+    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.courses(runtime)
 
@@ -455,7 +455,7 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
-    if settings.pss_settings.source(types=['roster_data']) in ["google_api"]:
+    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.roster(runtime, courseId=course_id)
 
