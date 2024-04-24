@@ -86,10 +86,7 @@ import learning_observer.communication_protocol.integration
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-@pss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'])
-def _convert_roster_source(value):
-    return value
-
+pss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'])
 pss.register_field(
     name='source',
     type='roster_source',

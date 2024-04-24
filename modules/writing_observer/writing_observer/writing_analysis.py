@@ -121,7 +121,7 @@ async def reconstruct(event, internal_state):
             writing_observer.reconstruct_doc.google_text(), change_list
         )
     state = internal_state.json
-    if learning_observer.settings.pss_settings.verbose(types=['modules', 'writing_observer']):
+    if learning_observer.settings.module_setting('writing_observer', 'verbose'):
         print(state)
     return state, state
 
@@ -131,7 +131,7 @@ async def event_count(event, internal_state):
     '''
     An example of a per-document pipeline
     '''
-    if learning_observer.settings.pss_settings.verbose(types=['modules', 'writing_observer']):
+    if learning_observer.settings.module_setting('writing_observer', 'verbose'):
         print(event)
 
     state = {"count": internal_state.get('count', 0) + 1}

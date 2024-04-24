@@ -104,10 +104,7 @@ class LogLevel(Enum):
     EXTENDED = 'EXTENDED'
 
 
-@pss.parser('debug_log_level', parent='string', choices=[level.value for level in LogLevel])
-def _convert_debug_log_level(value):
-    return value
-
+pss.parser('debug_log_level', parent='string', choices=[level.value for level in LogLevel])
 pss.register_field(
     name='debug_log_level',
     type='debug_log_level',

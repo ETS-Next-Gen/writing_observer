@@ -119,10 +119,7 @@ def parse_and_validate_arguments():
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY INTERACTIVE')
 RUN_MODE = None
 
-@pss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'])
-def _parse_run_mode(value):
-    return value
-
+pss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'])
 pss.register_field(
     name='run_mode',
     type='run_mode',
@@ -262,11 +259,4 @@ def module_setting(module_name, setting=None, default=None):
     Returns `default` if no setting (or `None` if not set)
     '''
     initialized()
-    module_settings = settings.get(
-        'modules', {}
-    ).get(module_name, None)
-    if setting is None:
-        return module_settings
-    if module_settings is not None:
-        return module_settings.get(setting, default)
-    return default
+    return getattr(pss_settings, setting)(types=['modules', module_name])

@@ -44,9 +44,9 @@ def check_languagetool_running():
     TODO create a stub function for language tool to return dummy data when testing.
     See aggregator.py:214 for stubbing in the function
     '''
-    if learning_observer.settings.pss_settings.use_languagetool(types=['modules', 'writing_observer']):
-        host = learning_observer.settings.pss_settings.languagetool_host(types=['modules', 'writing_observer'])
-        port = learning_observer.settings.pss_settings.languagetool_port(types=['modules', 'writing_observer'])
+    if learning_observer.settings.module_setting('writing_observer', 'use_languagetool'):
+        host = learning_observer.settings.module_setting('writing_observer', 'languagetool_host')
+        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port')
 
         # HACK the following code is a hack to check if the LanguageTool Server is up and running or not
         # We ought to set the LT Client object on startup (here); however,
@@ -83,7 +83,7 @@ def initialize_client():
     '''
     global client
     if client is None:
-        port = learning_observer.settings.pss_settings.languagetool_port(types=['modules', 'writing_observer'])
+        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port')
         client = languagetoolClient.languagetoolClient(port=port)
 
 

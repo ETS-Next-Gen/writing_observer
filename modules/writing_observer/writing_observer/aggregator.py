@@ -237,7 +237,7 @@ async def merge_with_student_data(writing_data, student_data):
 
 # TODO the use_nlp initialization code ought to live in a
 # registered startup function
-use_nlp = learning_observer.settings.pss_settings.use_nlp(types=['modules', 'writing_observer'])
+use_nlp = learning_observer.settings.module_setting('writing_observer', 'use_nlp')
 if use_nlp:
     try:
         import writing_observer.awe_nlp
@@ -298,7 +298,7 @@ async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
         await kvs.set(key, text)
         return text
 
-    if learning_observer.settings.pss_settings.use_google_documents(types=['modules', 'writing_observer']):
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents'):
         [await fetch_doc_from_google(
             learning_observer.util.get_nested_dict_value(d, 'provenance.provenance.value.user_id'),
             learning_observer.util.get_nested_dict_value(d, 'doc_id')
@@ -379,7 +379,7 @@ async def latest_data(runtime, student_data, options=None):
     # HACK we have a cache downstream that relies on redis_ephemeral being setup
     # when that is resolved, we can remove the feature flag
     # Update reconstruct data from KVS with ground truth from Google API
-    if learning_observer.settings.pss_settings.use_google_documents(types=['module', 'writing_observer']):
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents'):
         await update_reconstruct_data_with_google_api(runtime, student_data)
 
     # Get the latest documents with the students appended.
