@@ -64,9 +64,6 @@ class google_text(object):
         '''
         errors_found = []
 
-        # store image indexes
-        self._edit_metadata['images'] = {}
-
         if "cursor" not in self._edit_metadata:
             self._edit_metadata["cursor"] = []
             errors_found.append("No cursor array")
@@ -166,26 +163,9 @@ class google_text(object):
 
     def get_parsed_text(self):
         '''
-        Returns the text ignoring the image placeholders as well as
-        normal placeholders
+        Returns the text ignoring the normal placeholders
         '''
-        parsed_text = self._text.replace(PLACEHOLDER, "") #remove all placeholder characters
-        new_text = []
-        #ignore all the image indexes
-        for idx, s in enumerate(parsed_text, start=1):
-            if idx in self._edit_metadata['images'].values():
-                continue
-            new_text.append(s)
-        return ''.join(new_text)
-
-    def update_image_index(self, si, offset):
-        '''
-        Updates the image index by offset characters
-        Called by insert() and delete() events
-        '''
-        for image_id, idx in self._edit_metadata['images'].items():
-            if si <= idx:
-                self._edit_metadata['images'][image_id] += offset
+        return self._text.replace(PLACEHOLDER, "")
 
 
 def command_list(doc, commands):
@@ -236,8 +216,6 @@ def insert(doc, ty, ibi, s):
 
     doc.position = ibi + len(s)
 
-    doc.update_image_index(ibi, len(s))
-
     return doc
 
 
@@ -264,9 +242,6 @@ def delete(doc, ty, si, ei):
 
     doc.position = si
 
-    offset = ei - si + 1
-    doc.update_image_index(si, -offset)
-
     return doc
 
 
@@ -276,31 +251,6 @@ def alter(doc, si, ei, st, sm, ty):
 
     We ignore these for now.
     '''
-    return doc
-
-
-def image_index(doc, ty, id, spi):
-    '''
-    Called whenever an image is added or when an image's position is changed
-    * `ty` is always `te`
-    * `id` is the unique image id
-    * `spi` is the image index
-    '''
-    doc.edit_metadata['images'][id] = spi
-    return doc
-
-
-def image_delete(doc, ty, id, et):
-    '''
-    Called whenever an image is deleted
-    * `ty` is always `de`
-    * `id` is the unique image id
-    '''
-    try:
-        doc.edit_metadata['images'].pop(id)
-    except KeyError:
-        # This happens when logfile is incomplete
-        pass
     return doc
 
 
