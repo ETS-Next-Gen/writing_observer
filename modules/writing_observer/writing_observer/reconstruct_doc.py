@@ -9,8 +9,20 @@ See: `http://features.jsomers.net/how-i-reverse-engineered-google-docs/`
 
 import json
 
-# The placeholder character that is used for filling gaps in the document.
-# (occurs when there is mismatch between the index and the doc._text length)
+"""
+The placeholder character is used to fill gaps in the document, particularly
+when there's a mismatch between the index and the length of the document's text (doc._text).
+In an empty document, the insertion index (from the insert event `is`) is 1. However,
+when the extension is started on a non-empty document, the first insertion index will be
+greater than 1. This can lead to inconsistencies in indexing. 
+This placeholder is used to fill the 'gap' between len(doc._text) and the first insertion 
+index recorded in the logs. 
+This is done for the delete event ('ds') as well.
+Say the first insert event in the logs is of a character 'a' with an index of 10 .
+This placeholder will be used to fill the gap between 1 and 10. Internally doc._text will
+have 10 characters and when returning the output, all placeholders will be removed from 
+doc._text leaving only the character 'a'.
+"""
 PLACEHOLDER = '\x00'
 
 
