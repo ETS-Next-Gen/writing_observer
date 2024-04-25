@@ -20,7 +20,6 @@ class google_text(object):
     point in time. Right now, this adds cursor position. In the future,
     we might annotate formatting and similar properties.
     '''
-
     def __new__(cls):
         '''
         Constructor. We create a blank document to be populated.
@@ -42,7 +41,9 @@ class google_text(object):
         textlength_array_length = len(self._edit_metadata["length"])
         length_difference = cursor_array_length - textlength_array_length
         if length_difference != 0:
-            raise Exception("Edit metadata length doesn't match. This should never happen.")
+            raise Exception(
+                "Edit metadata length doesn't match. This should never happen."
+            )
 
     def fix_validity(self):
         '''
@@ -145,7 +146,11 @@ class google_text(object):
         '''
         This serializes to JSON.
         '''
-        return {'text': self._text, 'position': self._position, 'edit_metadata': self._edit_metadata}
+        return {
+            'text': self._text,
+            'position': self._position,
+            'edit_metadata': self._edit_metadata
+        }
 
     def get_parsed_text(self):
         '''
@@ -211,7 +216,11 @@ def insert(doc, ty, ibi, s):
     if ibi > nextchar_index:
         insert(doc, ty, nextchar_index, PLACEHOLDER * (ibi - nextchar_index))
 
-    doc.update("{start}{insert}{end}".format(start=doc._text[0 : ibi - 1], insert=s, end=doc._text[ibi - 1 :]))
+    doc.update("{start}{insert}{end}".format(
+        start=doc._text[0:ibi - 1],
+        insert=s,
+        end=doc._text[ibi - 1:]
+    ))
 
     doc.position = ibi + len(s)
 
@@ -236,7 +245,10 @@ def delete(doc, ty, si, ei):
     if ei > lastchar_index:
         insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (ei - lastchar_index))
 
-    doc.update("{start}{end}".format(start=doc._text[0 : si - 1], end=doc._text[ei:]))
+    doc.update("{start}{end}".format(
+        start=doc._text[0:si - 1],
+        end=doc._text[ei:]
+    ))
 
     doc.position = si
 
