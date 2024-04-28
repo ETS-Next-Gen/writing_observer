@@ -265,6 +265,22 @@ export function lo_event_props(event) {
   return props;
 }
 
+function debounce(func, wait) {
+  const timeouts = {};
+
+  return function executedFunction(...args) {
+    const context = this;
+    const eventType = args[0].type;
+
+    if(timeouts[eventType]) clearTimeout(timeouts[eventType]);
+
+    timeouts[eventType] = setTimeout(() => {
+      func.apply(context, args);
+    }, wait);
+  };
+}
+
+
 function eventListener(dispatch) {
   return function(event) {
     const eventType = lo_event_name(event);
@@ -273,8 +289,15 @@ function eventListener(dispatch) {
     const lodict = {
       browser_props
     };
-
-    dispatch(eventType, lodict);
+    if (events[event.type].debounce) {
+      lodict.debounced = true;
+      debounce(
+        eventType,
+        () => dispatch(eventType, lodict)
+      );
+    } else {
+      dispatch(eventType, lodict);
+    }
   };
 }
 
