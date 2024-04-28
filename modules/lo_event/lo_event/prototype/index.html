@@ -10,8 +10,22 @@
 <p id="demo"></p>
 
 <div id="output"></div>
-<script src="util.js"></script>
-<script type="module" src="events.js"></script>
+<script src="lodash.min.js"></script>
+<script type="module">
+  import { subscribeToEvents } from './browser_events.js';
+
+  function logToDiv(eventType, event) {
+      // Select the output div
+      var outputDiv = document.getElementById("output");
+
+      // Append the text to the div
+      outputDiv.innerHTML += `<b>${eventType}</b>: ${JSON.stringify(event)}<br/>`;
+
+      console.log(`${eventType}: ${JSON.stringify(event)}`);
+  }
+
+  subscribeToEvents({dispatch: logToDiv});
+</script>
 
 </body>
 </html>
