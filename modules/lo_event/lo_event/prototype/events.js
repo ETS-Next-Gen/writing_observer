@@ -227,6 +227,8 @@ function targetInfo(target) {
 // an event into a dictionary.
 function copyTargets(event) {
   // These are the potential elements associated with an event
+  // This is very redundant, but most of the redundancy disappears with compression.
+  // We should consider scaling this back if these are identical, however, just for readability
   const targets = [
     "currentTarget",
     "srcElement",
@@ -246,6 +248,22 @@ function copyTargets(event) {
   return compiledTargets;
 }
 
+export function lo_event_name(event) {
+  return `browser.${events[event.type].parent[0]}.${event.type}`;
+}
+
+export function lo_event_props(event) {
+  const { properties, functions } = compileEvent(events[event.type]);
+  const copiedProperties = copyFields(event, properties);
+  let props = {...copiedProperties, ...copyTargets(event)};
+  for (const f in functions) {
+    const d = functions[f](event);
+    if(d) {
+      props[f] = d;
+    }
+  }
+  return props;
+}
 
 function logToDiv(text) {
   // Select the output div
@@ -257,23 +275,17 @@ function logToDiv(text) {
 }
 
 function eventListener(event) {
-  const { properties, functions } = compileEvent(events[event.type]);
-  const copiedProperties = copyFields(event, properties);
-  let props = {...copiedProperties, ...copyTargets(event)};
-  for (const f in functions) {
-    const d = functions[f](event);
-    if(d) {
-      props[f] = d;
-    }
-  }
+  const eventType = lo_event_name(event);
+  const browser_props = lo_event_props(event);
 
-  let eventType = `browser.${events[event.type].parent[0]}.${event.type}`;
-  
+  const lodict = {
+    browser_props
+  };
 
-  logToDiv(JSON.stringify(props));
+  logToDiv(`<b>${eventType}</b>: `+JSON.stringify(lodict));
 }
 
-function subscribeToEvents({ target = document, eventList = events } = {}) {
+export function subscribeToEvents({ target = document, eventList = events } = {}) {
   for (let key in eventList) {
     target.addEventListener(key, eventListener);
   }
