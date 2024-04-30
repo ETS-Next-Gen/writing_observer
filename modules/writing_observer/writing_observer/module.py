@@ -186,6 +186,11 @@ REDUCERS = [
     {
         'context': "org.mitros.writing_analytics",
         'scope': writing_observer.writing_analysis.gdoc_scope,
+        'function': writing_observer.writing_analysis.binned_time_on_task
+    },
+    {
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.gdoc_scope,
         'function': writing_observer.writing_analysis.reconstruct,
         'default': {'text': ''}
     },

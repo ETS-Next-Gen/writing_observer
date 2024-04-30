@@ -35,6 +35,8 @@ import learning_observer.util
 # Should be 60-300 in prod. 5 seconds is nice for debugging
 TIME_ON_TASK_THRESHOLD = 5
 
+TIME_ON_TASK_BIN_SIZE = 600 # 10 minutes
+
 # Threshold in seconds to determine if a student is actively working
 ACTIVE_THRESHOLD = 60
 
@@ -91,6 +93,54 @@ async def time_on_task(event, internal_state):
             internal_state['saved_ts'] - last_ts  # Time step
         )
         internal_state['total_time_on_task'] += delta_t
+    return internal_state, internal_state
+
+
+@kvs_pipeline(scope=gdoc_scope)
+async def binned_time_on_task(event, internal_state):
+    '''
+    Similar to the `time_on_task` reducer defined above, except it
+    bins the time spent.
+    '''
+    if internal_state is None:
+        internal_state = {
+            'saved_ts': None,
+            'binned_time_on_task': {},
+            'current_bin': None
+        }
+    last_ts = internal_state['saved_ts']
+    curr_bin = internal_state['current_bin']
+    internal_state['saved_ts'] = event['server']['time']
+
+    # Initial conditions
+    if last_ts is None:
+        last_ts = internal_state['saved_ts']
+    if curr_bin is None:
+        curr_bin = int((last_ts // TIME_ON_TASK_BIN_SIZE) * TIME_ON_TASK_BIN_SIZE)
+    next_bin = curr_bin + TIME_ON_TASK_BIN_SIZE
+    next_bin_str = str(next_bin)
+    if last_ts is not None:
+        delta_t = min(
+            TIME_ON_TASK_THRESHOLD,               # Maximum time step
+            internal_state['saved_ts'] - last_ts  # Time step
+        )
+        # handle defaulting curr_bin to 0
+        curr_bin_str = str(curr_bin)
+        if curr_bin_str not in internal_state['binned_time_on_task']:
+            internal_state['binned_time_on_task'][curr_bin_str] = 0
+
+        # handle time-on-task overflowing to the next bin
+        if last_ts + delta_t >= next_bin:
+            internal_state['binned_time_on_task'][curr_bin_str] += next_bin - last_ts
+            # handle defaulting next_bin to 0
+            if next_bin_str not in internal_state['binned_time_on_task']:
+                internal_state['binned_time_on_task'][next_bin_str] = 0
+            internal_state['binned_time_on_task'][next_bin_str] += last_ts + delta_t - next_bin
+        else:
+            internal_state['binned_time_on_task'][curr_bin_str] += delta_t
+
+    # update our current bin with the current event's timestamp
+    internal_state['current_bin'] = int((internal_state['saved_ts'] // TIME_ON_TASK_BIN_SIZE) * TIME_ON_TASK_BIN_SIZE)
     return internal_state, internal_state
 
 
