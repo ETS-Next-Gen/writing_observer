@@ -4,6 +4,7 @@ We've kind of strayed from that purpose and jammed a bunch of other
 code in. 
 TODO refractor the code to be more organized
 '''
+import pmss
 import sys
 import time
 
@@ -17,6 +18,22 @@ import learning_observer.stream_analytics.helpers
 # import traceback
 import learning_observer.util
 
+pmss.register_field(
+    name='use_nlp',
+    description='Flag for loading in and using AWE Components. These are '\
+                'used to extract NLP metrics from text. When enabled, the '\
+                'server start-up time takes longer.',
+    type=pmss.pmsstypes.TYPES.boolean,
+    default=False
+)
+pmss.register_field(
+    name='use_google_documents',
+    description="Flag for whether we should fetch the ground truth of a "\
+                "document's text from the Google API to fix any errors "\
+                "in the reconstruction reducer.",
+    type=pmss.pmsstypes.TYPES.boolean,
+    default=False
+)
 
 def excerpt_active_text(
     text, cursor_position,
@@ -218,7 +235,9 @@ async def merge_with_student_data(writing_data, student_data):
     return writing_data
 
 
-use_nlp = learning_observer.settings.module_setting('writing_observer', 'use_nlp', False)
+# TODO the use_nlp initialization code ought to live in a
+# registered startup function
+use_nlp = learning_observer.settings.module_setting('writing_observer', 'use_nlp')
 if use_nlp:
     try:
         import writing_observer.awe_nlp
@@ -279,7 +298,7 @@ async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
         await kvs.set(key, text)
         return text
 
-    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents'):
         [await fetch_doc_from_google(
             learning_observer.util.get_nested_dict_value(d, 'provenance.provenance.value.user_id'),
             learning_observer.util.get_nested_dict_value(d, 'doc_id')
@@ -339,6 +358,10 @@ async def update_reconstruct_data_with_google_api(runtime, student_data):
     return writing_data
 
 
+# TODO This is old way of querying data from the system.
+# The code should all still function, but the proper way to
+# do this is using the Communication Protocol.
+# This function and any references should be removed.
 async def latest_data(runtime, student_data, options=None):
     '''
     Retrieves the latest writing data for a set of students.
@@ -356,7 +379,7 @@ async def latest_data(runtime, student_data, options=None):
     # HACK we have a cache downstream that relies on redis_ephemeral being setup
     # when that is resolved, we can remove the feature flag
     # Update reconstruct data from KVS with ground truth from Google API
-    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents', False):
+    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents'):
         await update_reconstruct_data_with_google_api(runtime, student_data)
 
     # Get the latest documents with the students appended.

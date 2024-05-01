@@ -8,6 +8,7 @@ import inspect
 import json
 import jsonschema
 import numbers
+import pmss
 import queue
 import time
 
@@ -34,6 +35,16 @@ import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.schema
 import learning_observer.settings
+
+pmss.register_field(
+    name='dangerously_allow_insecure_dags',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Data can be queried either by system defined execution DAGs '\
+                '(directed acyclic graphs) or user created execution DAGs. '\
+                'This is useful for developing new system queries, but should not '\
+                'be used in production.',
+    default=False
+)
 
 
 def timelist_to_seconds(timelist):
@@ -439,7 +450,7 @@ async def dispatch_named_execution_dag(dag_name, funcs):
 
 async def dispatch_defined_execution_dag(dag, funcs):
     query = None
-    if not learning_observer.settings.settings.get('dangerously_allow_insecure_dags', False):
+    if not learning_observer.settings.pmss_settings.dangerously_allow_insecure_dags():
         debug_log(await dag_submission_not_allowed())
         funcs.append(dag_submission_not_allowed())
         return query

@@ -128,7 +128,10 @@ def initialize_gpt_responder():
     try the next one.
     '''
     global gpt_responder
-    responders = learning_observer.settings.module_setting('writing_observer', 'gpt_responders', {})
+    # TODO change this to use settings.module_settings() instead
+    # that method now uses pmss which doesn't support lists and
+    # dictionaries yet.
+    responders = learning_observer.settings.settings['modules']['writing_observer'].get('gpt_responders', {})
     exceptions = []
     for key in responders:
         if key not in GPT_RESPONDERS:

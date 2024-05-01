@@ -14,8 +14,10 @@ than xmpp, but is probably right approach for pilots.
 
 One project which came up which might be relevant:
 https://github.com/encode/broadcaster
-'''
 
+TODO this module is no longer being used by the LO system.
+This should be removed.
+'''
 import sys
 
 import learning_observer.settings as settings

@@ -15,7 +15,7 @@ import asyncio
 
 import aiohttp
 import aiohttp.web
-
+import pmss
 import uvloop
 
 import learning_observer.settings as settings
@@ -26,6 +26,18 @@ import learning_observer.watchdog_observer
 import learning_observer.ipython_integration
 
 from learning_observer.log_event import debug_log
+
+pmss.register_field(
+    name='port',
+    type=pmss.pmsstypes.TYPES.port,
+    description='Determine which port to run the LO webapp on.',
+    # BUG the code breaks when we default to None since
+    # `TYPES.port` expects an integer.
+    # Before PMSS, if the port was None, then we would try
+    # to find an available open port. This functionality
+    # should remain with the introduction of PMSS.
+    default=8888
+)
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
@@ -69,10 +81,9 @@ def create_app():
     # We don't want these to change on a restart.
     # We should check if reloading this module overwrites them.
     if port is None:
-        port = settings.settings.get("server", {}).get("port", None)
+        port = settings.pmss_settings.port(types=['server'])
     if runmode is None:
-        runmode = settings.settings.get("config", {}).get("run_mode", None)
-
+        runmode = settings.pmss_settings.run_mode(types=['config'])
     if port is None and runmode == 'dev':
         port = learning_observer.webapp_helpers.find_open_port()
 
