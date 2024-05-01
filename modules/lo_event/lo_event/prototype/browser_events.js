@@ -266,20 +266,8 @@ export function lo_event_props(event) {
 }
 
 function debounce(func, wait) {
-  const timeouts = {};
-
-  return function executedFunction(...args) {
-    const context = this;
-    const eventType = args[0].type;
-
-    if(timeouts[eventType]) clearTimeout(timeouts[eventType]);
-
-    timeouts[eventType] = setTimeout(() => {
-      func.apply(context, args);
-    }, wait);
-  };
+  // TODO
 }
-
 
 function eventListener(dispatch) {
   return function(event) {
