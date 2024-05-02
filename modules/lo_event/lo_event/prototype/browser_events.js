@@ -230,18 +230,34 @@ function copyTargets(event) {
   // This is very redundant, but most of the redundancy disappears with compression.
   // We should consider scaling this back if these are identical, however, just for readability
   const targets = [
+    "target",
     "currentTarget",
     "srcElement",
-    "target",
-    "relatedTarget",
-    "view"
+    "view",
+    "relatedTarget"
   ];
 
-  let compiledTargets = {};
+  let compiledTargets = {};   // The information we return
+  let uncompiledTargets = {}; // The actual target object themselves
 
+  // For each candidate target which exists....
   targets.forEach((targetKey) => {
     if (event[targetKey]) {
-      compiledTargets[targetKey] = targetInfo(event[targetKey]);
+      // Check if we've already processed it
+      let duplicateKeys = Object.keys(uncompiledTargets).filter(key => {
+        return uncompiledTargets[key] === event[targetKey];
+      });
+      // If so, we just add it to our list of duplicates
+      if (duplicateKeys.length > 0) {
+        if(!compiledTargets[duplicateKeys[0]].dupes) {
+          compiledTargets[duplicateKeys[0]].dupes = [];
+        }
+        compiledTargets[duplicateKeys[0]].dupes.push(targetKey);
+      // Otherwise, we include it in the main dictionary.
+      } else {
+        uncompiledTargets[targetKey] = event[targetKey];
+        compiledTargets[targetKey] = targetInfo(event[targetKey]);
+      }
     }
   });
 

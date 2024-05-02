@@ -11,8 +11,10 @@
 
   If not found, return null
 
-  This was created in the extension, but should be merged
-  into `lo_event`
+  This was created in the extension, but is being transferred into
+  `lo_event`. Once it is merged, the extension should be modified to
+  use the version from `lo_event`, and this should be removed from
+  there.
 */
 export function treeget(tree, key) {
   let keylist = key.split(".");
