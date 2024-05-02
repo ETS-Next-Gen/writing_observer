@@ -57,6 +57,7 @@ def init(settings=INTERACTIVE_SETTINGS):
     # depending on the (still-changing) startup order
     learning_observer.log_event.DEBUG_LOG_LEVEL = learning_observer.log_event.LogLevel.NONE
     learning_observer.settings.load_settings(settings)
+    learning_observer.prestartup.startup_checks_and_init()
     learning_observer.kvs.kvs_startup_check()  # Set up the KVS
     # Force load of the reducers. This is not necessary right now, but it was
     # before, and might be later again. We should remove this call once the

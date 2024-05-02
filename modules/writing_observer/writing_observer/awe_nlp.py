@@ -120,7 +120,6 @@ def process_text(text, options=None):
     if options is None:
         # Do we want options to be everything initially or nothing?
         options = writing_observer.nlp_indicators.INDICATORS.keys()
-        options = []
 
     for item in options:
         if item not in writing_observer.nlp_indicators.INDICATORS:
