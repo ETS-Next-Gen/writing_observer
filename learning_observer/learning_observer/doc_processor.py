@@ -1,10 +1,14 @@
+import aiohttp_session
 import datetime
 
+import learning_observer.constants
 import learning_observer.google
 import learning_observer.kvs
 import learning_observer.offline
 import learning_observer.run
 import learning_observer.runtime
+import learning_observer.auth.utils
+import learning_observer.stream_analytics.helpers as sa_helpers
 
 import writing_observer
 import writing_observer.awe_nlp
@@ -33,8 +37,6 @@ class mockApp:
 
 
 async def start():
-    # FIXME something is missing where it doesn't register startup
-    # functions in the modules folder.
     learning_observer.offline.init('creds.yaml')
     mock_app = mockApp()
     learning_observer.google.initialize_and_register_routes(mock_app)
@@ -64,7 +66,6 @@ async def fetch_all_docs():
 
 async def process_documents(docs):
     for doc_id in docs:
-        print('processing document', doc_id)
         if check_rules(RULES, doc_id):
             await process_document(doc_id)
 
@@ -94,20 +95,44 @@ async def _fetch_proper_credentials(doc_id):
     students = [k[k.find(student_specifier) + len(student_specifier):] for k in matching_keys]
     # TODO handle more than 1 student per document, but for now just grab the first
     student = students[0]
-    # TODO find teacher based on available rosters
-    # TODO fetch teachers creds
-    creds = None
+    roster_specifier = 'learning_observer.google.roster'
+    rosters = [k for k in keys if roster_specifier in k]
+    matching_teachers = []
+    for roster_key in rosters:
+        roster = await KVS[roster_key]
+        if student in roster['students']:
+            matching_teachers.append(roster['teacher_id'])
+
+    # TODO handle multiple teachers
+    teacher = matching_teachers[0]
+    auth_key = sa_helpers.make_key(
+        learning_observer.auth.utils.google_stored_auth,
+        {sa_helpers.KeyField.TEACHER: teacher},
+        sa_helpers.KeyStateType.INTERNAL)
+    creds = await KVS[auth_key]
     return creds
+
+
+class MockAppWithLoop:
+    def __init__(self, loop):
+        self.loop = loop
+
+class MockRequest(dict):
+    pass
 
 
 async def _fetch_document_text(doc_id, creds):
     '''Fetch the document text from the appropriate
     Google endpoint.
     '''
-    # TODO I believe this needs an aiohttp_session to be present
-    # not 100% sure what that looks like. I'll loop back
-    # around to this
-    mock_request = creds
+    async def get_session(request):
+        return {learning_observer.constants.USER: {learning_observer.constants.USER_ID: '12345'}}
+
+    aiohttp_session.get_session = get_session
+    mock_request = MockRequest()
+    mock_request[learning_observer.constants.AUTH_HEADERS] = creds
+    mock_request[learning_observer.constants.USER] = {}
+    mock_request.app = MockAppWithLoop(asyncio.get_event_loop())
     runtime = learning_observer.runtime.Runtime(mock_request)
     response = await learning_observer.google.doctext(runtime, documentId=doc_id)
     if 'text' not in response:
@@ -132,6 +157,7 @@ async def _pass_doc_through_analysis(doc_id, text):
         'text': text,
         'last_modified': datetime.datetime.now()
     }
+    print(output)
     # TODO store output in kvs
 
 

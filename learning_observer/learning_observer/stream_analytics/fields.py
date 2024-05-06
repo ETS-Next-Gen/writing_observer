@@ -82,9 +82,9 @@ KeyStateType = enum.Enum("KeyStateType", "INTERNAL EXTERNAL")
 KeyFields = [
     "STUDENT",      # A single student
     "CLASS",        # A group of students. Typically, one class roster in Google Classroom
-    "RESOURCE"      # E.g. One Google Doc
+    "RESOURCE",     # E.g. One Google Doc
     # "ASSIGNMENT"  # E.g. A collection of Google Docs (e.g. notes, outline, draft)
-    # "TEACHER"     #
+    "TEACHER"       #
     #  ...          # ... and so on.
 ]
 

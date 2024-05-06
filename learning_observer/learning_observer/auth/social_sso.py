@@ -40,6 +40,10 @@ import learning_observer.auth.roles
 
 import learning_observer.constants as constants
 import learning_observer.exceptions
+import learning_observer.google
+import learning_observer.kvs
+import learning_observer.runtime
+import learning_observer.stream_analytics.helpers as sa_helpers
 
 import pmss
 # TODO the hostname setting currently expect the port
@@ -121,10 +125,39 @@ async def social_handler(request):
 
     if user['authorized']:
         url = user['back_to'] or "/"
+        # TODO add flag to settings to trigger this or not
+        await _store_teacher_info_for_background_process(user['user_id'], request)
     else:
         url = "/"
 
     return aiohttp.web.HTTPFound(url)
+
+
+async def _store_teacher_info_for_background_process(id, request):
+    '''We want to have a background process that fetches Google
+    docs and then processes them. This function stores relevant
+    teacher information (Google auth token + rosters) so we can
+    later fetch documents in our separate process.
+    '''
+    kvs = learning_observer.kvs.KVS()
+    # store teacher auth info
+    auth_key = sa_helpers.make_key(
+        learning_observer.auth.utils.google_stored_auth,
+        {sa_helpers.KeyField.TEACHER: id},
+        sa_helpers.KeyStateType.INTERNAL)
+    await kvs.set(auth_key, request[constants.AUTH_HEADERS])
+
+    # store teacher roster info
+    runtime = learning_observer.runtime.Runtime(request)
+    courses = await learning_observer.google.courses(runtime)
+    for course in courses:
+        roster = await learning_observer.google.roster(runtime, courseId=course['id'])
+        students = [s['user_id'] for s in roster]
+        roster_key = sa_helpers.make_key(
+            learning_observer.google.roster,
+            {sa_helpers.KeyField.TEACHER: id, sa_helpers.KeyField.CLASS: course['id']},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(roster_key, {'teacher_id': id, 'students': students})
 
 
 async def _google(request):

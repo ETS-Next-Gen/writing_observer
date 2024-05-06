@@ -22,7 +22,9 @@ import aiohttp.web
 import aiohttp_session
 
 import learning_observer.constants as constants
+import learning_observer.kvs
 import learning_observer.paths
+import learning_observer.stream_analytics.helpers as sa_helpers
 
 from learning_observer.log_event import debug_log
 from . import roles
@@ -99,13 +101,28 @@ async def get_active_user(request):
     return session[constants.USER]
 
 
+def google_stored_auth():
+    '''This is a blank function for key making purposes.
+    '''
+    pass
+
+
 async def logout(request):
     '''
     Log the user out
     '''
     session = await aiohttp_session.get_session(request)
-    session.pop(constants.USER, None)
+    user = session.pop(constants.USER, None)
     session.pop(constants.AUTH_HEADERS, None)
+
+    # Remove auth header info from redis
+    kvs = learning_observer.kvs.KVS()
+    remove_auth_key = sa_helpers.make_key(
+        google_stored_auth,
+        {sa_helpers.KeyField.TEACHER: user['user_id']},
+        sa_helpers.KeyStateType.INTERNAL)
+    await kvs.remove(remove_auth_key)
+
     session.pop(constants.IMPERSONATING_AS, None)
     request[constants.USER] = None
 
