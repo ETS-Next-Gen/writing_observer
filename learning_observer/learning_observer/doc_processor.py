@@ -15,6 +15,9 @@ import writing_observer.awe_nlp
 import writing_observer.languagetool
 import writing_observer.writing_analysis
 
+def get_seconds_since_epoch():
+    return datetime.datetime.now().timestamp()
+
 '''
 TODO add in desired rules.
 Each rule should be a function that accepts
@@ -32,9 +35,10 @@ async def check_recent_mod_and_not_recent_process(doc_id):
     time (5 minutes).
     '''
     cutoff = 300 # 5 minutes
+    student_id = await _determine_student(doc_id)
     key = sa_helpers.make_key(
         process_document,
-        {sa_helpers.EventField('doc_id'): doc_id},
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
         sa_helpers.KeyStateType.INTERNAL
     )
     doc_info = await KVS[key]
@@ -42,25 +46,38 @@ async def check_recent_mod_and_not_recent_process(doc_id):
 
     key = sa_helpers.make_key(
         writing_observer.writing_analysis.time_on_task,
-        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: doc_info['student_id']},
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
         sa_helpers.KeyStateType.INTERNAL
     )
     last_mod = await KVS[key]
     last_mod = last_mod['saved_ts']
     last_processed = doc_info['last_processed']
-    now = datetime.datetime.now().timestamp()
+    now = get_seconds_since_epoch()
     recently_modified = last_mod > last_processed
     recently_processed = now - cutoff < last_processed
     if recently_modified and not recently_processed: return True
     return False
 
 
+async def check_for_doc_fetch_failure(doc_id):
+    '''Check if we should retry fetching a previously
+    failed document fetch
+    '''
+    now = get_seconds_since_epoch()
+    if doc_id in failed_fetch:
+        last_try = failed_fetch[doc_id]
+        if last_try > now - 300: return False
+    return True
+
+
 RULES = [
-    check_recent_mod_and_not_recent_process
+    check_recent_mod_and_not_recent_process,
+    check_for_doc_fetch_failure
 ]
 
 KVS = None
 app = None
+failed_fetch = {}
 
 class MockApp:
     def __init__(self, loop):
@@ -84,7 +101,7 @@ async def start():
     while True:
         doc_ids = await fetch_all_docs()
         await process_documents(doc_ids)
-        break
+        # break
 
 
 async def fetch_all_docs():
@@ -97,34 +114,39 @@ async def fetch_all_docs():
     for k in keys:
         if doc_specifier not in k: continue
         end_of_specifier = k.find(doc_specifier) + len(doc_specifier)
-        doc_id = k[end_of_specifier:k.find(',', end_of_specifier)]
+        end_of_id = k.find(',', end_of_specifier)
+        doc_id = k[end_of_specifier : end_of_id if end_of_id != -1 else len(k)]
         if doc_id == 'None': continue
         doc_ids.add(doc_id)
     return doc_ids
 
 
 async def process_documents(docs):
-    for doc_id in docs:
-        if await check_rules(RULES, doc_id):
-            await process_document(doc_id)
+    results = await asyncio.gather(*(process_document(d) for d in docs))
 
 
 async def check_rules(rules, doc_id):
-    '''Determine if a document passes any of the
+    '''Determine if a document passes all of the
     provided rules.
     '''
     for rule in rules:
-        if await rule(doc_id):
-            return True
-    return False
+        if not await rule(doc_id):
+            return False
+    return True
 
 
 async def process_document(doc_id):
+    if not await check_rules(RULES, doc_id):
+        return
+    print('* Starting to process document:', doc_id)
     student_id = await _determine_student(doc_id)
     google_auth = await _fetch_teacher_credentials(student_id)
     doc_text = await _fetch_document_text(doc_id, google_auth)
     if doc_text is None:
+        print('  unable to fetch doc')
+        failed_fetch[doc_id] = get_seconds_since_epoch()
         return
+    failed_fetch.pop(doc_id, None)
     await _pass_doc_through_analysis(doc_id, doc_text, student_id)
 
 
@@ -196,11 +218,13 @@ async def _pass_doc_through_analysis(doc_id, text, student_id):
         'awe_components': awe_output,
         'languagetool': lt_output,
         'text': text,
-        'last_processed': datetime.datetime.now().timestamp()
+        'last_processed': get_seconds_since_epoch()
     }
+    # TODO choose a different function. since this is a separate
+    # script, we get `Internal,__main__.process_document,...`
     key = sa_helpers.make_key(
         process_document,
-        {sa_helpers.EventField('doc_id'): doc_id},
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
         sa_helpers.KeyStateType.INTERNAL
     )
     await KVS.set(key, output)
