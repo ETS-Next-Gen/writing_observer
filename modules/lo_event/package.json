@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jasmine \"tests/*.test.js\"",
     "test-verbose": "jasmine --verbose \"tests/*.test.js\"",
-    "dev": "parcel examples/test.html"
+    "browser_events": "parcel examples/browser_events.html"
   },
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
     "http-server": "^14.1.1",
     "indexeddb-js": "^0.0.14",
     "jasmine": "^5.1.0",
+    "lodash": "^4.17.21",
     "redux-thunk": "^2.4.2",
     "sqlite3": "^5.1.6",
     "ws": "^8.14.2"
@@ -31,7 +32,13 @@
     "@babel/cli": "^7.24.5",
     "@babel/core": "^7.24.5",
     "@babel/preset-env": "^7.24.5",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "events": "^3.3.0",
     "parcel": "^2.12.0",
-    "redux": "^4.2.1"
+    "process": "^0.11.10",
+    "redux": "^4.2.1",
+    "stream-browserify": "^3.0.0",
+    "vm-browserify": "^1.1.2"
   }
 }
