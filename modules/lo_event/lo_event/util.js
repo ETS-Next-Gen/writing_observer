@@ -484,3 +484,30 @@ export function copyFields (source, fields) {
   }
   return result;
 }
+
+/**
+ * Takes a number of seconds and converts it into a human-friendly time string in the format HH:MM:SS.
+ *
+ * @param {number} seconds - The number of seconds to format into a time string
+ * @returns {string} The formatted time string
+ *
+ * Will do things like omit hours (and perhaps be smarter in the future)
+ */
+export function formatTime(seconds) {
+  // Calculate hours, minutes, and remaining seconds
+  var hours = Math.floor(seconds / 3600);
+  var minutes = Math.floor((seconds % 3600) / 60);
+  var remainingSeconds = (seconds % 60).toFixed(2);
+  
+  // Format hours, minutes, and remaining seconds to include leading zeros
+  var formattedHours = hours.toString().padStart(2, '0');
+  var formattedMinutes = minutes.toString().padStart(2, '0');
+  var formattedSeconds = remainingSeconds.padStart(5, '0');
+  
+  // Concatenate and return the formatted time
+  if (hours > 0) {
+    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+  } else {
+    return `${formattedMinutes}:${formattedSeconds}`;
+  }
+}

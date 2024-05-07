@@ -83,6 +83,39 @@ function lock_fields_reducer(state = {}, action) {
   };
 }
 
+/*
+ * This is our most common reducer. It simply updates a component's
+ * state with the dictionary of an action.
+ *
+ * In the future, we plan to add various sorts of event validation and
+ * potentially preprocessing. We would like things like:
+ *
+ *    updateComponentStateReducer({valid_fields: ['response'})
+ *
+ * Ergo, the two-level call with the destruct.
+ */
+export const updateComponentStateReducer = ({}) => (state = initialState, action) => {
+  const { id, ...rest } = action;
+  const new_state = {
+    ...state,
+    component_state: {
+      ...state.component_state,
+      [id]: {...state.component_state?.[id], ...rest}
+    }
+  };
+
+  debug_log(
+    "==REGISTER REDUCER==\n",
+    "Reducer action:", action, "\n",
+    "Response reducer called\n",
+    "Old state", state, "\n",
+    "Action", action, "\n",
+    "New state", new_state
+  );
+
+  return new_state;
+}
+
 function set_state_reducer(state = {}, action) {
   return action.payload;
 }
