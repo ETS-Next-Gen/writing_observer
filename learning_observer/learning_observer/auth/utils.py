@@ -101,8 +101,9 @@ async def get_active_user(request):
     return session[constants.USER]
 
 
-def google_stored_auth():
+def  google_stored_auth():
     '''This is a blank function for key making purposes.
+    We use this to store the teacher auth information.
     '''
     pass
 

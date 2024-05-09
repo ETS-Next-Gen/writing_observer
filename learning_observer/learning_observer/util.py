@@ -231,6 +231,16 @@ def timeparse(timestamp):
     return parser.isoparse(timestamp)
 
 
+def get_seconds_since_epoch():
+    '''
+    Return a timestamp in the seconds since epoch format
+
+    Returns:
+        int: seconds since last epoch
+    '''
+    return datetime.datetime.now().timestamp()
+
+
 count = 0
 
 

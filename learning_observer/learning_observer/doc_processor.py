@@ -1,22 +1,29 @@
 import aiohttp_session
-import datetime
+import pmss
 
+import learning_observer.auth.utils
 import learning_observer.constants
 import learning_observer.google
 import learning_observer.kvs
 import learning_observer.offline
 import learning_observer.run
 import learning_observer.runtime
-import learning_observer.auth.utils
+import learning_observer.settings
 import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.util
 
 import writing_observer
 import writing_observer.awe_nlp
 import writing_observer.languagetool
 import writing_observer.writing_analysis
 
-def get_seconds_since_epoch():
-    return datetime.datetime.now().timestamp()
+pmss.register_field(
+    name='document_processing_delay_seconds',
+    type=pmss.pmsstypes.TYPES.integer,
+    description="This determines the amount of time to wait (in seconds) between "\
+        "processing a document's text in the separate document processor script.",
+    default=300
+)
 
 '''
 TODO add in desired rules.
@@ -34,7 +41,7 @@ async def check_recent_mod_and_not_recent_process(doc_id):
     processing and check whether it is past a specified cutoff
     time (5 minutes).
     '''
-    cutoff = 300 # 5 minutes
+    cutoff = learning_observer.settings.pmss_settings.document_processing_delay_seconds()
     student_id = await _determine_student(doc_id)
     key = sa_helpers.make_key(
         process_document,
@@ -52,34 +59,37 @@ async def check_recent_mod_and_not_recent_process(doc_id):
     last_mod = await KVS[key]
     last_mod = last_mod['saved_ts']
     last_processed = doc_info['last_processed']
-    now = get_seconds_since_epoch()
+    now = learning_observer.util.get_seconds_since_epoch()
     recently_modified = last_mod > last_processed
     recently_processed = now - cutoff < last_processed
     if recently_modified and not recently_processed: return True
     return False
 
 
-async def check_for_doc_fetch_failure(doc_id):
-    '''Check if we should retry fetching a previously
-    failed document fetch
+async def check_failed_google_api_fetch(doc_id):
+    '''Check to see if the current document has previously been
+    unsuccessfully fetched from the Google API. We ignore any
+    failed documents.
+
+    TODO this ought to be some exponential backoff function,
+    so we do not get flagged by some Google bot.
     '''
-    now = get_seconds_since_epoch()
     if doc_id in failed_fetch:
-        last_try = failed_fetch[doc_id]
-        if last_try > now - 300: return False
+        return False
     return True
 
 
 RULES = [
     check_recent_mod_and_not_recent_process,
-    check_for_doc_fetch_failure
+    check_failed_google_api_fetch
 ]
 
 KVS = None
 app = None
-failed_fetch = {}
+failed_fetch = set()
 
-class MockApp:
+# TODO move StubApp, StubRequest, and fetch_mock_runtime to offline.py
+class StubApp:
     def __init__(self, loop):
         self.loop = loop
 
@@ -87,21 +97,37 @@ class MockApp:
         pass
 
 
-class MockRequest(dict):
+class StubRequest(dict):
     pass
+
+
+def fetch_mock_runtime(creds):
+    mock_request = StubRequest()
+    mock_request[learning_observer.constants.AUTH_HEADERS] = creds
+    mock_request[learning_observer.constants.USER] = {}
+    mock_request.app = app
+    runtime = learning_observer.runtime.Runtime(mock_request)
+    return runtime
 
 
 async def start():
     learning_observer.offline.init('creds.yaml')
     global app
-    app = MockApp(asyncio.get_event_loop())
+    app = StubApp(asyncio.get_event_loop())
     learning_observer.google.initialize_and_register_routes(app)
     global KVS
     KVS = learning_observer.kvs.KVS()
+
+    # overwrite aiohttp_session.get_session so the Google API
+    # code does not fail when a session is not there.
+    async def get_session(request):
+        return {learning_observer.constants.USER: {learning_observer.constants.USER_ID: '12345'}}
+
+    aiohttp_session.get_session = get_session
+
     while True:
         doc_ids = await fetch_all_docs()
         await process_documents(doc_ids)
-        # break
 
 
 async def fetch_all_docs():
@@ -127,7 +153,11 @@ async def process_documents(docs):
 
 async def check_rules(rules, doc_id):
     '''Determine if a document passes all of the
-    provided rules.
+    provided rules. This is equivalent to running an
+    AND over each of the provided rules.
+
+    TODO support AND and OR statements such as
+    AND(rule, rule) and similar
     '''
     for rule in rules:
         if not await rule(doc_id):
@@ -144,9 +174,8 @@ async def process_document(doc_id):
     doc_text = await _fetch_document_text(doc_id, google_auth)
     if doc_text is None:
         print('  unable to fetch doc')
-        failed_fetch[doc_id] = get_seconds_since_epoch()
+        failed_fetch.add(doc_id)
         return
-    failed_fetch.pop(doc_id, None)
     await _pass_doc_through_analysis(doc_id, doc_text, student_id)
 
 
@@ -187,15 +216,7 @@ async def _fetch_document_text(doc_id, creds):
     '''Fetch the document text from the appropriate
     Google endpoint.
     '''
-    async def get_session(request):
-        return {learning_observer.constants.USER: {learning_observer.constants.USER_ID: '12345'}}
-
-    aiohttp_session.get_session = get_session
-    mock_request = MockRequest()
-    mock_request[learning_observer.constants.AUTH_HEADERS] = creds
-    mock_request[learning_observer.constants.USER] = {}
-    mock_request.app = app
-    runtime = learning_observer.runtime.Runtime(mock_request)
+    runtime = fetch_mock_runtime(creds)
     response = await learning_observer.google.doctext(runtime, documentId=doc_id)
     if 'text' not in response:
         return None
@@ -218,7 +239,7 @@ async def _pass_doc_through_analysis(doc_id, text, student_id):
         'awe_components': awe_output,
         'languagetool': lt_output,
         'text': text,
-        'last_processed': get_seconds_since_epoch()
+        'last_processed': learning_observer.util.get_seconds_since_epoch()
     }
     # TODO choose a different function. since this is a separate
     # script, we get `Internal,__main__.process_document,...`
