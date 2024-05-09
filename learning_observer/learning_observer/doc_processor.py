@@ -36,6 +36,32 @@ Rules we want
 - [ ] events > 2*[events since last processed]
 Start with just the first one
 '''
+
+async def _fetch_document_process_data(doc_id, student_id):
+    '''Fetch processed data from the document.
+    '''
+    key = sa_helpers.make_key(
+        process_document,
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
+        sa_helpers.KeyStateType.INTERNAL
+    )
+    return await KVS[key]
+
+
+async def _fetch_document_metadata(doc_id, student_id):
+    '''This fetch the time on task reducer which contains
+    the one piece of metadata we are after, `saved_ts`. This
+    item provides the last time we received an event for the
+    document.
+    '''
+    key = sa_helpers.make_key(
+        writing_observer.writing_analysis.time_on_task,
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
+        sa_helpers.KeyStateType.INTERNAL
+    )
+    return await KVS[key]
+
+
 async def check_recent_mod_and_not_recent_process(doc_id):
     '''Determine if the document has been altered since its last
     processing and check whether it is past a specified cutoff
@@ -43,21 +69,13 @@ async def check_recent_mod_and_not_recent_process(doc_id):
     '''
     cutoff = learning_observer.settings.pmss_settings.document_processing_delay_seconds()
     student_id = await _determine_student(doc_id)
-    key = sa_helpers.make_key(
-        process_document,
-        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
-        sa_helpers.KeyStateType.INTERNAL
-    )
-    doc_info = await KVS[key]
+
+    doc_info = await _fetch_document_process_data(doc_id, student_id)
     if doc_info is None: return True
 
-    key = sa_helpers.make_key(
-        writing_observer.writing_analysis.time_on_task,
-        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
-        sa_helpers.KeyStateType.INTERNAL
-    )
-    last_mod = await KVS[key]
-    last_mod = last_mod['saved_ts']
+    doc_metadata = await _fetch_document_metadata(doc_id, student_id)
+
+    last_mod = doc_metadata['saved_ts']
     last_processed = doc_info['last_processed']
     now = learning_observer.util.get_seconds_since_epoch()
     recently_modified = last_mod > last_processed
