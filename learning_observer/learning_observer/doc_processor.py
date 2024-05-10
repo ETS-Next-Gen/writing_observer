@@ -130,10 +130,9 @@ def fetch_mock_runtime(creds):
 
 async def start():
     learning_observer.offline.init('creds.yaml')
-    global app
+    global app, KVS
     app = StubApp(asyncio.get_event_loop())
     learning_observer.google.initialize_and_register_routes(app)
-    global KVS
     KVS = learning_observer.kvs.KVS()
 
     # overwrite aiohttp_session.get_session so the Google API
@@ -142,10 +141,7 @@ async def start():
         return {learning_observer.constants.USER: {learning_observer.constants.USER_ID: '12345'}}
 
     aiohttp_session.get_session = get_session
-
-    while True:
-        doc_ids = await fetch_all_docs()
-        await process_documents(doc_ids)
+    await process_documents_with_wait()
 
 
 async def fetch_all_docs():
@@ -165,8 +161,38 @@ async def fetch_all_docs():
     return doc_ids
 
 
-async def process_documents(docs):
-    results = await asyncio.gather(*(process_document(d) for d in docs))
+async def delay_fetch_all_docs(delay=20):
+    '''We don't want to being fetching all the docs
+    constantly when working in the `asycnio.task` workflow.
+    '''
+    await asyncio.sleep(delay)
+    return await fetch_all_docs()
+
+
+async def process_documents_with_wait():
+    '''Continually fetch docs and process them as they are
+    available.
+    '''
+    pending = [asyncio.create_task(fetch_all_docs(), name='fetch')]
+    while pending:
+        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        d = done.pop()
+        if d.get_name() == 'fetch':
+            doc_ids = d.result()
+            for doc_id in doc_ids:
+                if doc_id not in failed_fetch:
+                    pending.add(asyncio.create_task(process_document(doc_id), name=doc_id))
+            pending.add(asyncio.create_task(delay_fetch_all_docs(), name='fetch'))
+
+
+async def process_documents_with_gather():
+    '''Fetch ids and gather all processed documents at once.
+    New documents will not be processed until all documents
+    on the current while loop iteration have finished.
+    '''
+    while True:
+        doc_ids = await fetch_all_docs()
+        results = await asyncio.gather(*(process_document(d) for d in doc_ids))
 
 
 async def check_rules(rules, doc_id):
@@ -185,7 +211,7 @@ async def check_rules(rules, doc_id):
 
 async def process_document(doc_id):
     if not await check_rules(RULES, doc_id):
-        return
+        return False
     print('* Starting to process document:', doc_id)
     student_id = await _determine_student(doc_id)
     google_auth = await _fetch_teacher_credentials(student_id)
@@ -193,8 +219,9 @@ async def process_document(doc_id):
     if doc_text is None:
         print('  unable to fetch doc')
         failed_fetch.add(doc_id)
-        return
+        return False
     await _pass_doc_through_analysis(doc_id, doc_text, student_id)
+    return True
 
 
 async def _determine_student(doc_id):
