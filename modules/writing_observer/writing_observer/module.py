@@ -9,8 +9,10 @@ This may be an examplar for building new modules too.
 # Generically, these would usually serve JSON to dashboards written as JavaScript and
 # HTML. These used to be called 'dashboards,' but we're now hosting those as static
 # files.
+import pmss
 
 import learning_observer.communication_protocol.query as q
+import learning_observer.settings
 
 from learning_observer import downloads as d
 
@@ -41,6 +43,21 @@ document_access_ts = q.call('writing_observer.fetch_doc_at_timestamp')
 
 source_selector = q.call('source_selector')
 
+pmss.register_field(
+    name='get_awe_lt_from_sep_process',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Data can be queried either by system defined execution DAGs '\
+                '(directed acyclic graphs) or user created execution DAGs. '\
+                'This is useful for developing new system queries, but should not '\
+                'be used in production.',
+    default=False
+)
+
+separate_processing_script = learning_observer.settings.module_setting('writing_observer', setting='get_awe_lt_from_sep_process')
+print('* Separate processing script', separate_processing_script)
+nlp_source = 'nlp_sep_proc' if separate_processing_script else 'nlp'
+lt_group_source = 'overall_lt_sep_proc' if separate_processing_script else 'overall_lt'
+lt_single_source = 'single_lt_sep_proc' if separate_processing_script else 'single_student_lt'
 
 EXECUTION_DAG = {
     "execution_dag": {
@@ -50,7 +67,8 @@ EXECUTION_DAG = {
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("update_docs"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         "docs_combined": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT_ON='user_id'),
         'nlp': process_texts(writing_data=q.variable('docs'), options=q.parameter('nlp_options', required=False, default=[])),
-        'nlp_combined': q.join(LEFT=q.variable('nlp'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'nlp_sep_proc': q.select(q.keys('writing_observer.awe_components', STUDENTS=q.variable('roster'), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields='All'),
+        'nlp_combined': q.join(LEFT=q.variable(nlp_source), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         # error dashboard activity map nodes
         'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_sources"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts'}),
         'activity_map': q.map(determine_activity, q.variable('time_on_task'), value_path='last_ts'),
@@ -63,10 +81,12 @@ EXECUTION_DAG = {
         'single_update_doc': update_via_google(runtime=q.parameter('runtime'), doc_ids=q.variable('single_doc_sources')),
         'single_student_doc': q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id', RESOURCES=q.variable("single_update_doc"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         'single_student_lt': languagetool(texts=q.variable('single_student_doc')),
-        'single_lt_combined': q.join(LEFT=q.variable('single_student_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'single_lt_combined': q.join(LEFT=q.variable(lt_single_source), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'single_lt_sep_proc': q.select(q.keys('writing_observer.lt_process', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id', RESOURCES=q.variable("single_student_latest_doc"), RESOURCES_path='doc_id'), fields='All'),
         # overall language tool nodes
         'overall_lt': languagetool(texts=q.variable('docs')),
-        'lt_combined': q.join(LEFT=q.variable('overall_lt'), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
+        'overall_lt_sep_proc': q.select(q.keys('writing_observer.lt_process', STUDENTS=q.variable('roster'), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields='All'),
+        'lt_combined': q.join(LEFT=q.variable(lt_group_source), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
 
         'latest_doc_ids': q.join(LEFT=q.variable('roster'), RIGHT=q.variable('doc_ids'), LEFT_ON='user_id', RIGHT_ON='provenance.provenance.value.user_id'),
         # the following nodes are used to fetch a set of documents' metadata based on a given tag
@@ -217,6 +237,18 @@ REDUCERS = [
         'scope': writing_observer.writing_analysis.student_scope,
         'function': writing_observer.writing_analysis.document_access_timestamps,
         'default': {'timestamps': {}}
+    },
+    {
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.gdoc_scope,
+        'function': writing_observer.writing_analysis.awe_components,
+        'default': {'text': ''}
+    },
+    {
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.gdoc_scope,
+        'function': writing_observer.writing_analysis.lt_process,
+        'default': {'text': '', 'category_counts': {}, 'matches': [], 'subcategory_counts': {}, 'wordcounts': {}}
     },
 ]
 

@@ -216,8 +216,9 @@ async def process_document(doc_id):
     student_id = await _determine_student(doc_id)
     google_auth = await _fetch_teacher_credentials(student_id)
     doc_text = await _fetch_document_text(doc_id, google_auth)
-    if doc_text is None:
+    if doc_text is None or len(doc_text) == 0:
         print('  unable to fetch doc')
+        # TODO try to fetch the reconstruction text instead.
         failed_fetch.add(doc_id)
         return False
     await _pass_doc_through_analysis(doc_id, doc_text, student_id)
@@ -286,6 +287,25 @@ async def _pass_doc_through_analysis(doc_id, text, student_id):
         'text': text,
         'last_processed': learning_observer.util.get_seconds_since_epoch()
     }
+    # Set AWE Components info
+    awe_output['text'] = text
+    awe_key = sa_helpers.make_key(
+        writing_observer.writing_analysis.awe_components,
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
+        sa_helpers.KeyStateType.INTERNAL
+    )
+    await KVS.set(awe_key, awe_output)
+
+    # Set LanguageTool info
+    for lt_out in lt_output:
+        lt_out['text'] = text
+        lt_key = sa_helpers.make_key(
+            writing_observer.writing_analysis.lt_process,
+            {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
+            sa_helpers.KeyStateType.INTERNAL
+        )
+        await KVS.set(lt_key, lt_out)
+
     # TODO choose a different function. since this is a separate
     # script, we get `Internal,__main__.process_document,...`
     key = sa_helpers.make_key(

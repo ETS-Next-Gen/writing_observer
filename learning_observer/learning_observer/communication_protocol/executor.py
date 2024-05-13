@@ -7,6 +7,7 @@ The executor processes the `execution_dag` portion of our request.
 import asyncio
 import collections
 import concurrent.futures
+import enum
 import functools
 import inspect
 
@@ -379,8 +380,13 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     return output
 
 
+class SelectFields(enum.Enum):
+    Missing = 'Missing'
+    All = 'All'
+
+
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
-async def handle_select(keys, fields):
+async def handle_select(keys, fields=SelectFields.Missing):
     """
     We dispatch this function whenever we process a DISPATCH_MODES.SELECT node.
     This function is used to select data from a kvs. The data being selected
@@ -396,8 +402,9 @@ async def handle_select(keys, fields):
 
     TODO add in test cases once we pass kvs as a parameter
     """
-    if fields is None:
-        fields = {}
+    fields_to_keep = fields
+    if fields is None or fields == SelectFields.Missing.value:
+        fields_to_keep = {}
 
     response = []
     for k in keys:
@@ -419,7 +426,12 @@ async def handle_select(keys, fields):
         if resulting_value is None:
             # the reducer has not run yet, so we return the default value from the module
             resulting_value = k['default']
-        for f in fields:
+
+        # keep all current fields except for provenance (already prepared)
+        if fields == SelectFields.All.value:
+            fields_to_keep = {k: k for k in resulting_value.keys() if k != 'provenance'}
+
+        for f in fields_to_keep:
             try:
                 value = get_nested_dict_value(resulting_value, f)
             except KeyError as e:
@@ -429,7 +441,7 @@ async def handle_select(keys, fields):
                     {'target': resulting_value, 'key': f, 'exception': e}
                 ).to_dict()
             # add necessary outputs to query response
-            query_response_element[fields[f]] = value
+            query_response_element[fields_to_keep[f]] = value
         response.append(query_response_element)
     return response
 
@@ -626,7 +638,6 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 result = function(functions=functions, **node)
             else:
                 result = function(**node)
-
             if inspect.isawaitable(result):
                 result = await result
             return result

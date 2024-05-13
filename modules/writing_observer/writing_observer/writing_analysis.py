@@ -139,6 +139,21 @@ async def event_count(event, internal_state):
     return state, state
 
 
+@kvs_pipeline(scope=gdoc_scope, null_state={})
+async def awe_components(event, internal_state):
+    '''
+    An example of a per-document pipeline
+    '''
+    return False, False
+
+@kvs_pipeline(scope=gdoc_scope, null_state={})
+async def lt_process(event, internal_state):
+    '''
+    An example of a per-document pipeline
+    '''
+    return False, False
+
+
 @kvs_pipeline(scope=student_scope, null_state={'timestamps': {}, 'last_document': ''})
 async def document_access_timestamps(event, internal_state):
     '''
