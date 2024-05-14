@@ -1,3 +1,13 @@
+'''This file processes documents through a variety of items.
+- An initial fetch begins to find all documents.
+- Check document against rules
+    - If processable: add processing job to loop
+        - Fetch text
+        - Run through NLP and LanguageTool
+        - Store in reducers
+- Delay the next fetch.
+- As documents finish, they are removed from the loop
+'''
 import aiohttp_session
 import pmss
 
@@ -21,7 +31,7 @@ pmss.register_field(
     name='document_processing_delay_seconds',
     type=pmss.pmsstypes.TYPES.integer,
     description="This determines the amount of time to wait (in seconds) between "\
-        "processing a document's text in the separate document processor script.",
+        "processing a document's text within the separate document processor script.",
     default=90
 )
 
@@ -302,7 +312,7 @@ async def _pass_doc_through_analysis(doc_id, text, student_id):
     # Set AWE Components info
     awe_output['text'] = text
     awe_key = sa_helpers.make_key(
-        writing_observer.writing_analysis.awe_components,
+        writing_observer.writing_analysis.nlp_components,
         {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
         sa_helpers.KeyStateType.INTERNAL
     )
@@ -312,7 +322,7 @@ async def _pass_doc_through_analysis(doc_id, text, student_id):
     for lt_out in lt_output:
         lt_out['text'] = text
         lt_key = sa_helpers.make_key(
-            writing_observer.writing_analysis.lt_process,
+            writing_observer.writing_analysis.languagetool_process,
             {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
             sa_helpers.KeyStateType.INTERNAL
         )

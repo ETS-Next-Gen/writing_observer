@@ -140,16 +140,15 @@ async def event_count(event, internal_state):
 
 
 @kvs_pipeline(scope=gdoc_scope, null_state={})
-async def awe_components(event, internal_state):
-    '''
-    An example of a per-document pipeline
+async def nlp_components(event, internal_state):
+    '''HACK the reducers need this method to query data
     '''
     return False, False
 
+
 @kvs_pipeline(scope=gdoc_scope, null_state={})
-async def lt_process(event, internal_state):
-    '''
-    An example of a per-document pipeline
+async def languagetool_process(event, internal_state):
+    '''HACK the reducers need this method to query data
     '''
     return False, False
 
