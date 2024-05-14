@@ -22,7 +22,7 @@ pmss.register_field(
     type=pmss.pmsstypes.TYPES.integer,
     description="This determines the amount of time to wait (in seconds) between "\
         "processing a document's text in the separate document processor script.",
-    default=300
+    default=90
 )
 
 '''
@@ -217,10 +217,10 @@ async def process_document(doc_id):
     google_auth = await _fetch_teacher_credentials(student_id)
     doc_text = await _fetch_doc_text_from_google(doc_id, google_auth)
     if doc_text is None or len(doc_text) == 0:
-        # TODO try to fetch the reconstruction text instead.
         doc_text = await _fetch_doc_text_from_reconstruct(doc_id, student_id)
-        failed_fetch.add(doc_id)
-        return False
+        if doc_text is None or len(doc_text) == 0:
+            failed_fetch.add(doc_id)
+            return False
     await _pass_doc_through_analysis(doc_id, doc_text, student_id)
     return True
 
