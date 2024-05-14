@@ -226,7 +226,7 @@ def delete(doc, ty, si, ei):
     * `si` is the index of the start of deletion
     * `ei` is the end
     '''
-    #Index of the last character in the text. `si` and `ei` shouldn't go beyond that
+    # Index of the last character in the text. `si` and `ei` shouldn't go beyond that
     lastchar_index = len(doc._text)
     # If the deletion indexes are greater than nextchar_index, insert placeholders to fill the gap
     # This occurs when the document has undergone modifications before the logger has been initialized
