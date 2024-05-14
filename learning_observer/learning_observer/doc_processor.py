@@ -215,10 +215,10 @@ async def process_document(doc_id):
     print('* Starting to process document:', doc_id)
     student_id = await _determine_student(doc_id)
     google_auth = await _fetch_teacher_credentials(student_id)
-    doc_text = await _fetch_document_text(doc_id, google_auth)
+    doc_text = await _fetch_doc_text_from_google(doc_id, google_auth)
     if doc_text is None or len(doc_text) == 0:
-        print('  unable to fetch doc')
         # TODO try to fetch the reconstruction text instead.
+        doc_text = await _fetch_doc_text_from_reconstruct(doc_id, student_id)
         failed_fetch.add(doc_id)
         return False
     await _pass_doc_through_analysis(doc_id, doc_text, student_id)
@@ -258,7 +258,19 @@ async def _fetch_teacher_credentials(student):
     return creds
 
 
-async def _fetch_document_text(doc_id, creds):
+async def _fetch_doc_text_from_reconstruct(doc_id, student_id):
+    '''Fetch the document text from the reconstruct reducer
+    '''
+    key = sa_helpers.make_key(
+        writing_observer.writing_analysis.reconstruct,
+        {sa_helpers.EventField('doc_id'): doc_id, sa_helpers.KeyField.STUDENT: student_id},
+        sa_helpers.KeyStateType.INTERNAL
+    )
+    reconstruct = await KVS[key]
+    return reconstruct['text']
+
+
+async def _fetch_doc_text_from_google(doc_id, creds):
     '''Fetch the document text from the appropriate
     Google endpoint.
     '''
