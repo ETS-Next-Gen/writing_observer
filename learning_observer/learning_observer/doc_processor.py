@@ -40,7 +40,7 @@ pmss.register_field(
     type=pmss.pmsstypes.TYPES.integer,
     description="This determines the number of semaphores to use when processing "\
         "documents. The default, 0, means we will pass all items to the running "\
-        "job loop to run. Using a value > 0 will limit the number of jobs we attempt "
+        "job loop to run. Using a value > 0 will limit the number of jobs we attempt "\
         "to process at once.",
     default=0
 )
@@ -87,7 +87,7 @@ async def check_recent_mod_and_not_recent_process(doc_id):
     processing and check whether it is past a specified cutoff
     time (5 minutes).
     '''
-    cutoff = learning_observer.settings.module_setting('writing_observer', 'document_processing_delay_seconds')
+    cutoff = learning_observer.settings.pmss_settings.document_processing_delay_seconds(types=['modules', 'writing_observer'])
     student_id = await _determine_student(doc_id)
 
     doc_info = await _fetch_document_process_data(doc_id, student_id)
@@ -200,7 +200,7 @@ async def process_documents_with_wait():
     Setting the `writing_observer.document_processing_semaphore_process_count`
     setting will set the max number of docs we process at once.
     '''
-    max_concurrent_tasks = learning_observer.settings.module_setting('writing_observer', 'document_processing_semaphore_process_count')
+    max_concurrent_tasks = learning_observer.settings.pmss_settings.document_processing_semaphore_process_count(types=['modules', 'writing_observer'])
     func_wrapper = lambda func: func
     if max_concurrent_tasks > 0:
         semaphore = asyncio.Semaphore(max_concurrent_tasks)
