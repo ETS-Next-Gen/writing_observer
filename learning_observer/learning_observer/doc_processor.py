@@ -35,6 +35,16 @@ pmss.register_field(
     default=90
 )
 
+pmss.register_field(
+    name='document_processing_semaphore_process_count',
+    type=pmss.pmsstypes.TYPES.integer,
+    description="This determines the number of semaphores to use when processing "\
+        "documents. The default, 0, means we will pass all items to the running "\
+        "job loop to run. Using a value > 0 will limit the number of jobs we attempt "
+        "to process at once.",
+    default=0
+)
+
 '''
 TODO add in desired rules.
 Each rule should be a function that accepts
@@ -77,17 +87,21 @@ async def check_recent_mod_and_not_recent_process(doc_id):
     processing and check whether it is past a specified cutoff
     time (5 minutes).
     '''
-    cutoff = learning_observer.settings.pmss_settings.document_processing_delay_seconds()
+    cutoff = learning_observer.settings.module_setting('writing_observer', 'document_processing_delay_seconds')
     student_id = await _determine_student(doc_id)
 
     doc_info = await _fetch_document_process_data(doc_id, student_id)
-    if doc_info is None: return True
 
     doc_metadata = await _fetch_document_metadata(doc_id, student_id)
+    if doc_metadata is None:
+        return False
 
-    last_mod = doc_metadata['saved_ts']
-    last_processed = doc_info['last_processed']
     now = learning_observer.util.get_seconds_since_epoch()
+    last_mod = doc_metadata['saved_ts']
+
+    if doc_info is None: return True
+
+    last_processed = doc_info['last_processed']
     recently_modified = last_mod > last_processed
     recently_processed = now - cutoff < last_processed
     if recently_modified and not recently_processed: return True
@@ -182,8 +196,22 @@ async def delay_fetch_all_docs(delay=20):
 async def process_documents_with_wait():
     '''Continually fetch docs and process them as they are
     available.
+
+    Setting the `writing_observer.document_processing_semaphore_process_count`
+    setting will set the max number of docs we process at once.
     '''
-    pending = [asyncio.create_task(fetch_all_docs(), name='fetch')]
+    max_concurrent_tasks = learning_observer.settings.module_setting('writing_observer', 'document_processing_semaphore_process_count')
+    func_wrapper = lambda func: func
+    if max_concurrent_tasks > 0:
+        semaphore = asyncio.Semaphore(max_concurrent_tasks)
+        async def limited_func(func):
+            async with semaphore:
+                return await func
+        func_wrapper = limited_func
+    def create_task(func, name):
+        return asyncio.create_task(func_wrapper(func), name=name)
+
+    pending = [create_task(fetch_all_docs(), name='fetch')]
     while pending:
         done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
         d = done.pop()
@@ -191,8 +219,8 @@ async def process_documents_with_wait():
             doc_ids = d.result()
             for doc_id in doc_ids:
                 if doc_id not in failed_fetch:
-                    pending.add(asyncio.create_task(process_document(doc_id), name=doc_id))
-            pending.add(asyncio.create_task(delay_fetch_all_docs(), name='fetch'))
+                    pending.add(create_task(process_document(doc_id), name=doc_id))
+            pending.add(create_task(delay_fetch_all_docs(), name='fetch'))
 
 
 async def process_documents_with_gather():
@@ -223,9 +251,12 @@ async def process_document(doc_id):
     if not await check_rules(RULES, doc_id):
         return False
     print('* Starting to process document:', doc_id)
+    doc_text = None
     student_id = await _determine_student(doc_id)
     google_auth = await _fetch_teacher_credentials(student_id)
-    doc_text = await _fetch_doc_text_from_google(doc_id, google_auth)
+    # TODO this could be cleaned up
+    if google_auth is not None:
+        doc_text = await _fetch_doc_text_from_google(doc_id, google_auth)
     if doc_text is None or len(doc_text) == 0:
         doc_text = await _fetch_doc_text_from_reconstruct(doc_id, student_id)
         if doc_text is None or len(doc_text) == 0:
@@ -259,6 +290,7 @@ async def _fetch_teacher_credentials(student):
             matching_teachers.append(roster['teacher_id'])
 
     # TODO handle multiple teachers
+    if len(matching_teachers) == 0: return None
     teacher = matching_teachers[0]
     auth_key = sa_helpers.make_key(
         learning_observer.auth.utils.google_stored_auth,
