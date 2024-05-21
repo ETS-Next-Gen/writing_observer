@@ -59,9 +59,12 @@ if NEW:
 else:
     gdoc_scope = student_scope  # HACK for backwards-compatibility
 
-
+import asyncio
+import random
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.activity_map')
-def determine_activity_status(last_ts):
+# TODO remove this async, we are just using it for testing the MAP right now.
+async def determine_activity_status(last_ts):
+    await asyncio.sleep(random.randint(1, 15))
     status = 'active' if time.time() - last_ts < ACTIVE_THRESHOLD else 'inactive'
     return {'status': status}
 

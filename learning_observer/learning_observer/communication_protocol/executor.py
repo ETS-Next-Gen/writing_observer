@@ -232,12 +232,22 @@ def exception_wrapper(func):
     return exception_catcher
 
 
-async def map_coroutine_serial(func, values, value_path):
-    """
-    We call map for coroutine functions operating in serial.
+def map_coroutine_serial(func, values, value_path):
+    '''
+    Call map for asynchronous functions to start them all immediately
+    and yield their results as they become available.
     See the `handle_map` function for more details regarding parameters.
-    """
-    return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
+
+    Returns a generator of awaitable tasks as they are ready
+    '''
+    tasks = []
+    for value in values:
+        nested_val = get_nested_dict_value(value, value_path)
+        async def _update_overall(func, func_val, val):
+            result = await func(func_val)
+            return _annotate_map_result(result, func, val, value_path)
+        tasks.append(asyncio.create_task(_update_overall(func, nested_val, value), name=nested_val))
+    return asyncio.as_completed(tasks)
 
 
 async def map_coroutine_parallel(func, values, value_path):
@@ -277,6 +287,30 @@ def map_serial(func, values, value_path):
             output = e.to_dict()
         outputs.append(output)
     return outputs
+
+def _annotate_map_result(res, func, value, value_path):
+    provenance = {
+        'function': func,
+        'value': value,
+        'value_path': value_path
+    }
+    if isinstance(res, dict):
+        out = res
+    elif isinstance(res, Exception):
+        error_provenance = provenance.copy()
+        error_provenance['error'] = str(res)
+        out = DAGExecutionException(
+            f'Function {function} did not execute properly during map.',
+            inspect.currentframe().f_code.co_name,
+            error_provenance,
+            res.__traceback__
+        ).to_dict()
+    else:
+        out = {'output': res}
+    out['provenance'] = provenance
+    # TODO pull this from somewhere. Where should we define scope?
+    out['scopes'] = [get_nested_dict_value(value, 'provenance.provenance.STUDENT.value.user_id')]
+    return out
 
 
 def annotate_map_metadata(function, results, values, value_path, func_kwargs):
@@ -371,12 +405,16 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
         # wrap sync functions to return errors similar to asyncio.gather
         func_with_kwargs = exception_wrapper(func_with_kwargs)
 
+    # TODO discuss and do something with before merging
+    # we ought to annotate the metadata as the functions run
+    # instead of all together at the end. This will allow us to
+    # yield results as they are available.
+    # Right now only `map_coroutine_serial` has this built in.
     results = map_function(func_with_kwargs, values, value_path)
     if inspect.isawaitable(results):
         results = await results
-
-    output = annotate_map_metadata(function_name, results, values, value_path, func_kwargs)
-    return output
+    # output = annotate_map_metadata(function_name, results, values, value_path, func_kwargs)
+    return results
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
@@ -680,6 +718,11 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         visited.add(node_name)
         return nodes[node_name]
 
+    # TODO discuss and do something with before merging. How should `clean_json`
+    # process a generator? Using str(generator) makes sense for `clean_json`;
+    # however, we still need to drive the generator. Instead, we could call
+    # `clean_json` after driving the generator and getting the results.
+    return {e: await visit(e) for e in target_nodes}
     # Include execution history in output if operating in development settings
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
         return {e: clean_json(await visit(e)) for e in target_nodes}

@@ -13,6 +13,7 @@ import pmss
 import queue
 import time
 import types
+import traceback
 
 import aiohttp
 
@@ -511,6 +512,7 @@ async def execute_queries(client_data, request):
         runtime = learning_observer.runtime.Runtime(request)
         client_parameters['runtime'] = runtime
         query_func = query_func(**client_parameters)
+        return await query_func
         funcs.append(query_func)
     return await asyncio.gather(*funcs, return_exceptions=False)
 
@@ -569,13 +571,14 @@ class JobTypes(str, enum.Enum):
     RECEIVE_PARAMS_FROM_CLIENT = 'RECEIVE_PARAMS_FROM_CLIENT'
     SCHEDULE_QUERY_EXECUTION = 'SCHEDULE_QUERY_EXECUTION'
     EXECUTE_QUERY = 'EXECUTE_QUERY'
-    FETCH_NEXT_EXECUTION_RESULT = 'FETCH_NEXT_EXECUTION_RESULT'
     SEND_TO_USER = 'SEND_TO_USER'
 
     def __str__(self) -> str:
         return self.value
 
 
+# TODO pull this from settings
+# TODO do a once over for other variables that should be pulled from settings instead.
 SCHEDULE_NEXT_EXECUTION_TIMEOUT = 30
 
 
@@ -600,15 +603,14 @@ async def websocket_dashboard_handler(request):
     |   pararmeters      |----+
     | - fire again in    |            +-----------------------+
     |   20 seconds       |----------> | Execute Query         |
-    +--------------------+            | - Process DAG request |
-                                      | - If Generator        |
-    +-> +------------------+ <--------|     Add next to jobs  |
-    |   | Generator Output |          | - else                |
-    +---| - Add next item  |          |     Send to user      |
-        | - Send to user   |          +-----------------------+
-        +------------------+
+    +--------------------+      +---> | - Process DAG request |
+                                |     | - If Generator        |
+                                + <---|     Add next to jobs  |
+                                      | - else                |
+                                      |     Send to user      |
+                                      +-----------------------+
     '''
-    ws = aiohttp.web.WebSocketResponse(receive_timeout=0.3)
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=3)
     await ws.prepare(request)
 
     query_parameters = None
@@ -623,14 +625,14 @@ async def websocket_dashboard_handler(request):
         previous_parameters = query_parameters
         return True
 
-    async def _schedule_next_query():
+    async def _schedule_next_query(timeout=SCHEDULE_NEXT_EXECUTION_TIMEOUT):
         '''Schedule next execution for when our parameters change OR
         after a timeout occurs.
         '''
         tasks = [
             asyncio.create_task(_check_for_diff_params())
         ]
-        _, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=SCHEDULE_NEXT_EXECUTION_TIMEOUT)
+        _, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
         return True
 
     # Initialize the job loop with our call to
@@ -646,15 +648,14 @@ async def websocket_dashboard_handler(request):
         TODO call the execution dags query here
         and remmove the `gen_example` method
         '''
-        async def gen_example(total):
-            x = [0 for i in range(total)]
-            for i in range(total):
-                await asyncio.sleep(1)
-                x[i] = i*i
-                yield x
-        return gen_example(5)
+        result = await execute_queries(q_params, request)
+        return result
 
-    async def _send(data):
+    _overall_send = {
+        'last_updated': None,
+        'data': {}
+    }
+    async def _send(data, key):
         '''Send data back to the client
 
         TODO its not likely that we'll be passing all the data
@@ -662,18 +663,22 @@ async def websocket_dashboard_handler(request):
         queries running at once. They should each return on a
         key tied to their results.
         '''
-        data_w_metadata = {
-            'last_updated': util.get_seconds_since_epoch(),
-            'data': data
-        }
-        return await ws.send_json(data_w_metadata)
+        nonlocal _overall_send
+        _overall_send['last_updated'] = util.timestamp()
+        if key not in _overall_send['data']:
+            _overall_send['data'][key] = {}
 
-    async def _next(generator):
-        '''Fetch the next item in the generator. We include
-        the generator so a new job can process the next
-        item on available.
-        '''
-        return await anext(generator), generator
+        # TODO define scopes further and replace this implementation.
+        # What levels are there to the data we are returning? This
+        # allows us to insert data into the overall dictionary with
+        # a map.
+        scopes = data.pop('scopes', [])
+        util.set_nested_dictionary_item(_overall_send['data'][key], scopes, util.clean_json(data))
+
+        # TODO batch the send so we dont update every single time
+        # there is an updated node, but rather all nodes every X
+        # amount of time.
+        return await ws.send_json(_overall_send)
 
     async def _process_receive_params_from_client(d):
         '''Process results of receiving data from a client
@@ -704,29 +709,19 @@ async def websocket_dashboard_handler(request):
             result = d.result()
         except Exception as e:
             # TODO what should we do here?
-            print('exception', e)
-        if isinstance(result, types.AsyncGeneratorType):
-            pending.add(asyncio.create_task(_next(result), name=JobTypes.FETCH_NEXT_EXECUTION_RESULT))
-        else:
-            pending.add(asyncio.create_task(_send(result), name=JobTypes.SEND_TO_USER))
-
-    async def _process_generator_result(d):
-        '''Send the current generator result to the client and
-        start processing the next item available. If we encounter
-        the end of the generator, we stop.
-
-        TODO we may want to stop generators from proceeding if the
-        parameters were updating mid-returning. This creates an
-        interesting BUG where an update in parameters will be returning
-        2 different objects to the user.
-        '''
-        try:
-            result = d.result()
-        except StopAsyncIteration:
-            return
-        # NOTE result = (data_from_current, remaining_generator)
-        pending.add(asyncio.create_task(_next(result[1]), name=JobTypes.FETCH_NEXT_EXECUTION_RESULT))
-        pending.add(asyncio.create_task(_send(result[0]), name=JobTypes.SEND_TO_USER))
+            raise e
+        # A single execcution dag can output to multiple things.
+        # The dags will return a dictionary of desired targets and
+        # their outputs. We wrap generator functions to return
+        # in the same format.
+        for k, v in result.items():
+            if isinstance(v, types.GeneratorType):
+                async def _wrap_gen_func(func):
+                    return {k: await func}
+                for gen in v:
+                    pending.add(asyncio.create_task(_wrap_gen_func(gen), name=JobTypes.EXECUTE_QUERY))
+            else:
+                pending.add(asyncio.create_task(_send(v, k), name=JobTypes.SEND_TO_USER))
 
     async def _process_send_to_user(d):
         '''We don't need to do anything after sending information
@@ -738,7 +733,6 @@ async def websocket_dashboard_handler(request):
         JobTypes.RECEIVE_PARAMS_FROM_CLIENT: _process_receive_params_from_client,
         JobTypes.SCHEDULE_QUERY_EXECUTION: _process_query_scheduling_ready,
         JobTypes.EXECUTE_QUERY: _process_execution_result,
-        JobTypes.FETCH_NEXT_EXECUTION_RESULT: _process_generator_result,
         JobTypes.SEND_TO_USER: _process_send_to_user
     }
 
@@ -751,6 +745,8 @@ async def websocket_dashboard_handler(request):
         except Exception as e:
             # TODO remove this - currently used for quick debugging.
             print('ERROR::', type(e), e)
+            traceback.print_exc()
+            raise e
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use
