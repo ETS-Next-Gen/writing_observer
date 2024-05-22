@@ -25,6 +25,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 Eventually, this should be broken out into its own module.
 """
 
+import asyncio
 import yarl
 
 import aiohttp
@@ -42,8 +43,10 @@ import learning_observer.constants as constants
 import learning_observer.exceptions
 import learning_observer.google
 import learning_observer.kvs
+import learning_observer.rosters
 import learning_observer.runtime
 import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.util
 
 import pmss
 # TODO the hostname setting currently expect the port
@@ -126,7 +129,7 @@ async def social_handler(request):
     if user['authorized']:
         url = user['back_to'] or "/"
         # TODO add flag to settings to trigger this or not
-        await _store_teacher_info_for_background_process(user['user_id'], request)
+        asyncio.create_task(_store_teacher_info_for_background_process(user['user_id'], request))
     else:
         url = "/"
 
@@ -140,24 +143,49 @@ async def _store_teacher_info_for_background_process(id, request):
     later fetch documents in our separate process.
     '''
     kvs = learning_observer.kvs.KVS()
+    runtime = learning_observer.runtime.Runtime(request)
+    courses = await learning_observer.rosters.courselist(request)
+    skipped_docs = set()
+
     # store teacher auth info
     auth_key = sa_helpers.make_key(
         learning_observer.auth.utils.google_stored_auth,
         {sa_helpers.KeyField.TEACHER: id},
         sa_helpers.KeyStateType.INTERNAL)
     await kvs.set(auth_key, request[constants.AUTH_HEADERS])
+    current_keys = await kvs.keys()
 
-    # store teacher roster info
-    runtime = learning_observer.runtime.Runtime(request)
-    courses = await learning_observer.google.courses(runtime)
+    async def _fetch_and_store_document(student, doc_id):
+        doc = await learning_observer.google.doctext(runtime, documentId=doc_id)
+        if 'text' not in doc:
+            skipped_docs.add(doc_id)
+            return
+        doc_key = sa_helpers.make_key(
+            _fetch_and_store_document,
+            {sa_helpers.KeyField.STUDENT: student, sa_helpers.EventField('doc_id'): doc_id},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(doc_key, doc)
+
+    async def _process_student_documents(student):
+        print('** Processing student', student)
+        student_docs = (k for k in current_keys if student in k and 'EventField.doc_id' in k)
+        specifier = 'EventField.doc_id:'
+        student_docs = (k[k.find(specifier) + len(specifier):k.find(',', k.find(specifier))] for k in student_docs)
+        student_docs = set(student_docs)
+        for doc_id in student_docs:
+            await _fetch_and_store_document(student, doc_id)
+
     for course in courses:
-        roster = await learning_observer.google.roster(runtime, courseId=course['id'])
+        roster = await learning_observer.rosters.courseroster(request, course_id=course['id'])
         students = [s['user_id'] for s in roster]
         roster_key = sa_helpers.make_key(
             learning_observer.google.roster,
             {sa_helpers.KeyField.TEACHER: id, sa_helpers.KeyField.CLASS: course['id']},
             sa_helpers.KeyStateType.INTERNAL)
         await kvs.set(roster_key, {'teacher_id': id, 'students': students})
+        for student in students:
+            await _process_student_documents(student)
+    # TODO saved skipped doc ids somewhere?
 
 
 async def _google(request):
