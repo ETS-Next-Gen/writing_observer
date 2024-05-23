@@ -1,5 +1,4 @@
 import aiohttp
-import ollama
 import os
 
 import learning_observer.communication_protocol.integration
@@ -71,6 +70,11 @@ class OpenAIGPT(GPTAPI):
 
 
 class OllamaGPT(GPTAPI):
+    '''GPT responder for handling request to the Ollama API
+    TODO this ought to just use requests instead of the specific ollama package
+    the format *should* be the same as the OpenAI responder. This will be one
+    less external module to rely on.
+    '''
     def __init__(self, **kwargs):
         '''
         kwargs
@@ -83,8 +87,8 @@ class OllamaGPT(GPTAPI):
         # the Ollama client checks for the `OLLAMA_HOST` env variable
         # or defaults to `localhost:11434`. We provide a warning when
         # a specific host is not found.
-        ollama_host = kwargs.get('host', os.getenv('OLLAMA_HOST', None))
-        if ollama_host is None:
+        self.ollama_host = kwargs.get('host', os.getenv('OLLAMA_HOST', None))
+        if self.ollama_host is None:
             debug_log('WARNING:: Ollama host not specified. Defaulting to '\
                       '`localhost:11434`.\nTo set a specific host, set '\
                       '`modules.writing_observer.gpt_responders.ollama.host` '\
@@ -94,19 +98,26 @@ class OllamaGPT(GPTAPI):
                       'run the following commands:\n'\
                       '```bash\ncurl https://ollama.ai/install.sh | sh\n'\
                       'ollama run <desired_model>\n```')
-        self.client = ollama.AsyncClient(base_url=ollama_host)
+            self.ollama_host = 'http://localhost:11434'
 
     async def chat_completion(self, prompt, system_prompt):
+        '''Ollama only returns a single item compared to GPT returning a list
+        '''
+        url = f'{self.ollama_host}/api/chat'
         messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': prompt}
         ]
-        try:
-            response = await self.client.chat(model=self.model, messages=messages)
-            return response['message']['content']
-        except (ollama.ResponseError, ollama.RequestError) as e:
-            exception_text = f'Error during ollama chat completion:\n{e}'
-            raise GPTRequestErorr(exception_text)
+        content = {'model': self.model, 'messages': messages, 'stream': False}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=content) as resp:
+                json_resp = await resp.json(content_type=None)
+                if resp.status == 200:
+                    return json_resp['message']['content']
+                error = 'Error occured while making Ollama request'
+                if 'error' in json_resp:
+                    error += f"\n{json_resp['error']['message']}"
+                raise GPTRequestErorr(error)
 
 
 GPT_RESPONDERS = {
@@ -123,7 +134,10 @@ def initialize_gpt_responder():
     try the next one.
     '''
     global gpt_responder
-    responders = learning_observer.settings.module_setting('writing_observer', 'gpt_responders', {})
+    # TODO change this to use settings.module_settings() instead
+    # that method now uses pmss which doesn't support lists and
+    # dictionaries yet.
+    responders = learning_observer.settings.settings['modules']['writing_observer'].get('gpt_responders', {})
     exceptions = []
     for key in responders:
         if key not in GPT_RESPONDERS:
@@ -140,9 +154,13 @@ def initialize_gpt_responder():
             exceptions.append(e)
             debug_log(f'WARNING:: Unable to initialize GPT responder `{key}:`.\n{e}')
             gpt_responder = None
+    no_responders = 'No GPT responders found in `creds.yaml`. To add a responder, add either'\
+        '`openai` or `ollama` along with any subsettings to `modules.writing_observer.gpt_responders`.\n'\
+        'Example:\n```\ngpt_responders:\n  ollama:\n    model: llama2\n```'
+    exception_strings = '\n'.join(str(e) for e in exceptions) if len(exceptions) > 0 else no_responders
     exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
-        '\n'.join(str(e) for e in exceptions)
-    raise learning_observer.prestartup.StartupCheck(exception_text)
+        f'{exception_strings}'
+    raise learning_observer.prestartup.StartupCheck("GPT: " + exception_text)
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')

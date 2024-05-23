@@ -228,13 +228,22 @@ def add_reducer(reducer, string_id=None):
     '''
     We add a reducer. In actual operation, this should only happen once, on
     module load. We'd like to be able to dynamic load and reload reducers in
-    interactive programming, so we offer the optnio of a `string_id`
+    interactive programming, so we offer the option of a `string_id`
     '''
     global REDUCERS
+    # TODO this is filtering the reducers on a specific string_id.
+    # we ought to look for the matching reducer and replace it if it exists.
     if string_id is not None:
         REDUCERS = [r for r in REDUCERS if r.get("string_id", None) != string_id]
     REDUCERS.append(reducer)
     return REDUCERS
+
+
+def remove_reducer(reducer_id):
+    '''Remove a reducer from the available reducers
+    '''
+    global REDUCERS
+    REDUCERS = [r for r in REDUCERS if r['id'] != reducer_id]
 
 
 def load_reducers(component_name, module):

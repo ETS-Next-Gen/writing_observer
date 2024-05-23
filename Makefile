@@ -1,6 +1,7 @@
 PACKAGES ?= wo,awe
 
 run:
+	# If you haven't done so yet, run: make install
 	# we need to make sure we are on the virtual env when we do this
 	cd learning_observer && python learning_observer
 

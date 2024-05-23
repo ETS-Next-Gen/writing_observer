@@ -129,6 +129,8 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     request = runtime.get_request()
     url = target_url.format(**kwargs)
     user = await learning_observer.auth.get_active_user(request)
+    if constants.AUTH_HEADERS not in request:
+        raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
 
     cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user[constants.USER_ID]) + '/' + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
@@ -139,8 +141,6 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
                 GOOGLE_TO_SNAKE
             )
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
-        if constants.AUTH_HEADERS not in request:
-            raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
         async with client.get(url, headers=request[constants.AUTH_HEADERS]) as resp:
             response = await resp.json()
             learning_observer.log_event.log_ajax(target_url, response, request)
@@ -192,7 +192,7 @@ def connect_to_google_cache():
                     '```\ngoogle_cache:\n  type: filesystem\n  path: ./learning_observer/static_data/google\n'\
                     '  subdirs: true\n```\nOR\n'\
                     '```\ngoogle_cache:\n  type: redis_ephemeral\n  expiry: 600\n```'
-                raise learning_observer.prestartup.StartupCheck(error_text) 
+                raise learning_observer.prestartup.StartupCheck("Google KVS: " + error_text) 
 
 
 def initialize_and_register_routes(app):

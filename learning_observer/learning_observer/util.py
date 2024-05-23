@@ -17,6 +17,7 @@ import math
 import numbers
 import re
 import socket
+import uuid
 from dateutil import parser
 
 import learning_observer
@@ -228,6 +229,17 @@ def timeparse(timestamp):
 
     """
     return parser.isoparse(timestamp)
+
+
+count = 0
+
+
+def generate_unique_token():
+    '''Update the system counter and return a new unique token.
+    '''
+    global count
+    count = count + 1
+    return f'{count}-{timestamp()}-{str(uuid.uuid4())}'
 
 
 # And a test case

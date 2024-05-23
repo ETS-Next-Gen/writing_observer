@@ -254,9 +254,10 @@ def register_auth_webapp_views(app):
                 fn=settings.settings['auth']['password_file']
             ))
             print("Typically:")
-            print("python util/lo_passwd.py "
+            print("{python_src} learning_observer/util/lo_passwd.py "
                   "--username {username} --password {password} "
-                  "--filename {fn}".format(
+                  "--filename learning_obsserver/{fn}".format(
+                      python_src=paths.PYTHON_EXECUTABLE,
                       username=getpass.getuser(),
                       password=secrets.token_urlsafe(16),
                       fn=settings.settings['auth']['password_file']
@@ -389,7 +390,6 @@ def register_repo_routes(app, repos):
         giturl = r'/static/repos/' + gitrepo['module'] + '/' + reponame + '/{branch:[^{}/]+}/{filename:[^{}]+}'
 
         debug_log(f"Module {reponame} is hosting {gitrepo} at {giturl}")
-        debug_log(f"""For testing: python learning_observer/jupyter.py "{reponame};{gitrepo['url']};{gitrepo['prefix']};False;True" """)
 
         # If the working tree is set in the repo, we can serve from the working tree
         # This can be overridden by the settings file, in either direction

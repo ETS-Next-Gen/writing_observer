@@ -181,6 +181,16 @@ class _RedisKVS(_KVS):
         await self.connect()
         return await learning_observer.redis_connection.keys()
 
+    async def remove(self, key):
+        '''
+        Remove item from the KVS.
+
+        HACK python didn't like `await del kvs[key]`, so I created this
+        method to use in the meantime. More thought should be put into this
+        '''
+        await self.connect()
+        return await learning_observer.redis_connection.delete(key)
+
 
 class EphemeralRedisKVS(_RedisKVS):
     '''

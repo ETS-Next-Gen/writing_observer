@@ -27,6 +27,7 @@ import warnings
 
 import writing_observer.nlp_indicators
 import learning_observer.kvs
+import learning_observer.paths
 import learning_observer.util
 
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
@@ -43,7 +44,7 @@ def init_nlp():
     except OSError as e:
         error_text = 'There was an issue loading `en_core_web_lg` from spacy. '\
                      '`awe_components` requires various models to operate properly. '\
-                     'Run `python awe_components/setup/data.py` to install all '\
+                     f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} awe_components/setup/data.py` to install all '\
                      'of the necessary models.'
         raise OSError(error_text) from e
 

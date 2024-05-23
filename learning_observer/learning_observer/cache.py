@@ -23,7 +23,7 @@ def connect_to_memoization_kvs():
             'key in `creds.yaml`.\n'\
             '```\nmemoization:\n  type: stub\n```\nOR\n'\
             '```\nmemoization:\n  type: redis_ephemeral\n  expiry: 60\n```'
-        raise learning_observer.prestartup.StartupCheck(error_text)
+        raise learning_observer.prestartup.StartupCheck("KVS: "+error_text)
 
 
 def async_memoization():

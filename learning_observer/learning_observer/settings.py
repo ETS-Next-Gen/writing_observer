@@ -19,6 +19,14 @@ import yaml
 
 import learning_observer.paths
 
+import pmss
+
+pmss_settings = pmss.init(
+    prog=__name__,
+    description="A system for monitoring",
+    epilog="For more information, see PMSS documentation.",
+    rulesets=[pmss.YAMLFileRuleset(filename=learning_observer.paths.config_file())]
+)
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
@@ -31,6 +39,15 @@ if not __name__.startswith("learning_observer."):
 args = None
 parser = None
 
+def str_to_bool(arg):
+    if isinstance(arg, bool):
+        return arg
+    if arg.lower() in ['true', '1']:
+        return True
+    if arg.lower() in ['false', '0']:
+        return False
+    raise argparse.ArgumentTypeError('Boolean like value expected.')
+
 
 def parse_and_validate_arguments():
     '''
@@ -38,6 +55,7 @@ def parse_and_validate_arguments():
     configuration file location.
     '''
     global args, parser
+    # TODO use PMSS instead of argparse to track these settings
     parser = argparse.ArgumentParser(
         description='The Learning Observer',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -53,10 +71,25 @@ def parse_and_validate_arguments():
         default=None)
 
     parser.add_argument(
-        '--console',
+        '--ipython-console',
         help='Instead of launching a web server, run a debug console.',
-        default=None,
         action='store_true')
+
+    parser.add_argument(
+        '--ipython-kernel',
+        help='Launch an `ipython` kernel',
+        default=False, action='store_true')
+
+    parser.add_argument(
+        '--ipython-kernel-connection-file',
+        help='Connection file passed into ipython-kernel. This is used by Juptyer Clients.',
+        type=str)
+    # TODO possibly include a --ipython-iopub-port param for monitoring purposes
+
+    parser.add_argument(
+        '--run-lo-application',
+        help='Launce the Learning Observer application. This can be used with `--ipython-console` and `--ipython-kernel`.',
+        default=True, nargs='?', const=True, type=str_to_bool)
 
     args = parser.parse_args()
 
@@ -77,11 +110,25 @@ def parse_and_validate_arguments():
     return args
 
 
+# TODO we ought to refactor how this enum is built
+# so the values are strings instead of integers
+#
 # DEV = Development, with full debugging
 # DEPLOY = Running on a server, with good performance
 # INTERACTIVE = Processing data offline
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY INTERACTIVE')
 RUN_MODE = None
+
+pmss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'], transform=None)
+pmss.register_field(
+    name='run_mode',
+    type='run_mode',
+    description="Set which mode the server is running in.\n"\
+                "`dev` for local development with full debugging\n"\
+                "`deploy` for running on a server with better performance\n"\
+                "`interactive` for processing data offline",
+    required=True
+)
 
 settings = None
 
@@ -121,11 +168,12 @@ def load_settings(config):
     # Development versus deployment. This is helpful for logging, verbose
     # output, etc.
     global RUN_MODE
-    if settings['config']['run_mode'] == 'dev':
+    settings_run_mode = pmss_settings.run_mode(types=['config'])
+    if settings_run_mode == 'dev':
         RUN_MODE = RUN_MODES.DEV
-    elif settings['config']['run_mode'] == 'deploy':
+    elif settings_run_mode == 'deploy':
         RUN_MODE = RUN_MODES.DEPLOY
-    elif settings['config']['run_mode'] == 'interactive':
+    elif settings_run_mode == 'interactive':
         RUN_MODE = RUN_MODES.INTERACTIVE
     else:
         raise ValueError("Configuration setting for run_mode must be either 'dev', 'deploy', or 'interactive'")
@@ -211,11 +259,4 @@ def module_setting(module_name, setting=None, default=None):
     Returns `default` if no setting (or `None` if not set)
     '''
     initialized()
-    module_settings = settings.get(
-        'modules', {}
-    ).get(module_name, None)
-    if setting is None:
-        return module_settings
-    if module_settings is not None:
-        return module_settings.get(setting, default)
-    return default
+    return getattr(pmss_settings, setting)(types=['modules', module_name])

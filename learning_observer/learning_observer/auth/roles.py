@@ -45,6 +45,6 @@ def validate_user_lists():
                 paths.data(USER_FILES[k])
             )
             raise learning_observer.prestartup.StartupCheck(
-                f"Created a blank {k} file: static_data/{USER_FILES[k]}\n"
+                f"Created a blank {k} file: {paths.data(USER_FILES[k])}\n"
                 f"Populate it with {k} accounts."
             )

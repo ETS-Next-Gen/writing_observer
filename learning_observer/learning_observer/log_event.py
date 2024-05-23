@@ -56,6 +56,7 @@ import json
 import hashlib
 import os
 import os.path
+import pmss
 
 import learning_observer.constants
 import learning_observer.filesystem_state
@@ -103,6 +104,16 @@ class LogLevel(Enum):
     EXTENDED = 'EXTENDED'
 
 
+pmss.parser('debug_log_level', parent='string', choices=[level.value for level in LogLevel], transform=None)
+pmss.register_field(
+    name='debug_log_level',
+    type='debug_log_level',
+    description='How much information do we want to log.\n'\
+                '`NONE`: do not print anything\n'\
+                '`SIMPLE`: print simple debug messages\n'\
+                '`EXTENDED`: print debug message with stack trace and timestamp'
+)
+
 class LogDestination(Enum):
     '''
     Where we log events? We can log to a file, or to the console.
@@ -142,7 +153,7 @@ def initialize_logging_framework():
     # In either case, we want to override from the settings file.
     if "logging" in settings.settings:
         if "debug_log_level" in settings.settings["logging"]:
-            DEBUG_LOG_LEVEL = LogLevel(settings.settings["logging"]["debug_log_level"])
+            DEBUG_LOG_LEVEL = LogLevel(settings.pmss_settings.debug_log_level(types=['logging']))
         if "debug_log_destinations" in settings.settings["logging"]:
             DEBUG_LOG_DESTINATIONS = list(map(LogDestination, settings.settings["logging"]["debug_log_destinations"]))
 
@@ -298,3 +309,10 @@ def log_ajax(url, resp_json, request):
     )
     with open(filename, "w") as ajax_log_fp:
         ajax_log_fp.write(encoded_payload)
+
+def close_logfile(filename):
+    # remove the file from the dict storing open log files and close it
+    old_file = files.pop(filename)
+    if old_file is None:
+        raise KeyError(f"Tried to remove log file {old_file} but it was not found")
+    old_file.close()

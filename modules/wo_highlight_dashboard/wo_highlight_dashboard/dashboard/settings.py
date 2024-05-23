@@ -278,7 +278,7 @@ panel = dbc.Card(
                 ),
             ],
             # make both items visible from the start
-            active_item=['item-0', 'item-2'],
+            active_item=['item-1', 'item-3'],
             always_open=True,  # keep accordionitems open when click on others
             flush=True,  # styles to take up width
             class_name='border-top'  # bootstrap border on top
