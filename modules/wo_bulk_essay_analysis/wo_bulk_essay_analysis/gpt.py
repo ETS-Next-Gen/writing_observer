@@ -1,5 +1,4 @@
 import aiohttp
-import ollama
 import os
 
 import learning_observer.communication_protocol.integration
@@ -88,8 +87,8 @@ class OllamaGPT(GPTAPI):
         # the Ollama client checks for the `OLLAMA_HOST` env variable
         # or defaults to `localhost:11434`. We provide a warning when
         # a specific host is not found.
-        ollama_host = kwargs.get('host', os.getenv('OLLAMA_HOST', None))
-        if ollama_host is None:
+        self.ollama_host = kwargs.get('host', os.getenv('OLLAMA_HOST', None))
+        if self.ollama_host is None:
             debug_log('WARNING:: Ollama host not specified. Defaulting to '\
                       '`localhost:11434`.\nTo set a specific host, set '\
                       '`modules.writing_observer.gpt_responders.ollama.host` '\
@@ -99,19 +98,26 @@ class OllamaGPT(GPTAPI):
                       'run the following commands:\n'\
                       '```bash\ncurl https://ollama.ai/install.sh | sh\n'\
                       'ollama run <desired_model>\n```')
-        self.client = ollama.AsyncClient(base_url=ollama_host) if ollama_host is not None else ollama.AsyncClient()
+            self.ollama_host = 'http://localhost:11434'
 
     async def chat_completion(self, prompt, system_prompt):
+        '''Ollama only returns a single item compared to GPT returning a list
+        '''
+        url = f'{self.ollama_host}/api/chat'
         messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': prompt}
         ]
-        try:
-            response = await self.client.chat(model=self.model, messages=messages)
-            return response['message']['content']
-        except (ollama.ResponseError, ollama.RequestError) as e:
-            exception_text = f'Error during ollama chat completion:\n{e}'
-            raise GPTRequestErorr(exception_text)
+        content = {'model': self.model, 'messages': messages, 'stream': False}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=content) as resp:
+                json_resp = await resp.json(content_type=None)
+                if resp.status == 200:
+                    return json_resp['message']['content']
+                error = 'Error occured while making Ollama request'
+                if 'error' in json_resp:
+                    error += f"\n{json_resp['error']['message']}"
+                raise GPTRequestErorr(error)
 
 
 GPT_RESPONDERS = {
