@@ -32,7 +32,6 @@ myst_parser
 names
 notebook
 numpy
-openai
 pandas
 pathvalidate
 pep8
