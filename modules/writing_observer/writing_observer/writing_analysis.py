@@ -7,8 +7,9 @@ It just routes to smaller pipelines. Currently that's:
 '''
 # Necessary for the wrapper code below.
 import datetime
-import time
+import pmss
 import re
+import time
 
 import writing_observer.reconstruct_doc
 
@@ -32,13 +33,28 @@ import learning_observer.util
 # (e.g. all the numbers would go up/down 20%, but behavior was
 # substantatively identical).
 
-# Should be 60-300 in prod. 5 seconds is nice for debugging
-TIME_ON_TASK_THRESHOLD = 5
-
-TIME_ON_TASK_BIN_SIZE = 600 # 10 minutes
-
-# Threshold in seconds to determine if a student is actively working
-ACTIVE_THRESHOLD = 60
+pmss.register_field(
+    name='time_on_task_threshold',
+    type=pmss.pmsstypes.TYPES.integer,
+    description='Maximum time to pass before marking a session as over. '\
+        'Should be 60-300 seconds in production, but 5 seconds is nice for '\
+        'debugging in a local deployment.',
+    default=60
+)
+pmss.register_field(
+    name='binned_time_on_task_bin_size',
+    type=pmss.pmsstypes.TYPES.integer,
+    description='How large (in seconds) to make timestamp bins when '\
+        'recording binned time on task.',
+    default=600
+)
+pmss.register_field(
+    name='activity_threshold',
+    type=pmss.pmsstypes.TYPES.integer,
+    description='How long to wait (in seconds) before marking a student '\
+        'as inactive.',
+    default=60
+)
 
 # Here's the basic deal:
 #
@@ -64,7 +80,7 @@ else:
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.activity_map')
 def determine_activity_status(last_ts):
-    status = 'active' if time.time() - last_ts < ACTIVE_THRESHOLD else 'inactive'
+    status = 'active' if time.time() - last_ts < learning_observer.settings.module_setting('writing_obersver', 'activity_threshold') else 'inactive'
     return {'status': status}
 
 
@@ -89,7 +105,7 @@ async def time_on_task(event, internal_state):
         last_ts = internal_state['saved_ts']
     if last_ts is not None:
         delta_t = min(
-            TIME_ON_TASK_THRESHOLD,               # Maximum time step
+            learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold'),  # Maximum time step
             internal_state['saved_ts'] - last_ts  # Time step
         )
         internal_state['total_time_on_task'] += delta_t
@@ -102,45 +118,47 @@ async def binned_time_on_task(event, internal_state):
     Similar to the `time_on_task` reducer defined above, except it
     bins the time spent.
     '''
+    bin_size = learning_observer.settings.module_setting('writing_obersver', 'binned_time_on_task_bin_size')
     if internal_state is None:
         internal_state = {
             'saved_ts': None,
             'binned_time_on_task': {},
             'current_bin': None
         }
-    last_ts = internal_state['saved_ts']
-    curr_bin = internal_state['current_bin']
+    last_timestamp = internal_state['saved_ts']
+    current_bin = internal_state['current_bin']
     internal_state['saved_ts'] = event['server']['time']
 
     # Initial conditions
-    if last_ts is None:
-        last_ts = internal_state['saved_ts']
-    if curr_bin is None:
-        curr_bin = int((last_ts // TIME_ON_TASK_BIN_SIZE) * TIME_ON_TASK_BIN_SIZE)
-    next_bin = curr_bin + TIME_ON_TASK_BIN_SIZE
+    if last_timestamp is None:
+        last_timestamp = internal_state['saved_ts']
+    if current_bin is None:
+        current_bin = int((last_timestamp // bin_size) * bin_size)
+    next_bin = current_bin + bin_size
     next_bin_str = str(next_bin)
-    if last_ts is not None:
-        delta_t = min(
-            TIME_ON_TASK_THRESHOLD,               # Maximum time step
-            internal_state['saved_ts'] - last_ts  # Time step
+    if last_timestamp is not None:
+        delta_time = min(
+            # Maximum time step vs time step
+            learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold'),  # Maximum time step
+            internal_state['saved_ts'] - last_timestamp  # Time step
         )
-        # handle defaulting curr_bin to 0
-        curr_bin_str = str(curr_bin)
-        if curr_bin_str not in internal_state['binned_time_on_task']:
-            internal_state['binned_time_on_task'][curr_bin_str] = 0
+        # handle defaulting current_bin to 0
+        current_bin_str = str(current_bin)
+        if current_bin_str not in internal_state['binned_time_on_task']:
+            internal_state['binned_time_on_task'][current_bin_str] = 0
 
         # handle time-on-task overflowing to the next bin
-        if last_ts + delta_t >= next_bin:
-            internal_state['binned_time_on_task'][curr_bin_str] += next_bin - last_ts
+        if last_timestamp + delta_time >= next_bin:
+            internal_state['binned_time_on_task'][current_bin_str] += next_bin - last_timestamp
             # handle defaulting next_bin to 0
             if next_bin_str not in internal_state['binned_time_on_task']:
                 internal_state['binned_time_on_task'][next_bin_str] = 0
-            internal_state['binned_time_on_task'][next_bin_str] += last_ts + delta_t - next_bin
+            internal_state['binned_time_on_task'][next_bin_str] += last_timestamp + delta_time - next_bin
         else:
-            internal_state['binned_time_on_task'][curr_bin_str] += delta_t
+            internal_state['binned_time_on_task'][current_bin_str] += delta_time
 
     # update our current bin with the current event's timestamp
-    internal_state['current_bin'] = int((internal_state['saved_ts'] // TIME_ON_TASK_BIN_SIZE) * TIME_ON_TASK_BIN_SIZE)
+    internal_state['current_bin'] = int((internal_state['saved_ts'] // bin_size) * bin_size)
     return internal_state, internal_state
 
 
