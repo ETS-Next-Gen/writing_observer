@@ -112,13 +112,52 @@ async def time_on_task(event, internal_state):
     return internal_state, internal_state
 
 
+def _get_time_delta(last_event_timestamp, current_event_timestamp):
+    return min(
+        learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold'),  # Maximum time step
+        last_event_timestamp - current_event_timestamp  # Time step
+    )
+
+
+def _get_time_bin(timestamp):
+    bin_size = learning_observer.settings.module_setting('writing_obersver', 'binned_time_on_task_bin_size')
+    b = (timestamp // bin_size) * bin_size
+    b = int(b)
+    return b
+
+
+def _update_binned_time_on_task(internal_state, current_bin, last_timestamp, delta_time):
+    '''Handle updating the internal state for binned time on task.
+    '''
+    next_bin = current_bin + learning_observer.settings.module_setting('writing_obersver', 'binned_time_on_task_bin_size')
+    next_bin_str = str(next_bin)
+
+    # default current_bin to 0 if it doesn't exist
+    current_bin_str = str(current_bin)
+    if current_bin_str not in internal_state['binned_time_on_task']:
+        internal_state['binned_time_on_task'][current_bin_str] = 0
+
+    # time-on-task overflows to the next bin
+    # first add a portion of the time to the current bin
+    # default the next bin to 0 if it doesn't exist
+    # add remaining time to next bin
+    if last_timestamp + delta_time >= next_bin:
+        internal_state['binned_time_on_task'][current_bin_str] += next_bin - last_timestamp
+        if next_bin_str not in internal_state['binned_time_on_task']:
+            internal_state['binned_time_on_task'][next_bin_str] = 0
+        internal_state['binned_time_on_task'][next_bin_str] += last_timestamp + delta_time - next_bin
+    # process normal within bin time on task update
+    else:
+        internal_state['binned_time_on_task'][current_bin_str] += delta_time
+
+
+
 @kvs_pipeline(scope=gdoc_scope)
 async def binned_time_on_task(event, internal_state):
     '''
     Similar to the `time_on_task` reducer defined above, except it
     bins the time spent.
     '''
-    bin_size = learning_observer.settings.module_setting('writing_obersver', 'binned_time_on_task_bin_size')
     if internal_state is None:
         internal_state = {
             'saved_ts': None,
@@ -129,36 +168,18 @@ async def binned_time_on_task(event, internal_state):
     current_bin = internal_state['current_bin']
     internal_state['saved_ts'] = event['server']['time']
 
-    # Initial conditions
+    # Initialization
     if last_timestamp is None:
         last_timestamp = internal_state['saved_ts']
     if current_bin is None:
-        current_bin = int((last_timestamp // bin_size) * bin_size)
-    next_bin = current_bin + bin_size
-    next_bin_str = str(next_bin)
-    if last_timestamp is not None:
-        delta_time = min(
-            # Maximum time step vs time step
-            learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold'),  # Maximum time step
-            internal_state['saved_ts'] - last_timestamp  # Time step
-        )
-        # handle defaulting current_bin to 0
-        current_bin_str = str(current_bin)
-        if current_bin_str not in internal_state['binned_time_on_task']:
-            internal_state['binned_time_on_task'][current_bin_str] = 0
+        current_bin = _get_time_bin(last_timestamp)
 
-        # handle time-on-task overflowing to the next bin
-        if last_timestamp + delta_time >= next_bin:
-            internal_state['binned_time_on_task'][current_bin_str] += next_bin - last_timestamp
-            # handle defaulting next_bin to 0
-            if next_bin_str not in internal_state['binned_time_on_task']:
-                internal_state['binned_time_on_task'][next_bin_str] = 0
-            internal_state['binned_time_on_task'][next_bin_str] += last_timestamp + delta_time - next_bin
-        else:
-            internal_state['binned_time_on_task'][current_bin_str] += delta_time
+    if last_timestamp is not None:
+        delta_time = _get_time_delta(internal_state['saved_ts'], last_timestamp)
+        _update_binned_time_on_task(internal_state, current_bin, last_timestamp, delta_time)
 
     # update our current bin with the current event's timestamp
-    internal_state['current_bin'] = int((internal_state['saved_ts'] // bin_size) * bin_size)
+    internal_state['current_bin'] = _get_time_bin(internal_state['saved_ts'])
     return internal_state, internal_state
 
 
