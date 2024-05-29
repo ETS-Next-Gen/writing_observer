@@ -76,6 +76,13 @@ pmss.register_field(
     description="The Google OAuth client secret",
     required=True
 )
+pmss.register_field(
+    name='fetch_additional_info_from_teacher_on_login',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Whether we should start an additional task that will '\
+        'fetch all text from current rosters.',
+    default=False
+)
 
 
 DEFAULT_GOOGLE_SCOPES = [
@@ -128,8 +135,8 @@ async def social_handler(request):
 
     if user['authorized']:
         url = user['back_to'] or "/"
-        # TODO add flag to settings to trigger this or not
-        asyncio.create_task(_store_teacher_info_for_background_process(user['user_id'], request))
+        if settings.pmss_settings.fetch_additional_info_from_teacher_on_login():
+            asyncio.create_task(_store_teacher_info_for_background_process(user['user_id'], request))
     else:
         url = "/"
 
@@ -141,6 +148,10 @@ async def _store_teacher_info_for_background_process(id, request):
     docs and then processes them. This function stores relevant
     teacher information (Google auth token + rosters) so we can
     later fetch documents in our separate process.
+
+    For each student within a roster, we attempt to fetch all
+    of their deocument texts via the Google API. These are
+    stored as reducer on the system.
     '''
     kvs = learning_observer.kvs.KVS()
     runtime = learning_observer.runtime.Runtime(request)
@@ -184,6 +195,8 @@ async def _store_teacher_info_for_background_process(id, request):
             sa_helpers.KeyStateType.INTERNAL)
         await kvs.set(roster_key, {'teacher_id': id, 'students': students})
         for student in students:
+            # we ought to fire these off as tasks instead of waiting on
+            # them before waiting for the next roster to process
             await _process_student_documents(student)
     # TODO saved skipped doc ids somewhere?
 
