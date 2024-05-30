@@ -151,6 +151,7 @@ async def _store_teacher_info_for_background_process(id, request):
     docs and then processes them. This function stores relevant
     teacher information (Google auth token + rosters) so we can
     later fetch and process documents in our separate process.
+    The token is removed with the `utils.py:logout()` method.
 
     2. For each student within a roster, we attempt to fetch all
     of their deocument texts via the Google API. These are
