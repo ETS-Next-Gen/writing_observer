@@ -116,7 +116,9 @@ async def logout(request):
     user = session.pop(constants.USER, None)
     session.pop(constants.AUTH_HEADERS, None)
 
-    # Remove auth header info from redis
+    # HACK some teacher information is stored when they
+    # are logged in to help with an alternative document
+    # processing script. This removes the information.
     kvs = learning_observer.kvs.KVS()
     remove_auth_key = sa_helpers.make_key(
         google_stored_auth,

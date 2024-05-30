@@ -144,14 +144,20 @@ async def social_handler(request):
 
 
 async def _store_teacher_info_for_background_process(id, request):
-    '''We want to have a background process that fetches Google
+    '''HACK this code stores 2 pieces of information when
+    teacher logs in with a social handlers.
+
+    1. We want to have a background process that fetches Google
     docs and then processes them. This function stores relevant
     teacher information (Google auth token + rosters) so we can
-    later fetch documents in our separate process.
+    later fetch and process documents in our separate process.
 
-    For each student within a roster, we attempt to fetch all
+    2. For each student within a roster, we attempt to fetch all
     of their deocument texts via the Google API. These are
     stored as reducer on the system.
+
+    TODO remove this function and references when new, better
+    workflows are established.
     '''
     kvs = learning_observer.kvs.KVS()
     runtime = learning_observer.runtime.Runtime(request)
