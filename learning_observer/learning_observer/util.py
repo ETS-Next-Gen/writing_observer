@@ -152,9 +152,18 @@ def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
             d = d
         else:
             if default == MissingType.Missing:
-                raise KeyError(f'Key `{key_str}` not found in {d}')
+                raise KeyError(f'Key `{key_str}` (stopped on {key}) not found in {d}')
             return default
     return d
+
+def set_nested_dictionary_item(d, keys, value):
+    """
+    """
+    if len(keys) == 0:
+        d = value
+    for key in keys[:-1]:
+        d = d.setdefault(key, {})
+    d[keys[-1]] = value
 
 
 def remove_nested_dict_value(d, key_str):
@@ -204,6 +213,8 @@ def clean_json(json_object):
     if isinstance(json_object, dash.development.base_component.Component):
         return f"Dash Component {json_object}"
     if isinstance(json_object, KeyError):
+        return str(json_object)
+    if str(type(json_object)) == "<class 'generator'>":
         return str(json_object)
     raise ValueError("We don't yet handle this type in clean_json: {} (object: {})".format(type(json_object), json_object))
 

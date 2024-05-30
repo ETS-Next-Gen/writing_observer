@@ -108,7 +108,10 @@ EXECUTION_DAG = {
             "output": ""
         },
         "activity": {
-            "returns": "activity_combined",
+            # TODO resolve before merging
+            # we would like to return `activity_combined` instead;
+            # however, we have not tested with other comm protocol functions
+            "returns": "activity_map",
             "parameters": ["course_id"],
             "output": ""
         },

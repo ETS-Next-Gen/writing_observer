@@ -4,6 +4,7 @@ This generates dashboards from student data.
 
 import asyncio
 import copy
+import enum
 import inspect
 import json
 import jsonschema
@@ -11,6 +12,8 @@ import numbers
 import pmss
 import queue
 import time
+import types
+import traceback
 
 import aiohttp
 
@@ -509,12 +512,13 @@ async def execute_queries(client_data, request):
         runtime = learning_observer.runtime.Runtime(request)
         client_parameters['runtime'] = runtime
         query_func = query_func(**client_parameters)
+        return await query_func
         funcs.append(query_func)
     return await asyncio.gather(*funcs, return_exceptions=False)
 
 
 @learning_observer.auth.teacher
-async def websocket_dashboard_handler(request):
+async def OLD_websocket_dashboard_handler(request):
     '''
     Handles client requests through a WebSocket, executes requested queries,
     and sends back the results.
@@ -554,6 +558,195 @@ async def websocket_dashboard_handler(request):
         # TODO allow the client to set the update timer.
         # it would be cool if the client could set different sleep timers for each item
         await asyncio.sleep(3)
+
+
+class JobTypes(str, enum.Enum):
+    '''These are the jobs being ran on the comm protocol
+    `asyncio.wait` continuous loop.
+
+    TODO change this to use StrEnum when supporting Python 3.11
+    I suppose we could just make our own StrEnum that will use
+    StrEnum if available or use what we do here to replicate.
+    '''
+    RECEIVE_PARAMS_FROM_CLIENT = 'RECEIVE_PARAMS_FROM_CLIENT'
+    SCHEDULE_QUERY_EXECUTION = 'SCHEDULE_QUERY_EXECUTION'
+    EXECUTE_QUERY = 'EXECUTE_QUERY'
+    SEND_TO_USER = 'SEND_TO_USER'
+
+    def __str__(self) -> str:
+        return self.value
+
+
+# TODO pull this from settings
+# TODO do a once over for other variables that should be pulled from settings instead.
+SCHEDULE_NEXT_EXECUTION_TIMEOUT = 30
+
+
+@learning_observer.auth.teacher
+async def websocket_dashboard_handler(request):
+    '''
+    We run everything on a job loop. When specific items types of jobs
+    finish executing, we schedule new jobs. Jobs include receiving
+    data from the client, scheduling the next execution, executing,
+    and sending information to the user. Each job will be post
+    processed to determine the next job to run.
+
+                    +-------------------+
+                    | Receive json from |
+                    | client.           |
+    client ------>  | Update parameters |
+                    +-------------------+
+
+    +--------------------+
+    | Scheduler Next     | <--+
+    | - wait for updated |    | Restarts scheduler task
+    |   pararmeters      |----+
+    | - fire again in    |            +-----------------------+
+    |   20 seconds       |----------> | Execute Query         |
+    +--------------------+      +---> | - Process DAG request |
+                                |     | - If Generator        |
+                                + <---|     Add next to jobs  |
+                                      | - else                |
+                                      |     Send to user      |
+                                      +-----------------------+
+    '''
+    ws = aiohttp.web.WebSocketResponse(receive_timeout=3)
+    await ws.prepare(request)
+
+    query_parameters = None
+    previous_parameters = None
+
+    async def _check_for_diff_params():
+        '''Continually check for our current parameters to change
+        '''
+        nonlocal previous_parameters
+        while previous_parameters == query_parameters:
+            await asyncio.sleep(4)
+        previous_parameters = query_parameters
+        return True
+
+    async def _schedule_next_query(timeout=SCHEDULE_NEXT_EXECUTION_TIMEOUT):
+        '''Schedule next execution for when our parameters change OR
+        after a timeout occurs.
+        '''
+        tasks = [
+            asyncio.create_task(_check_for_diff_params())
+        ]
+        _, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+        return True
+
+    # Initialize the job loop with our call to
+    # receive new parameters and schedule the next item
+    pending = [
+        asyncio.create_task(ws.receive_json(), name=JobTypes.RECEIVE_PARAMS_FROM_CLIENT),
+        asyncio.create_task(_schedule_next_query(), name=JobTypes.SCHEDULE_QUERY_EXECUTION)
+    ]
+
+    async def _execute_query(q_params):
+        '''Process an execution dag query
+
+        TODO call the execution dags query here
+        and remmove the `gen_example` method
+        '''
+        result = await execute_queries(q_params, request)
+        return result
+
+    _overall_send = {
+        'last_updated': None,
+        'data': {}
+    }
+    async def _send(data, key):
+        '''Send data back to the client
+
+        TODO its not likely that we'll be passing all the data
+        into this function. We may have 2 or 3 different named
+        queries running at once. They should each return on a
+        key tied to their results.
+        '''
+        nonlocal _overall_send
+        _overall_send['last_updated'] = util.timestamp()
+        if key not in _overall_send['data']:
+            _overall_send['data'][key] = {}
+
+        # TODO define scopes further and replace this implementation.
+        # What levels are there to the data we are returning? This
+        # allows us to insert data into the overall dictionary with
+        # a map.
+        scopes = data.pop('scopes', [])
+        util.set_nested_dictionary_item(_overall_send['data'][key], scopes, util.clean_json(data))
+
+        # TODO batch the send so we dont update every single time
+        # there is an updated node, but rather all nodes every X
+        # amount of time.
+        return await ws.send_json(_overall_send)
+
+    async def _process_receive_params_from_client(d):
+        '''Process results of receiving data from a client
+        We restart the receiving process.
+        '''
+        nonlocal previous_parameters, query_parameters
+        try:
+            result = d.result()
+            previous_parameters = copy.deepcopy(query_parameters)
+            query_parameters = result
+        except asyncio.exceptions.TimeoutError:
+            pass
+        pending.add(asyncio.create_task(ws.receive_json(), name=JobTypes.RECEIVE_PARAMS_FROM_CLIENT))
+
+    async def _process_query_scheduling_ready(d):
+        '''Once its time to run an execution dag, restart the
+        schedule and execute the query.
+        '''
+        pending.add(asyncio.create_task(_execute_query(query_parameters), name=JobTypes.EXECUTE_QUERY))
+        pending.add(asyncio.create_task(_schedule_next_query(), name=JobTypes.SCHEDULE_QUERY_EXECUTION))
+
+    async def _process_execution_result(d):
+        '''If our query returns a generator, we add the next
+        item to the job loop. Otherwise, we send the result
+        back to the user.
+        '''
+        try:
+            result = d.result()
+        except Exception as e:
+            # TODO what should we do here?
+            raise e
+        # A single execcution dag can output to multiple things.
+        # The dags will return a dictionary of desired targets and
+        # their outputs. We wrap generator functions to return
+        # in the same format.
+        for k, v in result.items():
+            if isinstance(v, types.GeneratorType):
+                async def _wrap_gen_func(func):
+                    return {k: await func}
+                for gen in v:
+                    pending.add(asyncio.create_task(_wrap_gen_func(gen), name=JobTypes.EXECUTE_QUERY))
+            else:
+                pending.add(asyncio.create_task(_send(v, k), name=JobTypes.SEND_TO_USER))
+
+    async def _process_send_to_user(d):
+        '''We don't need to do anything after sending information
+        to the user.
+        '''
+        pass
+
+    PROCESS_FINISHED_JOB = {
+        JobTypes.RECEIVE_PARAMS_FROM_CLIENT: _process_receive_params_from_client,
+        JobTypes.SCHEDULE_QUERY_EXECUTION: _process_query_scheduling_ready,
+        JobTypes.EXECUTE_QUERY: _process_execution_result,
+        JobTypes.SEND_TO_USER: _process_send_to_user
+    }
+
+    # process job loop
+    while pending:
+        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        d = done.pop()
+        try:
+            await PROCESS_FINISHED_JOB[d.get_name()](d)
+        except Exception as e:
+            # TODO remove this - currently used for quick debugging.
+            print('ERROR::', type(e), e)
+            traceback.print_exc()
+            raise e
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use
