@@ -40,6 +40,10 @@ auth:
 #  demo_insecure: false # Similar to test-case, but stochastically give name, etc.
 pubsub:
     type: stub  # stub for in-memory debugging, redis for small-scale prod. xmpp will bring scale
+redis_connection:
+  redis_host: localhost
+  redis_port: 6389
+  redis_password: yoursupersecurepassword
 kvs:
     # stub for in-memory debugging
     # redis_ephemeral for redis / debugging (object disappear)
