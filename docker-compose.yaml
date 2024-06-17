@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    volumes:
+      - ./:/app
+    image: learning-observer-image:latest
+    command: >
+      sh -c "pip install -U pip && pip install -e modules/lo_example/ &&
+             make run"
+    restart: always
+    ports:
+      - 8888:8888
+    depends_on:
+      - redis
+  redis:
+    image: redis:latest

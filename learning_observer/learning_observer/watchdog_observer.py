@@ -15,11 +15,7 @@ we wanted everything to be is in sync. It is behind a feature flag,
 and disabled by
 '''
 
-import watchdog
-
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-
+import asyncio
 import importlib
 import os
 import os.path
@@ -27,12 +23,13 @@ import sys
 import time
 import logging
 import traceback
+import watchdog
 
 from watchdog.observers import Observer
-from watchdog.events import LoggingEventHandler
+from watchdog.events import FileSystemEventHandler, LoggingEventHandler
 
-
-LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
+# TODO fix this
+LOCAL_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def reimport_child_modules(paths=[LOCAL_PATH]):
@@ -110,6 +107,9 @@ def restart():
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
+FILETYPES_TO_WATCH = ['yaml', 'py', 'js']
+
+
 class RestartHandler(FileSystemEventHandler):
     '''
     Soft restart the server when a file changes.
@@ -129,31 +129,29 @@ class RestartHandler(FileSystemEventHandler):
         and skipping cache files, but for now we'll restart on any change,
         since this is helpful for testing this module.
         '''
-        if event.is_directory:
+        if (event.is_directory or
+            event.src_path.split('.')[-1] not in FILETYPES_TO_WATCH or
+            event.event_type != 'modified'):
             return None
-        print("Reloading server")
-        self.shutdown()
-        # observer.stop()
-        # observer.join()
-        self.restart()
-        # We only make it beyond this point for some of the softer restarts.
-        self.start()
+        print("Reloading server", event)
+        asyncio.run(self.handle_restart())
+
+    async def handle_restart(self):
+        await self.shutdown()
+        await self.restart()
 
 
 def watchdog(handler=LoggingEventHandler()):
     '''
     Set up watchdog mode. This will (eventually) reimport on file changes.
     '''
-    event_handler = LoggingEventHandler()
+    event_handler = handler
     observer = Observer()
     print("Watching for changes in:", LOCAL_PATH)
     observer.schedule(event_handler, LOCAL_PATH, recursive=True)
     observer.start()
     return observer
 
-
-# observer = Observer()
-# observer.start()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,

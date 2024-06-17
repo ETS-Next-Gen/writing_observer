@@ -86,9 +86,12 @@ BOOTSTRAP_MIN_CSS = {
         "5.1.3": "c03f5bfd8deb11ad6cec84a6201f4327f28a640e693e56466fd80d983ed54"
         "16deff1548a0f6bbad013ec278b9750d1d253bd9c5bd1f53c85fcd62adba5eedc59",
         "5.3.1": "d099dac0135309466dc6208aaa973584843a3efbb40b2c96eb7c179f5f20f"
-        "80def35bbc1a7a0b08c9d5bdbed6b8e780ba7d013d18e4019e04fd82a19c076a1f8"
+        "80def35bbc1a7a0b08c9d5bdbed6b8e780ba7d013d18e4019e04fd82a19c076a1f8",
+        "5.3.3": "54b69b378be9029cb841bce9f33e111148231ce38ae389601c10ee1fec93b"
+        "bfb84839e84911e9e32e9e026a182e7225fd8531dc8344ba94ef4b467852e7162d5"
     },
     "tested_versions": [
+        'https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/minty/bootstrap.min.css',
         "https://cdn.jsdelivr.net/npm/bootswatch@5.3.1/dist/minty/bootstrap.min.css",
         'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
     ]
