@@ -13,7 +13,7 @@ install: venv
 	# The following only works with specified packages
 	# we need to install learning_observer in dev mode to
 	# more easily pass in specific files we need, such as creds
-	pip install --no-cache-dir -e learning_observer/[${PACKAGES}]
+	pip install --no-cache-dir -e learning_observer/
 
 	# Installing Learning Oberser (LO) Dash React Components
 	# TODO properly fetch the current version of lodrc.
@@ -23,6 +23,14 @@ install: venv
 	# linked to. We do an additional fetch for the linked file.
 	@LODRC_CURRENT=$$(curl -s https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/lo_dash_react_components-current.tar.gz); \
 	pip install https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/$${LODRC_CURRENT}
+
+install-dev: venv
+	# TODO create a dev requirements file
+	pip install --no-cache-dir -e learning_observer/[${PACKAGES}]
+	. ${HOME}/.nvm/nvm.sh && nvm use && pip install -v -e modules/lo_dash_react_components/
+
+install-packages: venv
+	pip install -e learning_observer/[${PACKAGES}]
 
 	# Just a little bit of dependency hell...
 	# The AWE Components are built using a specific version of
@@ -34,11 +42,6 @@ install: venv
 	# TODO remove this extra step after AWE Component's `spacy`
 	# is no longer version locked.
 	pip install -U typing-extensions
-
-install-dev: venv
-	# TODO create a dev requirements file
-	pip install --no-cache-dir -e learning_observer/[${PACKAGES}]
-	. ${HOME}/.nvm/nvm.sh && nvm use && pip install -v -e modules/lo_dash_react_components/
 
 # testing commands
 test:
