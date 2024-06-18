@@ -3,6 +3,7 @@ Module Example
 '''
 import learning_observer.downloads as d
 import learning_observer.communication_protocol.query as q
+from learning_observer.dash_integration import thirdparty_url, static_url
 from learning_observer.stream_analytics.helpers import KeyField, Scope
 
 import lo_example.reducers
@@ -78,8 +79,6 @@ REDUCERS = [
 
 '''
 Define pages created with Dash.
-
-TODO define each of these items and what it is used for
 '''
 DASH_PAGES = [
     {
@@ -89,10 +88,23 @@ DASH_PAGES = [
         'TITLE': 'Title of Page',
         'DESCRIPTION': 'Description of the page',
         'SUBPATH': 'lo-example',
-        'CSS': [],
-        'SCRIPTS': []
+        'CSS': [
+            thirdparty_url("css/fontawesome_all.css")
+        ],
+        'SCRIPTS': [
+            static_url("liblo.js")
+        ]
     }
 ]
+
+'''
+Additional files we want included that come from a third part.
+'''
+THIRD_PARTY = {
+    "css/fontawesome_all.css": d.FONTAWESOME_CSS,
+    "webfonts/fa-solid-900.woff2": d.FONTAWESOME_WOFF2,
+    "webfonts/fa-solid-900.ttf": d.FONTAWESOME_TTF
+}
 
 '''
 The Course Dashboards are used to populate the modules
