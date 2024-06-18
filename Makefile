@@ -6,7 +6,8 @@ run:
 	cd learning_observer && python learning_observer --watchdog=restart
 
 venv:
-	pip install --no-cache-dir -r requirements.txt
+	# This is unnecessary since LO installs requirements on install.
+	# pip install --no-cache-dir -r requirements.txt
 
 # install commands
 install: venv
