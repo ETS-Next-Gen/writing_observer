@@ -16,7 +16,7 @@ from learning_observer.log_event import debug_log
 
 pmss.register_field(
     name='redis_host',
-    type=pmss.pmsstypes.TYPES.host,
+    type=pmss.pmsstypes.TYPES.hostname,
     description='Determine the host for the redis_connection. Defaults to localhost.',
     default='localhost'
 )
@@ -28,7 +28,7 @@ pmss.register_field(
 )
 pmss.register_field(
     name='redis_password',
-    types=pmss.pmsstypes.TYPES.passwordtoken,
+    type=pmss.pmsstypes.TYPES.string,
     description='Password token for connectioning to redis_connection',
     default=None
 )
@@ -46,7 +46,8 @@ async def connect():
         REDIS_CONNECTION = redis.asyncio.Redis(
             host=learning_observer.settings.pmss_settings.redis_host(types=['redis_connection']),
             port=learning_observer.settings.pmss_settings.redis_port(types=['redis_connection']),
-            password=learning_observer.settings.pmss_settings.redis_password(types=['redis_connection'])
+            # TODO figure out how to properly use None from pmss
+            # password=learning_observer.settings.pmss_settings.redis_password(types=['redis_connection'])
         )
     await REDIS_CONNECTION.ping()
 
