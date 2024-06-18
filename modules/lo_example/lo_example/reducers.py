@@ -1,3 +1,8 @@
+'''
+This file defines reducers we wish to add to the incoming event
+pipeline. The `learning_observer.stream_analytics` package includes
+helper functions for Scoping the and setting the null state.
+'''
 from learning_observer.stream_analytics.helpers import student_event_reducer
 
 
