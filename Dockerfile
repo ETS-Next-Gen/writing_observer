@@ -1,5 +1,5 @@
 FROM python:3.10
-
+RUN git config --global --add safe.directory /app
 WORKDIR /app
 
 # TODO start redis in here
