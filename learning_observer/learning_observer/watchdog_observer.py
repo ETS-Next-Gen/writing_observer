@@ -107,7 +107,7 @@ def restart():
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
-FILETYPES_TO_WATCH = ['yaml', 'py', 'js']
+FILETYPES_TO_WATCH = ['yaml', 'py', 'js', 'json']
 
 
 class RestartHandler(FileSystemEventHandler):
