@@ -6,7 +6,7 @@ services:
       - ./:/app
     image: learning-observer-image:latest
     command: >
-      sh -c "pip install -U pip && pip install -e modules/lo_example/ &&
+      sh -c "pip install -U pip && pip install -e learning_observer/ && pip install -e modules/lo_example/ &&
              make run"
     restart: always
     ports:
