@@ -80,7 +80,7 @@ window.dash_clientside.lo_example = {
             namespace: 'lo_dash_react_components',
             props: {
               profile: student.profile,
-              className: 'student-name-tag',
+              className: 'student-name-tag d-inline-block',
               includeName: true,
               id: `${student.user_id}-activity-img`
             },
