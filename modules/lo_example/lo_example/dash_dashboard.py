@@ -9,7 +9,7 @@ execute Python code server side, but Clientside callbacks
 execute Javascript code client side. Clientside functions are
 preferred as it cuts down server and network resources.
 '''
-from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State
+from dash import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State
 import dash_bootstrap_components as dbc
 import lo_dash_react_components as lodrc
 
@@ -56,8 +56,27 @@ clientside_callback(
 
 # Build the UI based on what we've received from the
 # communicaton protocol
-clientside_callback(
-    ClientsideFunction(namespace='lo_example', function_name='populateOutput'),
+# This clientside callback and the serverside callback below are
+# the same
+# clientside_callback(
+#     ClientsideFunction(namespace='lo_example', function_name='populateOutput'),
+#     Output(_output, 'children'),
+#     Input(_websocket_storage, 'data'),
+# )
+
+
+@callback(
     Output(_output, 'children'),
     Input(_websocket_storage, 'data'),
 )
+def populate_output(data):
+    if not data:
+        return 'No students'
+    output = [html.Div([
+        lodrc.LONameTag(
+            profile=s['profile'], className='d-inline-block student-name-tag',
+            includeName=True, id=f'{s["user_id"]}-name-tag'
+        ),
+        html.Span(f' - {s["count"]} events')
+    ]) for s in data]
+    return output
