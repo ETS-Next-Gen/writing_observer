@@ -15,6 +15,7 @@ export function App() {
   return (
     <>
       <h1>Hello world!!</h1>
+      <p> This demos how we can build actions with our API. Pressing the button will cause an alert and a console.log </p>
       <buttons.ActionButton>
         Test!
         <actions.PopupAction>
