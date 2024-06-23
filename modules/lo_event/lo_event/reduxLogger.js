@@ -25,6 +25,15 @@ const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
 const EMIT_SET_STATE = 'SET_STATE';
 
+// TODO: Import debugLog and use those functions.
+const DEBUG = false;
+
+function debug_log(...args) {
+  if(DEBUG) {
+    console.log(...args);
+  }
+}
+
 // Action creator function This is a little bit messy, since we
 // duplicate type from the payload. It's not clear if this is a good
 // idea. We used to have `type` be set to the current contents of
@@ -74,6 +83,39 @@ function lock_fields_reducer(state = {}, action) {
   };
 }
 
+/*
+ * This is our most common reducer. It simply updates a component's
+ * state with the dictionary of an action.
+ *
+ * In the future, we plan to add various sorts of event validation and
+ * potentially preprocessing. We would like things like:
+ *
+ *    updateComponentStateReducer({valid_fields: ['response'})
+ *
+ * Ergo, the two-level call with the destruct.
+ */
+export const updateComponentStateReducer = ({}) => (state = initialState, action) => {
+  const { id, ...rest } = action;
+  const new_state = {
+    ...state,
+    component_state: {
+      ...state.component_state,
+      [id]: {...state.component_state?.[id], ...rest}
+    }
+  };
+
+  debug_log(
+    "==REGISTER REDUCER==\n",
+    "Reducer action:", action, "\n",
+    "Response reducer called\n",
+    "Old state", state, "\n",
+    "Action", action, "\n",
+    "New state", new_state
+  );
+
+  return new_state;
+}
+
 function set_state_reducer(state = {}, action) {
   return action.payload;
 }
@@ -103,12 +145,12 @@ export const registerReducer = (keys, reducer) => {
 const reducer = (state = {}, action) => {
   let payload;
 
-  console.log("Reducing ", action," on ", state);
+  debug_log("Reducing ", action," on ", state);
   state = BASE_REDUCERS[action.redux_type] ? composeReducers(...BASE_REDUCERS[action.redux_type])(state, action) : state;
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
-    console.log(Object.keys(payload));
+    debug_log(Object.keys(payload));
 
     if (APPLICATION_REDUCERS[payload.event]) {
       state = { ...state, application_state: composeReducers(...APPLICATION_REDUCERS[payload.event])(state.application_state || {}, payload) };
@@ -158,7 +200,7 @@ function composeReducers(...reducers) {
 }
 
 export function setState(state) {
-  console.log("Set state called");
+  debug_log("Set state called");
   store.dispatch(emitSetState(state));
 }
 
@@ -169,7 +211,7 @@ function initializeStore () {
       lockFields = state.lock_fields.fields;
     }
     if (!state.event) return;
-    console.log('Received event:', state.event);
+    debug_log('Received event:', state.event);
     const event = JSON.parse(state.event);
     if (event === previousEvent) {
       return;

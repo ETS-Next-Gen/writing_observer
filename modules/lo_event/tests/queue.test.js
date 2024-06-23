@@ -6,15 +6,23 @@
 import { Queue } from '../lo_event/queue.js';
 import { delay } from '../lo_event/util.js';
 
+const DEBUG = false;
+
+function debug_log(...args) {
+  if(DEBUG) {
+    console.log(...args);
+  }
+}
+
 const queue = new Queue('queueNew');
 await delay(1000);
 const max = 5;
-console.log('Queue test: Queueing events');
+debug_log('Queue test: Queueing events');
 for (let i = 0; i < max; i++) {
-  console.log('Queue test: Queueing', i);
+  debug_log('Queue test: Queueing', i);
   queue.enqueue(i);
 }
 
 queue.startDequeueLoop({
-  onDequeue: console.log
+  onDequeue: debug_log
 });
