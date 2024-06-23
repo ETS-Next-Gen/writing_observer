@@ -6,8 +6,7 @@
   "scripts": {
     "test": "jasmine \"tests/*.test.js\"",
     "test-verbose": "jasmine --verbose \"tests/*.test.js\"",
-    "browser_events": "parcel examples/browser_events.html --open",
-    "redux_loop": "parcel examples/redux_loop.html --open",
+    "browser": "parcel examples/*.html --open",
     "clean": "rm -Rf .cache/ dist/ .parcel-cache/ lo_event-*.tgz"
   },
   "repository": {
