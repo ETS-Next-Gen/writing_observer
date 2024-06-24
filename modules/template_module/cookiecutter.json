@@ -1,0 +1,8 @@
+{
+  "project_name": "My Module",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+  "project_prefix": "{{ cookiecutter.project_slug.replace('_', '-') }}",
+  "project_short_description": "My Learning Observer Module.",
+  "reducer": "event_count",
+  "full_reducer": "{{ cookiecutter.project_slug }}.{{ cookiecutter.reducer }}"
+}
