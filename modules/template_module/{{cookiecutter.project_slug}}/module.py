@@ -10,7 +10,7 @@ import {{ cookiecutter.project_slug }}.reducers
 import {{ cookiecutter.project_slug }}.dash_dashboard
 
 # Name for the module
-NAME = '{{ cookiecutter.project_name }}'
+NAME = '{{ cookiecutter.project_slug }}'
 
 '''
 Define execution DAGs for this module

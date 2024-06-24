@@ -14,7 +14,7 @@ import dash_bootstrap_components as dbc
 import lo_dash_react_components as lodrc
 
 
-_prefix = {{ cookiecutter.project_prefix }}
+_prefix = '{{ cookiecutter.project_prefix }}'
 _websocket = f'{_prefix}-websocket'
 _websocket_storage = f'{_prefix}-websocket-store'
 _output = f'{_prefix}-output'
