@@ -7,7 +7,7 @@ if (!window.dash_clientside) {
   window.dash_clientside = {};
 }
 
-window.dash_clientside.lo_example = {
+window.dash_clientside.{{ cookiecutter.project_slug }} = {
   /**
    * Send updated queries to the communication protocol.
    * @param {object} wsReadyState LOConnection status object
@@ -23,9 +23,9 @@ window.dash_clientside.lo_example = {
       const decodedParams = decode_string_dict(urlHash.slice(1))
       if (!decodedParams.course_id) { return window.dash_clientside.no_update }
       const outgoingMessage = {
-        lo_example_query: {
-          execution_dag: 'lo_example',
-          target_exports: ['student_event_counts'],
+        {{ cookiecutter.project_slug }}_query: {
+          execution_dag: '{{ cookiecutter.project_slug }}',
+          target_exports: ['{{ cookiecutter.reducer }}_export'],
           kwargs: decodedParams
         }
       };
@@ -41,10 +41,10 @@ window.dash_clientside.lo_example = {
    */
   receiveWSMessage: async function (incomingMessage) {
     // TODO the naming here is broken serverside. Notice above we
-    //  called the target export `student_event_counts`, i.e. the named
-    // export. Below, we need to call `events_join_roster`, i.e. the name
+    //  called the target export `{{ cookiecutter.reducer }}_export`, i.e. the named
+    // export. Below, we need to call `{{ cookiecutter.project_slug }}_join_roster`, i.e. the name
     // of the node. This ought to be cleaned up in the communication protocl.
-    const messageData = JSON.parse(incomingMessage.data).lo_example_query.events_join_roster || [];
+    const messageData = JSON.parse(incomingMessage.data).{{ cookiecutter.project_slug }}_query.{{ cookiecutter.reducer }}_join_roster || [];
     if (messageData.error !== undefined) {
       console.error('Error received from server', messageData.error);
       return [];

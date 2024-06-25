@@ -7,8 +7,8 @@ virtualenv, preferably.
 from setuptools import setup
 
 setup(
-    name="lo_example",
+    name="{{ cookiecutter.project_slug }}",
     package_data={
-        'lo_example': ['assets/*'],
+        '{{ cookiecutter.project_slug }}': ['assets/*'],
     }
 )

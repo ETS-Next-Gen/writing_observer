@@ -3,8 +3,6 @@ PACKAGES ?= wo,awe
 run:
 	# If you haven't done so yet, run: make install
 	# we need to make sure we are on the virtual env when we do this
-	pip install -e learning_observer/
-	pip install -e modules/lo_example/
 	cd learning_observer && python learning_observer --watchdog=restart
 
 venv:

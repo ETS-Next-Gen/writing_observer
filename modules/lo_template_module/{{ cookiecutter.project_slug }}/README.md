@@ -7,7 +7,7 @@ will detail everything need to create a module for the LO.
 
 ```bash
 module/
-  lo_example/
+  {{ cookiecutter.project_slug }}/
     assets/
       ...
     helpers/
@@ -31,13 +31,13 @@ Notice we include the following items in our `setup.cfg` file.
 ```cfg
 [options.entry_points]
 lo_modules =
-   lo_example = lo_example.module
+   {{ cookiecutter.project_slug }} = {{ cookiecutter.project_slug }}.module
 
 [options.package_data]
-lo_example = helpers/*
+{{ cookiecutter.project_slug }} = helpers/*
 ```
 
-The `lo_modules` entry point tells Learning Observer to treat `lo_example.module` as a pluggable application.
+The `lo_modules` entry point tells Learning Observer to treat `{{ cookiecutter.project_slug }}.module` as a pluggable application.
 
 The package data section is where we include additional directories we want included in the build.
 
@@ -63,25 +63,25 @@ This one is pretty self explanatory. Give the module a short name to refer to it
 
 The execution directed acyclic graph (DAG) is how we interact with the communication protocol.
 
-See `lo_example/module.py:EXECUTION_DAG` for a detailed example.
+See `{{ cookiecutter.project_slug }}/module.py:EXECUTION_DAG` for a detailed example.
 
 ### REDUCERS
 
 Reducers to define on the system. These are functions that will run over incoming events from students.
 
-See `lo_example/module.py:REDUCERS` for a detailed example.
+See `{{ cookiecutter.project_slug }}/module.py:REDUCERS` for a detailed example.
 
 ### DASH_PAGES
 
 Dashboards built using the Dash framework should be defined here.
 
-See `lo_example/module.py:DASH_PAGES` for a detailed example.
+See `{{ cookiecutter.project_slug }}/module.py:DASH_PAGES` for a detailed example.
 
 ### COURSE_DASHBOARDS
 
 The registered course dashboards are provided to the users for navigating around dashboards, such as on their Home screen.
 
-See `lo_example/module.py:COURSE_DASHBOARDS` for a detailed example.
+See `{{ cookiecutter.project_slug }}/module.py:COURSE_DASHBOARDS` for a detailed example.
 
 Note that the student counterpart, `STUDENT_DASHBOARDS`, exists.
 

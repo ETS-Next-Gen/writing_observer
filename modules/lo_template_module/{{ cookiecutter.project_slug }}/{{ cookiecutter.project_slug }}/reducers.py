@@ -7,7 +7,7 @@ from learning_observer.stream_analytics.helpers import student_event_reducer
 
 
 @student_event_reducer(null_state={"count": 0})
-async def event_count(event, internal_state):
+async def {{ cookiecutter.reducer }}(event, internal_state):
     '''
     An example of a per-student event counter
     '''

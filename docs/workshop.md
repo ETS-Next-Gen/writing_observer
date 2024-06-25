@@ -59,6 +59,38 @@ Docker compose can manage both the normal Dockerfile and an instance of Redis. T
 docker compose up
 ```
 
+## Build your own module
+
+### Create from template
+
+We provide a cookiecutter template for creating new modules for the Learning Observer. If you are using Docker, just create a local virtual environment to run this command. To create one run,
+
+```bash
+pip install cookiecutter
+cd modules/
+cookiecutter lo_template_module/
+```
+
+Cookiecutter will prompt you for naming information and create a new module in the `modules/` directory.
+
+### Installing
+
+To install the newly created project, use `pip` like any other Python package.
+
+```bash
+pip install -e modules/learning_observer_template/
+```
+
+TODO - I'm not sure the best way to handle this but...
+If you are running Docker, we suggest modifying the Makefile to make sure the template package is re-installed each time watchdog issues a restart. This ensures that any new changes made are reflected on refresh. Modify the run command in the Makefile like so:
+
+```Makefile
+run:
+    pip install -e learning_observer/
+    pip install -e modules/learning_observer_template/
+    cd learning_observer && python learning_observer --watchdog=restart
+```
+
 ## Running the System
 
 When the system first starts up, it checks for various configuration files.
@@ -68,6 +100,7 @@ When the system first starts up, it checks for various configuration files.
 The `creds.yaml` is the primary configuration file on the system. The platform will not launch unless this file is present. Create a copy of the example in `learning_observer/learning_observer/creds.yaml.example`. We want to make the following adjustments
 
 ```yaml
+TODO
 ```
 
 ### admins.yaml & teachers.yaml
