@@ -8,6 +8,7 @@ First make sure you have clone the system
 
 ```bash
 git clone git@github.com:ETS-Next-Gen/writing_observer.git
+cd writing_observer/
 git checkout berickson/workshop # TODO remove this when this all gets merged
 ```
 
@@ -99,8 +100,26 @@ When the system first starts up, it checks for various configuration files.
 
 The `creds.yaml` is the primary configuration file on the system. The platform will not launch unless this file is present. Create a copy of the example in `learning_observer/learning_observer/creds.yaml.example`. We want to make the following adjustments
 
+```bash
+cp learning_observer/learning_observer/creds.yaml.example learning_observer/creds.yaml
+```
+
 ```yaml
-TODO
+# remove google_oauth from auth
+# enable passwordless insecure log-ins
+auth:
+    # google_oauth: ...
+    test_case_insecure: true
+
+# update session information
+aio:
+    session_secret: asupersecretsessionkeychosenbyyou
+    session_max_age: 3600
+
+# If you are using Docker compose, you should change the redis host to
+redis_connection:
+  redis_host: redis
+  redis_port: 6379
 ```
 
 ### admins.yaml & teachers.yaml
