@@ -120,6 +120,11 @@ aio:
 redis_connection:
   redis_host: redis
   redis_port: 6379
+
+# Allow all incoming events
+event_auth:
+    # ...
+    testcase_auth: {}
 ```
 
 ### admins.yaml & teachers.yaml
@@ -132,7 +137,7 @@ Each install of the system needs an admin password file associated with it. The 
 
 ```bash
 cd learning_observer/
-python util/lo_passwd.py
+python util/lo_passwd.py --username admin --password secureadminpassword --filename passwd.lo
 ```
 
 Depending on how the `creds.yaml` authorization settings are configured, you may be required to use the password you create.
