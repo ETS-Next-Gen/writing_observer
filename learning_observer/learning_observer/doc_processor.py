@@ -1,4 +1,8 @@
 '''This file processes documents through a variety of items.
+This is an additional script to start after student writing data
+has been populated in the database.
+
+Workflow:
 - An initial fetch begins to find all documents.
 - Check document against rules
     - If processable: add processing job to loop
@@ -186,8 +190,9 @@ async def fetch_all_docs():
 
 
 async def delay_fetch_all_docs(delay=20):
-    '''We don't want to being fetching all the docs
+    '''We don't want to be fetching all the docs
     constantly when working in the `asycnio.task` workflow.
+    This makes us wait before calling it again.
     '''
     await asyncio.sleep(delay)
     return await fetch_all_docs()
@@ -289,7 +294,7 @@ async def _fetch_teacher_credentials(student):
         if student in roster['students']:
             matching_teachers.append(roster['teacher_id'])
 
-    # TODO handle multiple teachers
+    # TODO handle more than 1 teacher per student, but for now just grab the first
     if len(matching_teachers) == 0: return None
     teacher = matching_teachers[0]
     auth_key = sa_helpers.make_key(
@@ -371,5 +376,10 @@ async def _pass_doc_through_analysis(doc_id, text, student_id):
 
 
 if __name__ == '__main__':
+    '''We may want to start this as a process when starting Learning Observer rather than
+    a separate Python command.
+
+    TODO specify processes to turn on when starting Learning Observer.
+    '''
     import asyncio
     asyncio.run(start())

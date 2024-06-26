@@ -194,6 +194,7 @@ async def _store_teacher_info_for_background_process(id, request):
             await _fetch_and_store_document(student, doc_id)
 
     for course in courses:
+        # Fetch and store course information
         roster = await learning_observer.rosters.courseroster(request, course_id=course['id'])
         students = [s['user_id'] for s in roster]
         roster_key = sa_helpers.make_key(
@@ -201,6 +202,8 @@ async def _store_teacher_info_for_background_process(id, request):
             {sa_helpers.KeyField.TEACHER: id, sa_helpers.KeyField.CLASS: course['id']},
             sa_helpers.KeyStateType.INTERNAL)
         await kvs.set(roster_key, {'teacher_id': id, 'students': students})
+
+        # For each student, fetch their available documents and store them
         for student in students:
             # we ought to fire these off as tasks instead of waiting on
             # them before waiting for the next roster to process

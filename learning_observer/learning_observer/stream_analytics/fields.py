@@ -84,6 +84,7 @@ KeyFields = [
     "CLASS",        # A group of students. Typically, one class roster in Google Classroom
     "RESOURCE",     # E.g. One Google Doc
     # "ASSIGNMENT"  # E.g. A collection of Google Docs (e.g. notes, outline, draft)
+    # TODO we are not 100% sold on the TEACHER / STUDENT split.
     "TEACHER"       #
     #  ...          # ... and so on.
 ]

@@ -43,6 +43,7 @@ document_access_ts = q.call('writing_observer.fetch_doc_at_timestamp')
 
 source_selector = q.call('source_selector')
 
+# TODO each of these choices should come from an Enum
 pmss.parser('nlp_source', parent='string', choices=['nlp', 'nlp_sep_proc'], transform=None)
 pmss.register_field(
     name='nlp_source',
@@ -68,6 +69,12 @@ pmss.register_field(
     default='single_student_lt'
 )
 
+# TODO We have a lot of nodes to keep track of and their
+# current names are not great.
+# TODO think about a better approach to changing query DAGs.
+# Currently, we set the node we want to fetch in a settings file.
+# We do have this `source_selector`method floating to select a
+# specific item from a provided dictionary mapping.
 nlp_source = learning_observer.settings.module_setting('writing_observer', setting='nlp_source')
 lt_single_source = learning_observer.settings.module_setting('writing_observer', setting='languagetool_individual_source')
 lt_group_source = learning_observer.settings.module_setting('writing_observer', setting='languagetool_source')
