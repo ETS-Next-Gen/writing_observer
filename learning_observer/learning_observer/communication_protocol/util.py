@@ -72,8 +72,7 @@ def generate_base_dag_for_student_reducer(reducer, module):
             # q.keys formats requested information into the appropriate keys
             keys_node: q.keys(f'{module}.{reducer}', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'),
             # q.select handles fetching items from redis based on a list of keys
-            # TODO fields should grab ALL items, but that functionality is in a different pull request
-            select_node: q.select(q.variable(keys_node), fields={'count': 'count'}),
+            select_node: q.select(q.variable(keys_node), fields=q.SelectFields.All),
             # q.join will combine two lists of dictionaries based on a key_path
             join_node: q.join(LEFT=q.variable(select_node), RIGHT=q.variable('roster'), LEFT_ON='provenance.provenance.value.user_id', RIGHT_ON='user_id'),
         },
