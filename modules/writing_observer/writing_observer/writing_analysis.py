@@ -228,6 +228,20 @@ async def event_count(event, internal_state):
     return state, state
 
 
+@kvs_pipeline(scope=gdoc_scope, null_state={})
+async def nlp_components(event, internal_state):
+    '''HACK the reducers need this method to query data
+    '''
+    return False, False
+
+
+@kvs_pipeline(scope=gdoc_scope, null_state={})
+async def languagetool_process(event, internal_state):
+    '''HACK the reducers need this method to query data
+    '''
+    return False, False
+
+
 @kvs_pipeline(scope=student_scope, null_state={'timestamps': {}, 'last_document': ''})
 async def document_access_timestamps(event, internal_state):
     '''

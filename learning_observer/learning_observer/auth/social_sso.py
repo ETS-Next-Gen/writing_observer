@@ -25,6 +25,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 Eventually, this should be broken out into its own module.
 """
 
+import asyncio
 import yarl
 
 import aiohttp
@@ -40,6 +41,12 @@ import learning_observer.auth.roles
 
 import learning_observer.constants as constants
 import learning_observer.exceptions
+import learning_observer.google
+import learning_observer.kvs
+import learning_observer.rosters
+import learning_observer.runtime
+import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.util
 
 import pmss
 # TODO the hostname setting currently expect the port
@@ -68,6 +75,13 @@ pmss.register_field(
     type=pmss.pmsstypes.TYPES.string,
     description="The Google OAuth client secret",
     required=True
+)
+pmss.register_field(
+    name='fetch_additional_info_from_teacher_on_login',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Whether we should start an additional task that will '\
+        'fetch all text from current rosters.',
+    default=False
 )
 
 
@@ -121,10 +135,80 @@ async def social_handler(request):
 
     if user['authorized']:
         url = user['back_to'] or "/"
+        if settings.pmss_settings.fetch_additional_info_from_teacher_on_login():
+            asyncio.create_task(_store_teacher_info_for_background_process(user['user_id'], request))
     else:
         url = "/"
 
     return aiohttp.web.HTTPFound(url)
+
+
+async def _store_teacher_info_for_background_process(id, request):
+    '''HACK this code stores 2 pieces of information when
+    teacher logs in with a social handlers.
+
+    1. We want to have a background process that fetches Google
+    docs and then processes them. This function stores relevant
+    teacher information (Google auth token + rosters) so we can
+    later fetch and process documents in our separate process.
+    The token is removed with the `utils.py:logout()` method.
+
+    2. For each student within a roster, we attempt to fetch all
+    of their deocument texts via the Google API. These are
+    stored as reducer on the system.
+
+    TODO remove this function and references when new, better
+    workflows are established.
+    '''
+    kvs = learning_observer.kvs.KVS()
+    runtime = learning_observer.runtime.Runtime(request)
+    courses = await learning_observer.rosters.courselist(request)
+    skipped_docs = set()
+
+    # store teacher auth info
+    auth_key = sa_helpers.make_key(
+        learning_observer.auth.utils.google_stored_auth,
+        {sa_helpers.KeyField.TEACHER: id},
+        sa_helpers.KeyStateType.INTERNAL)
+    await kvs.set(auth_key, request[constants.AUTH_HEADERS])
+    current_keys = await kvs.keys()
+
+    async def _fetch_and_store_document(student, doc_id):
+        doc = await learning_observer.google.doctext(runtime, documentId=doc_id)
+        if 'text' not in doc:
+            skipped_docs.add(doc_id)
+            return
+        doc_key = sa_helpers.make_key(
+            _fetch_and_store_document,
+            {sa_helpers.KeyField.STUDENT: student, sa_helpers.EventField('doc_id'): doc_id},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(doc_key, doc)
+
+    async def _process_student_documents(student):
+        print('** Processing student', student)
+        student_docs = (k for k in current_keys if student in k and 'EventField.doc_id' in k)
+        specifier = 'EventField.doc_id:'
+        student_docs = (k[k.find(specifier) + len(specifier):k.find(',', k.find(specifier))] for k in student_docs)
+        student_docs = set(student_docs)
+        for doc_id in student_docs:
+            await _fetch_and_store_document(student, doc_id)
+
+    for course in courses:
+        # Fetch and store course information
+        roster = await learning_observer.rosters.courseroster(request, course_id=course['id'])
+        students = [s['user_id'] for s in roster]
+        roster_key = sa_helpers.make_key(
+            learning_observer.google.roster,
+            {sa_helpers.KeyField.TEACHER: id, sa_helpers.KeyField.CLASS: course['id']},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(roster_key, {'teacher_id': id, 'students': students})
+
+        # For each student, fetch their available documents and store them
+        for student in students:
+            # we ought to fire these off as tasks instead of waiting on
+            # them before waiting for the next roster to process
+            await _process_student_documents(student)
+    # TODO saved skipped doc ids somewhere?
 
 
 async def _google(request):
