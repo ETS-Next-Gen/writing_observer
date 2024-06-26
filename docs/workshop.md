@@ -60,6 +60,14 @@ Docker compose can manage both the normal Dockerfile and an instance of Redis. T
 docker compose up
 ```
 
+Watchdog will automatically re-run the command used to run application, `make run`. If we wish to develop while the Docker container is open, we need to modify the `run` command to re-install any packages when it restarts. Your local repository is being shared as a mount to the Docker container. Adding an install command makes sure that latest changes are used.
+
+```Makefile
+run:
+    pip install -e learning_observer/
+    cd learning_observer && python learning_observer --watchdog=restart
+```
+
 ## Build your own module
 
 ### Create from template
@@ -82,8 +90,7 @@ To install the newly created project, use `pip` like any other Python package.
 pip install -e modules/learning_observer_template/
 ```
 
-TODO - I'm not sure the best way to handle this but...
-If you are running Docker, we suggest modifying the Makefile to make sure the template package is re-installed each time watchdog issues a restart. This ensures that any new changes made are reflected on refresh. Modify the run command in the Makefile like so:
+If you are running the system with Docker and doing development, you should add the module install to the `make run` command.
 
 ```Makefile
 run:
