@@ -7,10 +7,11 @@ This document will detail setting Learning Observer platform.
 First make sure you clone the repository
 
 ```bash
-git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop
+git clone https://github.com/ETS-Next-Gen/writing_observer.git lo_workshop
 cd lo_workshop/
 git checkout berickson/workshop # TODO remove this when this branch gets merged in
 ```
+(or with host keys, `git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop`) 
 
 ### Technologies
 
