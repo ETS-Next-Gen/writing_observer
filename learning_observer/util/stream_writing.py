@@ -93,6 +93,11 @@ def argument_list(argument, default):
         sys.exit(-1)
     return list_string
 
+# TODO what is `source_files` supposed to be?
+# when running this script for the workshop, we should either
+#  1) move gpt3 texts out of writing observer (dependency hell) OR
+#  2) avoid using `--gpt3` parameter and use loremipsum instead
+source_files = None
 
 if ARGS["--gpt3"] is not None:
     import writing_observer.sample_essays

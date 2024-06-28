@@ -21,7 +21,9 @@ import zmq
 KERNEL_ID = 'learning_observer_kernel'
 
 # generic log file for seeing ipython output
-logging.basicConfig(filename='ZMQ.log', encoding='utf-8', level=logging.DEBUG)
+# TODO this is creating a massive file and we ought to make sure its not causing issue
+# on any other systems.
+# logging.basicConfig(filename='ZMQ.log', encoding='utf-8', level=logging.DEBUG)
 
 
 async def start_learning_observer_application_server(runner):
