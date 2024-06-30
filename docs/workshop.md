@@ -2,6 +2,27 @@
 
 This document will detail setting Learning Observer platform.
 
+## Requirements
+
+General list of requirests:
+
+- UNIXish system
+- Python >3.9 - Tested versions [`3.10`]
+- Python dev (????????????????)
+- redis
+- virtualenv or some other virtual environment manageer
+- nano or some other text editor
+- Docker (optional) see [Docker section](/#Docker)
+
+We suggest having at least 2 terminals ready for this workshop. The first terminal will be for installing and running the system, while the second will be any additional scripts to need to run.
+
+They should each be on the same virtual environment. You'll need to create a new one `mkvirtualenv` and then switch both terminals to it `workon`.
+
+```bash
+mkvirtualenv lo_workshop    # create a new virtual environment OR
+workon lo_workshop          # if you already have a virtual environment, switch to it
+```
+
 ## Install
 
 First make sure you clone the repository
@@ -11,23 +32,18 @@ git clone https://github.com/ETS-Next-Gen/writing_observer.git lo_workshop
 cd lo_workshop/
 git checkout berickson/workshop # TODO remove this when this branch gets merged in
 ```
-(or with host keys, `git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop`) 
 
-### Technologies
+(or with host keys, `git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop`)
 
-The Learning Observer is ran as a Python aiohttp web application. The primary database used alongside is Redis.
+NOTE: all future sets of commands should be ran starting from the repository's root directory. The command will specify if changing directories is needed.
 
-We have a few additional Python scripts to run outside of the application. These are for setting up new modules from templates and streaming data into the system. If you are using a local installation, you can just use the same virtual environment. However, if you are using Docker, you should create a new local virtual environment to run these commands.
+### Environments
 
-TODO so the 3.10 might not be a hard limit the workshop since we do not install the writing observer (which is where the dependency hell lives).
-Tested Python versions: `3.10`
-Tested Docker versions: `26.1`
+Make sure you are on the virtual environment, then run the install command:
 
-If you do not have Python `3.10`, we suggest you follow the Docker installation option.
-
-You are welcome to use your own instance of redis; however, `docker compose` allows us to spin up an instance of Redis and connect to it. See the Docker Compose section for more information.
-
-The provided run commands all include watchdog turned on to ease development time on re-running the application.
+```bash
+make install
+```
 
 ### System Setup
 
@@ -39,6 +55,7 @@ The `creds.yaml` is the primary configuration file on the system. The platform w
 
 ```bash
 cp learning_observer/learning_observer/creds.yaml.example learning_observer/creds.yaml
+nano learning_observer/creds.yaml   # or a different text editor
 ```
 
 ```yaml
@@ -50,15 +67,20 @@ auth:
     # useful for quickly seeing the system up and running
     test_case_insecure: true
 
+# Make sure the redis_connection is pointed at the right host
+redis_connection:
+  redis_host: localhost
+  redis_port: 6379
+
+# Typically students need to be associated with a classroom; however,
+# specifying `all` creates a single class with all available students.
+roster_data:
+    source: all
+
 # update session information
 aio:
     session_secret: asupersecretsessionkeychosenbyyou
     session_max_age: 3600
-
-# If you are using Docker compose, you should change the redis host to
-redis_connection:
-  redis_host: redis
-  redis_port: 6379
 
 # Allow all incoming events
 event_auth:
@@ -70,50 +92,67 @@ event_auth:
 
 The platform expects both of these files to exist under `learning_observer/learning_observer/static_data/`. If these are missing on start-up, the platform create them for you and exit. Normally these are populated with the allowed Admins/Teachers for the system.
 
-#### passwd.lo
+## Running Learning Observer
 
-Each install of the system needs an admin password file associated with it. The `learning_observer/util/lo_passwd.py` file can be used to generate this password file. This does not have to be done in the same virtual environment as the main server. If you are using Docker, just create a local virtual environment to run this command.
-
-```bash
-cd learning_observer/
-python util/lo_passwd.py --username admin --password supersecureadminpassword --filename passwd.lo
-```
-
-Depending on how the `creds.yaml` authorization settings are configured, you may be required to use the password you create.
-
-### Environments
-
-For the Learning Observer workshop, please use the Docker Compose environment.
-
-#### Local environment
-
-Make sure you are on a fresh virtual environment, then run the install command
-
-```bash
-mkvirtualenv lo_workshop
-make install
-```
-
-To run the system, use the run command
+Once all the dependencies are installed and configuration is taken care of, you can continue with running the Learning Observer platform
 
 ```bash
 make run
 ```
 
-#### Docker
+## Build your own module
+
+### Create from template
+
+We provide a cookiecutter template for creating new modules for the Learning Observer. If you are using Docker, just create a local virtual environment to run this command. To create one run,
+
+```bash
+cd modules/
+cookiecutter lo_template_module/
+```
+
+Cookiecutter will prompt you for naming information and create a new module in the `modules/` directory.
+
+### Installing
+
+To install the newly created project, use `pip` like any other Python package.
+
+```bash
+pip install -e modules/learning_observer_template/  # -e installs in develop mode so changes are reflected in the package immediately
+```
+
+## Streaming Data
+
+We can stream data into the system to simulate a classroom of students working. Once Learning Observer is up and running, run
+
+```bash
+python learning_observer/util/stream_writing --fake-name --url=localhost:8888 --streams=10
+```
+
+This will generate events for 10 students typing a set of loremipsum texts and send them to `localhost:8888`. As students appear on Learning Observer, they will automatically be included in the overall classroom.
+
+## Docker
+
+This section details what is needed for using installing the system with Docker.
+
+This has been tested with Docker versions [`26.1`].
+
+### Dockerfile
 
 We also support spinning up a Docker container. First build the Docker image, then run it
 
 ```bash
-docker build -t lo_workshop .   # build the root directory
+docker build -t lo_workshop .   # build the root directory and tag it (-t) as `lo_workshop`
 docker run -it -p 8888:8888 lo_workshop      # -it attaches a terminal, -p attaches local port 8888 to dockers 8888 port
 ```
 
 Note that building a docker image may take a few minutes.
 
-#### Docker Compose
+### Docker compose
 
-Docker compose can manage both the normal Dockerfile and an instance of Redis. To both build and turn them on, run
+Docker compose can manage both the normal Dockerfile and an instance of Redis. Docker compose will serve Redis at hostname `redis`. Make sure to modify `creds.yaml` with the updated hostname before continuing.
+
+To both build and turn them on, run
 
 ```bash
 docker compose up --build
@@ -132,29 +171,9 @@ run:
     cd learning_observer && python learning_observer --watchdog=restart
 ```
 
-## Build your own module
+### Installing additional modules
 
-### Create from template
-
-We provide a cookiecutter template for creating new modules for the Learning Observer. If you are using Docker, just create a local virtual environment to run this command. To create one run,
-
-```bash
-pip install cookiecutter
-cd modules/
-cookiecutter lo_template_module/
-```
-
-Cookiecutter will prompt you for naming information and create a new module in the `modules/` directory.
-
-### Installing
-
-To install the newly created project, use `pip` like any other Python package.
-
-```bash
-pip install -e modules/learning_observer_template/
-```
-
-If you are running the system with Docker and doing development, you should add the module install to the `make run` command.
+If you wish to install additional modules and continue doing development, you should add the module install to the `make run` command.
 
 ```Makefile
 run:
@@ -163,14 +182,10 @@ run:
     cd learning_observer && python learning_observer --watchdog=restart
 ```
 
-## Streaming Data
+## Common errors
 
-We can stream data into the system to simulate a classroom of students working. Once the system is up and running, run
+Here are a list of common errors encountered while setting up the system.
 
-```bash
-python learning_observer/util/stream_writing --fake-name --url=localhost:8888 --streams=10
-```
-
-This will generate events for 10 students typing a set of loremipsum texts and send them to `localhost:8888`.
-
-This does not have to be done in the same virtual environment as the main server. If you are using Docker, just create a local virtual environment to run this command.
+- Your system firewall settings may block you from communicating with specific ports
+- Older versions of Docker may use different syntax
+- If your Redis instance requires a password, include it in `creds.yaml` and uncomment the password parameter line in the `learning_obersver/redis_connection.py` file. There is a bug regarding defaults in the settings package, `pmss`.
