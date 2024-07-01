@@ -233,6 +233,8 @@ class FilesystemKVS(_KVS):
         '''
         self.path = path or learning_observer.paths.data('kvs')
         self.subdirs = subdirs
+        if not os.path.exists(path):
+            os.mkdir(path)
 
     def key_to_safe_filename(self, key):
         '''
@@ -249,22 +251,22 @@ class FilesystemKVS(_KVS):
         return os.path.join(self.path, safename)
 
     def safe_filename_to_key(self, filename):
-        raise NotImplementedError("Code this up, please. Or for debugging, comment out the exception")
-        return filename
+        # raise NotImplementedError("Code this up, please. Or for debugging, comment out the exception")
+        return learning_observer.util.from_safe_filename(filename)
 
     async def __getitem__(self, key):
         path = self.key_to_safe_filename(key)
         if not os.path.exists(path):
             return None
         with open(path) as f:
-            return f.read()
+            return json.load(f)
 
     async def set(self, key, value):
         path = self.key_to_safe_filename(key)
         if self.subdirs:
             os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as f:
-            f.write(value)
+            json.dump(value, f, indent=4)
 
     async def __delitem__(self, key):
         path = self.key_to_safe_filename(key)
@@ -275,13 +277,15 @@ class FilesystemKVS(_KVS):
         This one is a little bit tricky, since if subdirs, we need to do a full
         walk
         '''
+        keys = []
         if self.subdirs:
             for root, dirs, files in os.walk(self.path):
                 for f in files:
-                    yield self.safe_filename_to_key(os.path.join(root, f).replace(os.sep, '/'))
+                    keys.append(self.safe_filename_to_key(os.path.join(root, f).replace(os.sep, '/')))
         else:
             for f in os.listdir(self.path):
-                yield self.safe_filename_to_key(f)
+                keys.append(self.safe_filename_to_key(f))
+        return keys
 
 
 # TODO change the keys to variables

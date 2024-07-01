@@ -27,15 +27,15 @@ Overview:
     extension log events.
 '''
 
-import asyncio
-import json
-import sys
-
 import aiohttp
+import asyncio
 import docopt
-
+import json
 import loremipsum
 import names
+import random
+import sys
+
 
 ARGS = docopt.docopt(__doc__)
 print(ARGS)
@@ -93,6 +93,11 @@ def argument_list(argument, default):
         sys.exit(-1)
     return list_string
 
+# TODO what is `source_files` supposed to be?
+# when running this script for the workshop, we should either
+#  1) move gpt3 texts out of writing observer (dependency hell) OR
+#  2) avoid using `--gpt3` parameter and use loremipsum instead
+source_files = None
 
 if ARGS["--gpt3"] is not None:
     import writing_observer.sample_essays
@@ -185,7 +190,7 @@ async def stream_document(text, ici, user, doc_id):
                     for char, index in zip(text, range(len(text))):
                         command = insert(index + 1, char, doc_id)
                         await web_socket.send_str(json.dumps(command))
-                        await asyncio.sleep(float(ici))
+                        await asyncio.sleep(random.gauss(mu=float(ici), sigma=1))
             done = True
         except aiohttp.client_exceptions.ClientConnectorError:
             print("Failed to connect on " + url)

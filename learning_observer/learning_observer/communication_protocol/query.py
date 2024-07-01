@@ -17,6 +17,7 @@ This file is intended to be imported in diverse contexts, including ones
 where we don't want all of the machinery of the Learning Observer, so also
 note the lack of dependencies.
 '''
+import enum
 
 dispatch = "dispatch"
 
@@ -64,6 +65,11 @@ def call(function_name):
         }
     setattr(caller, "__lo_name__", function_name)
     return caller
+
+
+class SelectFields(str, enum.Enum):
+    Missing = 'Missing'
+    All = 'All'
 
 
 def select(keys, fields=None):

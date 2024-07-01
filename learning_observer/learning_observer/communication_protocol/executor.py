@@ -7,7 +7,6 @@ The executor processes the `execution_dag` portion of our request.
 import asyncio
 import collections
 import concurrent.futures
-import enum
 import functools
 import inspect
 
@@ -380,13 +379,8 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     return output
 
 
-class SelectFields(enum.Enum):
-    Missing = 'Missing'
-    All = 'All'
-
-
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
-async def handle_select(keys, fields=SelectFields.Missing):
+async def handle_select(keys, fields=learning_observer.communication_protocol.query.SelectFields.Missing):
     """
     We dispatch this function whenever we process a DISPATCH_MODES.SELECT node.
     This function is used to select data from a kvs. The data being selected
@@ -403,7 +397,7 @@ async def handle_select(keys, fields=SelectFields.Missing):
     TODO add in test cases once we pass kvs as a parameter
     """
     fields_to_keep = fields
-    if fields is None or fields == SelectFields.Missing.value:
+    if fields is None or fields == learning_observer.communication_protocol.query.SelectFields.Missing:
         fields_to_keep = {}
 
     response = []
@@ -428,7 +422,7 @@ async def handle_select(keys, fields=SelectFields.Missing):
             resulting_value = k['default']
 
         # keep all current fields except for provenance (already prepared)
-        if fields == SelectFields.All.value:
+        if fields == learning_observer.communication_protocol.query.SelectFields.All:
             fields_to_keep = {k: k for k in resulting_value.keys() if k != 'provenance'}
 
         for f in fields_to_keep:
