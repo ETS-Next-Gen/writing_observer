@@ -23,8 +23,8 @@ pmss.register_field(
 pmss.register_field(
     name='redis_port',
     type=pmss.pmsstypes.TYPES.port,
-    description='Determine the port for the redis_connection. Defaults to 6389.',
-    default=6389
+    description='Determine the port for the redis_connection. Defaults to 6379.',
+    default=6379
 )
 pmss.register_field(
     name='redis_password',
