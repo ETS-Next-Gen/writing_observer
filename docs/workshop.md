@@ -17,9 +17,9 @@ We suggest having at least 2 terminals ready for this workshop. The first termin
 Prerequisites:
 
 * Unix-style system
-  * Ubuntu is most tested)
+  * Ubuntu is most tested
   * MacOS should work as well, but is less tested
-  * Windows should work with WSL, but you'll need to [install it beforehand](https://learn.microsoft.com/en-us/windows/wsl/install).
+  * Windows should work with WSL, but you'll need to [install it beforehand](wsl-install.md).
 * `python 3`. We tested and recommend 3.10, but anything newer than 3.9 should work
 
 Recommendations:
