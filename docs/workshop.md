@@ -66,9 +66,9 @@ instead
 
 NOTE: All future commands should be ran starting from the repository's root directory. The command will specify if changing directories is needed.
 
-## Install
+## Local environment
 
-Make sure you are on the virtual environment, then run the install command:
+Make sure you are on a fresh virtual environment (e.g. `mkvirtualenv lo_workshop`), then run the install command:
 
 ```bash
 make install
@@ -90,7 +90,13 @@ You're welcome to run the `learning observer` between changes. In most cases, it
 cp learning_observer/learning_observer/creds.yaml.example learning_observer/creds.yaml
 ```
 
-Edit this file (e.g. `emacs learning_observer/creds.yaml`). For this workshop, we will disable Google authentication, and allow us to use the system with no authentication:
+Edit this file (e.g. `emacs learning_observer/creds.yaml`).
+
+#### User Authentication
+
+As a research platform, the Learning Observer supports many authentication schemes, since it's designed for anything from small cognitive labs and user studies (with no log-in) to large-scale school deployments (e.g. integrating with Google Classroom). This is pluggable.
+
+For this workshop, we will disable Google authentication, and set the system up so we can use it with with no authentication:
 
 ```yaml
 auth:
@@ -102,6 +108,19 @@ auth:
     test_case_insecure: true
 ```
 
+#### Event authentication
+
+Learning event authentication is seperate from user authentication. We also have multiple schemes for this, but for testing and development, we will run without authentication.
+
+```
+# Allow all incoming events
+event_auth:
+    # ...
+    testcase_auth: {}
+```
+
+#### Session management
+
 Session management requires a unique key for the system. Type in anything (just make it complex enough):
 
 ```
@@ -109,16 +128,17 @@ Session management requires a unique key for the system. Type in anything (just 
 aio:
     session_secret: asupersecretsessionkeychosenbyyou
     session_max_age: 3600
+```
 
+Pro tip: If you start the system missing a command like this, it will usually tell you what's wrong and how to fix it (in the above case, generating a secure GUID to use as your session secret).
+
+#### KVS
+
+```
 # If you are using Docker compose, you should change the redis host to
 redis_connection:
   redis_host: redis
   redis_port: 6379
-
-# Allow all incoming events
-event_auth:
-    # ...
-    testcase_auth: {}
 ```
 
 ### admins.yaml & teachers.yaml
@@ -136,14 +156,7 @@ python util/lo_passwd.py --username admin --password supersecureadminpassword --
 
 Depending on how the `creds.yaml` authorization settings are configured, you may be required to use the password you create.
 
-### Local environment
-
-Make sure you are on a fresh virtual environment, then run the install command
-
-```bash
-mkvirtualenv lo_workshop
-make install
-```
+## Test the system
 
 To run the system, use the run command
 
