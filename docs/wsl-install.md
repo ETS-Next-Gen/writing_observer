@@ -7,5 +7,5 @@ Once installed, run:
 
 ```bash
 sudo apt-get update
-sudo apt-get install python3-pip python3-virtualenvwrapper
+sudo apt-get install python3-pip python3-virtualenvwrapper git
 ```

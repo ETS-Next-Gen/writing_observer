@@ -43,15 +43,15 @@ We recommend working in a Python environment of some sort. Our preferred tool is
 
 1) Install `virtualenvwrapper` (e.g. `pip install virtualenvwrapper`, `apt-get install python3-virtualenvwrapper`, etc.)
 
-2) Run it:
+2) Run it. For one installed with `apt-get`, it will most likely be in `/usr/share/virtualenvwrapper/`. For `pip`, it is often in `~/.local/bin` (and you might need to run `export PATH=~/.local/bin:$PATH`).
 
 ```bash
 export WORKON_HOME=$HOME/.virtualenvs
 VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
-. /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+. /usr/share/virtualenvwrapper/virtualenvwrapper.sh # Note the dot! It's important.
 ```
 
-(Most people have the above in their `.bashrc`)
+Most people have the above in their `.bashrc`, so it runs every time.
 
 ## Download
 
