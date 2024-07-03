@@ -6,5 +6,6 @@ Microsoft has instructions for installing [WSL](https://learn.microsoft.com/en-u
 Once installed, run:
 
 ```bash
-apt-get install [COLLIN]
+sudo apt-get update
+sudo apt-get install python3-pip python3-virtualenvwrapper
 ```
