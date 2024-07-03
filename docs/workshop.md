@@ -58,20 +58,16 @@ First make sure you clone the repository:
 git clone https://github.com/ETS-Next-Gen/writing_observer.git lo_workshop
 ```
 
-**or**
+**or**, if you have a github account properly configured with ssh:
 
 ```bash
-`git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop`
+git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop
 ```
 
 ```bash
 cd lo_workshop/
 git checkout berickson/workshop # TODO remove this when this branch gets merged in
 ```
-
-If you have a github account set up with ssh keys (you should!):
-
-instead
 
 NOTE: All future commands should be ran starting from the repository's root directory. The command will specify if changing directories is needed.
 
