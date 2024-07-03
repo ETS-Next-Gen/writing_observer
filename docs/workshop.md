@@ -28,7 +28,7 @@ Recommendations:
 
 Options:
 
-* `redis`. We need a key-value store. However, if you don't have this, we can use files on the file system or in-memory. If you use `docker compose`, it will spin this up for you. Beyond this workshop, we strongly recommend using a `redis` (the recommended `redis` is [ValKey](https://en.wikipedia.org/wiki/Valkey)
+* `redis`. We need a key-value store. However, if you don't have this, we can use files on the file system or in-memory. If you use `docker compose`, it will spin this up for you. Beyond this workshop, we strongly recommend using a `redis` (the recommended `redis` going forward is [ValKey](https://en.wikipedia.org/wiki/Valkey), as opposed to redis proprietary)
 * `docker`. We're not big fans of `docker` for this type of work, so this pathway is less tested. However, by popularity, we do provide a `docker` option. We tested with docker 26.1. You should only use this if you're fluent in `docker`, since you'll probably need to tweak instructions slightly (especially if you're not on 26.1).
 
 If you'd like to use `docker`, we have a quick [tutorial](docker.md).
