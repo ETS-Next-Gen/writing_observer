@@ -28,11 +28,11 @@ Options:
 
 * `docker`. We're not big fans of `docker` for this type of work, so this pathway is less tested. However, by popularity, we do provide a `docker` option. We tested with docker 26.1. You should only use this if you're fluent in `docker`, since you'll probably need to tweak instructions slightly (especially if you're not on 26.1).
 
-If you'd like to use `docker`, we have a quick [docker.md](tutorial).
+If you'd like to use `docker`, we have a quick [tutorial](docker.md).
 
 If you can install the prerequisites before the workshop, it will save a lot of time, and not put us at risk of issues due to hotel bandwidth.
 
-We have a document with a more in-depth overview of the [technologies.md](technologies) we use.
+We have a document with a more in-depth overview of the [technologies](technologies.md) we use.
 
 ### Python environment
 
@@ -56,12 +56,21 @@ First make sure you clone the repository:
 
 ```bash
 git clone https://github.com/ETS-Next-Gen/writing_observer.git lo_workshop
+```
+
+**or**
+
+```bash
+`git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop`
+```
+
+```bash
 cd lo_workshop/
 git checkout berickson/workshop # TODO remove this when this branch gets merged in
 ```
 
 If you have a github account set up with ssh keys (you should!):
-`git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop`
+
 instead
 
 NOTE: All future commands should be ran starting from the repository's root directory. The command will specify if changing directories is needed.
