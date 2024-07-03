@@ -51,6 +51,8 @@ VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
 . /usr/share/virtualenvwrapper/virtualenvwrapper.sh # Note the dot! It's important.
 ```
 
+NOTE: MacOS might use a different default path for Python. Adjust above commands based on the output of `which python3`.
+
 Most people have the above in their `.bashrc`, so it runs every time.
 
 To set a terminal to an already existing environment, use `workon nameofenv`.
