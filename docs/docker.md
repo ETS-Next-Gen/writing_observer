@@ -1,4 +1,6 @@
-#### Docker
+# Docker setup
+
+## Docker
 
 We also support spinning up a Docker container. First build the Docker image, then run it
 
@@ -9,7 +11,7 @@ docker run -it -p 8888:8888 lo_workshop      # -it attaches a terminal, -p attac
 
 Note that building a docker image may take a few minutes.
 
-#### Docker Compose
+## Docker Compose
 
 Docker compose can manage both the normal Dockerfile and an instance of Redis. To both build and turn them on, run
 
@@ -27,5 +29,16 @@ Watchdog will automatically re-run the command used to run application, `make ru
 ```Makefile
 run:
     pip install -e learning_observer/
+    cd learning_observer && python learning_observer --watchdog=restart
+```
+
+## Active development
+
+We can add commands to re-install our local instances of the packages in Docker. This will allow us to do active development while the docker is running.
+
+```Makefile
+run:
+    pip install -e learning_observer/
+    pip install -e modules/learning_observer_template/
     cd learning_observer && python learning_observer --watchdog=restart
 ```

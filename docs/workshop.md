@@ -12,7 +12,7 @@ We recommend working in groups of three. This way:
 * You can help each other
 * At least one person will (hopefully) have a working machine
 
-We suggest having at least 2 terminals ready for this workshop. The first terminal will be for installing and running the system, while the second will be any additional scripts to need to run.
+We suggest having at least **2 terminals** ready for this workshop. The first terminal will be for installing and running the system, while the second will be any additional scripts to need to run.
 
 Prerequisites:
 
@@ -20,7 +20,7 @@ Prerequisites:
   * Ubuntu is most tested
   * MacOS should work as well, but is less tested
   * Windows should work with WSL, but you'll need to [install it beforehand](wsl-install.md).
-* `python 3`. We tested and recommend 3.10, but anything newer than 3.9 should work
+* `python 3`. We tested and recommend 3.10 and 3.11, but anything newer than 3.9 should work
 
 Recommendations:
 
@@ -52,6 +52,8 @@ VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
 ```
 
 Most people have the above in their `.bashrc`, so it runs every time.
+
+To set a terminal to an already existing environment, use `workon nameofenv`.
 
 ## Download
 
@@ -111,6 +113,8 @@ To run the system, use the run command
 make run
 ```
 
+The first time the system is ran it expects to find both an `admins.yaml` and `teachers.yaml` file. These files define the roles for teachers and admins on the system; however, we are using an insecure login (defined in `creds.yaml`) and foregoing looking for an id in these files. If either of these files are not found on the system, Learning Observer will create the file for you and exit.
+
 ## Build your own module
 
 ### Create from template
@@ -118,7 +122,6 @@ make run
 We provide a cookiecutter template for creating new modules for the Learning Observer. If you are using Docker, just create a local virtual environment to run this command. To create one run,
 
 ```bash
-pip install cookiecutter
 cd modules/
 cookiecutter lo_template_module/
 ```
@@ -130,26 +133,18 @@ Cookiecutter will prompt you for naming information and create a new module in t
 To install the newly created project, use `pip` like any other Python package.
 
 ```bash
-pip install -e modules/learning_observer_template/
-```
-
-If you are running the system with Docker and doing development, you should add the module install to the `make run` command.
-
-```Makefile
-run:
-    pip install -e learning_observer/
-    pip install -e modules/learning_observer_template/
-    cd learning_observer && python learning_observer --watchdog=restart
+pip install -e learning_observer_template/
 ```
 
 ## Streaming Data
 
-We can stream data into the system to simulate a classroom of students working. Once the system is up and running, run
+We can stream data into the system to simulate a classroom of students working. Once the system is up and running, open **a new terminal** and run
 
 ```bash
-python learning_observer/util/stream_writing --fake-name --url=localhost:8888 --streams=10
+workon lo_workshop
+python learning_observer/util/stream_writing.py --streams=10
 ```
 
-This will generate events for 10 students typing a set of loremipsum texts and send them to `localhost:8888`.
+This will generate events for 10 students typing a set of loremipsum texts and send them to the story.
 
 This does not have to be done in the same virtual environment as the main server. If you are using Docker, just create a local virtual environment to run this command.

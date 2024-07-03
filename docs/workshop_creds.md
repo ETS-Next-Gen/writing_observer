@@ -8,12 +8,6 @@ You're welcome to run the `learning observer` between changes. In most cases, it
 cp learning_observer/learning_observer/creds.yaml.workshop learning_observer/creds.yaml
 ```
 
-# TODO I WANT TO REMOVE THE REST OF THIS CREDS STUFF!!
-
-move this stuff to a new file and copy in what piotr sent
-
-Edit this file (e.g. `emacs learning_observer/creds.yaml`).
-
 #### User Authentication
 
 As a research platform, the Learning Observer supports many authentication schemes, since it's designed for anything from small cognitive labs and user studies (with no log-in) to large-scale school deployments (e.g. integrating with Google Classroom). This is pluggable.
@@ -34,7 +28,7 @@ auth:
 
 Learning event authentication is seperate from user authentication. We also have multiple schemes for this, but for testing and development, we will run without authentication.
 
-```
+```yaml
 # Allow all incoming events
 event_auth:
     # ...
@@ -45,7 +39,7 @@ event_auth:
 
 Session management requires a unique key for the system. Type in anything (just make it complex enough):
 
-```
+```yaml
 # update session information
 aio:
     session_secret: asupersecretsessionkeychosenbyyou
@@ -56,7 +50,7 @@ Pro tip: If you start the system missing a command like this, it will usually te
 
 #### KVS
 
-```
+```yaml
 # If you are using Docker compose, you should change the redis host to
 redis_connection:
   redis_host: redis
