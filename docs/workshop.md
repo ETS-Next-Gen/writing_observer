@@ -101,6 +101,8 @@ Copy the workshop `creds.yaml` file:
 cp learning_observer/learning_observer/creds.yaml.workshop learning_observer/creds.yaml
 ```
 
+If you have a file comparison tool like `meld`, it might be worth comparing our changes: `meld learning_observer/creds.yaml learning_observer/learning_observer/creds.yaml.example`
+
 ## Test the system
 
 To run the system, use the run command
@@ -109,7 +111,13 @@ To run the system, use the run command
 make run
 ```
 
-The first time the system is ran it expects to find both an `admins.yaml` and `teachers.yaml` file. These files define the roles for teachers and admins on the system; however, we are using an insecure login (defined in `creds.yaml`) and foregoing looking for an id in these files. If either of these files are not found on the system, Learning Observer will create the file for you and exit.
+*This does a lot of sanity checks on startup, and won't work the first time.* Rather, it will download required files, and create a file files (like `admins.yaml` and `teachers.yaml`, which are one way to define roles for teachers and admins on the system, but which we won't need for this workshop since we are using an insecure login). Once it is done, it will give you an opportunity to check whether it fixed issues correctly. It did, so just run it again:
+
+```bash
+make run
+```
+
+You should be able to navigate to either `http://localhost:8888/`, `http://0.0.0.0:8888/`, or `http://127.0.0.1:8888/`, depending on your operating system, and see a list of courses and analytics modules. None are installed. We'll build one next!
 
 ## Build your own module
 
