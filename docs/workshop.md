@@ -39,9 +39,9 @@ We have a document with a more in-depth overview of the [technologies](technolog
 
 ### Python environment
 
-We recommend working in a Python environment of some sort. Our preferred tool is [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/). You are welcome to use your own (`anaconda`, or as you prefer).
+We recommend working in a Python environment of some sort. Our preferred tool is [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/). You are welcome to use your own (`anaconda`, or as you prefer). `virtualenvwrapper` lets you manage packages and dependencies without making a mess on your computer. 
 
-If you would like to use `virtualenvwrapper`, but don't have it set up, we have a [short guide](workshop-virtualenv.md).
+If you don't have a way of managing Python virtual environments, or would prefer to use `virtualenvwrapper`, we have a [short guide](workshop-virtualenv.md). *We strongly recommend working in some virtual environment, however*. 
 
 ## Download
 
