@@ -66,11 +66,19 @@ NOTE: All future commands should be ran starting from the repository's root dire
 
 ## Local environment
 
-Make sure you are on a fresh virtual environment (e.g. `mkvirtualenv lo_workshop`), then run the install command:
+Make sure you are on a fresh virtual environment. In `virtualenvwrapper`:
+
+```bash
+mkvirtualenv lo_workshop
+workon lo_workshop```
+
+Then run the install command:
 
 ```bash
 make install
 ```
+
+This will download required backpages. This might take a while, depending on hotel bandwidth.
 
 ## Configuration
 
