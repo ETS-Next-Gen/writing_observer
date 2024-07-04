@@ -12,6 +12,9 @@ kvs:
   default:
     type: filesystem
     path: .lo_kvs
+  memoization:
+    type: stub
+
 event_auth: 
   testcase_auth: {}
 theme:
