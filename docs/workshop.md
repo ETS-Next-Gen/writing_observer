@@ -39,23 +39,9 @@ We have a document with a more in-depth overview of the [technologies](technolog
 
 ### Python environment
 
-We recommend working in a Python environment of some sort. Our preferred tool is [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/). You are welcome to use your own (`anaconda`, or as you prefer), but the steps are:
+We recommend working in a Python environment of some sort. Our preferred tool is [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/). You are welcome to use your own (`anaconda`, or as you prefer).
 
-1) Install `virtualenvwrapper` (e.g. `pip install virtualenvwrapper`, `apt-get install python3-virtualenvwrapper`, etc.)
-
-2) Run it. For one installed with `apt-get`, it will most likely be in `/usr/share/virtualenvwrapper/`. For `pip`, it is often in `~/.local/bin` (and you might need to run `export PATH=~/.local/bin:$PATH`).
-
-```bash
-export WORKON_HOME=$HOME/.virtualenvs
-VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
-. /usr/share/virtualenvwrapper/virtualenvwrapper.sh # Note the dot! It's important.
-```
-
-NOTE: MacOS might use a different default path for Python. Adjust above commands based on the output of `which python3`.
-
-Most people have the above in their `.bashrc`, so it runs every time.
-
-To set a terminal to an already existing environment, use `workon nameofenv`.
+If you would like to use `virtualenvwrapper`, but don't have it set up, we have a [short guide](workshop-virtualenv.md).
 
 ## Download
 
@@ -73,7 +59,7 @@ git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop
 
 ```bash
 cd lo_workshop/
-git checkout berickson/workshop # TODO remove this when this branch gets merged in
+git checkout berickson/workshop # This is a branch we set up with some extra things for this workshop!
 ```
 
 NOTE: All future commands should be ran starting from the repository's root directory. The command will specify if changing directories is needed.
