@@ -137,8 +137,10 @@ Cookiecutter will prompt you for naming information and create a new module in t
 To install the newly created project, use `pip` like any other Python package.
 
 ```bash
-pip install -e learning_observer_template/
+pip install -e [name of your module]
 ```
+
+Reload your web page, and you will see the new module. Click on it.
 
 ## Streaming Data
 
@@ -149,6 +151,163 @@ workon lo_workshop
 python learning_observer/util/stream_writing.py --streams=10
 ```
 
-This will generate events for 10 students typing a set of loremipsum texts and send them to the story.
+To avoid cache issues, we recommend this order:
 
-This does not have to be done in the same virtual environment as the main server. If you are using Docker, just create a local virtual environment to run this command.
+* Restart your server
+* Run the above command
+* Load the dashboard
+
+This will generate events for 10 students typing a set of loremipsum texts and send them to the server. This will send event mimicking those from our Google Docs extension. You should see an event count in the template dashboard.
+
+## Event Format
+
+You can look at the format of these specific events in the `/learning_observer/learning_observer/logs/` directory. In the test system, we simply put events into log files, but we are gradually moving towards a more sophisticated, open-science, family-rights oriented data store (shown at the bottom of [this document](system_design.md).
+
+There are several good standards for [event formats](events.md), and to integrate learning data, we will need to support them all. Most of these have converged on a line of JSON per event, but the specifics are format-specific. We are including [some code](https://github.com/ETS-Next-Gen/writing_observer/blob/master/modules/lo_event/lo_event/xapi.cjs) to help support the major ones. However, the events here are somewhat bound to how Google Docs thinks about documents.
+
+## module.py
+
+Have a quick look at the `module.py` file. This defines:
+
+1. A set of reducers to run over event streams. These process data as it comes in. The context tells the system which types of events the reducers handle.
+2. A set of queries for that data. These define calls dashboards can make into the system
+3. A set of dashboards. `DASH_PAGES` are visible pages, and `COURSE_DASHBOARDS` will typically select a subset of those to show to teachers when they log in.
+
+## reducers.py
+
+Have a look at the `reducers.py` file. We define a simple reducer which simply counts events:
+
+```python
+@student_event_reducer(null_state={"count": 0})
+async def student_event_counter(event, internal_state):
+    '''
+    An example of a per-student event counter
+    '''
+    state = {"count": internal_state.get('count', 0) + 1}
+
+    return state, state
+```
+
+This function takes an event and updates a state. We will expand this in order to measure the median interval between the past 10 edits. This can be a poorman's estimate of typing speed. The function returns two parameters, one is an internal state (which might be a list of the timestamps of the past 10 events), and one is used for the dashboard (which might be the median value). We're planning to eliminate this in the future, though, and just have one state, so that's what we'll do here:
+
+```python
+import numpy
+
+from learning_observer.stream_analytics.helpers import student_event_reducer
+
+def median_interval(timestamps):
+    if len(timestamps) < 2:
+        return None
+
+    deltas = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
+    deltas.sort()
+    return int(numpy.median(deltas))
+
+
+@student_event_reducer(null_state={"count": 0})
+async def student_event_counter(event, internal_state):
+    '''
+    An example of a per-student event counter
+    '''
+    timestamp = event['client'].get('timestamp', None)
+    count = internal_state.get('count', 0) + 1
+
+    if timestamp is not None:
+        ts = internal_state.get('timestamps', [])
+        ts = ts + [timestamp]
+        if len(ts) > 10:
+            ts = ts[1:]
+    else:
+        ts = internal_state.get('timestamps', [])
+
+    state = {
+        "count": count,
+        "timestamps": ts,  # We used to put this in internal_state
+        "median_interval": median_interval(ts)  # And this in external_state
+    }
+
+    return state, state
+```
+
+Now, we have a typing speed estimator! It does not yet show up in the dashboard.
+
+## Queries and communications protocol
+
+In our first version of this system, we would simply compile the state for all the students, and ship that to the dashboard. However, that didn't allow us to make interactive dashboards, so we created a query language. This is inspired by SQL (with JOIN and friends), but designed for streaming data. It can be written in Python or, soon, JavaScript, which compile queries to an XML object.
+
+In `module.py`, you see this line:
+
+```python
+EXECUTION_DAG = learning_observer.communication_protocol.util.generate_base_dag_for_student_reducer('student_event_counter', 'my_event_module')
+```
+
+This is shorthand for a common query which JOINs the class roster with the output of the reducers. The Python code for the query itself is [here](https://github.com/ETS-Next-Gen/writing_observer/blob/berickson/workshop/learning_observer/learning_observer/communication_protocol/util.py#L58), but the jist of the code is:
+
+```python
+'roster': course_roster(runtime=q.parameter('runtime'), course_id=q.parameter("course_id", required=True)),
+keys_node: q.keys(f'{module}.{reducer}', STUDENTS=q.variable('roster'), STUDENTS_path='user_id'),
+select_node: q.select(q.variable(keys_node), fields=q.SelectFields.All),
+join_node: q.join(LEFT=q.variable(select_node), RIGHT=q.variable('roster'), LEFT_ON='provenance.provenance.value.user_id', RIGHT_ON='user_id')
+```
+
+You can add a `print(EXECUTION_DAG)` statement to see the JSON representation this compiles to.
+
+To see the data protocol, open up develop tools from your browser, click on network, and see the `communication_protocol` response. 
+
+In the interests of time, we won't do a deep dive here, but this is our third iteration at a query language, and we would love feedback on how to make this better.
+
+## Dashboard framework
+
+For creating simple dashboards, we use [dash](https://dash.plotly.com/) and [plotly](https://plotly.com/python/).
+
+* These are rather simple Python frameworks for making plots and dashboards.
+* Unfortunately, the code in the template module is still a bit complex. We're working to simplify it, but we're not there yet.
+
+We'd suggest skimming a few example [visualizations](https://plotly.com/python/pie-charts/) to get a sense of what they do.
+
+For now, though, all we want to do is add the intercharacter interval to our dashboard. Modify `dash_dashboard.py` to add a span for it:
+
+```python
+        html.Span(f' - {s["count"]} events'),
+        html.Span(f' - {s.get("median_interval", 0)} ICI')
+```
+
+You should be able to see the intercharacter interval in a new span.
+
+## Commit your changes
+
+To avoid losing work, we recommend committing your changes now (and periodically there-after):
+
+```bash
+git add [directory of your module]
+git commit -a -m "My changes"
+```
+
+## react
+
+Behind the scenes, `dash` uses `react`, and if we want to go beyond what we can do with `plotly` and `dash`, fortunately, it's easy enough to build components directly in `react`. To see how these are build:
+
+```bash
+cd modules/lo_dash_react_components/
+ls src/lib/components
+```
+
+And have a look at `LONameTag`. This component is used to show a student name with either a photo (if available in their profile) or initials (if not), and is used in the simple template dashboard. We have a broad array of components here, including:
+
+- Various ways of visualizing what students know and can do. My favorite is a Vygotskian-style display which places concepts as either mastered, in the zone of proximal development (students can understand with supports), and ones students can't do at all
+- Various tables and cards of student data
+- Various ways of visualizing course content
+
+We have many more not committed.
+
+Getting this up-and-running can be a little bit bandwidth-intensive, since these are developed with `node.js`, but in most cases, it is sufficent to run:
+
+```bash
+npm install
+npm run-script react-start
+```
+
+And then navigate to `http://localhost:3000`.
+
+Once set up, the development workflow here is rather fast, since the UX updates on code changes.
+
