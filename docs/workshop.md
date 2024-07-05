@@ -311,3 +311,12 @@ And then navigate to `http://localhost:3000`.
 
 Once set up, the development workflow here is rather fast, since the UX updates on code changes.
 
+## Better data sources: `lo_event` and `lo_assess`
+
+### `lo_event`
+
+Our data streaming library is [lo_event](https://github.com/ETS-Next-Gen/writing_observer/tree/master/modules/lo_event). This library is designed to stream events (typically) from a JavaScript client, and handles all of the complexity of things like persistance, queuing, and retries for you. Cookiecutter cde, but it should save you a bunch of time.
+
+### `lo_assess`
+
+Much more interesting, in development is [`lo_assess`](https://github.com/ETS-Next-Gen/writing_observer/tree/pmitros/loevent-v2/modules/lo_event/lo_event/lo_assess). 
