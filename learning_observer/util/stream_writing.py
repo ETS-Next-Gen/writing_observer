@@ -35,6 +35,7 @@ import loremipsum
 import names
 import random
 import sys
+import time
 
 
 ARGS = docopt.docopt(__doc__)
@@ -135,6 +136,9 @@ assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
 assert len(USERS) == STREAMS, "len(users) != STREAMS."
 assert len(DOC_IDS) == STREAMS, "len(document IDs) != STREAMS."
 
+def current_millis():
+    return round(time.time() * 1000)
+
 
 def insert(index, text, doc_id):
     '''
@@ -147,7 +151,8 @@ def insert(index, text, doc_id):
         "event": "google_docs_save",
         "source": "org.mitros.writing_analytics",
         "doc_id": doc_id,
-        "origin": "stream_test_script"
+        "origin": "stream_test_script",
+        "timestamp": current_millis()
     }
 
 
