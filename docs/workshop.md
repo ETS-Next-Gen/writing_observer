@@ -283,7 +283,7 @@ git add [directory of your module]
 git commit -a -m "My changes"
 ```
 
-## react
+## `react` dashboards
 
 Behind the scenes, `dash` uses `react`, and if we want to go beyond what we can do with `plotly` and `dash`, fortunately, it's easy enough to build components directly in `react`. To see how these are build:
 
@@ -300,16 +300,17 @@ And have a look at `LONameTag`. This component is used to show a student name wi
 
 We have many more not committed.
 
-Getting this up-and-running can be a little bit bandwidth-intensive, since these are developed with `node.js`, but in most cases, it is sufficent to run:
+Getting this up-and-running can be a little bit bandwidth-intensive (since these are developed with `node.js`), but if hotel bandwidth suffices, in most cases, it is sufficent to run:
 
 ```bash
 npm install
+npm run build-css
 npm run-script react-start
 ```
 
-And then navigate to `http://localhost:3000`.
+And then navigate to `http://localhost:3000`. *NOTE: The default URL is different. Ignore it.* If there is a lint error, ignore it as well. 
 
-Once set up, the development workflow here is rather fast, since the UX updates on code changes.
+Once set up, the development workflow here is rather fast, since the UX updates on code changes. Most of these are either early prototypes or designed to be used in specific contexts, but `LOStudentTable` and `ZPDPlot` look nice. So does `DAProblemDisplay`, if you scroll way down.
 
 ## Better data sources: `lo_event` and `lo_assess`
 
@@ -319,4 +320,18 @@ Our data streaming library is [lo_event](https://github.com/ETS-Next-Gen/writing
 
 ### `lo_assess`
 
-Much more interesting, in development is [`lo_assess`](https://github.com/ETS-Next-Gen/writing_observer/tree/pmitros/loevent-v2/modules/lo_event/lo_event/lo_assess). 
+Much more interesting, in development (and probably in need of renaming) is [`lo_assess`](https://github.com/ETS-Next-Gen/writing_observer/tree/pmitros/loevent-v2/modules/lo_event/lo_event/lo_assess).
+
+## `pmss`
+
+We are creating a new settings format, based on css. This is called `pmss`. It works pretty well already. The basic idea is, like CSS, that we would like to be able to cascade settings. The core problem is that, like CSS, we want well-specified exceptions:
+
+* "Our key-value store is local redis, except for schools in Australia, where our key-value store is hosted in Australia, to comply with local law"
+* "We would like student rosters at JHS to come from Google Classroom, except for afterschool programs, which come from files on disk"
+
+CSS gives a well-understood syntax for expressing these sorts of configurations, and will hopefully help us avoid the mess of special cases which evolve in most learning systems.
+
+Note that this is a stand-alone library, and can be used in your own system too. That said, as with all code, it is still evolving, and we do not guarantee backwards-compatibility.
+
+## Future storage model
+
