@@ -70,7 +70,8 @@ Make sure you are on a fresh virtual environment. In `virtualenvwrapper`:
 
 ```bash
 mkvirtualenv lo_workshop
-workon lo_workshop```
+workon lo_workshop
+```
 
 Then run the install command:
 
