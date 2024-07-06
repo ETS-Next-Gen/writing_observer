@@ -324,6 +324,14 @@ Our data streaming library is [lo_event](https://github.com/ETS-Next-Gen/writing
 
 Much more interesting, in development (and probably in need of renaming) is [`lo_assess`](https://github.com/ETS-Next-Gen/writing_observer/tree/pmitros/loevent-v2/modules/lo_event/lo_event/lo_assess).
 
+```
+rm -Rf .next/cache/
+cd [base_dir]/writing_observer/modules/lo_event/
+npm pack
+cd [sba_dir]/sba/
+npm install [base_dir]/writing_observer/modules/lo_event/lo_event-0.0.1.tgz 
+```
+
 ## `pmss`
 
 We are creating a new settings format, based on css. This is called `pmss`. It works pretty well already. The basic idea is, like CSS, that we would like to be able to cascade settings. The core problem is that, like CSS, we want well-specified exceptions:
