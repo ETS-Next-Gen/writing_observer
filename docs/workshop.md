@@ -113,7 +113,7 @@ To run the system, use the run command
 make run
 ```
 
-*This does a lot of sanity checks on startup, and won't work the first time.* Rather, it will download required files, and create a file files (like `admins.yaml` and `teachers.yaml`, which are one way to define roles for teachers and admins on the system, but which we won't need for this workshop since we are using an insecure login). Once it is done, it will give you an opportunity to check whether it fixed issues correctly. It did, so just run it again:
+*This does a lot of sanity checks on startup, and won't work the first time.* Rather, it will download required files, and create a file files (like `admins.yaml` and `teachers.yaml`, which are one way to define roles for teachers and admins on the system, but which we won't need for this workshop since we are using an insecure login). Once it is done, it will give you an opportunity to check whether it fixed issues correctly (we're working on having nice warnings, but we're not 100% of the way there). It did, so just run it again (perhaps 1-3 more times if it has more things to configure):
 
 ```bash
 make run
