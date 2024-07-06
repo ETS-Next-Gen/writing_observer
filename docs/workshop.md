@@ -76,6 +76,7 @@ workon lo_workshop
 Then run the install command:
 
 ```bash
+pip install --upgrade pip # Probably not needed, but good form
 make install
 ```
 
