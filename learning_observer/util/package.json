@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/ETS-Next-Gen/writing_observer#readme",
   "dependencies": {
-    "ws": "^8.5.0"
+    "ws": "^8.17.1"
   }
 }
