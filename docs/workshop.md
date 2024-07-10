@@ -211,7 +211,7 @@ async def student_event_counter(event, internal_state):
     '''
     An example of a per-student event counter
     '''
-    timestamp = event['client'].get('timestamp', None)
+    timestamp = event.get('server', {}).get('time', None)
     count = internal_state.get('count', 0) + 1
 
     if timestamp is not None:
@@ -267,10 +267,10 @@ For creating simple dashboards, we use [dash](https://dash.plotly.com/) and [plo
 
 We'd suggest skimming a few example [visualizations](https://plotly.com/python/pie-charts/) to get a sense of what they do.
 
-For now, though, all we want to do is add the intercharacter interval to our dashboard. Modify `dash_dashboard.py` to add a span for it:
+For now, though, all we want to do is add the intercharacter interval to our dashboard. Modify `dash_dashboard.py` to add a span for it.  Place the following code at the end of the dash_dashboard.py file under the populate_output method lines 88 and 89:
 
 ```python
-        html.Span(f' - {s["count"]} events'),
+        html.Span(f' - {s.get("count", 0)} events'),
         html.Span(f' - {s.get("median_interval", 0)} ICI')
 ```
 
