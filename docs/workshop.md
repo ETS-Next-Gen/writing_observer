@@ -324,13 +324,52 @@ Our data streaming library is [lo_event](https://github.com/ETS-Next-Gen/writing
 
 Much more interesting, in development (and probably in need of renaming) is [`lo_assess`](https://github.com/ETS-Next-Gen/writing_observer/tree/pmitros/loevent-v2/modules/lo_event/lo_event/lo_assess).
 
+There is an XML format (based on edX OLX, which is in turn based on LON-CAPA XML) for creating interactives. 
+
+The very neat thing about this tool is that we *guarantee* that the state of the system at any point in time can be reconstructed from process data. The UX is controlled through React events, which are funneled into `lo_event`. You can see this using the time travel function of [Redux dev tools](https://github.com/reduxjs/redux-devtools). We've developed a handful of interactives in this format, including a GPT-powered graphic organizer, a Vygotskian-style dynamic assessment for middle school mathematics, but for this workshop, we have a little demo of a tool which can change text styles using ChatGPT for different audiences. 
+
+To see the format, see the XML inside of `modules/toy-assess/src/app/changer/page.js`. Right now, this is inside of a .jsx file, but it will be stand-alone XML in the near future.
+
+Running this is a little bit involved, as you may need to configure Azure ChatGPT credentials (Azure provides better privacy compliance frameworks than using OpenAI directly):
+
 ```
-rm -Rf .next/cache/
-cd [base_dir]/writing_observer/modules/lo_event/
+export OPENAI_URL="https://[your-location].api.cognitive.microsoft.com"
+export AZURE_OPENAI_ENDPOINT="https://[your-location].api.cognitive.microsoft.com"
+
+export OPENAI_DEPLOYMENT_ID="[your-azure-deployment-id]"
+export AZURE_OPENAI_DEPLOYMENT_ID="[your-azure-deployment-id]"
+
+export OPENAI_API_KEY=`cat [your-azure-openai-key]`
+export AZURE_OPENAI_API_KEY=`cat [your-azure-openai-key]`
+```
+(We don't require both, but it's handy if you switch libraries)
+
+As an alternative, in `modules/toy-assess/src/app/lib/route.js` you can change the line
+
+```
+const listChatCompletions = openai.listChatCompletions;
+```
+
+To:
+
+```
+const listChatCompletions = stub.listChatCompletions;
+```
+
+Which will disable ChatGPT (and always give the same response).
+
+At this point, you can run:
+```
+cd [base_dir]/modules/lo_event/
 npm pack
-cd [sba_dir]/sba/
-npm install [base_dir]/writing_observer/modules/lo_event/lo_event-0.0.1.tgz 
+cd [basedir]/modules/toy-assess/
+# rm -Rf .next/cache/  # If necessary
+npm install
+npm install ../lo_event-0.0.1.tgz
+npm run dev
 ```
+
+And the server should be running on `localhost:3000`.
 
 ## `pmss`
 
