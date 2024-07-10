@@ -1,0 +1,22 @@
+.subtitles-container {
+  height: 240px; /* adjust the height as needed */
+  width: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin; /* optional: show a thin scrollbar */
+}
+
+.subtitle {
+  margin-bottom: 10px;
+}
+
+.subtitle-time {
+  font-weight: bold;
+}
+
+.subtitle-text {
+  /* Add any necessary styling for the subtitle text here */
+}
+
+.subtitle-active {
+  background: lightblue;
+}
