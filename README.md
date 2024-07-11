@@ -79,7 +79,7 @@ _Learning Observer_ instances.
 To setup writing_observer on top of the learning observer platform you must go into modules/writing_observer and run:
 
 ```bash
-sudo python setup.py develop
+python setup.py develop
 ```
 
 ### System requirements
