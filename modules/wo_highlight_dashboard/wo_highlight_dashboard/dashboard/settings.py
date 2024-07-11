@@ -4,12 +4,18 @@ Defines the settings panel used on the student overview dashbaord view
 # package imports
 from learning_observer.dash_wrapper import html, dcc, clientside_callback, ClientsideFunction, Output, Input
 import dash_bootstrap_components as dbc
+import datetime
 
 prefix = 'teacher-dashboard-settings'
 # ids related to opening/closing panel
 open_btn = f'{prefix}-show-hide-open-button'  # settings button
 offcanvas = f'{prefix}-show-hide-offcanvcas'  # setting wrapper
 close_settings = f'{prefix}-close'  # X on settings panel
+
+# document source
+doc_src = f'{prefix}-doc-src'
+doc_src_date = f'{prefix}-doc-src-date'
+doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
 # essay type
 essay_type = f'{prefix}-essay-type'
@@ -67,9 +73,22 @@ panel = dbc.Card(
                 dbc.AccordionItem(
                     html.Div([
                         dbc.RadioItems(options=[
+                            {'label': 'Latest Document', 'value': 'latest' },
+                            {'label': 'Specific Time', 'value': 'ts'},
+                        ], value='latest', id=doc_src),
+                        dbc.InputGroup([
+                            dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
+                            dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
+                        ])
+                    ]), title='Document Source'
+                ),
+                dbc.AccordionItem(
+                    html.Div([
+                        dbc.RadioItems(options=[
+                            {'label': 'All', 'value': 'overall' },
                             {'label': 'Argumentative', 'value': 'argumentative'},
                             {'label': 'Narrative', 'value': 'narrative'}
-                        ], value='argumentative', id=essay_type)
+                        ], value='overall', id=essay_type)
                     ]), title='Essay Type'
                 ),
                 # sort by
@@ -259,7 +278,7 @@ panel = dbc.Card(
                 ),
             ],
             # make both items visible from the start
-            active_item=['item-0', 'item-2'],
+            active_item=['item-1', 'item-3'],
             always_open=True,  # keep accordionitems open when click on others
             flush=True,  # styles to take up width
             class_name='border-top'  # bootstrap border on top
@@ -273,6 +292,14 @@ panel = dbc.Card(
 
     # bootstrap add right (e)nd and (b)ottom margins
     class_name='me-2 mb-2'
+)
+
+# disbale document date/time options
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='disable_doc_src_datetime'),
+    Output(doc_src_date, 'disabled'),
+    Output(doc_src_timestamp, 'disabled'),
+    Input(doc_src, 'value')
 )
 
 # change the icon and label of the sort button

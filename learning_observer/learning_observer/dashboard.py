@@ -8,6 +8,7 @@ import inspect
 import json
 import jsonschema
 import numbers
+import pmss
 import queue
 import time
 
@@ -24,6 +25,7 @@ import learning_observer.runtime
 import learning_observer.paths as paths
 
 import learning_observer.auth
+import learning_observer.constants as constants
 import learning_observer.rosters as rosters
 
 from learning_observer.log_event import debug_log
@@ -33,6 +35,16 @@ import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.schema
 import learning_observer.settings
+
+pmss.register_field(
+    name='dangerously_allow_insecure_dags',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Data can be queried either by system defined execution DAGs '\
+                '(directed acyclic graphs) or user created execution DAGs. '\
+                'This is useful for developing new system queries, but should not '\
+                'be used in production.',
+    default=False
+)
 
 
 def timelist_to_seconds(timelist):
@@ -207,14 +219,14 @@ def fetch_student_state(
                     'external_ids': student['profile'].get('external_ids', []),
                 },
                 "course_id": course_id,
-                "user_id": student['user_id'],  # TODO: Encode?
+                constants.USER_ID: student[constants.USER_ID],  # TODO: Encode?
             }
 
             student_state.update(default_data)
 
             # TODO/HACK: Only do this for Google data. Make this do the right thing
             # for synthetic data.
-            google_id = student['user_id']
+            google_id = student[constants.USER_ID]
             if google_id.isnumeric():
                 student_id = learning_observer.auth.google_id_to_user_id(google_id)
             else:
@@ -307,7 +319,7 @@ async def websocket_dashboard_view(request):
     # the same data format for 1 student as for a classroom of
     # students.
     if student_id is not None:
-        roster = [r for r in roster if r['user_id'] == student_id]
+        roster = [r for r in roster if r[constants.USER_ID] == student_id]
     # Grab student list, and deliver to the client
     student_state_fetcher = fetch_student_state(
         course_id,
@@ -438,7 +450,7 @@ async def dispatch_named_execution_dag(dag_name, funcs):
 
 async def dispatch_defined_execution_dag(dag, funcs):
     query = None
-    if not learning_observer.settings.settings.get('dangerously_allow_insecure_dags', False):
+    if not learning_observer.settings.pmss_settings.dangerously_allow_insecure_dags():
         debug_log(await dag_submission_not_allowed())
         funcs.append(dag_submission_not_allowed())
         return query

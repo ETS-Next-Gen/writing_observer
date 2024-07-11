@@ -17,6 +17,7 @@ import math
 import numbers
 import re
 import socket
+import uuid
 from dateutil import parser
 
 import learning_observer
@@ -151,7 +152,7 @@ def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
             d = d
         else:
             if default == MissingType.Missing:
-                raise KeyError(f'Key {key_str} not found in {d}')
+                raise KeyError(f'Key `{key_str}` not found in {d}')
             return default
     return d
 
@@ -165,11 +166,11 @@ def remove_nested_dict_value(d, key_str):
         if d is not None and key in d:
             d = d[key]
         else:
-            raise KeyError(f'Key {key_str} not found in {d}')
+            raise KeyError(f'Key `{key_str}` not found in {d}')
     if keys[-1] in d:
         return d.pop(keys[-1])
     else:
-        raise KeyError(f'Key {key_str} not found in {d}')
+        raise KeyError(f'Key `{key_str}` not found in {d}')
 
 
 def clean_json(json_object):
@@ -198,6 +199,8 @@ def clean_json(json_object):
         return str(json_object)
     if str(type(json_object)) == "<class 'learning_observer.runtime.Runtime'>":
         return str(json_object)
+    if str(type(json_object)) == "<class 'dict_keys'>":
+        return list(json_object)
     if isinstance(json_object, dash.development.base_component.Component):
         return f"Dash Component {json_object}"
     if isinstance(json_object, KeyError):
@@ -226,6 +229,27 @@ def timeparse(timestamp):
 
     """
     return parser.isoparse(timestamp)
+
+
+def get_seconds_since_epoch():
+    '''
+    Return a timestamp in the seconds since epoch format
+
+    Returns:
+        int: seconds since last epoch
+    '''
+    return datetime.datetime.now().timestamp()
+
+
+count = 0
+
+
+def generate_unique_token():
+    '''Update the system counter and return a new unique token.
+    '''
+    global count
+    count = count + 1
+    return f'{count}-{timestamp()}-{str(uuid.uuid4())}'
 
 
 # And a test case

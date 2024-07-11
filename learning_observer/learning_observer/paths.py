@@ -30,13 +30,13 @@ import sys
 
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
-
+PYTHON_EXECUTABLE = sys.executable
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
 # This is a test to avoid that bug.
 if not __name__.startswith("learning_observer."):
-    raise ImportErrror("Please use fully-qualified imports")
+    raise ImportError("Please use fully-qualified imports")
     sys.exit(-1)
 
 

@@ -18,6 +18,7 @@ import learning_observer.admin as admin
 import learning_observer.auth
 import learning_observer.auth.http_basic
 import learning_observer.client_config
+import learning_observer.impersonate
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
 import learning_observer.google
@@ -145,6 +146,9 @@ def add_routes(app):
     repos = learning_observer.module_loader.static_repos()
     register_repo_routes(app, repos)
 
+    # Allow users to mask themselves as other users
+    register_impersonation_routes(app)
+
     # This is called last since we don't want wsgi routes overriding
     # our normal routes. We may change this design decision if we do
     # want to provide that option in the future, but as we're prototyping
@@ -250,9 +254,10 @@ def register_auth_webapp_views(app):
                 fn=settings.settings['auth']['password_file']
             ))
             print("Typically:")
-            print("python util/lo_passwd.py "
+            print("{python_src} learning_observer/util/lo_passwd.py "
                   "--username {username} --password {password} "
-                  "--filename {fn}".format(
+                  "--filename learning_obsserver/{fn}".format(
+                      python_src=paths.PYTHON_EXECUTABLE,
                       username=getpass.getuser(),
                       password=secrets.token_urlsafe(16),
                       fn=settings.settings['auth']['password_file']
@@ -385,7 +390,6 @@ def register_repo_routes(app, repos):
         giturl = r'/static/repos/' + gitrepo['module'] + '/' + reponame + '/{branch:[^{}/]+}/{filename:[^{}]+}'
 
         debug_log(f"Module {reponame} is hosting {gitrepo} at {giturl}")
-        debug_log(f"""For testing: python learning_observer/jupyter.py "{reponame};{gitrepo['url']};{gitrepo['prefix']};False;True" """)
 
         # If the working tree is set in the repo, we can serve from the working tree
         # This can be overridden by the settings file, in either direction
@@ -449,3 +453,16 @@ def register_wsgi_routes(app):
         wsgi_handler = learning_observer.auth.teacher(aiohttp_wsgi.WSGIHandler(wsgi_app.server))
         for pattern in wsgi_url_patterns:
             app.router.add_route("*", pattern, wsgi_handler)
+
+
+def register_impersonation_routes(app):
+    app.add_routes([
+        aiohttp.web.get(
+            '/start-impersonation/{user_id}',
+            learning_observer.impersonate.start_impersonation
+        ),
+        aiohttp.web.get(
+            '/stop-impersonation',
+            learning_observer.impersonate.stop_impersonation
+        )
+    ])

@@ -30,12 +30,15 @@ import re
 
 import aiohttp
 import aiohttp.web
+import aiohttp_session
 
+import learning_observer.constants as constants
 import learning_observer.settings as settings
 import learning_observer.log_event
 import learning_observer.util
 import learning_observer.auth
 import learning_observer.runtime
+import learning_observer.prestartup
 
 
 cache = None
@@ -125,7 +128,11 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     '''
     request = runtime.get_request()
     url = target_url.format(**kwargs)
-    cache_key = "raw_google/" + learning_observer.util.url_pathname(url)
+    user = await learning_observer.auth.get_active_user(request)
+    if constants.AUTH_HEADERS not in request:
+        raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
+
+    cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user[constants.USER_ID]) + '/' + learning_observer.util.url_pathname(url)
     if settings.feature_flag('use_google_ajax') is not None:
         value = await cache[cache_key]
         if value is not None:
@@ -134,9 +141,7 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
                 GOOGLE_TO_SNAKE
             )
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
-        if 'auth_headers' not in request:
-            raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
-        async with client.get(url, headers=request["auth_headers"]) as resp:
+        async with client.get(url, headers=request[constants.AUTH_HEADERS]) as resp:
             response = await resp.json()
             learning_observer.log_event.log_ajax(target_url, response, request)
             if settings.feature_flag('use_google_ajax') is not None:
@@ -166,6 +171,30 @@ def raw_access_partial(remote_url, name=None):
     return caller
 
 
+@learning_observer.prestartup.register_startup_check
+def connect_to_google_cache():
+    '''Setup cache for requests to the Google API.
+    The cache is currently only used with the `use_google_ajax`
+    feature flag.
+    '''
+    if 'google_routes' not in settings.settings['feature_flags']:
+        return
+
+    for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
+        if key in settings.settings['feature_flags']:
+            global cache
+            try:
+                cache = learning_observer.kvs.KVS.google_cache()
+            except AttributeError:
+                error_text = 'The google_cache KVS is not configured.\n'\
+                    'Please add a `google_cache` kvs item to the `kvs` '\
+                    'key in `creds.yaml`.\n'\
+                    '```\ngoogle_cache:\n  type: filesystem\n  path: ./learning_observer/static_data/google\n'\
+                    '  subdirs: true\n```\nOR\n'\
+                    '```\ngoogle_cache:\n  type: redis_ephemeral\n  expiry: 600\n```'
+                raise learning_observer.prestartup.StartupCheck("Google KVS: " + error_text) 
+
+
 def initialize_and_register_routes(app):
     '''
     This is a big 'ol function which might be broken into smaller ones at some
@@ -186,11 +215,6 @@ def initialize_and_register_routes(app):
     # # staff
     # if 'google_routes' not in settings.settings['feature_flags']:
     #     return
-
-    for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
-        if key in settings.settings['feature_flags']:
-            global cache
-            cache = learning_observer.kvs.FilesystemKVS(path=learning_observer.paths.data('google'), subdirs=True)
 
     # Provide documentation on what we're doing
     app.add_routes([
@@ -334,7 +358,7 @@ def clean_course_roster(google_json):
     for student_json in students:
         google_id = student_json['profile']['id']
         local_id = learning_observer.auth.google_id_to_user_id(google_id)
-        student_json['user_id'] = local_id
+        student_json[constants.USER_ID] = local_id
         del student_json['profile']['id']
 
         # For the present there is only one external id so we will add that directly.
@@ -433,9 +457,9 @@ def clean_assignment_docs(google_json):
     '''
     student_submissions = google_json.get('studentSubmissions', [])
     for student_json in student_submissions:
-        google_id = student_json['user_id']
+        google_id = student_json[constants.USER_ID]
         local_id = learning_observer.auth.google_id_to_user_id(google_id)
-        student_json['user_id'] = local_id
+        student_json[constants.USER_ID] = local_id
         docs = [d['driveFile'] for d in learning_observer.util.get_nested_dict_value(student_json, 'assignmentSubmission.attachments', []) if 'driveFile' in d]
         student_json['documents'] = docs
         # TODO we should probably remove some of the keys provided

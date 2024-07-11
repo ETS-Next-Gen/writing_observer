@@ -87,7 +87,8 @@ window.dash_clientside.aggregate_common_errors = {
           combined = `${error.category}: ${error.subcategory}`
           subcategoryCount[combined] = (subcategoryCount[combined] || 0) + 1
           feedbackCount[error.message] = (feedbackCount[error.message] || 0) + 1
-          studentCount[student.student.user_id] = (studentCount[student.student.user_id] || 0) + 1
+          const name = student.student.profile.name.full_name;
+          studentCount[name] = (studentCount[name] || 0) + 1;
         }
       })
     })

@@ -32,6 +32,40 @@ function getRGBAValues(str) {
 // define functions we are calling
 window.dash_clientside.clientside = {
 
+  /**
+   * Update error information when we receive it from the
+   * websocket connection.
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
+   */
+  update_error_from_ws: function (msg) {
+    if (!msg) {
+      return ['', false, ''];
+    }
+    const data = JSON.parse(msg.data).docs_with_nlp.nlp_combined;
+
+    if (data.error === undefined) {
+      return ['', false, ''];
+    }
+    console.error('ERROR:: Received error from server', data);
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, data];
+  },
+
+  disable_doc_src_datetime: function (value) {
+    if (value === 'ts') {
+      return [false, false];
+    }
+    return [true, true];
+  },
+
     change_sort_direction_icon: function(sort_check, sort_values) {
         // updates UI elements, does not handle sorting
         // based on the current sort, set the sort direction icon and sort text
@@ -119,7 +153,7 @@ window.dash_clientside.clientside = {
         // State({'type': student_indicators, 'index': ALL}, 'data'),
         // State(student_counter, 'data')
         if (!msg) {
-            return [prev_metrics, prev_text, prev_highlights, prev_indicators, -1, 0];
+            return [prev_metrics, prev_text, prev_highlights, prev_indicators, [], -1, 0];
         }
         let updates = Array(students).fill(window.dash_clientside.no_update);
         const data = JSON.parse(msg.data)['docs_with_nlp']['nlp_combined'];
@@ -144,21 +178,29 @@ window.dash_clientside.clientside = {
                 'link': link
             }
             for (const key in data[i]) {
-                let item = data[i][key];
-                const sum_type = (item.hasOwnProperty('summary_type') ? item['summary_type'] : '');
+                const item = data[i][key];
+                const sumType = (item.summary_type ? item.summary_type : '');
                 // we set each id to be ${key}_{type} so we can select items by class name when highlighting
-                if (sum_type === 'total') {
-                    updates[user_index]['metrics'][`${key}_metric`] = {
-                        'id': `${key}_metric`,
-                        'value': item['metric'],
-                        'label': item['label']
-                    }
-                } else if (sum_type === 'percent') {
-                    updates[user_index]['indicators'][`${key}_indicator`] = {
-                        'id': `${key}_indicator`,
-                        'value': item['metric'],
-                        'label': item['label']
-                    }
+                const metricLabel = (sumType === 'percent') ? `%  ${item.label}` : item.label;
+                let metric;
+                if (item.metric === null) {
+                    metric = 0;
+                } else if (sumType === 'counts') {
+                    // Sum all values in the object
+                    metric = Object.values(JSON.parse(item.metric)).reduce((sum, value) => sum + value, 0);
+                } else {
+                    metric = item.metric;
+                }
+                updates[user_index]['metrics'][`${key}_metric`] = {
+                    'id': `${key}_metric`,
+                    'value': metric,
+                    'label': metricLabel
+                }
+                const indicatorLabel = (sumType === 'percent') ? `${item.label} (%)` : `${item.label} (${sumType})`;
+                updates[user_index]['indicators'][`${key}_indicator`] = {
+                    'id': `${key}_indicator`,
+                    'value': metric,
+                    'label': indicatorLabel
                 }
                 const offsets = (item.hasOwnProperty('offsets') ? item['offsets'] : '');
                 if (offsets.length !== 0) {
@@ -366,7 +408,7 @@ window.dash_clientside.clientside = {
         return true;
     },
 
-    send_options_to_server: function(types, metrics, highlights, indicators, sort_by, course_id) {
+    send_options_to_server: function(types, metrics, highlights, indicators, sort_by, course_id, doc_src, doc_date, doc_time) {
         // Send selected options to the server 
         // TODO work on protocol for communicating with the 
         //
@@ -375,7 +417,11 @@ window.dash_clientside.clientside = {
         // Input(settings.metric_checklist, 'value'),
         // Input(settings.highlight_checklist, 'value'),
         // Input(settings.indicator_checklist, 'value')
-        // Input(settings.sort_by_checklist, 'value')
+        // Input(settings.sort_by_checklist, 'value'),
+        // Input(course_store, 'data'),
+        // Input(settings.doc_src, 'value'),
+        // Input(settings.doc_src_date, 'date'),
+        // Input(settings.doc_src_timestamp, 'value')
         const options = metrics.concat(highlights).concat(indicators).concat(sort_by);
         const message = {
             docs_with_nlp: {
@@ -383,7 +429,9 @@ window.dash_clientside.clientside = {
                 target_exports: ['docs_with_nlp_annotations'],
                 kwargs: {
                     course_id: course_id,
-                    nlp_options: options
+                    nlp_options: options,
+                    doc_source: doc_src,
+                    requested_timestamp: new Date(`${doc_date}T${doc_time}`).getTime().toString()
                 }
             }
         }

@@ -146,6 +146,8 @@ async def process_texts(writing_data, options=None):
                 metric = random.randint(0, 100)
             elif summaryType == 'total':
                 metric = random.randint(0, len(text.split(' ')))
+            elif summaryType == 'counts':
+                metric = random.randint(0, len(text.split(' ')))
             random.setstate(state)
             results[id].update({
                 'label': label,

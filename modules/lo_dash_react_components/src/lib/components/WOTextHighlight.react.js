@@ -63,14 +63,24 @@ export default class WOTextHighlight extends Component {
             {text_newline_split.length === 1
               ? text_slice
               : text_newline_split.map((line, i) => (
-                  <span key={i}>
-                    {line}
-                    {i === text_newline_split.length - 1 ? "" : <br />}
-                  </span>
-                ))}
+                <span key={i}>
+                  {line}
+                  {i === text_newline_split.length - 1 ? "" : <br />}
+                </span>
+              ))}
           </span>
         );
       });
+    } else {
+      const text_split = text.split("\n");
+      child = text_split.length === 1
+        ? child
+        : text_split.map((line, i) => (
+          <span key={i}>
+            {line}
+            {i === text_split.length - 1 ? "" : <br />}
+          </span>
+        ))
     }
     // Return a div element with the child elements and appropriate attributes
     return (

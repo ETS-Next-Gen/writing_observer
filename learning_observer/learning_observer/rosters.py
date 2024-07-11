@@ -67,8 +67,11 @@ import aiohttp
 import aiohttp.web
 
 import pathvalidate
+import pmss
 
 import learning_observer.auth as auth
+import learning_observer.cache
+import learning_observer.constants as constants
 import learning_observer.google
 import learning_observer.kvs
 import learning_observer.log_event as log_event
@@ -82,6 +85,18 @@ import learning_observer.communication_protocol.integration
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
+
+pmss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'], transform=None)
+pmss.register_field(
+    name='source',
+    type='roster_source',
+    description='Source to use for student class rosters. This can be\n'\
+                '`all`: aggregate all available students into a single class\n'\
+                '`test`: use sample course and student files\n'\
+                '`filesystem`: read rosters defined on filesystem\n'\
+                '`google_api`: fetch from Google API',
+    required=True
+)
 
 
 def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
@@ -152,13 +167,13 @@ def adjust_external_gc_ids(resp_json):
         google_id = auth.google_id_to_user_id(student_profile['id'])
 
         # As a cheap hack lets change the ids to match
-        # student_profile['user_id'] = google_id
+        # student_profile[constants.USER_ID] = google_id
         #
         # This hack changes the internal ID which we then use for
         # document retreival.  Going forward it should not be done
         # this way and it would be better for us to make this use
         # the externals.
-        student_json['user_id'] = google_id
+        student_json[constants.USER_ID] = google_id
 
         # For the present there is only one external id so we will add that directly.
         ext_ids = [{"source": "google", "id": google_id}]
@@ -219,7 +234,7 @@ async def all_ajax(
             # We'll created a name from the ID passed
             name = '-'.join(student.split('-')[2:]).replace("%23", "")
             return {
-                "user_id": student,
+                constants.USER_ID: student,
                 "profile": {
                     "name": {
                         "given_name": name,
@@ -247,14 +262,15 @@ async def synthetic_ajax(
     Google is an amazingly unreliable B2B company, and this lets us
     develop without relying on them.
     '''
-    if settings.settings['roster_data']['source'] == 'test':
+    roster_source = settings.pmss_settings.source(types=['roster_data'])
+    if roster_source == 'test':
         synthetic_data = {
             COURSE_URL: paths.data("courses.json"),
             ROSTER_URL: paths.data("students.json")
         }
-    elif settings.settings['roster_data']['source'] == 'filesystem':
-        debug_log(request['user'])
-        safe_userid = pathvalidate.sanitize_filename(request['user']['user_id'])
+    elif roster_source == 'filesystem':
+        debug_log(request[constants.USER])
+        safe_userid = pathvalidate.sanitize_filename(request[constants.USER][constants.USER_ID])
         courselist_file = "courselist-" + safe_userid
         if parameters is not None and 'courseid' in parameters:
             safe_courseid = pathvalidate.sanitize_filename(str(parameters['courseid']))
@@ -268,8 +284,8 @@ async def synthetic_ajax(
                 courselist_file=courselist_file))
         }
     else:
-        debug_log("Roster data source is not recognized:", settings.settings['roster_data']['source'])
-        raise ValueError("Roster data source is not recognized: {}".format(settings.settings['roster_data']['source'])
+        debug_log("Roster data source is not recognized:", roster_source)
+        raise ValueError("Roster data source is not recognized: {}".format(roster_source)
                          + " (should be 'test' or 'filesystem')")
     try:
         data = json.load(open(synthetic_data[url]))
@@ -310,7 +326,7 @@ async def google_ajax(
         # We saw this happen due to a bug, but similar bugs might come up
         # in the future (we forgot to propagate the headers from the
         # session).
-        async with client.get(url.format(**parameters), headers=request["auth_headers"]) as resp:
+        async with client.get(url.format(**parameters), headers=request[constants.AUTH_HEADERS]) as resp:
             resp_json = await resp.json()
             log_event.log_ajax(url, resp_json, request)
             return clean_google_ajax_data(
@@ -331,6 +347,7 @@ def init():
     or smaller functions otherwise.
     '''
     global ajax
+    roster_source = settings.pmss_settings.source(types=['roster_data'])
     if 'roster_data' not in settings.settings:
         print(settings.settings)
         raise learning_observer.prestartup.StartupCheck(
@@ -340,11 +357,11 @@ def init():
         raise learning_observer.prestartup.StartupCheck(
             "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
         )
-    elif settings.settings['roster_data']['source'] in ['test', 'filesystem']:
+    elif roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
-    elif settings.settings['roster_data']['source'] in ["google_api"]:
+    elif roster_source in ["google_api"]:
         ajax = google_ajax
-    elif settings.settings['roster_data']['source'] in ["all"]:
+    elif roster_source in ["all"]:
         ajax = all_ajax
     else:
         raise learning_observer.prestartup.StartupCheck(
@@ -366,8 +383,8 @@ def init():
         ]
     }
 
-    if settings.settings['roster_data']['source'] in REQUIRED_PATHS:
-        r_paths = REQUIRED_PATHS[settings.settings['roster_data']['source']]
+    if roster_source in REQUIRED_PATHS:
+        r_paths = REQUIRED_PATHS[roster_source]
         for p in r_paths:
             if not os.path.exists(p):
                 raise learning_observer.prestartup.StartupCheck(
@@ -393,7 +410,7 @@ async def courselist(request):
     List all of the courses a teacher manages: Helper
     '''
     # New code
-    if settings.settings['roster_data']['source'] in ["google_api"]:
+    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.courses(runtime)
 
@@ -408,7 +425,6 @@ async def courselist(request):
     return course_list
 
 
-@learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
 async def courseroster_runtime(runtime, course_id):
     '''
     Wrapper to call courseroster with a runtime object
@@ -416,11 +432,29 @@ async def courseroster_runtime(runtime, course_id):
     return await courseroster(runtime.get_request(), course_id)
 
 
+@learning_observer.communication_protocol.integration.publish_function('learning_observer.courseroster')
+async def memoize_courseroster_runtime(runtime, course_id):
+    '''Wrapper function for calling the course roster with runtime from
+    within the communication protocol. This is so we can memoize the
+    result without modifying the behavior of `courseroster_runtime`
+    when used outside of the communication protocol.
+
+    TODO this node should only be ran once in the communication protocol.
+    For now, we use memoization to limit how often this node is called.
+    In the future, we ought to be able to specify how the values from
+    individual nodes are handled: static, dynamic (current), or memoized.
+    '''
+    @learning_observer.cache.async_memoization()
+    async def memoization_layer(c):
+        return await courseroster_runtime(runtime, c)
+    return await memoization_layer(course_id)
+
+
 async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
-    if settings.settings['roster_data']['source'] in ["google_api"]:
+    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.roster(runtime, courseId=course_id)
 

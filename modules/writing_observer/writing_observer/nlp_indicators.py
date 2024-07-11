@@ -71,7 +71,9 @@ SPAN_INDICATORS = [
     ('Auxiliary Verb', 'Token', 'pos_', [('==', ['AUX'])], 'total'),
     ('Pronoun', 'Token', 'pos_', [('==', ['PRON'])], 'total'),
     # sentence variety
-    ('Sentence Types', 'Doc', 'sentence_types', None, 'counts'),
+    # The general 'Sentence Types' will return a complex object of all sentence types
+    # that we do not yet handle.
+    # ('Sentence Types', 'Doc', 'sentence_types', None, 'counts'),
     ('Simple Sentences', 'Doc', 'sentence_types', [('==', ['Simple'])], 'total'),
     ('Simple with Complex Predicates', 'Doc', 'sentence_types', [('==', ['SimpleComplexPred'])], 'total'),
     ('Simple with Compound Predicates', 'Doc', 'sentence_types', [('==', ['SimpleCompoundPred'])], 'total'),

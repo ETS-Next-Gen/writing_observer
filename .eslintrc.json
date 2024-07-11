@@ -1,6 +1,9 @@
 {
     "extends": "standard",
     "rules": {
-        // Add custom rules here
+        "semi": ["error", "always"]
+    },
+    "env": {
+        "jasmine": true
     }
 }

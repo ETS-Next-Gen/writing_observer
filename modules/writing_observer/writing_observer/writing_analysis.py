@@ -6,8 +6,10 @@ It just routes to smaller pipelines. Currently that's:
 2) Reconstruct text (+Deane graphs, etc.)
 '''
 # Necessary for the wrapper code below.
-import time
+import datetime
+import pmss
 import re
+import time
 
 import writing_observer.reconstruct_doc
 
@@ -31,11 +33,28 @@ import learning_observer.util
 # (e.g. all the numbers would go up/down 20%, but behavior was
 # substantatively identical).
 
-# Should be 60-300 in prod. 5 seconds is nice for debugging
-TIME_ON_TASK_THRESHOLD = 5
-
-# Threshold in seconds to determine if a student is actively working
-ACTIVE_THRESHOLD = 60
+pmss.register_field(
+    name='time_on_task_threshold',
+    type=pmss.pmsstypes.TYPES.integer,
+    description='Maximum time to pass before marking a session as over. '\
+        'Should be 60-300 seconds in production, but 5 seconds is nice for '\
+        'debugging in a local deployment.',
+    default=60
+)
+pmss.register_field(
+    name='binned_time_on_task_bin_size',
+    type=pmss.pmsstypes.TYPES.integer,
+    description='How large (in seconds) to make timestamp bins when '\
+        'recording binned time on task.',
+    default=600
+)
+pmss.register_field(
+    name='activity_threshold',
+    type=pmss.pmsstypes.TYPES.integer,
+    description='How long to wait (in seconds) before marking a student '\
+        'as inactive.',
+    default=60
+)
 
 # Here's the basic deal:
 #
@@ -61,7 +80,7 @@ else:
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.activity_map')
 def determine_activity_status(last_ts):
-    status = 'active' if time.time() - last_ts < ACTIVE_THRESHOLD else 'inactive'
+    status = 'active' if time.time() - last_ts < learning_observer.settings.module_setting('writing_obersver', 'activity_threshold') else 'inactive'
     return {'status': status}
 
 
@@ -86,10 +105,81 @@ async def time_on_task(event, internal_state):
         last_ts = internal_state['saved_ts']
     if last_ts is not None:
         delta_t = min(
-            TIME_ON_TASK_THRESHOLD,               # Maximum time step
+            learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold'),  # Maximum time step
             internal_state['saved_ts'] - last_ts  # Time step
         )
         internal_state['total_time_on_task'] += delta_t
+    return internal_state, internal_state
+
+
+def _get_time_delta(last_event_timestamp, current_event_timestamp):
+    return min(
+        learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold'),  # Maximum time step
+        last_event_timestamp - current_event_timestamp  # Time step
+    )
+
+
+def _get_time_bin(timestamp):
+    bin_size = learning_observer.settings.module_setting('writing_obersver', 'binned_time_on_task_bin_size')
+    b = (timestamp // bin_size) * bin_size
+    b = int(b)
+    return b
+
+
+def _update_binned_time_on_task(internal_state, current_bin, last_timestamp, delta_time):
+    '''Handle updating the internal state for binned time on task.
+    '''
+    next_bin = current_bin + learning_observer.settings.module_setting('writing_obersver', 'binned_time_on_task_bin_size')
+    next_bin_str = str(next_bin)
+
+    # default current_bin to 0 if it doesn't exist
+    current_bin_str = str(current_bin)
+    if current_bin_str not in internal_state['binned_time_on_task']:
+        internal_state['binned_time_on_task'][current_bin_str] = 0
+
+    # time-on-task overflows to the next bin
+    # first add a portion of the time to the current bin
+    # default the next bin to 0 if it doesn't exist
+    # add remaining time to next bin
+    if last_timestamp + delta_time >= next_bin:
+        internal_state['binned_time_on_task'][current_bin_str] += next_bin - last_timestamp
+        if next_bin_str not in internal_state['binned_time_on_task']:
+            internal_state['binned_time_on_task'][next_bin_str] = 0
+        internal_state['binned_time_on_task'][next_bin_str] += last_timestamp + delta_time - next_bin
+    # process normal within bin time on task update
+    else:
+        internal_state['binned_time_on_task'][current_bin_str] += delta_time
+
+
+
+@kvs_pipeline(scope=gdoc_scope)
+async def binned_time_on_task(event, internal_state):
+    '''
+    Similar to the `time_on_task` reducer defined above, except it
+    bins the time spent.
+    '''
+    if internal_state is None:
+        internal_state = {
+            'saved_ts': None,
+            'binned_time_on_task': {},
+            'current_bin': None
+        }
+    last_timestamp = internal_state['saved_ts']
+    current_bin = internal_state['current_bin']
+    internal_state['saved_ts'] = event['server']['time']
+
+    # Initialization
+    if last_timestamp is None:
+        last_timestamp = internal_state['saved_ts']
+    if current_bin is None:
+        current_bin = _get_time_bin(last_timestamp)
+
+    if last_timestamp is not None:
+        delta_time = _get_time_delta(internal_state['saved_ts'], last_timestamp)
+        _update_binned_time_on_task(internal_state, current_bin, last_timestamp, delta_time)
+
+    # update our current bin with the current event's timestamp
+    internal_state['current_bin'] = _get_time_bin(internal_state['saved_ts'])
     return internal_state, internal_state
 
 
@@ -120,10 +210,7 @@ async def reconstruct(event, internal_state):
             writing_observer.reconstruct_doc.google_text(), change_list
         )
     state = internal_state.json
-    if learning_observer.settings.module_setting(
-            "writing_observer",
-            "verbose",
-            False):
+    if learning_observer.settings.module_setting('writing_observer', 'verbose'):
         print(state)
     return state, state
 
@@ -133,15 +220,59 @@ async def event_count(event, internal_state):
     '''
     An example of a per-document pipeline
     '''
-    if learning_observer.settings.module_setting(
-            "writing_observer",
-            "verbose",
-            False):
+    if learning_observer.settings.module_setting('writing_observer', 'verbose'):
         print(event)
 
     state = {"count": internal_state.get('count', 0) + 1}
 
     return state, state
+
+
+@kvs_pipeline(scope=gdoc_scope, null_state={})
+async def nlp_components(event, internal_state):
+    '''HACK the reducers need this method to query data
+    '''
+    return False, False
+
+
+@kvs_pipeline(scope=gdoc_scope, null_state={})
+async def languagetool_process(event, internal_state):
+    '''HACK the reducers need this method to query data
+    '''
+    return False, False
+
+
+@kvs_pipeline(scope=student_scope, null_state={'timestamps': {}, 'last_document': ''})
+async def document_access_timestamps(event, internal_state):
+    '''
+    We want to fetch documents around a certian time of day.
+    We record the timestamp with a document id.
+
+    Use case: a teacher wants to see the current version of
+    the document their students had open at 10:45 AM
+
+    NOTE we only keep that latest doc for each timestamp.
+    Since we are in milliseconds, this should be okay.
+    '''
+    # If users switch between document tabs, then the system will
+    # send mutliple `visibility` events from both tabs creating
+    # more timestamps than we want. We skip those events.
+    if event['client']['event'] in ['visibility']:
+        return False, False
+
+    document_id = get_doc_id(event)
+    if document_id is not None:
+
+        # if events dont have timestamps present, revert to right now
+        # 'ts' metadata is in milliseconds while datetime.now is in seconds
+        ts = event['client'].get('metadata', {}).get('ts', datetime.datetime.now().timestamp()*1000)
+
+        if document_id != internal_state['last_document']:
+            internal_state['timestamps'][ts] = document_id
+            internal_state['last_document'] = document_id
+
+        return internal_state, internal_state
+    return False, False
 
 
 @kvs_pipeline(scope=student_scope, null_state={'tags': {}})

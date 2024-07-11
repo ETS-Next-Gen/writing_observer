@@ -2,6 +2,7 @@
 This file contains assorted middlewares and helpers
 '''
 import errno
+import pmss
 import socket
 
 import aiohttp_cors
@@ -12,6 +13,21 @@ import aiohttp_session.cookie_storage
 import learning_observer.auth
 from learning_observer.log_event import debug_log
 import learning_observer.settings as settings
+
+
+pmss.register_field(
+    name='session_secret',
+    type=pmss.TYPES.passwordtoken,
+    description='Unique secret key for YOUR deployment to encrypt/decrypt '\
+                'data stored in the session object.',
+    required=True
+)
+pmss.register_field(
+    name='session_max_age',
+    type=pmss.TYPES.integer,
+    description='Max age of a session in seconds.',
+    required=True
+)
 
 
 async def request_logger_middleware(request, handler):
@@ -51,8 +67,8 @@ def setup_session_storage(app):
     This is a helper function to setup session storage.
     '''
     aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
-        learning_observer.auth.fernet_key(settings.settings['aio']['session_secret']),
-        max_age=settings.settings['aio']['session_max_age']))
+        learning_observer.auth.fernet_key(settings.pmss_settings.session_secret(types=['aio'])),
+        max_age=settings.pmss_settings.session_max_age(types=['aio'])))
 
 
 def find_open_port():
