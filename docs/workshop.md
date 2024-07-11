@@ -163,7 +163,7 @@ This will generate events for 10 students typing a set of loremipsum texts and s
 
 ## Event Format
 
-You can look at the format of these specific events in the `/learning_observer/learning_observer/logs/` directory. In the test system, we simply put events into log files, but we are gradually moving towards a more sophisticated, open-science, family-rights oriented data store (shown at the bottom of [this document](system_design.md).
+You can look at the format of these specific events in the `/learning_observer/learning_observer/logs/` directory. In the test system, we simply put events into log files, but we are gradually moving towards a more sophisticated, open-science, family-rights oriented data store (shown at the bottom of [this document](system_design.md). This is theoretically interesting, since it gives a cryptographically-verifiable way to audit what data was created and what analyses ran.
 
 There are several good standards for [event formats](events.md), and to integrate learning data, we will need to support them all. Most of these have converged on a line of JSON per event, but the specifics are format-specific. We are including [some code](https://github.com/ETS-Next-Gen/writing_observer/blob/master/modules/lo_event/lo_event/xapi.cjs) to help support the major ones. However, the events here are somewhat bound to how Google Docs thinks about documents.
 
@@ -382,5 +382,8 @@ CSS gives a well-understood syntax for expressing these sorts of configurations,
 
 Note that this is a stand-alone library, and can be used in your own system too. That said, as with all code, it is still evolving, and we do not guarantee backwards-compatibility.
 
-## Future storage model
+## Jupyter
 
+We will not demo this, due to time constraints, but it is possible to run a Jupyter instance with access to our data store (see `ipython_integration.py`, `offline.py`, and `interactive_development.py`). We have means to monitor the communication between the python kernel and ipython/jupyter notebook. This should allow us to track all analyses which ran, either for family rights audits (how was my data used?) or open science audits (was there p-hunting?). 
+
+This is in the prototype stage; we are not yet using this for data analysis.
