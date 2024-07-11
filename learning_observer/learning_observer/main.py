@@ -49,6 +49,14 @@ if not __name__.startswith("learning_observer."):
 # Run argparse
 args = settings.parse_and_validate_arguments()
 
+# This will need to move but for the moment we hack with                                                                                                
+# this to prefer the GPU where possible.                                                                                                                
+import spacy
+#spacy.prefer_gpu()
+#debug_log("Preferring GPU Use.")
+spacy.require_gpu()
+debug_log("Preferring GPU Use.")
+
 
 def configure_event_loop():
     '''

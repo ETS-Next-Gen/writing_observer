@@ -209,10 +209,6 @@ async def get_latest_student_documents(student_data):
         # Now insert the student data and pass it along.
         doc['student'] = student
         writing_data.append(doc)
-
-        # Now insert the student data and pass it along.
-        doc['student'] = student
-        writing_data.append(doc)
     
     print(writing_data)
     
