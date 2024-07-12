@@ -5,7 +5,7 @@ Setting up virtualenvwrapper
 
 1) Install `virtualenvwrapper`. This can be `apt-get install python3-virtualenvwrapper` on Ubuntu, or `pip install virtualenvwrapper` on most other systems.
 
-2) Run it using `source` or `.` (so environment changes stay for the current shell). For one installed with `apt-get`, it will most likely be in `/usr/share/virtualenvwrapper/`. For `pip`, it is often in `~/.local/bin` (and you might need to run `export PATH=~/.local/bin:$PATH`). From `brew` on Mac, it is likely somwhere under `/opt/homebrew/`
+2) Run it using `source` or `.` (so environment changes stay for the current shell). For one installed with `apt-get`, it will most likely be in `/usr/share/virtualenvwrapper/`. For `pip`, it is often in `~/.local/bin` (and you might need to run `export PATH=~/.local/bin:$PATH`). From `brew` on Mac, it is likely somwhere under `/opt/homebrew/` , `/usr/bin`, `/Users/{home_directory}/Library/Python/` , or `/usr/local/share/` . Please Note that for Mac users,  you might have trouble setting the correct path. You might need to use the command  ` which python3 `, ` which virtualenv ` and ` which virtualenvwrapper.sh ` to get the localization of each item. Here is a [link](https://stackoverflow.com/questions/49470367/install-virtualenv-and-virtualenvwrapper-on-macos), which can help you to troubleshoot the process.
 
 We normally add these three lines to our `.bashrc` so it runs on startup, but you can run these manually:
 
