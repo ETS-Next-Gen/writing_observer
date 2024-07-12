@@ -43,6 +43,11 @@ We recommend working in a Python environment of some sort. Our preferred tool is
 
 If you don't have a way of managing Python virtual environments, or would prefer to use `virtualenvwrapper`, we have a [short guide](workshop-virtualenv.md). *We strongly recommend working in some virtual environment, however*. 
 
+If you are a Mac user, you might have some trouble with `virtualenvwrapper` because of the differnt setting of your python. The guide we provided above include more information on how to set it up properly, and you can also look at [this page](https://stackoverflow.com/questions/49470367/install-virtualenv-and-virtualenvwrapper-on-macos) to troubleshoot. Using `pipenv` might be simpler if you failed to get `virtualenvwrapper` working.
+
+### For Mac Users
+* You need to install the homebrew if you haven't done so, please see [this guide](https://mac.install.guide/homebrew/3) You might be prompted to install the Xcode command line tools in this process. Missing the Xcode command line tools will also results in a failure running the git command.
+* After you install the homebrew, you should make sure you also installed the `wget` on your machine. You can do it through command `brew install wget`.
 ## Download
 
 First make sure you clone the repository:
@@ -72,6 +77,8 @@ Make sure you are on a fresh virtual environment. In `virtualenvwrapper`:
 mkvirtualenv lo_workshop
 workon lo_workshop
 ```
+
+In `pipenv`, you can use a single `pipenv shell` command instead.
 
 Then run the install command:
 
