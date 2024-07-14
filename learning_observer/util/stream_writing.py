@@ -195,7 +195,8 @@ async def stream_document(text, ici, user, doc_id):
                     for char, index in zip(text, range(len(text))):
                         command = insert(index + 1, char, doc_id)
                         await web_socket.send_str(json.dumps(command))
-                        await asyncio.sleep(random.gauss(mu=float(ici), sigma=1))
+                        # We probably want something that doesn't go as big and which isn't as close to zero as often. Perhaps weibull with k=1.5?
+                        await asyncio.sleep(random.expovariate(lambd=1/float(ici)))
             done = True
         except aiohttp.client_exceptions.ClientConnectorError:
             print("Failed to connect on " + url)
