@@ -1,6 +1,6 @@
 # Learning Observer Workshop
 
-This document will step you through the Learning Observer workshop. Our goals for this workshop are: 
+This document will step you through the Learning Observer workshop. Our goals for this workshop are:
 
 * Give an overview of the platform
 * Collect feedback on how to make the platform useful for your own work
@@ -19,7 +19,7 @@ Prerequisites:
 * Unix-style system
   * Ubuntu is most tested
   * MacOS should work as well, but is less tested
-  * Windows should work with WSL, but you'll need to [install it beforehand](wsl-install.md).
+  * Windows should work with WSL, but you'll need to [install it beforehand](workshop/wsl-install.md).
 * `python 3`. We tested and recommend 3.10 and 3.11, but anything newer than 3.9 should work
 
 Recommendations:
@@ -39,9 +39,9 @@ We have a document with a more in-depth overview of the [technologies](technolog
 
 ### Python environment
 
-We recommend working in a Python environment of some sort. Our preferred tool is [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/). You are welcome to use your own (`anaconda`, or as you prefer). `virtualenvwrapper` lets you manage packages and dependencies without making a mess on your computer. 
+We recommend working in a Python environment of some sort. Our preferred tool is [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/). You are welcome to use your own (`anaconda`, or as you prefer). `virtualenvwrapper` lets you manage packages and dependencies without making a mess on your computer.
 
-If you don't have a way of managing Python virtual environments, or would prefer to use `virtualenvwrapper`, we have a [short guide](workshop-virtualenv.md). *We strongly recommend working in some virtual environment, however*. 
+If you don't have a way of managing Python virtual environments, or would prefer to use `virtualenvwrapper`, we have a [short guide](workshop/workshop-virtualenv.md). *We strongly recommend working in some virtual environment, however*.
 
 ## Download
 
@@ -132,7 +132,7 @@ cd modules/
 cookiecutter lo_template_module/
 ```
 
-Cookiecutter will prompt you for naming information and create a new module in the `modules/` directory. By default, this is called `learning_observer_template`, but pick your own name and substitute it into the commands below. 
+Cookiecutter will prompt you for naming information and create a new module in the `modules/` directory. By default, this is called `learning_observer_template`, but pick your own name and substitute it into the commands below.
 
 ### Installing
 
@@ -254,7 +254,7 @@ join_node: q.join(LEFT=q.variable(select_node), RIGHT=q.variable('roster'), LEFT
 
 You can add a `print(EXECUTION_DAG)` statement to see the JSON representation this compiles to.
 
-To see the data protocol, open up develop tools from your browser, click on network, and see the `communication_protocol` response. 
+To see the data protocol, open up develop tools from your browser, click on network, and see the `communication_protocol` response.
 
 In the interests of time, we won't do a deep dive here, but this is our third iteration at a query language, and we would love feedback on how to make this better.
 
@@ -310,7 +310,7 @@ npm run build-css
 npm run-script react-start
 ```
 
-And then navigate to `http://localhost:3000`. *NOTE: The default URL is different. Ignore it.* If there is a lint error, ignore it as well. 
+And then navigate to `http://localhost:3000`. *NOTE: The default URL is different. Ignore it.* If there is a lint error, ignore it as well.
 
 Once set up, the development workflow here is rather fast, since the UX updates on code changes. Most of these are either early prototypes or designed to be used in specific contexts, but `LOStudentTable` and `ZPDPlot` look nice. So does `DAProblemDisplay`, if you scroll way down.
 
@@ -324,9 +324,9 @@ Our data streaming library is [lo_event](https://github.com/ETS-Next-Gen/writing
 
 Much more interesting, in development (and probably in need of renaming) is [`lo_assess`](https://github.com/ETS-Next-Gen/writing_observer/tree/pmitros/loevent-v2/modules/lo_event/lo_event/lo_assess).
 
-There is an XML format (based on edX OLX, which is in turn based on LON-CAPA XML) for creating interactives. 
+There is an XML format (based on edX OLX, which is in turn based on LON-CAPA XML) for creating interactives.
 
-The very neat thing about this tool is that we *guarantee* that the state of the system at any point in time can be reconstructed from process data. The UX is controlled through React events, which are funneled into `lo_event`. You can see this using the time travel function of [Redux dev tools](https://github.com/reduxjs/redux-devtools). We've developed a handful of interactives in this format, including a GPT-powered graphic organizer, a Vygotskian-style dynamic assessment for middle school mathematics, but for this workshop, we have a little demo of a tool which can change text styles using ChatGPT for different audiences. 
+The very neat thing about this tool is that we *guarantee* that the state of the system at any point in time can be reconstructed from process data. The UX is controlled through React events, which are funneled into `lo_event`. You can see this using the time travel function of [Redux dev tools](https://github.com/reduxjs/redux-devtools). We've developed a handful of interactives in this format, including a GPT-powered graphic organizer, a Vygotskian-style dynamic assessment for middle school mathematics, but for this workshop, we have a little demo of a tool which can change text styles using ChatGPT for different audiences.
 
 To see the format, see the XML inside of `modules/toy-assess/src/app/changer/page.js`. Right now, this is inside of a .jsx file, but it will be stand-alone XML in the near future.
 
@@ -384,6 +384,21 @@ Note that this is a stand-alone library, and can be used in your own system too.
 
 ## Jupyter
 
-We will not demo this, due to time constraints, but it is possible to run a Jupyter instance with access to our data store (see `ipython_integration.py`, `offline.py`, and `interactive_development.py`). We have means to monitor the communication between the python kernel and ipython/jupyter notebook. This should allow us to track all analyses which ran, either for family rights audits (how was my data used?) or open science audits (was there p-hunting?). 
+We will not demo this, due to time constraints, but it is possible to run a Jupyter instance with access to our data store (see `ipython_integration.py`, `offline.py`, and `interactive_development.py`). We have means to monitor the communication between the python kernel and ipython/jupyter notebook. This should allow us to track all analyses which ran, either for family rights audits (how was my data used?) or open science audits (was there p-hunting?).
 
 This is in the prototype stage; we are not yet using this for data analysis.
+
+## Dev-ops
+
+If you browse the devops directory, which has scripts in progress for
+spinning up a cloud instance and managing flocks of _Learning
+Observer_ instances.
+
+## gitserve
+
+The system can serve static content directly from a git repo. This allows us:
+
+* Have a git hash for which version of static data we're using (and we do include this in cookies / logs!)
+* Have branches (e.g. for AB tests or different uses)
+
+Some of this can be configured as part of the creds.yaml file.

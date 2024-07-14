@@ -28,7 +28,7 @@ const StepThrough = ({ children, id }) => {
     return null;
   }).filter(Boolean);
   xmlNodes = children;
-  
+
 
   const handleNextStep = () => {
     lo_event.logEvent(

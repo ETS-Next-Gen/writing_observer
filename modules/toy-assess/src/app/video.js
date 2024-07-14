@@ -139,12 +139,12 @@ function formatTime(seconds) {
   var hours = Math.floor(seconds / 3600);
   var minutes = Math.floor((seconds % 3600) / 60);
   var remainingSeconds = (seconds % 60).toFixed(2);
-  
+
   // Format hours, minutes, and remaining seconds to include leading zeros
   var formattedHours = hours.toString().padStart(2, '0');
   var formattedMinutes = minutes.toString().padStart(2, '0');
   var formattedSeconds = remainingSeconds.padStart(5, '0');
-  
+
   // Concatenate and return the formatted time
   if (hours > 0) {
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;

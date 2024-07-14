@@ -15,7 +15,7 @@ kvs:
   memoization:
     type: stub
 
-event_auth: 
+event_auth:
   testcase_auth: {}
 theme:
   server_name: Learning Observer

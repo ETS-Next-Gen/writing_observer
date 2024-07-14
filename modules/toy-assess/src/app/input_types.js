@@ -35,12 +35,12 @@ function handleInputChange(id) {
 function fixCursor(id, selectionStart, selectionEnd) {
   return () => {
     //This will fire after the textarea is rendered and value has changed
-    //Without this code, the cursor in the textarea will jump to the end of the 
+    //Without this code, the cursor in the textarea will jump to the end of the
     //text, making editing the text in the middle difficult.
     const input = document.getElementsByName(id);
     if (input) {
       input[0].setSelectionRange(selectionStart, selectionEnd);
-    } 
+    }
   };
 }
 
