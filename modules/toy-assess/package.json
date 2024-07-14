@@ -18,7 +18,7 @@
     "jasmine": "^5.1.0",
     "mapbox": "^1.0.0-beta10",
     "mock-aws-s3": "^4.0.2",
-    "next": "13.5.5",
+    "next": "14.1.1",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^9.0.1",
