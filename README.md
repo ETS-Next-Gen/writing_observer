@@ -54,33 +54,9 @@ that the core approach and APIs are correct.
 
 ## Getting Started
 
-As an early prototype, getting started isn't seamless. Run:
-
-```~bash
-make install
-```
-
-And follow the instructions. You'll probably run into bugs. Work around the bugs. Then fix up the makefile and make a PR to address those bugs :)
-
-Once that's done, run:
-
-```bash
-make
-```
-
-Again, fix up the makefile, and make a PR.
-
-You can also go into the devops directory, which has scripts in
-progress for spinning up a cloud instance and managing flocks of
-_Learning Observer_ instances.
-
-### Installing Writing Observer
-
-To setup writing_observer on top of the learning observer platform you must go into modules/writing_observer and run:
-
-```bash
-python setup.py develop
-```
+We have a short guide to [getting started](docs/workshop.md). Getting
+the base system working is pretty easy. The guide is pretty
+comprehensive (including how to develop your first module).
 
 ### System requirements
 
@@ -92,34 +68,28 @@ pilots. These instances have 512MB of RAM, and minimal CPU. It's
 important that this configuration remains usable.
 
 For deployment and more sophisticated uses (e.g. NLP) in larger
-numbers of classrooms, we expect to need **heavy** metal. As we're
-playing with algorithms, deep learning is turning out to work
-surprisingly well, and at the same time, requires surprisingly large
-amounts of computing power. A GPGPU with plenty of RAM is helpful if
-you want to work with more sophisticated algorithms, and is likely to
-be a requirement for many types of uses.
+numbers of classrooms, we need **heavy** metal. As we're playing with
+algorithms, deep learning is turning out to work surprisingly well,
+and at the same time, requires surprisingly large amounts of computing
+power. A GPGPU with plenty of RAM is helpful if you want to work with
+more sophisticated algorithms, and is likely to be a requirement for
+many types of uses.
 
 All _Learning Observer_ development has been on Linux-based platforms
 (including Ubuntu and RHEL). There are folks outside of the core team
-who have tried to run it on Mac or on WSL, with mixed success.
+who have tried to run it on Mac or on WSL, with some success.
 
-Running on RHEL requires the following services:
+Running on RHEL typically uses the following services:
 
-* REDIS
-* nginx.
+* redis
+* nginx
 
 #### bcrypt
 
-A note on bcrypt.  The code uses bcrypt for some internal password management.
-We are not including it directly in the install because it acts oddly across
-platforms so you may need to install some version manually.
-
-#### Additional Notes
-
-At present the system also uses static content that is served from a repo.
-This allows us to actually select different sources for the static data.
-This can also point to the current copy if necessary and can be configured
-as part of the creds.yaml file to generate the repo or add it on startup.
+A note on bcrypt. The code uses bcrypt for internal password
+management. There is a mess of incompatible versions. Be careful if
+installing any way other than the official install to get the right
+one.
 
 ## Contributing or learning more
 

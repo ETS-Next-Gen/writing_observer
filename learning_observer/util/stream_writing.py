@@ -27,15 +27,16 @@ Overview:
     extension log events.
 '''
 
-import asyncio
-import json
-import sys
-
 import aiohttp
+import asyncio
 import docopt
-
+import json
 import loremipsum
 import names
+import random
+import sys
+import time
+
 
 ARGS = docopt.docopt(__doc__)
 print(ARGS)
@@ -93,6 +94,11 @@ def argument_list(argument, default):
         sys.exit(-1)
     return list_string
 
+# TODO what is `source_files` supposed to be?
+# when running this script for the workshop, we should either
+#  1) move gpt3 texts out of writing observer (dependency hell) OR
+#  2) avoid using `--gpt3` parameter and use loremipsum instead
+source_files = None
 
 if ARGS["--gpt3"] is not None:
     import writing_observer.sample_essays
@@ -130,6 +136,9 @@ assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
 assert len(USERS) == STREAMS, "len(users) != STREAMS."
 assert len(DOC_IDS) == STREAMS, "len(document IDs) != STREAMS."
 
+def current_millis():
+    return round(time.time() * 1000)
+
 
 def insert(index, text, doc_id):
     '''
@@ -142,7 +151,8 @@ def insert(index, text, doc_id):
         "event": "google_docs_save",
         "source": "org.mitros.writing_analytics",
         "doc_id": doc_id,
-        "origin": "stream_test_script"
+        "origin": "stream_test_script",
+        "timestamp": current_millis()
     }
 
 
@@ -185,7 +195,8 @@ async def stream_document(text, ici, user, doc_id):
                     for char, index in zip(text, range(len(text))):
                         command = insert(index + 1, char, doc_id)
                         await web_socket.send_str(json.dumps(command))
-                        await asyncio.sleep(float(ici))
+                        # We probably want something that doesn't go as big and which isn't as close to zero as often. Perhaps weibull with k=1.5?
+                        await asyncio.sleep(random.expovariate(lambd=1/float(ici)))
             done = True
         except aiohttp.client_exceptions.ClientConnectorError:
             print("Failed to connect on " + url)

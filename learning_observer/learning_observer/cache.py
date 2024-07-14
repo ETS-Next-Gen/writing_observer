@@ -3,6 +3,7 @@ import json
 
 import learning_observer.kvs
 import learning_observer.prestartup
+from learning_observer.log_event import debug_log
 
 cache_backend = None
 
@@ -23,13 +24,19 @@ def connect_to_memoization_kvs():
             'key in `creds.yaml`.\n'\
             '```\nmemoization:\n  type: stub\n```\nOR\n'\
             '```\nmemoization:\n  type: redis_ephemeral\n  expiry: 60\n```'
-        raise learning_observer.prestartup.StartupCheck("KVS: "+error_text)
+        debug_log(f'WARNING:: {error_text}')
+        # raise learning_observer.prestartup.StartupCheck("KVS: "+error_text)
 
 
 def async_memoization():
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
+            # if the memoization cache is absent, just run the function
+            if cache_backend is None:
+                return await func(*args, **kwargs)
+
+            # process item if the cache is present
             key = create_key_from_args(args, kwargs)
             if key in await cache_backend.keys():
                 return await cache_backend[key]
