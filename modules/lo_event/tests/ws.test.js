@@ -12,18 +12,26 @@ import * as debug from '../lo_event/debugLog.js';
 import * as loEvent from '../lo_event/lo_event.js';
 import * as websocketLogger from '../lo_event/websocketLogger.js';
 
-console.log('WS test: Launching server');
+const DEBUG = false;
+
+function debug_log(...args) {
+  if(DEBUG) {
+    console.log(...args);
+  }
+}
+
+debug_log('WS test: Launching server');
 
 const host = 'localhost';
 const port = 8087;
 
 const wss = new WebSocketServer({ host, port });
 
-console.log('WS test: Setting up connection');
+debug_log('WS test: Setting up connection');
 
 const dispatch = {
   terminate: function (event, ws) {
-    console.log('WS test: Terminating');
+    debug_log('WS test: Terminating');
 
     // It takes a little bit of voodoo to convince the server to
     // terminate.
@@ -33,18 +41,18 @@ const dispatch = {
     // process.
     ws.close();
     wss.close(() => {
-      console.log('WS test: Server closed');
+      debug_log('WS test: Server closed');
       process.exit(0);
     });
   },
   test: function (event) {
-    console.log('WS test: Test event: ', event.event_number);
+    debug_log('WS test: Test event: ', event.event_number);
   },
   lock_fields: function (event) {
-    console.log('WS test: Metadata: ', event);
+    debug_log('WS test: Metadata: ', event);
   },
   blocklist: function (event, ws) {
-    console.log('WS test: Sending blocklist');
+    debug_log('WS test: Sending blocklist');
     ws.send(JSON.stringify({
       status: 'blocklist',
       time_limit: 'MINUTES',
@@ -52,16 +60,16 @@ const dispatch = {
     }));
   },
   debug: function (event) {
-    console.log('WS test: DEBUG', event);
+    debug_log('WS test: DEBUG', event);
   }
 };
 
 wss.on('connection', (ws) => {
-  console.log('WS test: New connection');
+  debug_log('WS test: New connection');
   ws.on('message', (data) => {
     // Verify received data
     const j = JSON.parse(data.toString());
-    console.log('WS test: Dispatching: ', j);
+    debug_log('WS test: Dispatching: ', j);
     dispatch[j.event](j, ws);
   });
 });
@@ -98,4 +106,4 @@ loEvent.logEvent('test', { event_number: 4 });
 loEvent.logEvent('test', { event_number: 5 });
 loEvent.logEvent('terminate', {});
 
-console.log('WS test: Done');
+debug_log('WS test: Done');
