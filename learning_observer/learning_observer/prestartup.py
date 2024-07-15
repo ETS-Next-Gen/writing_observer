@@ -13,6 +13,7 @@ from distutils.log import debug
 import hashlib
 import os
 import os.path
+import requests
 import shutil
 import sys
 import uuid
@@ -147,10 +148,16 @@ def download_3rd_party_static():
         # For subdirectories, make them
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         if not os.path.exists(filename):
-            os.system("wget {url} -O {filename} 2> /dev/null".format(
-                url=url,
-                filename=filename
-            ))
+            # TODO: For larger downloads, we might want to set
+            # stream=True and use iter_content instead
+            response = requests.get(url)
+            if response.status_code == 200:
+                with open(filename, 'wb') as file:
+                    file.write(response.content)
+                    print("Downloaded {name}".format(name=name))
+            else:
+                print("Failed to download file")
+
             print("Downloaded {name}".format(name=name))
         shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
         if shahash not in hashes:
