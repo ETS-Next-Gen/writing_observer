@@ -11,7 +11,7 @@ import { storage } from './browserStorage.js';
  *  console.log(copied)
  *  // expected output: { a: 1, b: 2 }
  */
-function copyFields (source, fields) {
+export function copyFields (source, fields) {
   const result = {};
   if (source) {
     fields.forEach(field => {
@@ -461,28 +461,6 @@ export function treeget(tree, key) {
     }
   }
   return subtree;
-}
-
-/**
- * Helper function for copying specific field values
- * from a given source. This is called to collect browser
- * information if available.
- *
- * Example usage:
- *  const copied = copyFields({ a: 1, b: 2, c: 3 }, ['a', 'b'])
- *  console.log(copied)
- *  // expected output: { a: 1, b: 2 }
- *
- * from util.js in lo_event.
- */
-export function copyFields (source, fields) {
-  const result = {};
-  if (source) {
-    fields.forEach(field => {
-      result[field] = source[field];
-    });
-  }
-  return result;
 }
 
 /**
