@@ -4,6 +4,7 @@
   "description": "Event logging library for the Learning Observer",
   "main": "lo_event/lo_event.js",
   "scripts": {
+    "prebuild": "node lo_event/lo_assess/components/compileComponents.js",
     "test": "jasmine \"tests/*.test.js\"",
     "test-verbose": "jasmine --verbose \"tests/*.test.js\"",
     "browser": "parcel examples/*.html --open",
