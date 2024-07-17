@@ -4,8 +4,7 @@ import * as reduxLogger from '../lo_event/reduxLogger.js';
 import { consoleLogger } from '../lo_event/consoleLogger.js';
 import * as debug from '../lo_event/debugLog.js';
 import { init } from '../lo_event/lo_assess/lo_assess.js';
-import { ActionButton } from '../lo_event/lo_assess/components/components.js';
-import * as actions from '../lo_event/lo_assess/components/actions.js';
+import { ActionButton, PopupAction, ConsoleAction } from '../lo_event/lo_assess/components/components.js';
 
 init();
 
@@ -18,12 +17,12 @@ export function App() {
       <p> This demos how we can build actions with our API. Pressing the button will cause an alert and a console.log </p>
       <ActionButton>
         Test!
-        <actions.PopupAction>
+        <PopupAction>
           I am a little action, short and stout!
-        </actions.PopupAction>
-        <actions.ConsoleLog>
+        </PopupAction>
+        <ConsoleAction>
           I am a bit of text!
-        </actions.ConsoleLog>
+        </ConsoleAction>
       </ActionButton>
     </>
   );

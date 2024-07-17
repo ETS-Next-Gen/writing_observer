@@ -8,25 +8,6 @@ export function createAction({f, name}) {
   return Action;
 }
 
-export const PopupAction = createAction({
-  name: "PopupAction",
-  f: ({node}) => alert(util.extractChildrenText(node))
-});
-
-export const ConsoleLog = createAction({
-  name: "ConsoleLog",
-  f: ({node}) => console.log(util.extractChildrenText(node))
-});
-
-export const TargetAction = createAction({
-  name: "TargetAction",
-  f: ({ node }) => {
-    const message = util.extractChildrenText(node);
-    const target = node.props.target;
-    console.log(target, message);
-  }
-});
-
 /*
 export function LLMPrompt({children}) {
   return <></>;
