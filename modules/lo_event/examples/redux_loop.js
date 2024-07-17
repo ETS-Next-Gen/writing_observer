@@ -4,7 +4,7 @@ import * as reduxLogger from '../lo_event/reduxLogger.js';
 import { consoleLogger } from '../lo_event/consoleLogger.js';
 import * as debug from '../lo_event/debugLog.js';
 import { init } from '../lo_event/lo_assess/lo_assess.js';
-import * as buttons from '../lo_event/lo_assess/components/buttons.js';
+import { ActionButton } from '../lo_event/lo_assess/components/buttons/ActionButton';
 import * as actions from '../lo_event/lo_assess/components/actions.js';
 
 init();
@@ -16,7 +16,7 @@ export function App() {
     <>
       <h1>Hello world!!</h1>
       <p> This demos how we can build actions with our API. Pressing the button will cause an alert and a console.log </p>
-      <buttons.ActionButton>
+      <ActionButton>
         Test!
         <actions.PopupAction>
           I am a little action, short and stout!
@@ -24,11 +24,11 @@ export function App() {
         <actions.ConsoleLog>
           I am a bit of text!
         </actions.ConsoleLog>
-      </buttons.ActionButton>
+      </ActionButton>
     </>
   );
 }
 
 const container = document.getElementById("app");
-const root = createRoot(container)
+const root = createRoot(container);
 root.render(<App />);
