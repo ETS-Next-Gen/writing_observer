@@ -1,5 +1,5 @@
 import * as util from '../../util.js';
-import { createAction } from '../actions.js';
+import { createAction } from '../actions.jsx';
 
 export const PopupAction = createAction({
   name: "PopupAction",

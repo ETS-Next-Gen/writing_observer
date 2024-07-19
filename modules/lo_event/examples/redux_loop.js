@@ -4,7 +4,7 @@ import * as reduxLogger from '../lo_event/reduxLogger.js';
 import { consoleLogger } from '../lo_event/consoleLogger.js';
 import * as debug from '../lo_event/debugLog.js';
 import { init } from '../lo_event/lo_assess/lo_assess.js';
-import { ActionButton, PopupAction, ConsoleAction } from '../lo_event/lo_assess/components/components.js';
+import { ActionButton, PopupAction, ConsoleAction } from '../lo_event/lo_assess/components/components.jsx';
 
 init();
 

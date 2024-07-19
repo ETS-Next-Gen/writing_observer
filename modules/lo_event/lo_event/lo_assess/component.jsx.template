@@ -1,0 +1,8 @@
+{{{ header }}}
+
+{{{ imports }}}
+
+export default function {{ componentName }}( { children } ) {
+  return (
+{{{ xml }}});
+};

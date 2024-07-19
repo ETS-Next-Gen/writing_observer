@@ -1,6 +1,6 @@
 import React from 'react';
 import * as reduxLogger from '../../../reduxLogger.js';
-import { Button } from './Button.js';
+import { Button } from './Button.jsx';
 
 /*
  * Reset the system state

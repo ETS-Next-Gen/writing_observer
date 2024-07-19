@@ -1,6 +1,6 @@
 import React from 'react';
 import * as reduxLogger from '../../../reduxLogger.js';
-import { Button } from './Button.js';
+import { Button } from './Button.jsx';
 
 export function executeChildActions(children) {
   console.log("Running child actions");
@@ -19,9 +19,6 @@ export function executeChildActions(children) {
   });
 }
 
-/*
- * 
- */
 export const ActionButton = ({ children, target, systemPrompt, showPrompt = true, ...props }) => {
   const onClick = () => executeChildActions(children);
   return (

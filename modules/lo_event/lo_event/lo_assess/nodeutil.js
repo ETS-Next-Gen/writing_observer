@@ -7,34 +7,8 @@
 // And then change parseString to xml2js.parseString
 
 import fs from 'fs';
-import { parseString } from 'xml2js';
 import path from 'path';
 import glob from 'glob';
-
-/*
-  This function reads an XML file from the given file path and returns
-  an array of unique tags found in the XML data.
-
-  This is designed so we can know what to import when converting XML -> JSX
- */
-export function getTagsFromFile(filePath) {
-  const xmlData = fs.readFileSync(filePath, 'utf8');
-
-  const tags = new Set();
-
-  parseString(
-    xmlData,
-    { tagNameProcessors: [ (x) => { tags.add(x); return x;} ]
-    },
-    (err, result) => {
-      if (err) {
-        console.error(err);
-        throw err;
-      }
-    });
-
-  return [...tags].sort();
-}
 
 /*
  * Helpful test functions. Some of these might transition into the

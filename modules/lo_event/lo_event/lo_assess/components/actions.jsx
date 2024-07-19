@@ -1,3 +1,5 @@
+import React from 'react';
+
 import * as util from '../util.js';
 
 export function createAction({f, name}) {
