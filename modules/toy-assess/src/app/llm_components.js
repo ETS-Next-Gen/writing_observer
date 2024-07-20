@@ -22,6 +22,16 @@ export function LLMPrompt({children}) {
   return <></>;
 }
 
+LLMPrompt.isAction = true;
+LLMPrompt.action = ( { node } ) => {
+  console.log('hello!'); console.log(node);
+  React.Children.forEach(node, (child) => {
+    if (React.isValidElement(child) && child.type === LLMPrompt) {
+      const promptText = extractChildrenText(child);
+      run_llm(child.props.target, { prompt: promptText });
+    }
+  });
+};
 
 const LLMDialog = ({ children, id, onCloseDialog }) => {
   return (
