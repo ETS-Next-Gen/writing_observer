@@ -31,9 +31,6 @@ import { Button, ResetButton, List, ShowHideToggle, GitEditLink, DebugJSON } fro
 import { TextInput, NumericInput, UnitInput, LineInput, RenderEquation, UPDATE_INPUT } from './input_types';
 export { Button, ResetButton, NumericInput, UnitInput, LineInput, TextInput, List, ShowHideToggle, GitEditLink, DebugJSON };
 
-import { MainPane, SideBarPanel } from './sidebar_layout';
-export { MainPane, SideBarPanel };
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faQuestionCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 
@@ -93,30 +90,6 @@ Element.eval = function(element) {
   return value;
 }
 
-export function Variable({children}) {
-  return <></>;
-}
-
-export function StoreVariable({children, id}) {
-  useEffect(
-    () => {
-      const text = extractChildrenText(children);
-      dclog("store_var", id, text);
-      lo_event.logEvent(
-        STORE_VARIABLE, {
-          id,
-          value: text,
-        });
-    }, []);
-
-  return <>{children}</>;
-}
-
-Variable.eval = function(element) {
-  return "Variable eval";
-};
-
-
 export function ShowComponentButton({ id, target, hidetext, children }) {
   const componentState = useComponentSelector(target) || {};
   const visibility = componentState.isVisible || false;
@@ -156,22 +129,3 @@ export function HideableComponent({ id, children, slide }) {
     </div>
   );
 }
-
-/*
-  We're trying to figure out how to set up routes in an easy-to-use
-  fashion. We are perhaps heading for something like this:
-
-export function Switch({target, children}) {
-  const activeRoute = React.Children.toArray(children).find(
-    child => child.props.target === activePage
-  );
-
-  return activeRoute || null;
-}
-
-const Route = ({ target, children }) => {
-  return React.Children.map(children, child =>
-    React.cloneElement(child, { target })
-  );
-};
-*/

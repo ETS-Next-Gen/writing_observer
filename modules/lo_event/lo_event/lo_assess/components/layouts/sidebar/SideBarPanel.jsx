@@ -1,12 +1,5 @@
 import React from 'react';
 
-
-export function MainPane( {...props} ) {
-  return <div {...props}/>;
-}
-
-
-
 export function SideBarPanel({children}) {
   const childArray = React.Children.toArray(children);
 

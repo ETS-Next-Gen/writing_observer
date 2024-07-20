@@ -2,7 +2,7 @@
 
 {{{ imports }}}
 
-export default function {{ componentName }}( { children } ) {
+export function {{ componentName }}( { children } ) {
   return (
 {{{ xml }}});
 };
