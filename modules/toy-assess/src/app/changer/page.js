@@ -3,9 +3,7 @@
 
 import { LLMButton, LLMFeedback, LLMPrompt, Element } from '../components.js';
 
-import { SideBarPanel, MainPane, TextInput } from 'lo_event/lo_event/lo_assess/components/components.jsx';
-
-let ActionButton = LLMButton;
+import { ActionButton, LLMAction, SideBarPanel, MainPane, TextInput } from 'lo_event/lo_event/lo_assess/components/components.jsx';
 
 export default function Home( { children } ) {
   return (
@@ -23,42 +21,42 @@ export default function Home( { children } ) {
       <div>
         <p> Rewrite / audience / style </p>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this in simple English for a first grader: <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this in simple English for a first grader: <Element>student_essay</Element></LLMAction>
           First Grader Text
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this in contorted social sciences academic English: <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this in contorted social sciences academic English: <Element>student_essay</Element></LLMAction>
           SSR
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this in business English, with a marketing focus: <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this in business English, with a marketing focus: <Element>student_essay</Element></LLMAction>
           Business
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this in first person: <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this in first person: <Element>student_essay</Element></LLMAction>
           First person
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">You're a world-class comedian. Please rewrite this to be hillarious, and with an edge. You can make stuff up (hey, it's comedy), but there should be real jokes (not just flippancy): <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">You're a world-class comedian. Please rewrite this to be hillarious, and with an edge. You can make stuff up (hey, it's comedy), but there should be real jokes (not just flippancy): <Element>student_essay</Element></LLMAction>
         Comedian
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this using a Chinese communication style, organization, and argumentation structure (e.g. as described by Hofstede or Meyer), but in English: <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this using a Chinese communication style, organization, and argumentation structure (e.g. as described by Hofstede or Meyer), but in English: <Element>student_essay</Element></LLMAction>
           Chinese American
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this text in legal English for a legal filing <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this text in legal English for a legal filing <Element>student_essay</Element></LLMAction>
           Lawyer
         </ActionButton>
         <br/>
         <ActionButton>
-          <LLMPrompt target="essay_rewrite">Please rewrite this text as a lower-to-mid-level middle schooler. Please include middle-school level spelling errors, grammar errors, and style issues; we'll want middle-school students to find and correct issues: <Element>student_essay</Element></LLMPrompt>
+          <LLMAction target="essay_rewrite">Please rewrite this text as a lower-to-mid-level middle schooler. Please include middle-school level spelling errors, grammar errors, and style issues; we'll want middle-school students to find and correct issues: <Element>student_essay</Element></LLMAction>
           Middle Schooler
         </ActionButton>
       </div>

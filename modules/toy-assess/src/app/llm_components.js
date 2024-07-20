@@ -50,44 +50,6 @@ const LLMDialog = ({ children, id, onCloseDialog }) => {
 }
 
 
-export const ActionButton = ({ children, target, showPrompt = true, ...props }) => {
-  const [dialogVisible, setDialogVisible] = useState(false);
-
-  const onClick = () => {
-    React.Children.forEach(children, (child) => {
-      dclog("ept", children);
-      if (React.isValidElement(child) && child.type === LLMPrompt) {
-        const promptText = extractChildrenText(child);
-        run_llm(child.props.target, { prompt: promptText });
-      }
-    });
-  };
-
-  const onPromptClick = () => {
-    setDialogVisible(true);
-  };
-
-  const onCloseDialog = () => {
-    setDialogVisible(false);
-  };
-
-  return (
-    <>
-      <Button onClick={onClick} {...props}>
-        {children}
-      </Button>
-      {showPrompt && <span onClick={onPromptClick} style={styles.questionMark}>
-                       <FontAwesomeIcon icon={faQuestionCircle} />
-                     </span>}
-      {dialogVisible && (
-        <LLMDialog onCloseDialog={onCloseDialog}> {children} </LLMDialog>
-      )}
-    </>
-  );
-};
-
-// Obsolete name
-export const LLMButton = ActionButton;
 
 export const LLMFeedback = ({children, id}) => {
   const dispatch = useDispatch();
