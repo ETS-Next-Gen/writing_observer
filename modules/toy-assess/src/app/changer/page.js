@@ -1,9 +1,7 @@
 'use client';
 // @refresh reset
 
-import { LLMButton, LLMFeedback, LLMPrompt, Element } from '../components.js';
-
-import { ActionButton, LLMAction, SideBarPanel, MainPane, TextInput } from 'lo_event/lo_event/lo_assess/components/components.jsx';
+import { ActionButton, Element, LLMAction, SideBarPanel, MainPane, TextInput, LLMFeedback } from 'lo_event/lo_event/lo_assess/components/components.jsx';
 
 export default function Home( { children } ) {
   return (

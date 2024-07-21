@@ -24,8 +24,7 @@ import { consoleLogger } from 'lo_event/lo_event/consoleLogger.js';
 
 import { activePage, extractChildrenText, updateResponseReducer } from './utils.js';
 
-import { LLMPrompt, LLMButton, LLMFeedback, UPDATE_LLM_RESPONSE } from './llm_components';
-export { LLMPrompt, LLMButton, LLMFeedback };
+import { UPDATE_LLM_RESPONSE } from './llm_components';
 
 import { Button, ResetButton, List, ShowHideToggle, GitEditLink, DebugJSON } from './base_components';
 import { TextInput, NumericInput, UnitInput, LineInput, RenderEquation, UPDATE_INPUT } from './input_types';
@@ -37,7 +36,6 @@ import { faQuestionCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import './base-style.css';
 import './sidebar-panel.css';
 import './button.css';
-import './spinner.css';
 
 export const STORE_VARIABLE = 'STORE_VARIABLE';
 export const SHOW_SECTION='SHOW_SECTION';
@@ -69,26 +67,6 @@ registerReducer(
   updateResponseReducer
 );
 
-export function Element({children}) {
-  const id=children.trim();
-  const value = useComponentSelector(id, s => s?.value);
-
-  return <>{value}</>;
-}
-
-Element.eval = function(element) {
-  const value=store.getState()?.application_state?.component_state?.[element.props.children.trim()]?.value;
-  if(DEBUG) {
-    console.log('eval', element.props.children.trim());
-    console.log('eval', store.getState());
-    console.log('eval', store.getState()?.application_state);
-    console.log('eval', store.getState()?.application_state?.component_state);
-    console.log('eval', store.getState()?.application_state?.component_state?.[element.props.children.trim()]);
-    console.log('eval', store.getState()?.application_state?.component_state?.[element.props.children.trim()]?.value);
-    console.log('eval', value);
-  }
-  return value;
-}
 
 export function ShowComponentButton({ id, target, hidetext, children }) {
   const componentState = useComponentSelector(target) || {};
