@@ -1,6 +1,9 @@
 'use client';
 // @refresh reset
 
+// We need to import this to call init() for now
+import {  } from '../components.js';
+
 import { ActionButton, Element, LLMAction, SideBarPanel, MainPane, TextInput, LLMFeedback } from 'lo_event/lo_event/lo_assess/components/components.jsx';
 
 export default function Home( { children } ) {
