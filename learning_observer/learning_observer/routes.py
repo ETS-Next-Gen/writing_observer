@@ -117,15 +117,8 @@ def add_routes(app):
         aiohttp.web.get('/common/{filename}', static_directory_handler(paths.static("common"))),
     ])
 
-    # Add extra views as json responses
-    extra_views = learning_observer.module_loader.extra_views()
-    for view in extra_views:
-        app.add_routes([
-            aiohttp.web.get(
-                f'/views/{view["module"]}/{view["suburl"]}/',
-                lambda x: aiohttp.web.json_response(view['static_json'])
-            )
-        ])
+    register_extra_views(app)
+    register_nextjs_routes(app)
 
     # Allow AJAX calls.  Right now, the function receives a `request`
     # object. This should be cleaned in some way.
@@ -419,6 +412,52 @@ def register_repo_routes(app, repos):
                     working_tree_dev=working_tree)
             )
         ])
+
+
+HTTP_METHOD_MAPPING = {
+    'GET': aiohttp.web.get,
+    'POST': aiohttp.web.post
+}
+
+
+def register_extra_views(app):
+    # Add extra views as json responses
+    extra_views = learning_observer.module_loader.extra_views()
+    views = []
+    for view in extra_views:
+        if 'static_json' in view:
+            views.append(aiohttp.web.get(
+                f'/views/{view["module"]}/{view["suburl"]}/',
+                lambda x: aiohttp.web.json_response(view['static_json'])
+            ))
+        elif 'method' in view and 'handler' in view:
+            views.append(HTTP_METHOD_MAPPING[view['method']](
+                f'/views/{view["module"]}/{view["suburl"]}/',
+                view['handler']
+            ))
+        else:
+            debug_log(f'The provided view did not register properly: {view}')
+    app.add_routes(views)
+
+
+def create_nextjs_handler(path):
+    async def _nextjs_handler(request):
+        return aiohttp.web.FileResponse(os.path.join(path, 'index.html'))
+    return _nextjs_handler
+
+
+def register_nextjs_routes(app):
+    '''Add nextjs pages.
+
+    Nextjs compresses all of the css/js into a static directory.
+    We expose both the inital path and the static directory.
+    '''
+    for page in learning_observer.module_loader.nextjs_pages():
+        full_path = os.path.join(page['_BASE_PATH'], page['path'])
+        page_path = os.path.join(f"/{page['_COMPONENT']}", page['path'])
+        static_path = f'/_next{page_path}_next/static/'
+        app.router.add_static(static_path, os.path.join(full_path, '_next', 'static'))
+        app.router.add_get(page_path, create_nextjs_handler(full_path))
 
 
 def register_wsgi_routes(app):
