@@ -20,7 +20,6 @@ import { faQuestionCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 import './base-style.css';
 import './sidebar-panel.css';
-import './button.css';
 import './globals.css';
 
 lo_event.init(

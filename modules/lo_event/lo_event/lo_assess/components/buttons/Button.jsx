@@ -1,5 +1,7 @@
 import React from 'react';
 
+import './Button.css';
+
 /*
  * Parent of all buttons!
  */

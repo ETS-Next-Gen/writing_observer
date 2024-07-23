@@ -133,6 +133,10 @@ function writeComponentFile() {
   return cfs;
 }
 
-compileXMLComponents();
-const cfs = writeComponentFile();
-console.log("Wrote:\n", cfs);
+function compileLocalComponents() {
+  compileXMLComponents();
+  const cfs = writeComponentFile();
+  console.log("Wrote:\n", cfs);
+}
+
+compileLocalComponents();
