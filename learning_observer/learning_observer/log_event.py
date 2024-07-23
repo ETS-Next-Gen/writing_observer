@@ -177,6 +177,11 @@ def initialize_logging_framework():
         # with larger files later. tar.gz should save a lot more
         sfp.write(startup_state)
 
+    # overwrite the current startup info for serving
+    current_startup_filename = "{directory}/startup.json".format(directory=paths.logs())
+    with open (current_startup_filename, 'w') as csfp:
+        csfp.write(startup_state)
+
 
 def encode_json_line(line):
     '''
