@@ -101,6 +101,10 @@ def add_routes(app):
             '/config.json',
             learning_observer.client_config.client_config_handler
         ),
+        aiohttp.web.get(
+            '/startup-info',
+            static_file_handler(paths.logs('startup.json'))
+        )
     ])
 
     # We'd like to be able to have the root page themeable, for
