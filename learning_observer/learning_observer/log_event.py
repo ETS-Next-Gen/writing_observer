@@ -82,6 +82,7 @@ if not os.path.exists(paths.logs("startup")):
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
+startup_state = learning_observer.filesystem_state.filesystem_state()
 
 
 # Do we make files for exceptions? Do we print extra stuff on the console?
@@ -164,8 +165,8 @@ def initialize_logging_framework():
     # This way, event logs can refer uniquely to running version
     # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
     # hexdigest?
-    startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
-    STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state.encode('utf-8'))
+    startup_state_dump = json.dumps(startup_state, indent=3, sort_keys=True)
+    STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state_dump.encode('utf-8'))
     STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
         directory=paths.logs("startup"),
         time=datetime.datetime.utcnow().isoformat(),
@@ -175,12 +176,7 @@ def initialize_logging_framework():
     with open(STARTUP_FILENAME, "w") as sfp:
         # gzip can save about 2-3x space. It makes more sense to do this
         # with larger files later. tar.gz should save a lot more
-        sfp.write(startup_state)
-
-    # overwrite the current startup info for serving
-    current_startup_filename = "{directory}/startup.json".format(directory=paths.logs())
-    with open (current_startup_filename, 'w') as csfp:
-        csfp.write(startup_state)
+        sfp.write(startup_state_dump)
 
 
 def encode_json_line(line):
