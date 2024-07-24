@@ -25,6 +25,14 @@ def static_file_handler(filename):
     return handler
 
 
+def json_response_handler(data):
+    '''Serve data (dict-like) as a json response
+    '''
+    async def handler(request):
+        return aiohttp.web.json_response(data)
+    return handler
+
+
 def redirect(new_path):
     '''
     Static, fixed redirect to a new location
