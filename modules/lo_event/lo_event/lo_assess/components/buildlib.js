@@ -23,8 +23,6 @@ export function getTemplatePath(templateFileName) {
   return path.join(parentDir, templateFileName);
 }
 
-console.log(getTemplatePath("component.jsx.template"));
-
 function parsePath(path) {
   const componentsIndex = path.indexOf('/components/') + '/components/'.length;
   const relativePath = './' + path.substring(componentsIndex);
@@ -90,8 +88,12 @@ function xmlToJSX(xmlFile) {
   safeWrite(data.jsxFullPath, rendered);
 }
 
-function compileXMLComponents() {
-  const xmlFiles = glob.sync(xmlPattern);
+export function listXmlFiles() {
+  return glob.sync(xmlPattern);
+}
+
+export function compileXMLComponents() {
+  const xmlFiles = listXmlFiles();
 
   console.log("XML Files: ", xmlFiles);
   
@@ -100,11 +102,15 @@ function compileXMLComponents() {
   });
 }
 
+export function listComponentFiles() {
+  return glob.sync(jsPattern);
+}
+
 function generateComponentFileString() {
   let cfs = "";
   cfs += header;
 
-  const jsFiles = glob.sync(jsPattern);
+  const jsFiles = listComponentFiles();
 
   jsFiles.forEach((file) => {
     const { relativePath, componentName } = parsePath(file);
@@ -126,7 +132,7 @@ function safeWrite(filename, data) {
   fs.writeFileSync(filename, data, 'utf8');
 }
 
-function writeComponentFile() {
+export function writeComponentFile() {
   const cfs = generateComponentFileString();
   safeWrite(componentsFile, cfs);
   console.log(`${componentsFile} file generated successfully!`);

@@ -4,11 +4,14 @@
   "description": "Event logging library for the Learning Observer",
   "main": "lo_event/lo_event.js",
   "scripts": {
-    "prebuild": "node lo_event/lo_assess/components/compileComponents.js",
+    "prebuild": "./lo_cli.js build",
     "test": "jasmine \"tests/*.test.js\"",
     "test-verbose": "jasmine --verbose \"tests/*.test.js\"",
     "browser": "parcel examples/*.html --open",
     "clean": "rm -Rf .cache/ dist/ .parcel-cache/ lo_event-*.tgz"
+  },
+  "bin": {
+    "lo_cli": "lo_cli.js"
   },
   "repository": {
     "type": "git",
@@ -32,12 +35,14 @@
     "react-redux": "^9.1.2",
     "redux-thunk": "^2.4.2",
     "sqlite3": "^5.1.6",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.5",
     "@babel/core": "^7.24.5",
     "@babel/preset-env": "^7.24.5",
+    "@babel/preset-react": "^7.24.7",
     "assert": "^2.1.0",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.0",
