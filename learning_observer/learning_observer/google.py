@@ -213,8 +213,8 @@ def initialize_and_register_routes(app):
     # # For now, all of this is behind one big feature flag. In the future,
     # # we'll want seperate ones for the debugging tools and the production
     # # staff
-    if 'google_routes' not in settings.settings['feature_flags']:
-        return
+    # if 'google_routes' not in settings.settings['feature_flags']:
+    #     return
 
     # Provide documentation on what we're doing
     app.add_routes([
