@@ -54,6 +54,7 @@ AJAX = {}
 
 WSGI = []
 DASH_PAGES = {}
+NEXTJS_PAGES = []
 
 
 def extra_views():
@@ -185,6 +186,11 @@ def wsgi():
 def dash_pages():
     load_modules()
     return DASH_PAGES
+
+
+def nextjs_pages():
+    load_modules()
+    return NEXTJS_PAGES
 
 
 def load_modules():
@@ -530,6 +536,21 @@ def register_dash_pages(component_name, module):
         DASH_PAGES[component_name] = module.DASH_PAGES
 
 
+def register_nextjs_pages(component_name, module):
+    '''
+    Load the set of `nextjs` pages.
+    TODO this looks a lot like the above, we ought to abstract it
+    '''
+    if hasattr(module, 'NEXTJS_PAGES'):
+        debug_log(f'Loading nextjs pages from {component_name}')
+        for page in module.NEXTJS_PAGES:
+            page['_BASE_PATH'] = os.path.dirname(module.__file__)
+            page['_COMPONENT'] = component_name
+        NEXTJS_PAGES.extend(module.NEXTJS_PAGES)
+    else:
+        debug_log(f'Component {component_name} has no nextjs pages')
+
+
 def load_module_from_entrypoint(entrypoint):
     '''
     Load a module from an entrypoint.
@@ -552,7 +573,7 @@ def load_module_from_entrypoint(entrypoint):
     load_extra_views(component_name, module)
     register_3rd_party(component_name, module)
     register_git_repos(component_name, module)
-
+    register_nextjs_pages(component_name, module)
     register_wsgi_modules(component_name, module)
     register_dash_pages(component_name, module)
 
