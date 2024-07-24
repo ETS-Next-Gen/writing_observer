@@ -256,7 +256,7 @@ def register_auth_webapp_views(app):
             print("Typically:")
             print("{python_src} learning_observer/util/lo_passwd.py "
                   "--username {username} --password {password} "
-                  "--filename learning_obsserver/{fn}".format(
+                  "--filename learning_observer/{fn}".format(
                       python_src=paths.PYTHON_EXECUTABLE,
                       username=getpass.getuser(),
                       password=secrets.token_urlsafe(16),

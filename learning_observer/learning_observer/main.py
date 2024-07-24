@@ -15,6 +15,7 @@ import asyncio
 
 import aiohttp
 import aiohttp.web
+import functools
 import pmss
 import uvloop
 
@@ -113,13 +114,12 @@ def create_app():
     return app
 
 
-def shutdown(app):
+async def shutdown(app):
     '''
     Shutdown the app.
     '''
-    app.shutdown()
-    app.cleanup()
-    return app
+    await app.shutdown()
+    await app.cleanup()
 
 
 def start(app):
@@ -132,9 +132,10 @@ def start(app):
 
 
 print("Arguments:", args)
+app = create_app()
 
 if args.watchdog is not None:
-    print("Watchdog mode")
+    print("Watchdog mode", args.watchdog)
     # Parse argument to determine watchdog handler
     restart = {
         'restart': learning_observer.watchdog_observer.restart,
@@ -146,13 +147,11 @@ if args.watchdog is not None:
         )
         sys.exit(-1)
     fs_event_handler = learning_observer.watchdog_observer.RestartHandler(
-        shutdown=shutdown,
+        shutdown=functools.partial(shutdown, app),
         restart=restart[args.watchdog],
-        start=start
+        start=functools.partial(start, app)
     )
     learning_observer.watchdog_observer.watchdog(fs_event_handler)
-
-app = create_app()
 
 # This creates the file that tells jupyter how to run our custom
 # kernel. This command needs to be ran once (outside of Jupyter)

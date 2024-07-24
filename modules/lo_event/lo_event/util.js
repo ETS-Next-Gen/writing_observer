@@ -11,7 +11,7 @@ import { storage } from './browserStorage.js';
  *  console.log(copied)
  *  // expected output: { a: 1, b: 2 }
  */
-function copyFields (source, fields) {
+export function copyFields (source, fields) {
   const result = {};
   if (source) {
     fields.forEach(field => {
@@ -403,4 +403,89 @@ export function once (func) {
       throw new Error('Error! Function was called more than once! This should never happen');
     }
   };
+}
+
+/*
+  Retrieve an element from a tree with dotted notation
+
+  e.g. treeget(
+     {"hello": {"bar":"biff"}},
+     "hello.bar"
+  )
+
+  This can also handle embbedded lists identified
+  using notations like addedNodes[0].className.
+
+  If not found, return null
+
+  This was created in the extension, but is being transferred into
+  `lo_event`. Once it is merged, the extension should be modified to
+  use the version from `lo_event`, and this should be removed from
+  there.
+*/
+export function treeget(tree, key) {
+  let keylist = key.split(".");
+  let subtree = tree;
+  for(var i=0; i<keylist.length; i++) {
+    // Don't process empty subtrees
+    if (subtree === null) {
+      return null;
+    }
+    // If the next dotted element is present,
+    // reset the subtree to only include that node
+    // and its descendants.
+    if (keylist[i] in subtree) {
+      subtree = subtree[keylist[i]];
+    }
+    // If a bracketed element is present, parse out
+    // the index, grab the node at the index, and
+    // set the subtree equal to that node and its
+    // descendants.
+    else {
+      if (keylist[i] && keylist[i].indexOf('[')>0) {
+        const item = keylist[i].split('[')[0];
+        const idx = keylist[i].split('[')[1];
+        idx = idx.split(']')[0];
+        if (item in subtree) {
+          if (subtree[item][idx] !== undefined) {
+            subtree =subtree[item][idx];
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+  }
+  return subtree;
+}
+
+/**
+ * Takes a number of seconds and converts it into a human-friendly time string in the format HH:MM:SS.
+ *
+ * @param {number} seconds - The number of seconds to format into a time string
+ * @returns {string} The formatted time string
+ *
+ * Will do things like omit hours (and perhaps be smarter in the future)
+ */
+export function formatTime(seconds) {
+  // Calculate hours, minutes, and remaining seconds
+  var hours = Math.floor(seconds / 3600);
+  var minutes = Math.floor((seconds % 3600) / 60);
+  var remainingSeconds = (seconds % 60).toFixed(2);
+  
+  // Format hours, minutes, and remaining seconds to include leading zeros
+  var formattedHours = hours.toString().padStart(2, '0');
+  var formattedMinutes = minutes.toString().padStart(2, '0');
+  var formattedSeconds = remainingSeconds.padStart(5, '0');
+  
+  // Concatenate and return the formatted time
+  if (hours > 0) {
+    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+  } else {
+    return `${formattedMinutes}:${formattedSeconds}`;
+  }
 }

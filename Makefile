@@ -3,18 +3,25 @@ PACKAGES ?= wo,awe
 run:
 	# If you haven't done so yet, run: make install
 	# we need to make sure we are on the virtual env when we do this
-	cd learning_observer && python learning_observer
+	cd learning_observer && python learning_observer --watchdog=restart
 
 venv:
-	pip install --no-cache-dir -r requirements.txt
+	# This is unnecessary since LO installs requirements on install.
+	# pip install --no-cache-dir -r requirements.txt
 
 # install commands
 install: venv
 	# The following only works with specified packages
 	# we need to install learning_observer in dev mode to
 	# more easily pass in specific files we need, such as creds
-	pip install --no-cache-dir -e learning_observer/[${PACKAGES}]
-	# TODO resolve the lodrc-current symlink and fetch that url instead
+	pip install --no-cache-dir -e learning_observer/
+
+	# Installing Learning Oberser (LO) Dash React Components
+	# TODO properly fetch the current version of lodrc.
+	# We have a symbolic link between `lodrc-current` and the most
+	# recent version. We would like to directly fetch `lodrc-current`,
+	# however, the fetch only returns the name of the file it's
+	# linked to. We do an additional fetch for the linked file.
 	@LODRC_CURRENT=$$(curl -s https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/lo_dash_react_components-current.tar.gz); \
 	pip install https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/$${LODRC_CURRENT}
 
@@ -22,6 +29,20 @@ install-dev: venv
 	# TODO create a dev requirements file
 	pip install --no-cache-dir -e learning_observer/[${PACKAGES}]
 	. ${HOME}/.nvm/nvm.sh && nvm use && pip install -v -e modules/lo_dash_react_components/
+
+install-packages: venv
+	pip install -e learning_observer/[${PACKAGES}]
+
+	# Just a little bit of dependency hell...
+	# The AWE Components are built using a specific version of
+	# `spacy`. This requires an out-of-date `typing-extensions`
+	# package. There are few other dependecies that require a
+	# newer version. As far as I can tell, upgrading this package
+	# does not effect the functionality we receive from the AWE
+	# components.
+	# TODO remove this extra step after AWE Component's `spacy`
+	# is no longer version locked.
+	pip install -U typing-extensions
 
 # testing commands
 test:

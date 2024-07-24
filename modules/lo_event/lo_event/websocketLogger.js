@@ -72,7 +72,6 @@ export function websocketLogger (server) {
   function prepareSocket () {
     // TODO fetch local storage items here
     const event = { local_storage: {} };
-    console.log(event);
     /**
      * The extension expects some auth and metadata before processing events
      * through the reducers. The first time this data is sent is handled by
