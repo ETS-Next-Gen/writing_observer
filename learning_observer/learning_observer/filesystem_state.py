@@ -13,7 +13,7 @@ FILESTRING = """{filename}:
 \tst_ctime:{st_ctime}
 """
 '''
-
+import aiohttp
 import datetime
 import hashlib
 import os
@@ -80,6 +80,10 @@ def filesystem_state():
     file_info['::python::'] = platform.python_version()
     file_info['::timestamp::'] = datetime.datetime.utcnow().isoformat()
     return file_info
+
+
+async def filesystem_state_handler(request):
+    return aiohttp.web.json_response(filesystem_state())
 
 
 if __name__ == '__main__':
