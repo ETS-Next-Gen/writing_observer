@@ -82,7 +82,7 @@ if not os.path.exists(paths.logs("startup")):
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
-startup_state = learning_observer.filesystem_state.filesystem_state()
+startup_state = {}
 
 
 # Do we make files for exceptions? Do we print extra stuff on the console?
@@ -165,6 +165,8 @@ def initialize_logging_framework():
     # This way, event logs can refer uniquely to running version
     # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
     # hexdigest?
+    global startup_state
+    startup_state.update(learning_observer.filesystem_state.filesystem_state())
     startup_state_dump = json.dumps(startup_state, indent=3, sort_keys=True)
     STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state_dump.encode('utf-8'))
     STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(

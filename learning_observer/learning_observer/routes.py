@@ -108,7 +108,7 @@ def add_routes(app):
         ),
         aiohttp.web.get(
             '/filesystem-state',
-            learning_observer.auth.admin(json_response_handler(learning_observer.filesystem_state.filesystem_state()))
+            learning_observer.auth.admin(learning_observer.filesystem_state.filesystem_state_handler)
         )
     ])
 
