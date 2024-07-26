@@ -42,23 +42,23 @@ THIRD_PARTY = {
 # what URL that came from. At that point, we can replace Minty_URLs
 # with THIRD_PARTY["css/bootstrap.min.css"]["hash"]
 
-Minty_URLs = [
-    'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
-    'https://cdn.jsdelivr.net/npm/bootswatch@5.2.3/dist/minty/bootstrap.min.css',
-]
+# Minty_URLs = [
+#     'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
+#     'https://cdn.jsdelivr.net/npm/bootswatch@5.2.3/dist/minty/bootstrap.min.css',
+# ]
 
-if (dbc.themes.MINTY not in Minty_URLs):
-    print("WARN:: Unrecognized Minty URL detected: {}".format(dbc.themes.MINTY))
-    print("You will need to update dash bootstrap components hash value.\n")
+# if (dbc.themes.MINTY not in Minty_URLs):
+#     print("WARN:: Unrecognized Minty URL detected: {}".format(dbc.themes.MINTY))
+#     print("You will need to update dash bootstrap components hash value.\n")
 
-FontAwesome_URLs = [
-    "https://use.fontawesome.com/releases/v6.3.0/css/all.css",
-    "https://use.fontawesome.com/releases/v6.1.1/css/all.css"
-]
+# FontAwesome_URLs = [
+#     "https://use.fontawesome.com/releases/v6.3.0/css/all.css",
+#     "https://use.fontawesome.com/releases/v6.1.1/css/all.css"
+# ]
 
-if (dbc.icons.FONT_AWESOME not in FontAwesome_URLs):
-    print("WARN:: Unrecognized Fontawesome URL detected: {}".format(dbc.icons.FONT_AWESOME))
-    print("You will need to update the FontAwesome bootstrap components hash value.\n")
+# if (dbc.icons.FONT_AWESOME not in FontAwesome_URLs):
+#     print("WARN:: Unrecognized Fontawesome URL detected: {}".format(dbc.icons.FONT_AWESOME))
+#     print("You will need to update the FontAwesome bootstrap components hash value.\n")
 
 
 COURSE_DASHBOARDS = [{
