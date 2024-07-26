@@ -56,7 +56,7 @@ import spacy
 #spacy.prefer_gpu()
 #debug_log("Preferring GPU Use.")
 spacy.require_gpu()
-debug_log("Preferring GPU Use.")
+debug_log("Requiring GPU Use.")
 
 
 def configure_event_loop():
