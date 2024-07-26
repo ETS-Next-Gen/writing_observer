@@ -42,17 +42,17 @@ source "$VIRTUAL_ENV/bin/activate"
 #
 # Note that by default we seem to be unable to rely
 # on spacy to pull the right cuda on its own
-echo -e "\n=== Installing Spacy CUDA, comment out if not needed. ==="
-echo -e "\n    Using CUDA v. 117"
-"$PIP_CMD" install spacy[cuda117]
+#echo -e "\n=== Installing Spacy CUDA, comment out if not needed. ==="
+#echo -e "\n    Using CUDA v. 117"
+#"$PIP_CMD" install spacy[cuda117]
 
 # If you are using cuda 12.1 as we are on some
 # systems then spacy's passthrough install will
 # not work.  Therefore you will need a two-step
 # process.
-#echo -e "\n    Using CUDA v. 12.x"
-#"$PIP_CMD" install cupy-cuda12x
-#"$PIP_CMD" install spacy[cuda12x]
+echo -e "\n    Using CUDA v. 12.x"
+"$PIP_CMD" install cupy-cuda12x
+"$PIP_CMD" install spacy[cuda12x]
 
 
 # Install basic requirements.
@@ -60,10 +60,13 @@ echo -e "\n=== Installing Requirements.txt ==="
 cd ..
 "$PIP_CMD" install -r requirements.txt
 
-
 echo -e "\n=== Installing Learning Observer ==="
-cd learning_observer
-"$PYTHON_CMD" setup.py develop
+make install
+#cd learning_observer
+#"$PYTHON_CMD" setup.py develop
+
+pip install --upgrade spacy[cuda12x]
+pip install --upgrade pydantic
 
 
 echo -e "\n=== Installing Modules ==="
@@ -76,12 +79,27 @@ cd ..
 
 echo -e "\n--- Installing lo_dash_react_components. ---"
 cd ./lo_dash_react_components
+nvm install
+nvm use
+npm install
 "$PYTHON_CMD" setup.py develop
 pip install .
 cd ..
 
 echo -e "\n--- Installing wo_highlight_dashboard. ---"
 cd ./wo_highlight_dashboard
+"$PYTHON_CMD" setup.py develop
+cd ..
+
+
+echo -e "\n--- Installing common student errors. ---"
+cd ./wo_common_student_errors
+"$PYTHON_CMD" setup.py develop
+cd ..
+
+
+echo -e "\n--- Installing bulk analysius (askGPT). ---"
+cd ./wo_bulk_essay_analysis
 "$PYTHON_CMD" setup.py develop
 cd ..
 
