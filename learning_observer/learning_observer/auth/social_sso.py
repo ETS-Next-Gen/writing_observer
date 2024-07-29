@@ -25,6 +25,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 Eventually, this should be broken out into its own module.
 """
 
+import asyncio
 import yarl
 
 import aiohttp
@@ -36,8 +37,52 @@ import aiohttp_session
 import learning_observer.settings as settings
 import learning_observer.auth.handlers as handlers
 import learning_observer.auth.utils
+import learning_observer.auth.roles
 
+import learning_observer.constants as constants
 import learning_observer.exceptions
+import learning_observer.google
+import learning_observer.kvs
+import learning_observer.rosters
+import learning_observer.runtime
+import learning_observer.stream_analytics.helpers as sa_helpers
+import learning_observer.util
+
+import pmss
+# TODO the hostname setting currently expect the port
+# to specified within the hostname. We ought to
+# remove the port and instead use the port setting.
+pmss.register_field(
+    name="hostname",
+    type=pmss.pmsstypes.TYPES.hostname,
+    description="The hostname of the LO webapp. Used to redirect OAuth clients.",
+    required=True
+)
+pmss.register_field(
+    name="protocol",
+    type=pmss.pmsstypes.TYPES.protocol,
+    description="The protocol (http / https) of the LO webapp. Used to redirect OAuth clients.",
+    required=True
+)
+pmss.register_field(
+    name="client_id",
+    type=pmss.pmsstypes.TYPES.string,
+    description="The Google OAuth client ID",
+    required=True
+)
+pmss.register_field(
+    name="client_secret",
+    type=pmss.pmsstypes.TYPES.string,
+    description="The Google OAuth client secret",
+    required=True
+)
+pmss.register_field(
+    name='fetch_additional_info_from_teacher_on_login',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Whether we should start an additional task that will '\
+        'fetch all text from current rosters.',
+    default=False
+)
 
 
 DEFAULT_GOOGLE_SCOPES = [
@@ -58,6 +103,20 @@ DEFAULT_GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/classroom.announcements.readonly'
 ]
 
+# TODO Type list is not yet supported by PMSS 4/24/24
+# pmss.register_field(
+#     name='base_scopes',
+#     type='list',
+#     description='List of Google URLs to look for.',
+#     default=DEFAULT_GOOGLE_SCOPES
+# )
+# pmss.register_field(
+#     name='additional_scopes',
+#     type='list',
+#     description='List of additional URLs to look for.',
+#     default=[]
+# )
+
 
 async def social_handler(request):
     """Handles Google sign in.
@@ -71,15 +130,85 @@ async def social_handler(request):
 
     user = await _google(request)
 
-    if 'user_id' in user:
+    if constants.USER_ID in user:
         await learning_observer.auth.utils.update_session_user_info(request, user)
 
     if user['authorized']:
         url = user['back_to'] or "/"
+        if settings.pmss_settings.fetch_additional_info_from_teacher_on_login():
+            asyncio.create_task(_store_teacher_info_for_background_process(user['user_id'], request))
     else:
         url = "/"
 
     return aiohttp.web.HTTPFound(url)
+
+
+async def _store_teacher_info_for_background_process(id, request):
+    '''HACK this code stores 2 pieces of information when
+    teacher logs in with a social handlers.
+
+    1. We want to have a background process that fetches Google
+    docs and then processes them. This function stores relevant
+    teacher information (Google auth token + rosters) so we can
+    later fetch and process documents in our separate process.
+    The token is removed with the `utils.py:logout()` method.
+
+    2. For each student within a roster, we attempt to fetch all
+    of their deocument texts via the Google API. These are
+    stored as reducer on the system.
+
+    TODO remove this function and references when new, better
+    workflows are established.
+    '''
+    kvs = learning_observer.kvs.KVS()
+    runtime = learning_observer.runtime.Runtime(request)
+    courses = await learning_observer.rosters.courselist(request)
+    skipped_docs = set()
+
+    # store teacher auth info
+    auth_key = sa_helpers.make_key(
+        learning_observer.auth.utils.google_stored_auth,
+        {sa_helpers.KeyField.TEACHER: id},
+        sa_helpers.KeyStateType.INTERNAL)
+    await kvs.set(auth_key, request[constants.AUTH_HEADERS])
+    current_keys = await kvs.keys()
+
+    async def _fetch_and_store_document(student, doc_id):
+        doc = await learning_observer.google.doctext(runtime, documentId=doc_id)
+        if 'text' not in doc:
+            skipped_docs.add(doc_id)
+            return
+        doc_key = sa_helpers.make_key(
+            _fetch_and_store_document,
+            {sa_helpers.KeyField.STUDENT: student, sa_helpers.EventField('doc_id'): doc_id},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(doc_key, doc)
+
+    async def _process_student_documents(student):
+        print('** Processing student', student)
+        student_docs = (k for k in current_keys if student in k and 'EventField.doc_id' in k)
+        specifier = 'EventField.doc_id:'
+        student_docs = (k[k.find(specifier) + len(specifier):k.find(',', k.find(specifier))] for k in student_docs)
+        student_docs = set(student_docs)
+        for doc_id in student_docs:
+            await _fetch_and_store_document(student, doc_id)
+
+    for course in courses:
+        # Fetch and store course information
+        roster = await learning_observer.rosters.courseroster(request, course_id=course['id'])
+        students = [s['user_id'] for s in roster]
+        roster_key = sa_helpers.make_key(
+            learning_observer.google.roster,
+            {sa_helpers.KeyField.TEACHER: id, sa_helpers.KeyField.CLASS: course['id']},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(roster_key, {'teacher_id': id, 'students': students})
+
+        # For each student, fetch their available documents and store them
+        for student in students:
+            # we ought to fire these off as tasks instead of waiting on
+            # them before waiting for the next roster to process
+            await _process_student_documents(student)
+    # TODO saved skipped doc ids somewhere?
 
 
 async def _google(request):
@@ -89,10 +218,10 @@ async def _google(request):
     if 'error' in request.query:
         return {}
 
-    hostname = settings.settings['hostname']
-    protocol = settings.settings.get('protocol', 'https')
+    hostname = settings.pmss_settings.hostname()
+    protocol = settings.pmss_settings.protocol()
     common_params = {
-        'client_id': settings.settings['auth']['google_oauth']['web']['client_id'],
+        'client_id': settings.pmss_settings.client_id(types=['auth', 'google_oauth', 'web']),
         'redirect_uri': f"{protocol}://{hostname}/auth/login/google"
     }
 
@@ -123,7 +252,7 @@ async def _google(request):
     url = 'https://accounts.google.com/o/oauth2/token'
     params = common_params.copy()
     params.update({
-        'client_secret': settings.settings['auth']['google_oauth']['web']['client_secret'],
+        'client_secret': settings.pmss_settings.client_secret(types=['auth', 'google_oauth', 'web']),
         'code': request.query['code'],
         'grant_type': 'authorization_code',
     })
@@ -135,23 +264,30 @@ async def _google(request):
         # get user profile
         headers = {'Authorization': 'Bearer ' + data['access_token']}
         session = await aiohttp_session.get_session(request)
-        session["auth_headers"] = headers
-        request["auth_headers"] = headers
+        session[constants.AUTH_HEADERS] = headers
+        request[constants.AUTH_HEADERS] = headers
 
         # Old G+ URL that's no longer supported.
         url = 'https://www.googleapis.com/oauth2/v1/userinfo'
         async with client.get(url, headers=headers) as resp:
             profile = await resp.json()
 
+    role = await learning_observer.auth.utils.verify_role(profile['id'], profile['email'])
     return {
-        'user_id': profile['id'],
+        constants.USER_ID: profile['id'],
         'email': profile['email'],
         'name': profile['given_name'],
         'family_name': profile['family_name'],
         'back_to': request.query.get('state'),
         'picture': profile['picture'],
         # TODO: Should this be immediate?
-        'authorized': await learning_observer.auth.utils.verify_teacher_account(profile['id'], profile['email'])
+        # TODO: Should authorized just take over the role?
+        # the old code relis on authorized being set to True
+        # to allow users access to various dashboards. Should
+        # we modify this behavior to check for a role or True
+        # instead of using the role attribute.
+        'authorized': role in [learning_observer.auth.ROLES.ADMIN, learning_observer.auth.ROLES.TEACHER],
+        'role': role
     }
 
 
@@ -193,17 +329,17 @@ async def show_me_my_auth_headers(request):
         if not request.can_read_form:
             raise aiohttp.web.HTTPForbidden("Cannot read form")
 
-        auth_headers = request.form.get('auth_headers')
+        auth_headers = request.form.get(constants.AUTH_HEADERS)
         if not auth_headers:
             raise aiohttp.web.HTTPBadRequest(
                 text="Missing auth_headers"
             )
         session = await aiohttp_session.get_session(request)
-        session["auth_headers"] = auth_headers
-        request["auth_headers"] = auth_headers
+        session[constants.AUTH_HEADERS] = auth_headers
+        request[constants.AUTH_HEADERS] = auth_headers
         session.save()
 
     return aiohttp.web.json_response({
-        "auth_headers": request.get("auth_headers", None),
+        constants.AUTH_HEADERS: request.get(constants.AUTH_HEADERS, None),
         "headers": dict(request.headers)
     })

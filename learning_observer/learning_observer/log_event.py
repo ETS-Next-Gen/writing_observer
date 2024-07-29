@@ -56,7 +56,9 @@ import json
 import hashlib
 import os
 import os.path
+import pmss
 
+import learning_observer.constants
 import learning_observer.filesystem_state
 
 import learning_observer.paths as paths
@@ -80,6 +82,7 @@ if not os.path.exists(paths.logs("startup")):
 
 mainlog = open(paths.logs("main_log.json"), "ab", 0)
 files = {}
+startup_state = {}
 
 
 # Do we make files for exceptions? Do we print extra stuff on the console?
@@ -101,6 +104,16 @@ class LogLevel(Enum):
     SIMPLE = 'SIMPLE'
     EXTENDED = 'EXTENDED'
 
+
+pmss.parser('debug_log_level', parent='string', choices=[level.value for level in LogLevel], transform=None)
+pmss.register_field(
+    name='debug_log_level',
+    type='debug_log_level',
+    description='How much information do we want to log.\n'\
+                '`NONE`: do not print anything\n'\
+                '`SIMPLE`: print simple debug messages\n'\
+                '`EXTENDED`: print debug message with stack trace and timestamp'
+)
 
 class LogDestination(Enum):
     '''
@@ -141,7 +154,7 @@ def initialize_logging_framework():
     # In either case, we want to override from the settings file.
     if "logging" in settings.settings:
         if "debug_log_level" in settings.settings["logging"]:
-            DEBUG_LOG_LEVEL = LogLevel(settings.settings["logging"]["debug_log_level"])
+            DEBUG_LOG_LEVEL = LogLevel(settings.pmss_settings.debug_log_level(types=['logging']))
         if "debug_log_destinations" in settings.settings["logging"]:
             DEBUG_LOG_DESTINATIONS = list(map(LogDestination, settings.settings["logging"]["debug_log_destinations"]))
 
@@ -152,8 +165,10 @@ def initialize_logging_framework():
     # This way, event logs can refer uniquely to running version
     # Do we want the full 512 bit hash? Cut it back? Use a more efficient encoding than
     # hexdigest?
-    startup_state = json.dumps(learning_observer.filesystem_state.filesystem_state(), indent=3, sort_keys=True)
-    STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state.encode('utf-8'))
+    global startup_state
+    startup_state.update(learning_observer.filesystem_state.filesystem_state())
+    startup_state_dump = json.dumps(startup_state, indent=3, sort_keys=True)
+    STARTUP_STATE_HASH = learning_observer.util.secure_hash(startup_state_dump.encode('utf-8'))
     STARTUP_FILENAME = "{directory}/{time}-{hash}.json".format(
         directory=paths.logs("startup"),
         time=datetime.datetime.utcnow().isoformat(),
@@ -163,7 +178,7 @@ def initialize_logging_framework():
     with open(STARTUP_FILENAME, "w") as sfp:
         # gzip can save about 2-3x space. It makes more sense to do this
         # with larger files later. tar.gz should save a lot more
-        sfp.write(startup_state)
+        sfp.write(startup_state_dump)
 
 
 def encode_json_line(line):
@@ -283,7 +298,7 @@ def log_ajax(url, resp_json, request):
     context of classroom activity, debug, and recover from failures
     '''
     payload = {
-        'user': request['user'],
+        learning_observer.constants.USER: request[learning_observer.constants.USER],
         'url': url,
         'response': resp_json,
         'timestamp': datetime.datetime.utcnow().isoformat()
@@ -297,3 +312,10 @@ def log_ajax(url, resp_json, request):
     )
     with open(filename, "w") as ajax_log_fp:
         ajax_log_fp.write(encoded_payload)
+
+def close_logfile(filename):
+    # remove the file from the dict storing open log files and close it
+    old_file = files.pop(filename)
+    if old_file is None:
+        raise KeyError(f"Tried to remove log file {old_file} but it was not found")
+    old_file.close()

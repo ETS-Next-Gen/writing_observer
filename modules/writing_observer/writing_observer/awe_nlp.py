@@ -27,6 +27,7 @@ import warnings
 
 import writing_observer.nlp_indicators
 import learning_observer.kvs
+import learning_observer.paths
 import learning_observer.util
 
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
@@ -38,7 +39,14 @@ def init_nlp():
     to run.
     '''
     warnings.filterwarnings('ignore', category=UserWarning, module='nltk')
-    nlp = spacy.load("en_core_web_lg")
+    try:
+        nlp = spacy.load("en_core_web_lg")
+    except OSError as e:
+        error_text = 'There was an issue loading `en_core_web_lg` from spacy. '\
+                     '`awe_components` requires various models to operate properly. '\
+                     f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} awe_components/setup/data.py` to install all '\
+                     'of the necessary models.'
+        raise OSError(error_text) from e
 
     # Adding all of the components, since
     # each of them turns out to be implicated in
@@ -112,7 +120,6 @@ def process_text(text, options=None):
     if options is None:
         # Do we want options to be everything initially or nothing?
         options = writing_observer.nlp_indicators.INDICATORS.keys()
-        options = []
 
     for item in options:
         if item not in writing_observer.nlp_indicators.INDICATORS:

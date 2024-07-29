@@ -181,6 +181,16 @@ class _RedisKVS(_KVS):
         await self.connect()
         return await learning_observer.redis_connection.keys()
 
+    async def remove(self, key):
+        '''
+        Remove item from the KVS.
+
+        HACK python didn't like `await del kvs[key]`, so I created this
+        method to use in the meantime. More thought should be put into this
+        '''
+        await self.connect()
+        return await learning_observer.redis_connection.delete(key)
+
 
 class EphemeralRedisKVS(_RedisKVS):
     '''
@@ -223,6 +233,8 @@ class FilesystemKVS(_KVS):
         '''
         self.path = path or learning_observer.paths.data('kvs')
         self.subdirs = subdirs
+        if not os.path.exists(path):
+            os.mkdir(path)
 
     def key_to_safe_filename(self, key):
         '''
@@ -239,25 +251,25 @@ class FilesystemKVS(_KVS):
         return os.path.join(self.path, safename)
 
     def safe_filename_to_key(self, filename):
-        raise NotImplementedError("Code this up, please. Or for debugging, comment out the exception")
-        return filename
+        # raise NotImplementedError("Code this up, please. Or for debugging, comment out the exception")
+        return learning_observer.util.from_safe_filename(filename)
 
     async def __getitem__(self, key):
         path = self.key_to_safe_filename(key)
         if not os.path.exists(path):
             return None
         with open(path) as f:
-            return f.read()
+            return json.load(f)
 
     async def set(self, key, value):
         path = self.key_to_safe_filename(key)
         if self.subdirs:
             os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as f:
-            f.write(value)
+            json.dump(value, f, indent=4)
 
     async def __delitem__(self, key):
-        path = key_to_safe_filename(key)
+        path = self.key_to_safe_filename(key)
         os.remove(path)
 
     async def keys(self):
@@ -265,20 +277,38 @@ class FilesystemKVS(_KVS):
         This one is a little bit tricky, since if subdirs, we need to do a full
         walk
         '''
+        keys = []
         if self.subdirs:
             for root, dirs, files in os.walk(self.path):
                 for f in files:
-                    yield self.safe_filename_to_key(os.path.join(root, f).replace(os.sep, '/'))
+                    keys.append(self.safe_filename_to_key(os.path.join(root, f).replace(os.sep, '/')))
         else:
             for f in os.listdir(self.path):
-                yield self.safe_filename_to_key(f)
+                keys.append(self.safe_filename_to_key(f))
+        return keys
 
 
+# TODO change the keys to variables
 KVS_MAP = {
     'stub': InMemoryKVS,
     'redis_ephemeral': EphemeralRedisKVS,
-    'redis': PersistentRedisKVS
+    'redis': PersistentRedisKVS,
+    'filesystem': FilesystemKVS
 }
+
+
+class MissingKVSParameters(AttributeError):
+    '''Raise this when required parameters are not present
+    in the KVS item trying to be created.
+
+    You will see this error if you forget to include
+    1. `expiry` in type `redis_ephemeral` OR
+    2. `path` in type `filesystem`
+    '''
+    def __init__(self, key, type, param):
+        msg = f'KVS, {key}, is set to type `{type}` but `{param}` is not specified. '\
+              'This can be fixed in `creds.yaml`.'
+        super().__init__(msg)
 
 
 class KVSRouter:
@@ -300,7 +330,13 @@ class KVSRouter:
                     raise KeyError(f"Invalid KVS type '{kvs_type}'")
                 kvs_class = KVS_MAP[kvs_type]
                 if kvs_type == 'redis_ephemeral':
+                    if 'expiry' not in kvs_item:
+                        raise MissingKVSParameters(key, kvs_type, 'expiry')
                     kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
+                elif kvs_type == 'filesystem':
+                    if 'path' not in kvs_item:
+                        raise MissingKVSParameters(key, kvs_type, 'path')
+                    kvs_class = functools.partial(kvs_class, kvs_item['path'], kvs_item.get('subdirs', False))
                 self.add_item(key, kvs_class)
 
     def __call__(self):

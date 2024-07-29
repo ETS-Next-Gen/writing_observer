@@ -13,6 +13,7 @@ import os
 
 import names
 
+import learning_observer.constants
 import learning_observer.settings
 import learning_observer.stream_analytics
 import learning_observer.module_loader
@@ -56,6 +57,7 @@ def init(settings=INTERACTIVE_SETTINGS):
     # depending on the (still-changing) startup order
     learning_observer.log_event.DEBUG_LOG_LEVEL = learning_observer.log_event.LogLevel.NONE
     learning_observer.settings.load_settings(settings)
+    learning_observer.prestartup.startup_checks_and_init()
     learning_observer.kvs.kvs_startup_check()  # Set up the KVS
     # Force load of the reducers. This is not necessary right now, but it was
     # before, and might be later again. We should remove this call once the
@@ -129,7 +131,7 @@ async def process_file(
     metadata = {
         "source": source,
         "auth": {
-            "user_id": userid,
+            learning_observer.constants.USER_ID: userid,
             "safe_user_id": userid
         }
     }
@@ -322,7 +324,7 @@ class StubRequest():
         self.app = app
 
     def __contains__(self, item):
-        if item == 'auth_headers':
+        if item == learning_observer.constants.AUTH_HEADERS:
             return True
         return False
 

@@ -53,10 +53,13 @@ import sys
 # e.g. @admin_ajax @admin_html, or @admin(type=ajax)
 from learning_observer.auth.utils import admin
 from learning_observer.auth.utils import teacher
+from learning_observer.auth.roles import ROLES
 
 # Utility functions
 from learning_observer.auth.utils import fernet_key
 from learning_observer.auth.utils import google_id_to_user_id
+from learning_observer.auth.utils import get_active_user
+from learning_observer.auth.events import encode_id
 
 # Utility handlers
 from learning_observer.auth.handlers import logout_handler
@@ -108,4 +111,4 @@ def verify_auth_precheck():
                 "If you are not planning to use Google auth (which is the case for most dev\n" + \
                 "settings), please disable Google authentication in creds.yaml by\n" + \
                 "removing the google_auth section under auth."
-            raise learning_observer.prestartup.StartupCheck(error)
+            raise learning_observer.prestartup.StartupCheck("Auth: " + error)

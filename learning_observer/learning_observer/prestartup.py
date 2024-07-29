@@ -13,6 +13,7 @@ from distutils.log import debug
 import hashlib
 import os
 import os.path
+import requests
 import shutil
 import sys
 import uuid
@@ -89,23 +90,6 @@ def make_blank_dirs():
 
 
 @register_startup_check
-def validate_teacher_list():
-    '''
-    Validate the teacher list file. This is a YAML file that contains
-    a list of teachers authorized to use the Learning Observer.
-    '''
-    if not os.path.exists(paths.data("teachers.yaml")):
-        shutil.copyfile(
-            paths.data("teachers.yaml.template"),
-            paths.data("teachers.yaml")
-        )
-        raise StartupCheck(
-            "Created a blank teachers file: static_data/teachers.yaml\n"
-            "Populate it with teacher accounts."
-        )
-
-
-@register_startup_check
 def validate_config_file():
     '''
     Validate the configuration file exists. If not, explain how to
@@ -164,10 +148,16 @@ def download_3rd_party_static():
         # For subdirectories, make them
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         if not os.path.exists(filename):
-            os.system("wget {url} -O {filename} 2> /dev/null".format(
-                url=url,
-                filename=filename
-            ))
+            # TODO: For larger downloads, we might want to set
+            # stream=True and use iter_content instead
+            response = requests.get(url)
+            if response.status_code == 200:
+                with open(filename, 'wb') as file:
+                    file.write(response.content)
+                    print("Downloaded {name}".format(name=name))
+            else:
+                print("Failed to download file")
+
             print("Downloaded {name}".format(name=name))
         shahash = hashlib.sha3_512(open(filename, "rb").read()).hexdigest()
         if shahash not in hashes:

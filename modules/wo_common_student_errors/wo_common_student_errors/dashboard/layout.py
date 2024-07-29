@@ -5,17 +5,33 @@ new ways of displaying information
 '''
 # package imports
 import dash_bootstrap_components as dbc
+from dash_renderjson import DashRenderjson
+import datetime
 import lo_dash_react_components as lodrc
 import plotly.express as px
+import writing_observer.languagetool
 
 from dash import clientside_callback, ClientsideFunction, Output, Input, State, html, dcc
 
 # local imports
 from . import activity, individual, aggregate_information, colors, hierarchical_information
 
+# TODO pull this flag from settings
+DEBUG_FLAG = True
+
 prefix = 'common-student-errors'
 websocket = f'{prefix}-websocket'
 ws_store = f'{prefix}-ws-store'
+error_store = f'{prefix}-error-store'
+
+alert = f'{prefix}-alert'
+alert_text = f'{prefix}-alert-text'
+alert_error_dump = f'{prefix}-alert-error-dump'
+
+# document source
+doc_src = f'{prefix}-doc-src'
+doc_src_date = f'{prefix}-doc-src-date'
+doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
 # error per text length items
 error_per_length = f'{prefix}-errors-per-length-graph'
@@ -39,6 +55,17 @@ def layout():
 
     tooltip = dcc.Tooltip(id=error_per_length_tooltip, direction='bottom')
     overall_view = html.Div([
+        html.Div([
+            dbc.Label('Document Source'),
+            dbc.RadioItems(options=[
+                {'label': 'Latest Document', 'value': 'latest' },
+                {'label': 'Specific Time', 'value': 'ts'},
+            ], value='latest', id=doc_src),
+            dbc.InputGroup([
+                dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
+                dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
+            ])
+        ]),
         activity.layout,
         dcc.Graph(
             id=error_per_length,
@@ -61,6 +88,11 @@ def layout():
         individual.layout
     ], className='vh-100 overflow-auto')
 
+    alert_component = dbc.Alert([
+        html.Div(id=alert_text),
+        html.Div(DashRenderjson(id=alert_error_dump), className='' if DEBUG_FLAG else 'd-none')
+    ], id=alert, color='danger', is_open=False)
+
     cont = dbc.Container([
         html.H2('Prototype: Work in Progress'),
         html.P(
@@ -68,6 +100,7 @@ def layout():
             'LanguageTool is used to determine grammatical and syntax errors in text. '
             'The dashboard is subject to change based on ongoing feedback from teachers.'
         ),
+        alert_component,
         lodrc.LOPanelLayout(
             children=overall_view,
             panels=[
@@ -76,11 +109,21 @@ def layout():
             shown=['individual'],
             id='panel'
         ),
-        dcc.Store(ws_store, data={}),
+        dcc.Store(ws_store, data={'wo': {}}),
+        dcc.Store(error_store, data=False if writing_observer.languagetool.lt_started else {'error': 'Language Tool is not running.'}),
         lodrc.LOConnection(id=websocket),
     ], fluid=True)
     return dcc.Loading(cont)
 
+
+
+# disbale document date/time options
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='disable_doc_src_datetime'),
+    Output(doc_src_date, 'disabled'),
+    Output(doc_src_timestamp, 'disabled'),
+    Input(doc_src, 'value')
+)
 
 # send request to LOConnection
 clientside_callback(
@@ -88,7 +131,10 @@ clientside_callback(
     Output(websocket, 'send'),
     Output(individual.prefix, 'className'),
     Input(websocket, 'state'),  # used for initial setup
-    Input('_pages_location', 'hash')
+    Input('_pages_location', 'hash'),
+    Input(doc_src, 'value'),
+    Input(doc_src_date, 'date'),
+    Input(doc_src_timestamp, 'value'),
 )
 
 # Update the url's hash based on errors per text length graph's selectedData
@@ -108,7 +154,22 @@ clientside_callback(
     }
     ''',
     Output(ws_store, 'data'),
-    Input(websocket, 'message')
+    Input(websocket, 'message'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='common_student_errors', function_name='update_error_storage'),
+    Output(error_store, 'data'),
+    Input(ws_store, 'data')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace='common_student_errors', function_name='update_alert_with_error'),
+    Output(alert_text, 'children'),
+    Output(alert, 'is_open'),
+    Output(alert_error_dump, 'data'),
+    Input(error_store, 'data')
 )
 
 # populate the activity/inactivity cards

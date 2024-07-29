@@ -107,7 +107,8 @@ window.dash_clientside.document_list = {
       if (!decoded.course_id) { return window.dash_clientside.no_update }
 
       decoded.assignment_id = assignment || ''
-      decoded.tag_path = tag ? `tags.${tag}` : ''
+
+      decoded.tag_path = tag ? `tags.${tag}` : 'tags'
 
       const message = {
         wo: {

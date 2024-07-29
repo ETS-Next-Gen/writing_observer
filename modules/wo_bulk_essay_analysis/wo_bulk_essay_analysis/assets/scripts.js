@@ -107,7 +107,7 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * Sends data to server via websocket
    */
-  send_to_loconnection: async function (state, hash, clicks, query, systemPrompt, tags) {
+  send_to_loconnection: async function (state, hash, clicks, docSrc, docDate, docTime, query, systemPrompt, tags) {
     if (state === undefined) {
       return window.dash_clientside.no_update
     }
@@ -116,14 +116,16 @@ window.dash_clientside.bulk_essay_feedback = {
       const decoded = decode_string_dict(hash.slice(1))
       if (!decoded.course_id) { return window.dash_clientside.no_update }
 
-      decoded.gpt_prompt = ''
-      decoded.message_id = ''
+      decoded.gpt_prompt = '';
+      decoded.message_id = '';
+      decoded.doc_source = docSrc;
+      decoded.requested_timestamp = new Date(`${docDate}T${docTime}`).getTime().toString();
 
       const trig = window.dash_clientside.callback_context.triggered[0]
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
-        decoded.gpt_prompt = query
-        decoded.system_prompt = systemPrompt
-        decoded.tags = tags
+        decoded.gpt_prompt = query;
+        decoded.system_prompt = systemPrompt;
+        decoded.tags = tags;
       }
 
       const message = {
@@ -136,6 +138,18 @@ window.dash_clientside.bulk_essay_feedback = {
       return JSON.stringify(message)
     }
     return window.dash_clientside.no_update
+  },
+
+  /**
+   * parse message from websocket to the data and error store
+   */
+  receive_ws_message: function (message) {
+    const data = JSON.parse(message.data).wo.gpt_bulk || [];
+    if (data.error !== undefined) {
+      console.error('Error received from server', data.error);
+      return [[], data.error];
+    }
+    return [data, false];
   },
 
   /**
@@ -179,6 +193,11 @@ window.dash_clientside.bulk_essay_feedback = {
 
   /**
    * show attachment panel upon uploading document and populate fields
+   *
+   * updates the following
+   * - extracted text from uploaded file
+   * - default attachment name (based on filename)
+   * - whether we show the attachment upload panel
   */
   open_and_populate_attachment_panel: async function (contents, filename, timestamp, shown) {
     if (filename === undefined) {
@@ -208,6 +227,10 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * enable/disabled submit based on query
    * makes sure there is a query and the tags are properly formatted
+   *
+   * updates the following components
+   * - submit query button disbaled status
+   * - helper text for why we disabled the submit query button
   */
   disabled_query_submit: function (query, store) {
     if (query.length === 0) {
@@ -226,6 +249,10 @@ window.dash_clientside.bulk_essay_feedback = {
 
   /**
    * enable/disable the save attachment button if tag is already in use/blank
+   *
+   * updates the following components
+   * - save button disbaled status
+   * - helper text for why we are disabled
    */
   disable_attachment_save_button: function (label, tags) {
     if (label.length === 0) {
@@ -268,5 +295,26 @@ window.dash_clientside.bulk_essay_feedback = {
       return [newStore, shown.filter(item => item !== 'attachment')]
     }
     return tagStore
+  },
+
+  /**
+   * Check if we've received any errors and update
+   * the alert with the appropriate information
+   *
+   * returns an array which updates dash components
+   * - text to display on alert
+   * - show alert
+   * - JSON error data on the alert (only in debug)
+   */
+  update_alert_with_error: function (error) {
+    if (!error) {
+      return ['', false, ''];
+    }
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, error];
   }
-}
+};

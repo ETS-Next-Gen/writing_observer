@@ -9,6 +9,22 @@ See: `http://features.jsomers.net/how-i-reverse-engineered-google-docs/`
 
 import json
 
+"""
+The placeholder character is used to fill gaps in the document, particularly
+when there's a mismatch between the index and the length of the document's text (doc._text).
+In an empty document, the insertion index (from the insert event `is`) is 1. However,
+when the extension is started on a non-empty document, the first insertion index will be
+greater than 1. This can lead to inconsistencies in indexing. 
+This placeholder is used to fill the 'gap' between len(doc._text) and the first insertion 
+index recorded in the logs. 
+This is done for the delete event ('ds') as well.
+Say the first insert event in the logs is of a character 'a' with an index of 10 .
+This placeholder will be used to fill the gap between 1 and 10. Internally doc._text will
+have 10 characters and when returning the output, all placeholders will be removed from 
+doc._text leaving only the character 'a'.
+"""
+PLACEHOLDER = '\x00'
+
 
 class google_text(object):
     '''
@@ -145,6 +161,12 @@ class google_text(object):
             'edit_metadata': self._edit_metadata
         }
 
+    def get_parsed_text(self):
+        '''
+        Returns the text ignoring the normal placeholders
+        '''
+        return self._text.replace(PLACEHOLDER, "")
+
 
 def command_list(doc, commands):
     '''
@@ -179,6 +201,13 @@ def insert(doc, ty, ibi, s):
     * `ibi` is where the insert happens
     * `s` is the string to insert
     '''
+    # The index of the next character after the last character of the text
+    nextchar_index = len(doc._text) + 1
+    # If the insert index is greater than nextchar_index, insert placeholders to fill the gap
+    # This occurs when the document has undergone modifications before the logger has been initialized
+    if ibi > nextchar_index:
+        insert(doc, ty, nextchar_index, PLACEHOLDER * (ibi - nextchar_index))
+
     doc.update("{start}{insert}{end}".format(
         start=doc._text[0:ibi - 1],
         insert=s,
@@ -197,6 +226,15 @@ def delete(doc, ty, si, ei):
     * `si` is the index of the start of deletion
     * `ei` is the end
     '''
+    # Index of the last character in the text. `si` and `ei` shouldn't go beyond that
+    lastchar_index = len(doc._text)
+    # If the deletion indexes are greater than nextchar_index, insert placeholders to fill the gap
+    # This occurs when the document has undergone modifications before the logger has been initialized
+    if si > lastchar_index:
+        insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (si - lastchar_index))
+    if ei > lastchar_index:
+        insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (ei - lastchar_index))
+
     doc.update("{start}{end}".format(
         start=doc._text[0:si - 1],
         end=doc._text[ei:]
@@ -243,7 +281,7 @@ dispatch = {
     'is': insert,
     'mlti': multi,
     'null': null,
-    'sl': null
+    'sl': null,
 }
 
 if __name__ == '__main__':

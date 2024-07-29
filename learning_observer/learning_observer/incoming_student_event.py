@@ -16,9 +16,8 @@ import json
 import os
 import time
 import traceback
-import urllib.parse
 import uuid
-import socket
+import weakref
 
 import aiohttp
 
@@ -38,6 +37,7 @@ import learning_observer.exceptions
 
 import learning_observer.auth.events
 import learning_observer.adapters.adapter
+import learning_observer.blacklist
 
 
 def compile_server_data(request):
@@ -190,6 +190,10 @@ async def handle_incoming_client_event(metadata):
             filename, preencoded=True, timestamp=True)
         await pipeline(event)
 
+    # when the handler garbage collected (no more events are being passed through),
+    # close the log file associated with this connection
+    weakref.finalize(handler, log_event.close_logfile, filename)
+
     return handler
 
 
@@ -269,142 +273,177 @@ def event_decoder_and_logger(
     )
     COUNT += 1
 
-    def decode_and_log_event(msg):
+    async def decode_and_log_event(events):
         '''
         Take an aiohttp web sockets message, log it, and return
         a clean event.
         '''
-        if isinstance(msg, dict):
-            json_event = msg
-        else:
-            json_event = json.loads(msg.data)
-        log_event.log_event(json_event, filename=filename)
-        return json_event
+        async for msg in events:
+            if isinstance(msg, dict):
+                json_event = msg
+            else:
+                json_event = json.loads(msg.data)
+            log_event.log_event(json_event, filename=filename)
+            yield json_event
+        # done processing events, can close logfile now
+        log_event.close_logfile(filename)
     return decode_and_log_event
 
 
-async def incoming_websocket_handler(request):
+async def failing_event_handler(*args, **kwargs):
     '''
-    This handles incoming WebSockets requests. It does some minimal
-    processing on them. It used to rely them on via PubSub to be
-    aggregated, but we've switched to polling. It also logs them.
+    Give a proper AIO HTTP exception if we don't find an
+    appropriate event handler or another error condition happens
+    '''
+    exception_text = "Event handler not set.\n" \
+        "This probably means we do not have proper\n" \
+        "metadata sent before the event stream"
+    raise aiohttp.web.HTTPBadRequest(text=exception_text)
+
+
+async def incoming_websocket_handler(request):
+    '''This handles incoming WebSocket requests. We pass each event
+    through minimal processing before it is added to a queue. Once
+    we receive enough initial information (e.g. source and auth),
+    we start processing each event in our queue through the reducers.
     '''
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
+    lock_fields = {}
+    authenticated = False
+    reducers_last_updated = None
+    event_handler = failing_event_handler
 
-    # For now, we receive two packets to initialize:
-    # * Chrome's identity information
-    # * browser.storage identity information
-    event_metadata = {'headers': {}}
+    decoder_and_logger = event_decoder_and_logger(request)
 
-    debug_log("Init pipeline")
-    header_events = []
-
-    # This will take a little bit of explaining....
-    #
-    # We originally did not have a way to do auth/auth. Now, we do
-    # auth with a header. However, we have old log files without that
-    # header. Setting INIT_PIPELINE to False allows us to use those
-    # files in the current system.
-    #
-    # At some point, we should either:
-    #
-    # 1) Change restream.py to inject a false header, or archive the
-    # source files and migrate the files, so that we can eliminate
-    # this setting; or
-    # 2) Dispatch on type of event
-    #
-    # This should not be a config setting.
-
-    INIT_PIPELINE = settings.settings.get("init_pipeline", True)
-    json_msg = None
-    if INIT_PIPELINE:
+    async def process_message_from_ws():
+        '''This function makes sure that the ws is an
+        async generator for use in the processing pipeline
+        '''
         async for msg in ws:
-            debug_log("Auth", msg.data)
-            try:
-                json_msg = json.loads(msg.data)
-            except Exception:
-                print("Bad message:", msg)
-                raise
-            header_events.append(json_msg)
-            if json_msg["event"] == "metadata_finished":
-                break
-    else:
-        # This is a path for the old way of doing auth, which was to
-        # send the auth data in the first message.
-        #
-        # It is poorly tested.
-        print("Running without an initialization pipeline / events. This is for")
-        print("development purposes, and may not continue to be supported")
-        msg = await ws.receive()
-        json_msg = json.loads(msg.data)
-        header_events.append(json_msg)
+            if msg.type == aiohttp.WSMsgType.ERROR:
+                debug_log(f"ws connection closed with exception {ws.exception()}")
+                return
+            if msg.type != aiohttp.WSMsgType.TEXT:
+                debug_log("Unknown event type: " + msg.type)
+            yield msg
 
-    first_event = header_events[0]
-    event_metadata['source'] = first_event['source']
+        if ws.closed:
+            debug_log(f'ws connection closed for reason {ws.close_code}')
 
-    # We authenticate the student
-    event_metadata['auth'] = await learning_observer.auth.events.authenticate(
-        request=request,
-        headers=header_events,
-        first_event=first_event,  # This is obsolete
-        source=json_msg['source']
-    )
-
-    print(event_metadata['auth'])
-
-    # We're now ready to make the pipeline.
-    hostname = socket.gethostname()
-    decoder_and_logger = event_decoder_and_logger(
-        request,
-        headers=header_events,
-        metadata={
-            'ip': request.remote,
-            'host': request.headers.get('Host', ''),
-            'user_agent': request.headers.get('User-Agent', ''),
-            'x_real_ip': request.headers.get('X-Real-IP', ''),
-            'timestamp': datetime.datetime.utcnow().isoformat(),
-            'session_count': COUNT,
-            'pid': os.getpid(),
-            'hostname': hostname,
-            'hostip': socket.gethostbyname(hostname),
-            'referer': request.headers.get('Referer', ''),
-            'host': request.headers.get('Host', ''),
-            'x-forwarded-for': request.headers.get('X-Forwarded-For', ''),
-            'x-forwarded-host': request.headers.get('X-Forwarded-Host', '')
-        },
-        session={
-            'student': event_metadata['auth']['safe_user_id'],
-            'source': event_metadata['source']
-        }
-    )
-
-    event_handler = await handle_incoming_client_event(metadata=event_metadata)
-
-    # Handle events which we already received, if we needed to peak
-    # ahead to authenticate user
-    if not INIT_PIPELINE:
-        for event in header_events:
-            decoder_and_logger(event)
-            await event_handler(request, event)
-
-    # And continue to receive events
-    async for msg in ws:
-        # If web socket closed, we're done.
-        if msg.type == aiohttp.WSMsgType.ERROR:
-            debug_log(f"ws connection closed with exception {ws.exception()}")
+    async def update_event_handler(event):
+        '''We need source and auth ready before we can
+        set up the `event_handler` and be ready to process
+        events
+        '''
+        if not authenticated:
             return
 
-        # If we receive an unknown event type, we keep going, but we
-        # print an error to the console. If we got some kind of e.g.
-        # wonky ping or keep-alive or something we're unaware of, we'd
-        # like to handle that gracefully.
-        if msg.type != aiohttp.WSMsgType.TEXT:
-            debug_log("Unknown event type: " + msg.type)
+        nonlocal event_handler, reducers_last_updated
+        if 'source' in lock_fields:
+            debug_log('Updating the event_handler()')
+            metadata = lock_fields.copy()
+        else:
+            metadata = event
+        metadata['auth'] = authenticated
+        event_handler = await handle_incoming_client_event(metadata=metadata)
+        reducers_last_updated = learning_observer.stream_analytics.LAST_UPDATED
 
-        client_event = decoder_and_logger(msg)
-        await event_handler(request, client_event)
+    async def handle_auth_events(events):
+        '''This method checks a single method for auth and
+        updates our `lock_fields`. If we are unauthenticated,
+        an error will be thrown and we ignore it.
 
-    debug_log('Websocket connection closed')
+        HACK The auth method expects a list of events to find
+        specific auth events. Since we are yielding event by
+        event, we check for auth on an individual event wrapped
+        in a list. This workflow feels a little weird. We should
+        re-evaluate the auth code.
+
+        TODO We should consider stopping the loop if we receive
+        enough events without receiving the authentication info.
+        '''
+        nonlocal authenticated
+        backlog = []
+
+        async for event in events:
+            if 'auth' in event:
+                raise ValueError('Auth already exists in event, someone may be trying to hack the system')
+            if not authenticated:
+                authenticated = await learning_observer.auth.events.authenticate(
+                    request=request,
+                    headers=[event],
+                    first_event={},
+                    source=''
+                )
+                await update_event_handler(event)
+                backlog.append(event)
+            else:
+                while backlog:
+                    prior_event = backlog.pop(0)
+                    prior_event.update({'auth': authenticated})
+                    yield prior_event
+                event.update({'auth': authenticated})
+                yield event
+
+    async def decode_lock_fields(events):
+        '''This function updates our overall lock_field
+        object and sets those fields on other events.
+        '''
+        async for event in events:
+            if event['event'] == 'lock_fields':
+                if event['fields'].get('source', '') != lock_fields.get('source', ''):
+                    lock_fields.update(event['fields'])
+            else:
+                event.update(lock_fields)
+                yield event
+
+    async def filter_blacklist_events(events):
+        '''This function stops the event pipeline if sources
+        should be blocked.
+        '''
+        async for event in events:
+            # TODO implement the following function
+            bl_status = learning_observer.blacklist.get_blacklist_status(event)
+            if bl_status['action'] == learning_observer.blacklist.ACTIONS.TRANSMIT:
+                yield event
+            else:
+                debug_log('Event is blacklisted.')
+                await ws.send_json(bl_status)
+                await ws.close()
+
+    async def check_for_reducer_update(events):
+        '''Check to see if the reducers updated
+        '''
+        async for event in events:
+            if reducers_last_updated != learning_observer.stream_analytics.LAST_UPDATED:
+                await update_event_handler(event)
+            yield event
+
+    async def pass_through_reducers(events):
+        '''Pass events through the reducers
+        '''
+        async for event in events:
+            await event_handler(request, event)
+            yield event
+
+    async def process_ws_message_through_pipeline():
+        '''Prepare each event we receive for processing
+        '''
+        events = process_message_from_ws()
+        events = decoder_and_logger(events)
+        events = decode_lock_fields(events)
+        events = handle_auth_events(events)
+        events = filter_blacklist_events(events)
+        events = check_for_reducer_update(events)
+        events = pass_through_reducers(events)
+        # empty loop to start the generator pipeline
+        async for event in events:
+            pass
+        debug_log('We are done passing events through the pipeline.')
+
+    # process websocket messages and begin executing events from the queue
+    await process_ws_message_through_pipeline()
+
     return ws

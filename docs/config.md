@@ -104,7 +104,18 @@ pubsub:
   type: stub
 ```
 
-I apologize for that. Here are the remaining sections:
+### Redis Connection
+
+This determines how we should be connecting to Redis. If these are not
+set, the connection will default to using `localhost:6389` without a
+password.
+
+```yaml
+redis_connection:
+  redis_host: localhost
+  redis_port: 6389
+  redis_password: yoursupersecurepassword
+```
 
 ### KVS
 

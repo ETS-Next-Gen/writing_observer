@@ -2,12 +2,18 @@
 Creates the grid of student cards
 '''
 # package imports
+import learning_observer.constants as constants
 from learning_observer.dash_wrapper import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL, MATCH, exceptions as dash_e
 import dash_bootstrap_components as dbc
+from dash_renderjson import DashRenderjson
 import lo_dash_react_components as lodrc
+import writing_observer.aggregator
 
 # local imports
 from . import settings, settings_defaults, settings_options as so
+
+# TODO pull this flag from settings
+DEBUG_FLAG = True
 
 # define ids for the dashboard
 # use a prefix to help ensure we don't double up on IDs (guess what happens if you double up? it breaks)
@@ -33,6 +39,9 @@ last_updated_msg = f'{prefix}-last-updated-text'  # data last updated id
 last_updated_interval = f'{prefix}-last-updated-interval'
 
 alert_type = f'{prefix}-alert'
+error_alert = f'{prefix}-error-alert'
+error_alert_text = f'{prefix}-alert-text'
+error_alert_dump = f'{prefix}-alert-error-dump'
 initialize_alert = f'{prefix}-initialize-alert'
 nlp_running_alert = f'{prefix}-nlp-running-alert'
 overall_alert = f'{prefix}-navbar-alert'
@@ -64,6 +73,14 @@ def student_dashboard_view(course_id, assignment_id):
     the view periodically.
 
     """
+    alert_component = dbc.Alert(
+        dcc.Markdown('The analysis features are not enabled on the server. '\
+        'The measures provided below are synthetic for testing and debugging. '\
+        'Set `modules.writing_observer.use_nlp: true` in the `creds.yaml` '\
+        'file to enable analysis tools.'),
+        color='danger',
+        is_open=(not writing_observer.aggregator.use_nlp)
+    )
     navbar = dbc.Navbar(
         [
             # assignment title
@@ -130,8 +147,13 @@ def student_dashboard_view(course_id, assignment_id):
     )
     container = dbc.Container(
         [
+            alert_component,
             # assignment description
             html.P(id=assignment_desc),
+            dbc.Alert([
+                html.Div(id=error_alert_text),
+                html.Div(DashRenderjson(id=error_alert_dump), className='' if DEBUG_FLAG else 'd-none')
+            ], id=error_alert, color='danger', is_open=False),
             dbc.Alert(
                 'Fetching initial data...',
                 is_open=False,
@@ -288,6 +310,14 @@ clientside_callback(
     State(msg_counter, 'data'),
 )
 
+clientside_callback(
+    ClientsideFunction(namespace='clientside', function_name='update_error_from_ws'),
+    Output(error_alert_text, 'children'),
+    Output(error_alert, 'is_open'),
+    Output(error_alert_dump, 'data'),
+    Input(websocket, 'message'),
+)
+
 # update the last updated text
 clientside_callback(
     ClientsideFunction(namespace='clientside', function_name='update_last_updated_text'),
@@ -306,7 +336,10 @@ clientside_callback(
     Input(settings.highlight_checklist, 'value'),
     Input(settings.indicator_checklist, 'value'),
     Input(settings.sort_by_checklist, 'value'),
-    Input(course_store, 'data')
+    Input(course_store, 'data'),
+    Input(settings.doc_src, 'value'),
+    Input(settings.doc_src_date, 'date'),
+    Input(settings.doc_src_timestamp, 'value')
 )
 
 # show or hide the settings checklist for different components
@@ -474,6 +507,8 @@ def fill_in_settings(course, assignment, options, essay_type):
         opt = settings_defaults.general_argumentative
     elif essay_type == 'narrative':
         opt = settings_defaults.general_narrative
+    elif essay_type == 'overall':
+        opt = settings_defaults.overall
     else:
         opt = settings_defaults.general
 
@@ -521,7 +556,7 @@ def create_cards(students):
                                     color='white',
                                     id={
                                         'type': student_link,
-                                        'index': s['user_id']
+                                        'index': s[constants.USER_ID]
                                     }
                                 )
                             ],
@@ -530,14 +565,14 @@ def create_cards(students):
                         lodrc.WOMetrics(
                             id={
                                 'type': student_metrics,
-                                'index': s['user_id']
+                                'index': s[constants.USER_ID]
                             }
                         ),
                         html.Div(
                             lodrc.WOTextHighlight(
                                 id={
                                     'type': student_texthighlight,
-                                    'index': s['user_id']
+                                    'index': s[constants.USER_ID]
                                 }
                             ),
                             className='student-card-text'
@@ -545,7 +580,7 @@ def create_cards(students):
                         lodrc.WOIndicatorBars(
                             id={
                                 'type': student_indicators,
-                                'index': s['user_id']
+                                'index': s[constants.USER_ID]
                             }
                         )
                     ],
@@ -556,7 +591,7 @@ def create_cards(students):
             # pattern matching callback
             id={
                 'type': student_col,
-                'index': s['user_id']
+                'index': s[constants.USER_ID]
             },
         ) for s in students
     ]

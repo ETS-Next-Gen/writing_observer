@@ -12,6 +12,7 @@ too. We'd like to use this from utility scripts.
 import collections
 import copy
 import os.path
+import pmss
 import sys
 
 import pkg_resources
@@ -26,6 +27,15 @@ import learning_observer.communication_protocol.integration
 import learning_observer.queries
 import learning_observer.stream_analytics.helpers as helpers
 
+
+pmss.parser('clone_module_git_repos', parent='string', choices=['prompt', 'y', 'n'], transform=None)
+pmss.register_field(
+    name='clone_module_git_repos',
+    type='clone_module_git_repos',
+    description='Determine if we should fetch git repos for installed '\
+        'modules. If None, prompt user instead.',
+    default='prompt'
+)
 
 # This is set to true after we've scanned and loaded modules
 LOADED = False
@@ -228,13 +238,22 @@ def add_reducer(reducer, string_id=None):
     '''
     We add a reducer. In actual operation, this should only happen once, on
     module load. We'd like to be able to dynamic load and reload reducers in
-    interactive programming, so we offer the optnio of a `string_id`
+    interactive programming, so we offer the option of a `string_id`
     '''
     global REDUCERS
+    # TODO this is filtering the reducers on a specific string_id.
+    # we ought to look for the matching reducer and replace it if it exists.
     if string_id is not None:
         REDUCERS = [r for r in REDUCERS if r.get("string_id", None) != string_id]
     REDUCERS.append(reducer)
     return REDUCERS
+
+
+def remove_reducer(reducer_id):
+    '''Remove a reducer from the available reducers
+    '''
+    global REDUCERS
+    REDUCERS = [r for r in REDUCERS if r['id'] != reducer_id]
 
 
 def load_reducers(component_name, module):
@@ -450,7 +469,8 @@ def register_git_repos(component_name, module):
                     location=learning_observer.paths.repo(repo),
                     url=module.STATIC_FILE_GIT_REPOS[repo]['url']
                 ))
-                yesno = input("Yes/No> ")
+                yesno = learning_observer.settings.pmss_settings.clone_module_git_repos()
+                yesno = yesno if yesno != 'prompt' else input("Yes/No> ")
                 if yesno.lower().strip() not in ["y", "tak", "yes", "yup", "好", "نعم"]:
                     print("Fine. Get it yourself, and configure the location")
                     print("in the setting file under repos. Run me again once it's")

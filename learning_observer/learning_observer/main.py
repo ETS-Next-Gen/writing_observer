@@ -15,7 +15,8 @@ import asyncio
 
 import aiohttp
 import aiohttp.web
-
+import functools
+import pmss
 import uvloop
 
 import learning_observer.settings as settings
@@ -23,8 +24,21 @@ import learning_observer.routes as routes
 import learning_observer.prestartup
 import learning_observer.webapp_helpers
 import learning_observer.watchdog_observer
+import learning_observer.ipython_integration
 
 from learning_observer.log_event import debug_log
+
+pmss.register_field(
+    name='port',
+    type=pmss.pmsstypes.TYPES.port,
+    description='Determine which port to run the LO webapp on.',
+    # BUG the code breaks when we default to None since
+    # `TYPES.port` expects an integer.
+    # Before PMSS, if the port was None, then we would try
+    # to find an available open port. This functionality
+    # should remain with the introduction of PMSS.
+    default=8888
+)
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
@@ -35,6 +49,14 @@ if not __name__.startswith("learning_observer."):
 
 # Run argparse
 args = settings.parse_and_validate_arguments()
+
+# This will need to move but for the moment we hack with                                                                                                
+# this to prefer the GPU where possible.                                                                                                                
+import spacy
+#spacy.prefer_gpu()
+#debug_log("Preferring GPU Use.")
+spacy.require_gpu()
+debug_log("Requiring GPU Use.")
 
 
 def configure_event_loop():
@@ -68,10 +90,9 @@ def create_app():
     # We don't want these to change on a restart.
     # We should check if reloading this module overwrites them.
     if port is None:
-        port = settings.settings.get("server", {}).get("port", None)
+        port = settings.pmss_settings.port(types=['server'])
     if runmode is None:
-        runmode = settings.settings.get("config", {}).get("run_mode", None)
-
+        runmode = settings.pmss_settings.run_mode(types=['config'])
     if port is None and runmode == 'dev':
         port = learning_observer.webapp_helpers.find_open_port()
 
@@ -93,30 +114,28 @@ def create_app():
     return app
 
 
-def shutdown(app):
+async def shutdown(app):
     '''
     Shutdown the app.
     '''
-    app.shutdown()
-    app.cleanup()
-    return app
+    await app.shutdown()
+    await app.cleanup()
 
 
-def start():
+def start(app):
     '''
     Start the application.
     '''
-    global app
     # Reload all imports
-    app = create_app()
     aiohttp.web.run_app(app, port=port)
     return app
 
 
 print("Arguments:", args)
+app = create_app()
 
 if args.watchdog is not None:
-    print("Watchdog mode")
+    print("Watchdog mode", args.watchdog)
     # Parse argument to determine watchdog handler
     restart = {
         'restart': learning_observer.watchdog_observer.restart,
@@ -128,13 +147,30 @@ if args.watchdog is not None:
         )
         sys.exit(-1)
     fs_event_handler = learning_observer.watchdog_observer.RestartHandler(
-        shutdown=shutdown,
+        shutdown=functools.partial(shutdown, app),
         restart=restart[args.watchdog],
-        start=start
+        start=functools.partial(start, app)
     )
     learning_observer.watchdog_observer.watchdog(fs_event_handler)
 
-app = start()
+# This creates the file that tells jupyter how to run our custom
+# kernel. This command needs to be ran once (outside of Jupyter)
+# before users can get access to the LO Kernel.
+learning_observer.ipython_integration.load_kernel_spec()
+
+if args.ipython_kernel:
+    learning_observer.ipython_integration.start(
+        kernel_only=args.ipython_kernel, lo_app=app,
+        connection_file=args.ipython_kernel_connection_file,
+        run_lo_app=args.run_lo_application)
+elif args.ipython_console:
+    learning_observer.ipython_integration.start(
+        kernel_only=False, lo_app=app,
+        run_lo_app=args.run_lo_application)
+elif args.run_lo_application:
+    start(app)
+else:
+    raise RuntimeError('No services to start up.')
 
 # Port printing:
 #

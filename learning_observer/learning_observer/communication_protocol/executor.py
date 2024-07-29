@@ -84,14 +84,14 @@ async def call_dispatch(functions, function_name, args, kwargs):
     >>> asyncio.run(call_dispatch({'double': double}, 'nonexistent', [1], {}))
     Traceback (most recent call last):
       ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function nonexistent did not execute properly during call.', 'call_dispatch', {'function_name': 'nonexistent', 'args': [1], 'kwargs': {}, 'error': "'nonexistent'"})
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function nonexistent did not execute properly during call.', 'call_dispatch', {'function_name': 'nonexistent', 'args': [1], 'kwargs': {}, 'error': "'nonexistent'"}, ...)
 
 
     Raises an exception when the called function raises an exception.
     >>> asyncio.run(call_dispatch({'double': double}, 'double', [None], {}))
     Traceback (most recent call last):
       ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function double did not execute properly during call.', 'call_dispatch', {'function_name': 'double', 'args': [None], 'kwargs': {}, 'error': 'Input cannot be None'})
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Function double did not execute properly during call.', 'call_dispatch', {'function_name': 'double', 'args': [None], 'kwargs': {}, 'error': 'Input cannot be None'}, ...)
     """
     try:
         function = functions[function_name]
@@ -102,7 +102,8 @@ async def call_dispatch(functions, function_name, args, kwargs):
         raise DAGExecutionException(
             f'Function {function_name} did not execute properly during call.',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)}
+            {'function_name': function_name, 'args': args, 'kwargs': kwargs, 'error': str(e)},
+            e.__traceback__
         )
     return result
 
@@ -181,7 +182,7 @@ def handle_join(left, right, left_on, right_on):
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
     ... )
-    [{'error': 'KeyError: key not found', 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+    [{'error': "KeyError: key `lid` not found in `dict_keys(['left'])`", 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
     for d in right:
@@ -195,7 +196,6 @@ def handle_join(left, right, left_on, right_on):
     for left_dict in left:
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
-
             right_dict_match = right_dict.get(lookup_key)
 
             if right_dict_match:
@@ -205,11 +205,12 @@ def handle_join(left, right, left_on, right_on):
                 merged_dict = left_dict
             result.append(merged_dict)
         except KeyError as e:
-            result.append(DAGExecutionException(
-                f'KeyError: key not found',
-                inspect.currentframe().f_code.co_name,
-                {'target': left_dict, 'key': left_on, 'exception': e}
-            ).to_dict())
+            result.append(left_dict)
+            # result.append(DAGExecutionException(
+            #     f'KeyError: key `{left_on}` not found in `{left_dict.keys()}`',
+            #     inspect.currentframe().f_code.co_name,
+            #     {'target': left_dict, 'key': left_on, 'exception': e}
+            # ).to_dict())
 
     return result
 
@@ -301,7 +302,8 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
-                error_provenance
+                error_provenance,
+                res.__traceback__
             ).to_dict()
         else:
             out = {'output': res}
@@ -343,13 +345,13 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     and handled later by the DAG executor. In our text, we return both a normal result
     and the result of an exception being caught.
     >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path'))
-    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': '', 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
+    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': ... 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
 
     Example of trying to call nonexistent function, `triple`
     >>> asyncio.run(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path'))
     Traceback (most recent call last):
       ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"})
+    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, ...)
     """
     if func_kwargs is None:
         func_kwargs = {}
@@ -359,7 +361,8 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
         raise DAGExecutionException(
             f'Could not find function `{function_name}` in available functions.',
             inspect.currentframe().f_code.co_name,
-            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)}
+            {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)},
+            e.__traceback__
         )
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
@@ -377,7 +380,7 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.SELECT)
-async def handle_select(keys, fields):
+async def handle_select(keys, fields=learning_observer.communication_protocol.query.SelectFields.Missing):
     """
     We dispatch this function whenever we process a DISPATCH_MODES.SELECT node.
     This function is used to select data from a kvs. The data being selected
@@ -393,8 +396,9 @@ async def handle_select(keys, fields):
 
     TODO add in test cases once we pass kvs as a parameter
     """
-    if fields is None:
-        fields = {}
+    fields_to_keep = fields
+    if fields is None or fields == learning_observer.communication_protocol.query.SelectFields.Missing:
+        fields_to_keep = {}
 
     response = []
     for k in keys:
@@ -416,17 +420,22 @@ async def handle_select(keys, fields):
         if resulting_value is None:
             # the reducer has not run yet, so we return the default value from the module
             resulting_value = k['default']
-        for f in fields:
+
+        # keep all current fields except for provenance (already prepared)
+        if fields == learning_observer.communication_protocol.query.SelectFields.All:
+            fields_to_keep = {k: k for k in resulting_value.keys() if k != 'provenance'}
+
+        for f in fields_to_keep:
             try:
                 value = get_nested_dict_value(resulting_value, f)
             except KeyError as e:
                 value = DAGExecutionException(
-                    f'KeyError: key not found',
+                    f'KeyError: key `{f}` not found in `{resulting_value.keys()}`',
                     inspect.currentframe().f_code.co_name,
                     {'target': resulting_value, 'key': f, 'exception': e}
                 ).to_dict()
             # add necessary outputs to query response
-            query_response_element[fields[f]] = value
+            query_response_element[fields_to_keep[f]] = value
         response.append(query_response_element)
     return response
 
@@ -478,7 +487,7 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
         fields = [
             {
                 learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),  # TODO catch get_nested_dict_value errors
-                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path)  # TODO catch get_nested_dict_value errors
+                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path, '')  # TODO catch get_nested_dict_value errors
             } for s, r in zip(STUDENTS, RESOURCES)
         ]
         provenances = [
@@ -528,6 +537,32 @@ def _has_error(node):
                     if isinstance(i, dict):
                         queue.append((i, path + [c, idx]))
     return None, []
+
+
+def _find_error_messages(d):
+    '''
+    We want to collect all the error messages that occured within the
+    communication protocol and return them so they user can clearly
+    see what went wrong.
+    '''
+    errors = []
+
+    def collect_errors(item):
+        '''Iterate over each item in the object and return any error
+        messages we find
+        '''
+        if isinstance(item, dict):
+            for key, value in item.items():
+                if key == 'error' and type(value) == str:
+                    errors.append(value)
+                else:
+                    collect_errors(value)
+        elif isinstance(item, list):
+            for element in item:
+                collect_errors(element)
+
+    collect_errors(d)
+    return errors
 
 
 def strip_provenance(variable):
@@ -597,7 +632,6 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 result = function(functions=functions, **node)
             else:
                 result = function(**node)
-
             if inspect.isawaitable(result):
                 result = await result
             return result
@@ -640,7 +674,11 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                 'dispatch': nodes[node_name]['dispatch'],
                 'error_path': error_path
             }
-            debug_log(f'Error occured within execution dag at {node_name}\n{nodes[node_name]}')
+            error_texts = '\n'.join((f'  {e}' for e in _find_error_messages(error)))
+            tb = nodes[node_name]["error"].get("traceback", 'No traceback available')
+            debug_log('ERROR:: Error occured within execution dag at '\
+                      f'{node_name}\n{tb}\n'\
+                      f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
 

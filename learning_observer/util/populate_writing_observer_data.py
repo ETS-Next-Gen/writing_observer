@@ -6,6 +6,7 @@ is primarily intended for development use.
 
 import asyncio
 
+import learning_observer.constants
 import learning_observer.google
 import learning_observer.settings
 import learning_observer.offline
@@ -109,7 +110,7 @@ async def main():
 
     for student, text, idx in zip(roster, texts, range(len(roster))):
         print(student)
-        await set_text(kvs, student['user_id'], text, idx)
+        await set_text(kvs, student[learning_observer.constants.USER_ID], text, idx)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

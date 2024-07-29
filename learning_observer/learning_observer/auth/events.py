@@ -28,6 +28,7 @@ import sys
 import aiohttp_session
 import aiohttp.web
 
+import learning_observer.constants as constants
 import learning_observer.paths
 import learning_observer.prestartup
 import learning_observer.settings
@@ -132,12 +133,12 @@ async def basic_auth(request, headers, first_event, source):
         print("Event auth missing: This should never happen")
         return {
             'sec': 'unauthorized',
-            'user_id': 'guest',
+            constants.USER_ID: 'guest',
             'providence': 'error'
         }
     return {
         'sec': 'authenticated',
-        'user_id': username,
+        constants.USER_ID: username,
         'providence': 'nginx'
     }
 
@@ -162,7 +163,7 @@ async def guest_auth(request, headers, first_event, source):
         session['guest_id'] = guest_id
     return {
         'sec': 'none',
-        'user_id': guest_id,
+        constants.USER_ID: guest_id,
         'providence': 'guest'
     }
 
@@ -197,7 +198,7 @@ async def local_storage_auth(request, headers, first_event, source):
 
     return {
         'sec': token_authorize_user('local_storage', user_id),
-        'user_id': user_id,
+        constants.USER_ID: user_id,
         'providence': 'ls'  # local storage
     }
 
@@ -233,7 +234,7 @@ async def chromebook_auth(request, headers, first_event, source):
     gc_uid = learning_observer.auth.utils.google_id_to_user_id(untrusted_google_id)
     return {
         'sec': auth,
-        'user_id': gc_uid,
+        constants.USER_ID: gc_uid,
         'safe_user_id': gc_uid,
         'providence': 'gcu'  # Google Chrome, unauthenticated
     }
@@ -265,7 +266,7 @@ async def hash_identify(request, headers, first_event, source):
 
     return {
         'sec': 'unauthenticated',
-        'user_id': "hi-" + authdata['hash'],
+        constants.USER_ID: "hi-" + authdata['hash'],
         'providence': 'mch'  # Math contest hash -- toying with plug-in archicture
     }
 
@@ -278,12 +279,12 @@ async def test_case_identify(request, headers, first_event, source):
     '''
     authdata = find_event('test_framework_fake_identity', headers + [first_event])
 
-    if authdata is None or 'user_id' not in authdata:
+    if authdata is None or constants.USER_ID not in authdata:
         return False
 
     return {
         'sec': "unauthenticated",
-        'user_id': "testcase-" + authdata['user_id'],
+        constants.USER_ID: "testcase-" + authdata[constants.USER_ID],
         'providence': 'tc'
     }
 
@@ -324,12 +325,11 @@ async def authenticate(request, headers, first_event, source):
             if "safe_user_id" not in auth_metadata:
                 auth_metadata['safe_user_id'] = encode_id(
                     source=auth_metadata["providence"],
-                    unsafe_id=auth_metadata['user_id']
+                    unsafe_id=auth_metadata[constants.USER_ID]
                 )
             return auth_metadata
 
-    print("All authentication methods failed. Unauthorized.")
-    raise aiohttp.web.HTTPUnauthorized()
+    return False
 
 
 @learning_observer.prestartup.register_startup_check

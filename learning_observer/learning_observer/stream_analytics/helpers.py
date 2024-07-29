@@ -93,7 +93,6 @@ def make_key_from_json(js):
         if str(key) in js:
             key_dict[key] = js[str(key)]
             del js[str(key)]
-
     # Next, we want to copy over EventFields.
     # We have no way to sanitize these, since they're open-ended, except
     # to make sure they don't contain magic characters
@@ -110,7 +109,7 @@ def make_key_from_json(js):
     ]
 
     if KeyField.STUDENT in js:
-        user_id = j[sKeyField.STUDENT]
+        user_id = js[KeyField.STUDENT]
 
     aggregator_functions = sum(
         [
@@ -158,11 +157,7 @@ def make_key(func, key_dict, state_type):
     # pylint: disable=isinstance-second-argument-not-valid-type
     assert isinstance(state_type, KeyStateType)
     assert callable(func)
-
     streammodule = fully_qualified_function_name(func)
-
-    safe_user_id = key_dict[KeyField.STUDENT]
-
     # Key starts with whether it is internal versus external state, and what module it comes from
     key_list = [
         state_type.name.capitalize(),
