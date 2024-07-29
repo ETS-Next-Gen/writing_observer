@@ -17,19 +17,9 @@ export async function listChatCompletions(
     maxTokens=128,
     temperature=0.8 // Currently ignored
   }) {
-    console.log("azureInterface.listChatCompletions called")
-    console.log(`Messages: ${messages.map((m) => m.content).join("\n")}`);
-  
-    const events = client.listChatCompletions(deploymentID, messages, { maxTokens });
-    let response = "";
-    for await (const event of events) {
-      for (const choice of event.choices) {
-        const delta = choice.delta?.content;
-        if (delta !== undefined) {
-            response = response + delta;
-            console.log(`Chatbot: ${delta}`);
-        }
-      }
-    }
-    return response;
+  console.log("azureInterface.listChatCompletions called");
+  console.log(`Messages: ${messages.map((m) => m.content).join("\n")}`);
+  console.log(client);
+  const events = await client.getChatCompletions(deploymentID, messages, { maxTokens });
+  return events.choices[0].message.content;
 }
