@@ -136,6 +136,7 @@ async def social_handler(request):
     if user['authorized']:
         url = user['back_to'] or "/"
         if settings.pmss_settings.fetch_additional_info_from_teacher_on_login():
+            request[constants.USER] = user
             asyncio.create_task(_store_teacher_info_for_background_process(user['user_id'], request))
     else:
         url = "/"
