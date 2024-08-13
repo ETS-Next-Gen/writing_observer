@@ -135,7 +135,7 @@ async def social_handler(request):
     if constants.USER_ID in user:
         await learning_observer.auth.utils.update_session_user_info(request, user)
 
-    if user['authorized']:        
+    if user['authorized']:
         url = user['back_to'] or "/"
         if settings.pmss_settings.fetch_additional_info_from_teacher_on_login():
             request[constants.USER] = user
