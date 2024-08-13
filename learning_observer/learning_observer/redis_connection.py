@@ -49,7 +49,7 @@ async def connect():
             # TODO figure out how to properly use None from pmss
             # password=learning_observer.settings.pmss_settings.redis_password(types=['redis_connection'])
         )
-    await REDIS_CONNECTION.ping()
+        await REDIS_CONNECTION.ping()
 
 
 async def connection():
