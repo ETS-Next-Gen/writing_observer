@@ -48,6 +48,8 @@ import learning_observer.runtime
 import learning_observer.stream_analytics.helpers as sa_helpers
 import learning_observer.util
 
+from learning_observer.log_event import debug_log
+
 import pmss
 # TODO the hostname setting currently expect the port
 # to specified within the hostname. We ought to
@@ -161,6 +163,7 @@ async def _store_teacher_info_for_background_process(id, request):
     TODO remove this function and references when new, better
     workflows are established.
     '''
+    debug_log("SocialSSO Storing teacher info: {} {}".format(id, request))
     kvs = learning_observer.kvs.KVS()
     runtime = learning_observer.runtime.Runtime(request)
     courses = await learning_observer.rosters.courselist(request)
@@ -175,22 +178,33 @@ async def _store_teacher_info_for_background_process(id, request):
     current_keys = await kvs.keys()
 
     async def _fetch_and_store_document(student, doc_id):
-        doc = await learning_observer.google.doctext(runtime, documentId=doc_id)
-        if 'text' not in doc:
-            skipped_docs.add(doc_id)
-            return
+        # TODO: Move doc key up here.  Check if doc key in current keys.If it is return.
+        debug_log("SocialSSO Fetching Document: {} {}".format(student, doc_id))
         doc_key = sa_helpers.make_key(
             _fetch_and_store_document,
             {sa_helpers.KeyField.STUDENT: student, sa_helpers.EventField('doc_id'): doc_id},
             sa_helpers.KeyStateType.INTERNAL)
+        if doc_key in current_keys:
+            return
+        doc = await learning_observer.google.doctext(runtime, documentId=doc_id)
+        if 'text' not in doc:
+            skipped_docs.add(doc_id)
+            debu_log("** SocialSSO Text not found: {} {}".format(student, doc_id))
+            return
         await kvs.set(doc_key, doc)
+        debug_log("** SocialSSO Text stored: {} {}".format(student, doc_id))
 
     async def _process_student_documents(student):
-        print('** Processing student', student)
+        debug_log("** SocialSSO Processing student: {}".format(student))
         student_docs = (k for k in current_keys if student in k and 'EventField.doc_id' in k)
         specifier = 'EventField.doc_id:'
         student_docs = (k[k.find(specifier) + len(specifier):k.find(',', k.find(specifier))] for k in student_docs)
         student_docs = set(student_docs)
+        doc_key = sa_helpers.make_key(
+            _process_student_documents,
+            {sa_helpers.KeyField.STUDENT: student},
+            sa_helpers.KeyStateType.INTERNAL)
+        await kvs.set(doc_key, {"student_docs": list(student_docs)})
         for doc_id in student_docs:
             await _fetch_and_store_document(student, doc_id)
 
