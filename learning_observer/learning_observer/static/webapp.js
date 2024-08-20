@@ -104,6 +104,11 @@ requirejs(
 	    d3.select(".lo-google-auth").classed("is-hidden", !config['google_oauth']);
 	    d3.select(".lo-http-auth").classed("is-hidden", !config['http_basic_auth']);
 	    d3.select(".lo-password-auth").classed("is-hidden", !config['password_auth']);
+		d3.select('.lo-google-auth p a').attr('href', function () {
+			const currentHref = d3.select(this).attr('href');
+			if (!currentHref) { return null; }
+			return currentHref + window.location.search + window.location.hash;
+		});
 	    d3.select(".lo-login-button")
 		.on("click", function() {
 		    password_authorize();
