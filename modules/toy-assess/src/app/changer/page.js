@@ -1,3 +1,5 @@
+// This is a little demo which changes the style of text
+
 'use client';
 // @refresh reset
 
