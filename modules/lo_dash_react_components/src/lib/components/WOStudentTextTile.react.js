@@ -31,7 +31,7 @@ export default class WOStudentTextTile extends Component {
     let bodyClassName = documentIsSelected && currentOptionHash !== studentInfo.documents[selectedDocument].optionHash ? 'loading' : '';
     bodyClassName = `${bodyClassName} overflow-auto`;
     return (
-      <Card key={`WOStudentTextTile-${id}`} className={className} style={style} id={id}>
+      <Card key={`WOStudentTextTile-${id}`} className={`WOStudentTextTile ${className}`} style={style} id={id}>
         <Card.Header className={showHeader ? '' : 'd-none'}>
           <LONameTag
             id='lo-name-tag'

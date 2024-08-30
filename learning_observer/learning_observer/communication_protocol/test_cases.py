@@ -32,6 +32,7 @@ import learning_observer.communication_protocol.executor
 import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query as q
 import learning_observer.communication_protocol.util
+import learning_observer.communication_protocol.exception
 import learning_observer.constants as constants
 import learning_observer.offline
 
@@ -106,7 +107,7 @@ TEST_DAG = {
             'parameters': ['course_id'],
             'test_parameters': {},
             "description": "Fetches student doc text; however, this errors since we do not provide the necessary parameters.",
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         },
         'field_error': {
             'returns': 'field_error',
@@ -127,7 +128,7 @@ TEST_DAG = {
             'parameters': [],
             'test_parameters': {},
             'description': "Throw an exception within a published function",
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         },
         'join_key_error': {
             'returns': 'join_key_error',
@@ -141,13 +142,13 @@ TEST_DAG = {
             'parameters': [],
             'test_parameters': {},
             'description': 'Test out circular node errors',
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         }
     }
 }
 
 
-def run_test_cases(test_cases, verbose=False):
+async def run_test_cases(test_cases, verbose=False):
     """
     Run all test cases. Print output from the ones specified.
 
@@ -164,21 +165,24 @@ def run_test_cases(test_cases, verbose=False):
         print(f"Invalid test case. Available test cases are: {available_test_cases}")
         sys.exit()
 
-    learning_observer.offline.init()
+    learning_observer.offline.init('creds.yaml')
 
     for key in TEST_DAG['exports']:
         FLAT = learning_observer.communication_protocol.util.flatten(copy.deepcopy(TEST_DAG))
-        EXECUTE = asyncio.run(
-            learning_observer.communication_protocol.executor.execute_dag(
-                copy.deepcopy(FLAT), parameters=TEST_DAG['exports'][key]['test_parameters'],
-                functions=DUMMY_FUNCTIONS, target_exports=[key]
-            )
+        EXECUTE = await learning_observer.communication_protocol.executor.execute_dag(
+            copy.deepcopy(FLAT), parameters=TEST_DAG['exports'][key]['test_parameters'],
+            functions=DUMMY_FUNCTIONS, target_exports=[key]
         )
         if (key in test_cases or 'all' in test_cases) and 'none' not in test_cases:
             print(f"Executing {key}")
             if verbose:
                 print(json.dumps(EXECUTE, indent=2))
-            assert (TEST_DAG['exports'][key]['expected'](EXECUTE[TEST_DAG['exports'][key]['returns']]))
+
+            try:
+                driven_gen = [i async for i in EXECUTE[TEST_DAG['exports'][key]['returns']]]
+            except learning_observer.communication_protocol.exception.DAGExecutionException as e:
+                driven_gen = e.to_dict()
+            assert (TEST_DAG['exports'][key]['expected'](driven_gen))
             print('  Received expected output.')
 
 
@@ -190,4 +194,4 @@ if __name__ == "__main__":
     if args['<test_case>'] == []:
         print(__doc__)
         sys.exit()
-    run_test_cases(args['<test_case>'], args['--verbose'])
+    asyncio.run(run_test_cases(args['<test_case>'], args['--verbose']))

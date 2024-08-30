@@ -104,13 +104,15 @@ class LOConnectionAIO(html.Div):
     )
 
     clientside_callback(
-        # ClientsideFunction(namespace='lo_dash_react_components', function_name='update_connection_last_modified_store'),
-        '''function (incomingMessage) {
-            if (incomingMessage !== undefined) {
-                return JSON.parse(incomingMessage.data);
-            }
-            return window.dash_clientside.no_update;
-        }''',
+        ClientsideFunction(namespace='lo_dash_react_components', function_name='update_dashboard_store_with_incoming_message'),
+        # '''function (incomingMessage, currentData) {
+        #     if (incomingMessage !== undefined) {
+        #         messages = JSON.parse(incomingMessage.data);
+        #         return messages.forEach(message => applyDashboardStoreUpdate(currentData, message));
+        #     }
+        #     return window.dash_clientside.no_update;
+        # }''',
         Output(ids.ws_store(MATCH), 'data'),
-        Input(ids.websocket(MATCH), 'message')
+        Input(ids.websocket(MATCH), 'message'),
+        State(ids.ws_store(MATCH), 'data')
     )

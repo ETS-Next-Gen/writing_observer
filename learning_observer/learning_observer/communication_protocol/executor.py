@@ -142,7 +142,7 @@ def substitute_parameter(parameter_name, parameters, required, default):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.JOIN)
-def handle_join(left, right, left_on, right_on):
+async def handle_join(left, right, left_on, right_on):
     """
     We dispatch this function whenever we process a DISPATCH_MODES.JOIN node.
     Users will use this when they want to combine the output of multiple nodes.
@@ -185,34 +185,32 @@ def handle_join(left, right, left_on, right_on):
     [{'error': "KeyError: key `lid` not found in `dict_keys(['left'])`", 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
-    for d in right:
+    right_iterator = _ensure_async_generator(right)
+    async for d in right_iterator:
         try:
             nested_value = get_nested_dict_value(d, right_on)
             right_dict[nested_value] = d
         except KeyError as e:
             pass
 
-    result = []
-    for left_dict in left:
+    # TODO should we make sure left is an async generator? Probably
+    async for left_dict in left:
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
             right_dict_match = right_dict.get(lookup_key)
-
             if right_dict_match:
                 merged_dict = {**left_dict, **right_dict_match}
             else:
                 # defaults to left_dict if not match isn't found
                 merged_dict = left_dict
-            result.append(merged_dict)
+            yield merged_dict
         except KeyError as e:
-            result.append(left_dict)
+            yield left_dict
             # result.append(DAGExecutionException(
             #     f'KeyError: key `{left_on}` not found in `{left_dict.keys()}`',
             #     inspect.currentframe().f_code.co_name,
             #     {'target': left_dict, 'key': left_on, 'exception': e}
             # ).to_dict())
-
-    return result
 
 
 def exception_wrapper(func):
@@ -400,8 +398,8 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
     if fields is None or fields == learning_observer.communication_protocol.query.SelectFields.Missing:
         fields_to_keep = {}
 
-    response = []
-    for k in keys:
+    async_iterable_keys = _ensure_async_generator(keys)
+    async for k in async_iterable_keys:
         if isinstance(k, dict) and 'key' in k:
             # output from query added to response later
             query_response_element = {
@@ -436,8 +434,7 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
                 ).to_dict()
             # add necessary outputs to query response
             query_response_element[fields_to_keep[f]] = value
-        response.append(query_response_element)
-    return response
+        yield query_response_element
 
 
 # @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
@@ -459,8 +456,75 @@ def handle_keys(function, value_path, **kwargs):
     return unimplemented_handler()
 
 
+async def _ensure_async_generator(it):
+    if isinstance(it, dict):
+        yield it
+    elif isinstance(it, collections.abc.AsyncIterable):
+        # If it is already an async iterable, yield from it
+        async for item in it:
+            yield item
+    elif isinstance(it, collections.abc.Iterable):
+        # If it is a synchronous iterable, iterate over it and yield items
+        for item in it:
+            yield item
+    else:
+        raise TypeError(f"Object of type {type(it)} is not iterable")
+
+
+async def async_zip(gen1, gen2):
+    '''Zip 2 async generators together
+    TODO move this to a utility area
+    '''
+    iterator1 = _ensure_async_generator(gen1)
+    iterator2 = _ensure_async_generator(gen2)
+    try:
+        while True:
+            item1, item2 = await asyncio.gather(
+                iterator1.__anext__(),
+                iterator2.__anext__()
+            )
+            yield item1, item2
+    except StopAsyncIteration:
+        pass
+
+
+async def _extract_fields_with_provenance_for_students(students, student_path):
+    '''
+    '''
+    async for s in _ensure_async_generator(students):
+        s_field = get_nested_dict_value(s, student_path, '')
+        field = {
+            learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field
+        }
+        provenance = s.get('provenance', {'value': s})
+        provenance[student_path] = s_field
+        yield field, {'STUDENT': provenance}
+
+
+async def _extract_fields_with_provenance_for_students_and_resources(students, student_path, resources, resources_path):
+    '''
+    '''
+    async for s, r in async_zip(students, resources):
+        # TODO should we also add the student_path item to the student provenance?
+        s_field = get_nested_dict_value(s, student_path, '')
+        r_field = get_nested_dict_value(r, resources_path, '')
+        fields = {
+            learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field,
+            learning_observer.stream_analytics.helpers.EventField('doc_id'): r_field
+        }
+        s_provenance = s.get('provenance', {'value': s})
+        s_provenance[student_path] = s_field
+        r_provenance = r.get('provenance', {'value': r})
+        r_provenance[resources_path] = r_field
+        provenance = {
+            'STUDENT': s_provenance,
+            'RESOURCE': r_provenance
+        }
+        yield fields, provenance
+
+
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
-def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
+async def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
     """
     We INSTEAD dispatch this function whenever we process a DISPATCH_MODES.KEYS node.
     Whenever a user wants to perform a select operation, they first must make sure their
@@ -472,46 +536,26 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
     associated with each. These are zipped together and returned to the user.
     """
     func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
-    fields = []
-    provenances = []
+    fields_and_provenances = None
     if STUDENTS is not None and RESOURCES is None:
-        # handle only students
-        fields = [
-            {
-                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)  # TODO catch get_nested_dict_value errors
-            } for s in STUDENTS
-        ]
-        provenances = [s.get('provenance', {'value': s}) for s in STUDENTS]
+        fields_and_provenances = _extract_fields_with_provenance_for_students(STUDENTS, STUDENTS_path)
     elif STUDENTS is not None and RESOURCES is not None:
-        # handle both students and resources
-        fields = [
-            {
-                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),  # TODO catch get_nested_dict_value errors
-                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path, '')  # TODO catch get_nested_dict_value errors
-            } for s, r in zip(STUDENTS, RESOURCES)
-        ]
-        provenances = [
-            {
-                'STUDENT': s.get('provenance', {'value': s}),
-                'RESOURCE': r.get('provenance', {'value': r})
-            } for s, r in zip(STUDENTS, RESOURCES)
-        ]
+        fields_and_provenances = _extract_fields_with_provenance_for_students_and_resources(STUDENTS, STUDENTS_path, RESOURCES, RESOURCES_path)
 
-    keys = []
-    for f, p in zip(fields, provenances):
+    if fields_and_provenances is None:
+        return
+    async for f, p in fields_and_provenances:
         key = learning_observer.stream_analytics.helpers.make_key(
             func['function'],
             f,
             learning_observer.stream_analytics.fields.KeyStateType.INTERNAL
         )
-        keys.append(
-            {
-                'key': key,
-                'provenance': p,
-                'default': func['default']
-            }
-        )
-    return keys
+        key_wrapper = {
+            'key': key,
+            'provenance': p,
+            'default': func['default']
+        }
+        yield key_wrapper
 
 
 def _has_error(node):
@@ -590,12 +634,19 @@ def strip_provenance(variable):
     >>> strip_provenance({'nested_dict': {'provenance': 123, 'other': 123}})
     {'nested_dict': {'provenance': 123, 'other': 123}}
     '''
+    # TODO we might need to add a generator method to this
     if isinstance(variable, dict):
         return {key: value for key, value in variable.items() if key != 'provenance'}
     elif isinstance(variable, list):
         return [strip_provenance(item) if isinstance(item, dict) else item for item in variable]
     else:
         return variable
+
+
+async def _clean_json_via_generator(gen):
+    iterator = _ensure_async_generator(gen)
+    async for item in iterator:
+        yield clean_json(item)
 
 
 async def execute_dag(endpoint, parameters, functions, target_exports):
@@ -687,10 +738,11 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
 
     # Include execution history in output if operating in development settings
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
-        return {e: clean_json(await visit(e)) for e in target_nodes}
+        return {e: _clean_json_via_generator(await visit(e)) for e in target_nodes}
 
+    # TODO test this code to make sure it works with async generators
     # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
-    return {e: clean_json(strip_provenance(await visit(e))) for e in target_nodes}
+    return {e: _clean_json_via_generator(strip_provenance(await visit(e))) for e in target_nodes}
 
 
 if __name__ == "__main__":

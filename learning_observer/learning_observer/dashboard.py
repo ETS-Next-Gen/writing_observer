@@ -465,6 +465,8 @@ async def dispatch_defined_execution_dag(dag, funcs):
         return query
 
 
+# TODO both of these require us to pass in a list of functions
+# this was the old way of doing this, we ought to change this
 DAG_DISPATCH = {dict: dispatch_defined_execution_dag, str: dispatch_named_execution_dag}
 
 
@@ -505,12 +507,75 @@ async def execute_queries(client_data, request):
 
         target_exports = client_query.get('target_exports', [])
         query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
-        client_parameters = client_query.get('kwargs', {})
+        client_parameters = client_query.get('kwargs', {}).copy()
         runtime = learning_observer.runtime.Runtime(request)
         client_parameters['runtime'] = runtime
         query_func = query_func(**client_parameters)
         funcs.append(query_func)
     return await asyncio.gather(*funcs, return_exceptions=False)
+
+
+async def _create_dag_generator(client_query, target, request):
+    execution_dags = learning_observer.module_loader.execution_dags()
+    dag = client_query['execution_dag']
+    if type(dag) not in DAG_DISPATCH:
+        debug_log(await dag_unsupported_type(type(dag)))
+        # TODO return something
+        # funcs.append(dag_unsupported_type(type(dag)))
+        return
+
+    # TODO fix this funcs
+    query = await DAG_DISPATCH[type(dag)](dag, [])
+    if query is None:
+        # TODO do we return something here?
+        return
+
+    # NOTE dependent dags only work for on a single level dependency
+    # TODO allow multiple layers of dependency among dags
+    dependent_dags = extract_namespaced_dags(query['execution_dag'])
+    missing_dags = dependent_dags - execution_dags.keys()
+    if missing_dags:
+        print('missing dag')
+        debug_log(await dag_not_found(missing_dags))
+        # TODO return something
+        # funcs.append(dag_not_found(missing_dags))
+        return
+    for dep in dependent_dags:
+        dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
+        prefixed_dag = fully_qualify_names_with_default_namespace(dep_dag, dep)
+        query['execution_dag'] = {**query['execution_dag'], **{f'{dep}.{k}': v for k, v in prefixed_dag.items()}}
+
+    target_exports = [target]
+    query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
+    client_parameters = client_query.get('kwargs', {}).copy()
+    runtime = learning_observer.runtime.Runtime(request)
+    client_parameters['runtime'] = runtime
+    generator_dictionary = await query_func(**client_parameters)
+    return next(iter(generator_dictionary.values()))
+
+
+def _find_student_or_resource(d):
+    '''HACK provenance is normally removed when not in Dev mode
+    however, we are assuming its still around for when this method
+    gets called. We ought to include some way for the communication protocol
+    to return the appropriate scope.
+    This method digs into the provenance and returns the user_id and
+    doc_id (if available) in a list.
+    '''
+    if not isinstance(d, dict):
+        return []
+    if 'provenance' in d:
+        provenance = d['provenance']
+        output = []
+        if 'STUDENT' in provenance:
+            output.append(provenance['STUDENT']['user_id'])
+        if 'RESOURCE' in provenance:
+            output.append('documents')
+            output.append(provenance['RESOURCE']['doc_id'])
+        if output:
+            return output
+        return _find_student_or_resource(provenance)
+    return []
 
 
 @learning_observer.auth.teacher
@@ -527,12 +592,53 @@ async def websocket_dashboard_handler(request):
     '''
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.3)
     await ws.prepare(request)
-    client_data = None
+    client_query = None
+    previous_client_query = None
+    batch = []
+
+    async def _send_update(update):
+        '''Send an update to our batch
+        '''
+        batch.append(update)
+
+    async def _batch_send():
+        while True:
+            if batch:
+                try:
+                    await ws.send_json(batch)
+                    batch.clear()
+                except aiohttp.web_ws.WebSocketError:
+                    break
+            if ws.closed:
+                break
+            # TODO this ought to be pulled from somewhere
+            await asyncio.sleep(1)
+
+    async def _execute_dag(dag_query, target, params):
+        if params != client_query:
+            # the params are different and we should stop this generator
+            return
+        generator = await _create_dag_generator(dag_query, target, request)
+        await _drive_generator(generator, dag_query['kwargs'])
+        # TODO pull this from kwargs if available
+        await asyncio.sleep(10)
+        await _execute_dag(dag_query, target, params)
+
+    async def _drive_generator(generator, dag_kwargs):
+        async for item in generator:
+            scope = _find_student_or_resource(item)
+            update_path = ".".join(scope)
+            if 'option_hash' in dag_kwargs:
+                item['option_hash'] = dag_kwargs['option_hash']
+            await _send_update({'op': 'update', 'path': update_path, 'value': item})
+
+    send_batches = asyncio.create_task(_batch_send())
 
     while True:
         try:
-            client_data = await ws.receive_json()
-            # TODO we should validate the client_data structure
+            received_params = await ws.receive_json()
+            client_query = received_params
+            # TODO we should validate the client_query structure
         except (TypeError, ValueError):
             # these Errors may signal a close
             if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
@@ -540,20 +646,19 @@ async def websocket_dashboard_handler(request):
                 return aiohttp.web.Response()
         except asyncio.exceptions.TimeoutError:
             # this is the normal path of the code
-            # if the client_data hasn't been set, keep waiting for it
-            if client_data is None:
+            # if the client_query hasn't been set, keep waiting for it
+            if client_query is None:
                 continue
 
         if ws.closed:
             debug_log("Socket closed.")
             return aiohttp.web.Response()
 
-        outputs = await execute_queries(client_data, request)
-
-        await ws.send_json({q: v for q, v in zip(client_data.keys(), outputs)})
-        # TODO allow the client to set the update timer.
-        # it would be cool if the client could set different sleep timers for each item
-        await asyncio.sleep(3)
+        if client_query != previous_client_query:
+            previous_client_query = copy.deepcopy(client_query)
+            for k, v in client_query.items():
+                for target in v.get('target_exports', []):
+                    asyncio.create_task(_execute_dag(v, target, client_query))
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use

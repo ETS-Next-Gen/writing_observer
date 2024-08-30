@@ -31,16 +31,18 @@ async function hashObject (obj) {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
-
   return hashHex;
 }
 
 // TODO some of this will move to the communication protocol, but for now
 // it lives here
 function formatStudentData (student, selectedHighlights) {
+  // TODO this ought to come from the comm protocol
+  const document = Object.keys(student.documents)[0];
+
   // TODO make sure the comm protocol is providing the doc id
   const highlightBreakpoints = selectedHighlights.reduce((acc, option) => {
-    const offsets = student[option.id]?.offsets || [];
+    const offsets = student.documents[document][option.id]?.offsets || [];
     if (offsets) {
       const modifiedOffsets = offsets.map(offset => {
         return {
@@ -56,17 +58,50 @@ function formatStudentData (student, selectedHighlights) {
     return acc;
   }, []);
   return {
-    profile: student.profile,
+    profile: student.documents[document].profile,
     availableDocuments: [{ id: 'latest', title: 'Latest' }],
     documents: {
       latest: {
-        text: student.text,
+        text: student.documents[document].text,
         breakpoints: highlightBreakpoints,
-        optionHash: ''
+        optionHash: student.documents[document].option_hash
       }
     }
   };
 }
+
+function applyDashboardStoreUpdate(mainDict, message) {
+  const pathKeys = message.path.split('.');
+  let current = mainDict;
+
+  // Traverse the path to get to the right location
+  for (let i = 0; i < pathKeys.length - 1; i++) {
+    const key = pathKeys[i];
+    if (!(key in current)) {
+      current[key] = {}; // Create path if it doesn't exist
+    }
+    current = current[key];
+  }
+
+  const finalKey = pathKeys[pathKeys.length - 1];
+  if (message.op === 'update') {
+    // Shallow merge using spread syntax
+    current[finalKey] = {
+      ...current[finalKey], // Existing data
+      ...message.value // New data (overwrites where necessary)
+    };
+  }
+}
+
+window.dash_clientside.lo_dash_react_components = {
+  update_dashboard_store_with_incoming_message: function (incomingMessage, currentData) {
+    if (incomingMessage !== undefined) {
+      const messages = JSON.parse(incomingMessage.data);
+      return messages.forEach(message => applyDashboardStoreUpdate(currentData, message));
+    }
+    return window.dash_clientside.no_update;
+  }
+};
 
 window.dash_clientside.wo_classroom_text_highlighter = {
   /**
@@ -83,12 +118,11 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       if (urlHash.length === 0) { return window.dash_clientside.no_update; }
       const decodedParams = decode_string_dict(urlHash.slice(1));
       if (!decodedParams.course_id) { return window.dash_clientside.no_update; }
-
       // TODO pass this to the communication protocol
-      const optionsHash = hashObject(fullOptions);
-
+      const optionsHash = await hashObject(fullOptions);
       const nlpOptions = determineSelectedNLPOptionsList(fullOptions);
       decodedParams.nlp_options = nlpOptions;
+      decodedParams.option_hash = optionsHash;
       const outgoingMessage = {
         wo_classroom_text_highlighter_query: {
           execution_dag: 'writing_observer',
@@ -129,7 +163,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    * @param {*} wsStorageData information stored in the websocket store
    * @returns Dash object to be displayed on page
    */
-  populateOutput: function (wsStorageData, options, width, height, showHeader) {
+  populateOutput: async function (wsStorageData, options, width, height, showHeader) {
     console.log('wsStorageData', wsStorageData);
     if (!wsStorageData) {
       return 'No students';
@@ -148,16 +182,19 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     // TODO do something with the selected metrics/progress bars/etc.
     const selectedMetrics = options.filter(option => option.types?.metric?.value);
 
-    for (const student of data) {
+    const optionHash = await hashObject(options);
+
+    for (const student in wsStorageData) {
       const studentTile = createDashComponent(
         LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
         {
           showHeader,
           style: { width: `${100 / width}%`, height: `${height}px` },
-          studentInfo: formatStudentData(student, selectedHighlights),
+          studentInfo: formatStudentData(wsStorageData[student], selectedHighlights),
           selectedDocument: 'latest',
           childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
-          id: { type: 'WOStudentTextTile', index: student.user_id }
+          id: { type: 'WOStudentTextTile', index: student },
+          currentOptionHash: optionHash
         }
       );
       output = output.concat(studentTile);
