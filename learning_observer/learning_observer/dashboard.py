@@ -595,20 +595,26 @@ async def websocket_dashboard_handler(request):
     client_query = None
     previous_client_query = None
     batch = []
+    lock = asyncio.Lock()
 
     async def _send_update(update):
         '''Send an update to our batch
         '''
-        batch.append(update)
+        async with lock:
+            batch.append(update)
 
     async def _batch_send():
+        '''If our batch has any items, send them to the client
+        then wait before checking again.
+        '''
         while True:
-            if batch:
-                try:
-                    await ws.send_json(batch)
-                    batch.clear()
-                except aiohttp.web_ws.WebSocketError:
-                    break
+            async with lock:
+                if batch:
+                    try:
+                        await ws.send_json(batch)
+                        batch.clear()
+                    except aiohttp.web_ws.WebSocketError:
+                        break
             if ws.closed:
                 break
             # TODO this ought to be pulled from somewhere
