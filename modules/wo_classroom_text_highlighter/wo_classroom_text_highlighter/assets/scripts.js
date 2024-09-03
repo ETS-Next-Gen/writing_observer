@@ -22,7 +22,7 @@ function determineSelectedNLPOptionsList (options) {
   ).map(option => option.id);
 }
 
-// TODO this ought to move to a more common place
+// TODO this ought to move to a more common place like liblo.js
 async function hashObject (obj) {
   const jsonString = JSON.stringify(obj);
   const encoder = new TextEncoder();
@@ -36,6 +36,9 @@ async function hashObject (obj) {
 
 // TODO some of this will move to the communication protocol, but for now
 // it lives here
+// Currently the system only handles grabbing the first document available
+// from the student and populates it under latest. We shouldn't hardcode
+// anything like latest here and instead pull it from the communication protocol
 function formatStudentData (student, selectedHighlights) {
   // TODO this ought to come from the comm protocol
   const document = Object.keys(student.documents)[0];
@@ -57,9 +60,17 @@ function formatStudentData (student, selectedHighlights) {
     }
     return acc;
   }, []);
+  const availableDocuments = Object.keys(student.docs).map(id => ({
+    id,
+    title: student.docs[id].title || id
+  }));
+  availableDocuments.push({ id: 'latest', title: 'Latest' });
+  // TODO currently we only populate the latest data of the student documents
+  // this is currently the muddiest part of the data flow and ought to be
+  // cleaned up.
   return {
     profile: student.documents[document].profile,
-    availableDocuments: [{ id: 'latest', title: 'Latest' }],
+    availableDocuments,
     documents: {
       latest: {
         text: student.documents[document].text,
@@ -70,7 +81,7 @@ function formatStudentData (student, selectedHighlights) {
   };
 }
 
-function applyDashboardStoreUpdate(mainDict, message) {
+function applyDashboardStoreUpdate (mainDict, message) {
   const pathKeys = message.path.split('.');
   let current = mainDict;
 
@@ -118,7 +129,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       if (urlHash.length === 0) { return window.dash_clientside.no_update; }
       const decodedParams = decode_string_dict(urlHash.slice(1));
       if (!decodedParams.course_id) { return window.dash_clientside.no_update; }
-      // TODO pass this to the communication protocol
+
       const optionsHash = await hashObject(fullOptions);
       const nlpOptions = determineSelectedNLPOptionsList(fullOptions);
       decodedParams.nlp_options = nlpOptions;
@@ -126,7 +137,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       const outgoingMessage = {
         wo_classroom_text_highlighter_query: {
           execution_dag: 'writing_observer',
-          target_exports: ['docs_with_nlp_annotations'],
+          target_exports: ['docs_with_nlp_annotations', 'doc_list'],
           kwargs: decodedParams
         }
       };
@@ -191,6 +202,8 @@ window.dash_clientside.wo_classroom_text_highlighter = {
           showHeader,
           style: { width: `${100 / width}%`, height: `${height}px` },
           studentInfo: formatStudentData(wsStorageData[student], selectedHighlights),
+          // TODO the selectedDocument ought to remain the same upon updating the student object
+          // i.e. it should be pulled from the current client student state
           selectedDocument: 'latest',
           childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
           id: { type: 'WOStudentTextTile', index: student },
