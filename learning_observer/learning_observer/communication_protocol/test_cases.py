@@ -130,6 +130,7 @@ TEST_DAG = {
             'description': "Throw an exception within a published function",
             'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         },
+        # TODO this test case fails and was failing before switching to an async generator
         'join_key_error': {
             'returns': 'join_key_error',
             'parameters': [],

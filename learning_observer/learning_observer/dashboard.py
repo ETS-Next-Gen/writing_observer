@@ -279,6 +279,9 @@ async def websocket_dashboard_view(request):
     '''
     Handler to aggregate student data, and serve it back to the client
     every half-second to second or so.
+
+    TODO remove this method. This is the old way of passing data from
+    the server to the client (pre communication protocol).
     '''
     # Extract parameters from the URL
     #
@@ -471,6 +474,8 @@ DAG_DISPATCH = {dict: dispatch_defined_execution_dag, str: dispatch_named_execut
 
 
 async def execute_queries(client_data, request):
+    '''TODO remove this method as it is no longer used.
+    '''
     execution_dags = learning_observer.module_loader.execution_dags()
     funcs = []
     # client_data = {
@@ -555,12 +560,15 @@ async def _create_dag_generator(client_query, target, request):
 
 
 def _find_student_or_resource(d):
-    '''HACK provenance is normally removed when not in Dev mode
-    however, we are assuming its still around for when this method
+    '''This method digs into the provenance and returns the user_id and
+    doc_id (if available) in a list to use for creating the update_path
+    that is sent to the client.
+    HACK provenance is normally removed when not in Dev mode
+    however, we are assuming its still around when this method
     gets called. We ought to include some way for the communication protocol
     to return the appropriate scope.
-    This method digs into the provenance and returns the user_id and
-    doc_id (if available) in a list.
+    Currently most queries have `user_id` returned; however, there is no
+    equivalent for the `doc_id`.
     '''
     if not isinstance(d, dict):
         return []
@@ -621,6 +629,10 @@ async def websocket_dashboard_handler(request):
             await asyncio.sleep(1)
 
     async def _execute_dag(dag_query, target, params):
+        '''This method creates the DAG generator and drives it.
+        Once finished, we wait until rescheduling it. If the parameters
+        change, we exit before creating and driving the generator.
+        '''
         if params != client_query:
             # the params are different and we should stop this generator
             return
@@ -631,6 +643,9 @@ async def websocket_dashboard_handler(request):
         await _execute_dag(dag_query, target, params)
 
     async def _drive_generator(generator, dag_kwargs):
+        '''For each item in the generator, this method creates
+        an update to send to the client.
+        '''
         async for item in generator:
             scope = _find_student_or_resource(item)
             update_path = ".".join(scope)
@@ -662,6 +677,10 @@ async def websocket_dashboard_handler(request):
 
         if client_query != previous_client_query:
             previous_client_query = copy.deepcopy(client_query)
+            # HACK even though we can specificy multiple targets for a
+            # single DAG, this creates a new DAG for each. This eventually
+            # allows us to specify different parameters (such as the
+            # reschedule timeout).
             for k, v in client_query.items():
                 for target in v.get('target_exports', []):
                     asyncio.create_task(_execute_dag(v, target, client_query))

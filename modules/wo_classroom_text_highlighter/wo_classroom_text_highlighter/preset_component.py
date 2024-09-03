@@ -1,3 +1,6 @@
+'''This creates the input and clickable preset badges.
+TODO create a react component that does this
+'''
 from dash import html, dcc, clientside_callback, callback, Output, Input, State, ALL, exceptions, Patch, ctx
 import dash_bootstrap_components as dbc
 

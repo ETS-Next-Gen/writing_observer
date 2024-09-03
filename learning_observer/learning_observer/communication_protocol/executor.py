@@ -185,16 +185,14 @@ async def handle_join(left, right, left_on, right_on):
     [{'error': "KeyError: key `lid` not found in `dict_keys(['left'])`", 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
-    right_iterator = _ensure_async_generator(right)
-    async for d in right_iterator:
+    async for d in _ensure_async_generator(right):
         try:
             nested_value = get_nested_dict_value(d, right_on)
             right_dict[nested_value] = d
         except KeyError as e:
             pass
 
-    # TODO should we make sure left is an async generator? Probably
-    async for left_dict in left:
+    async for left_dict in _ensure_async_generator(left):
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
             right_dict_match = right_dict.get(lookup_key)
@@ -310,6 +308,8 @@ def annotate_map_metadata(function, results, values, value_path, func_kwargs):
     return output
 
 
+# TODO the map functions have not been fully tested with the
+# new async generator pipeline. Do this.
 MAPS = {
     'map_parallel': map_parallel,
     'map_serial': map_serial,
@@ -398,8 +398,7 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
     if fields is None or fields == learning_observer.communication_protocol.query.SelectFields.Missing:
         fields_to_keep = {}
 
-    async_iterable_keys = _ensure_async_generator(keys)
-    async for k in async_iterable_keys:
+    async for k in _ensure_async_generator(keys):
         if isinstance(k, dict) and 'key' in k:
             # output from query added to response later
             query_response_element = {
@@ -457,6 +456,13 @@ def handle_keys(function, value_path, **kwargs):
 
 
 async def _ensure_async_generator(it):
+    '''We want to ensure that everything is an async generator
+    so they all fit nicely within an async generator pipeline.
+
+    TODO this ought to live in a utilities file. Not sure if
+    this is common enough for the broaded system or just the
+    communication protocol.
+    '''
     if isinstance(it, dict):
         yield it
     elif isinstance(it, collections.abc.AsyncIterable):
@@ -473,7 +479,8 @@ async def _ensure_async_generator(it):
 
 async def async_zip(gen1, gen2):
     '''Zip 2 async generators together
-    TODO move this to a utility area
+
+    TODO move this to a common utilities file
     '''
     iterator1 = _ensure_async_generator(gen1)
     iterator2 = _ensure_async_generator(gen2)
@@ -489,7 +496,9 @@ async def async_zip(gen1, gen2):
 
 
 async def _extract_fields_with_provenance_for_students(students, student_path):
-    '''
+    '''We want both the field and provenance when iterating over
+    for each student during iteration. This function allows for
+    both items to be returned when handling keys.
     '''
     async for s in _ensure_async_generator(students):
         s_field = get_nested_dict_value(s, student_path, '')
@@ -502,10 +511,11 @@ async def _extract_fields_with_provenance_for_students(students, student_path):
 
 
 async def _extract_fields_with_provenance_for_students_and_resources(students, student_path, resources, resources_path):
-    '''
+    '''We want both the field and provenance when iterating over
+    for each student during iteration. This function allows for
+    both items to be returned when handling keys.
     '''
     async for s, r in async_zip(students, resources):
-        # TODO should we also add the student_path item to the student provenance?
         s_field = get_nested_dict_value(s, student_path, '')
         r_field = get_nested_dict_value(r, resources_path, '')
         fields = {
@@ -643,9 +653,8 @@ def strip_provenance(variable):
         return variable
 
 
-async def _clean_json_via_generator(gen):
-    iterator = _ensure_async_generator(gen)
-    async for item in iterator:
+async def _clean_json_via_generator(iterator):
+    async for item in _ensure_async_generator(iterator):
         yield clean_json(item)
 
 
