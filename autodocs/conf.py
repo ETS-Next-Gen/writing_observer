@@ -14,9 +14,7 @@ author = 'Bradley Erickson'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-sys.path.insert(0, os.path.abspath('../'))
-
-autosummary_generate = True
+sys.path.insert(0, os.path.abspath('../learning_observer/'))
 
 extensions = [
     'sphinx.ext.autodoc',
