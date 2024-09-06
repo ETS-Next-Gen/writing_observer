@@ -23,6 +23,8 @@ extensions = [
     'myst_parser',
 ]
 
+autosummary_generate = True
+
 source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
