@@ -29,6 +29,8 @@ source_suffix = {
     '.txt': 'markdown'
 }
 
+autodoc_mock_imports = ['learning_observer', 'writing_observer']
+
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
