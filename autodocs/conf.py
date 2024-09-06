@@ -14,7 +14,7 @@ author = 'Bradley Erickson'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-sys.path.insert(0, os.path.abspath('../learning_observer/'))
+sys.path.insert(0, os.path.abspath('../'))
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -27,6 +27,13 @@ source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
     '.txt': 'markdown'
+}
+
+multiproject_projects = {
+    'learning_observer': {},
+    'writing_observer': {
+        'path': 'modules/writing_observer/'
+    },
 }
 
 templates_path = ['_templates']
