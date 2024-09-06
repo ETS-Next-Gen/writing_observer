@@ -3,6 +3,7 @@ API
 
 .. autosummary::
    :recursive:
+   :toctree: generated/
 
    learning_observer
    writing_observer
