@@ -29,13 +29,6 @@ source_suffix = {
     '.txt': 'markdown'
 }
 
-multiproject_projects = {
-    'learning_observer': {},
-    'writing_observer': {
-        'path': 'modules/writing_observer/'
-    },
-}
-
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 

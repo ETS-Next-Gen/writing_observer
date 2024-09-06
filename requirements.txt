@@ -49,7 +49,6 @@ redis
 scipy
 slixmpp
 sphinx
-sphinx-multiproject
 svgwrite
 uvloop
 watchdog
