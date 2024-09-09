@@ -22,8 +22,8 @@ extensions = [
 ]
 
 autodoc2_packages = [
-    '../learning_observer',
-    '../modules/writing_observer'
+    '../learning_observer/learning_observer',
+    '../modules/writing_observer/writing_observer'
 ]
 
 source_suffix = {
