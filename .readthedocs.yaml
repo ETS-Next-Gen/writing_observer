@@ -25,5 +25,5 @@ sphinx:
 
 # Optionally declare the Python requirements required to build your docs
 python:
-   commands:
-     - pip install -e learning_observer/
+   install:
+   - requirements: lo_install.txt
