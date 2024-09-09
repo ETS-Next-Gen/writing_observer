@@ -315,8 +315,7 @@ async def authenticate(request, headers, first_event, source):
     - `authenticated` -- we trust who they are
     - `unauthenticated` -- we think we know who they are, without security
     - `guest` -- we don't know who they are
-    2. Providence: How they were authenticated (if at all), or how we believe
-       they are who they are.
+    2. Providence: How they were authenticated (if at all), or how we believe they are who they are.
     3. `user_id` -- a unique user identifier
     '''
     for auth_method in learning_observer.settings.settings['event_auth']:
