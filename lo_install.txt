@@ -1,1 +1,2 @@
--e ./learning_observer/ --config-settings editable_mode=compat
+sphinx
+sphinx-autodoc2
