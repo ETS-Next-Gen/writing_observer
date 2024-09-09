@@ -1,1 +1,1 @@
--e ./learning_observer/
+-e ./learning_observer/ --config-settings editable_mode=compat
