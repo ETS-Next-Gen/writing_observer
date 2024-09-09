@@ -25,7 +25,5 @@ sphinx:
 
 # Optionally declare the Python requirements required to build your docs
 python:
-   install:
-   - method: pip
-     path: ./learning_observer/
-     editable: true
+   commands:
+     - pip install -e learning_observer/
