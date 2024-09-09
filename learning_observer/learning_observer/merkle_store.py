@@ -191,10 +191,8 @@ class Merkle:
         Append an event to the merkle tree.
 
         There are two possibilities here:
-        1. We have a closure and we're updating the SHA hash with each
-            event.
-        2. We don't have a closure and we're placing the individual
-            events into the Merkle DAG.
+        1. We have a closure and we're updating the SHA hash with each event.
+        2. We don't have a closure and we're placing the individual events into the Merkle DAG.
         We went with the second option. This makes events into the leaf,
         nodes, whereas the first option makes sessions into the leaf
         nodes.
