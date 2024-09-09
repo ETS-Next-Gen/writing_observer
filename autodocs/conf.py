@@ -17,7 +17,7 @@ author = 'Bradley Erickson'
 sys.path.insert(0, os.path.abspath('../'))
 
 extensions = [
-    'sphinx.ext.autodoc2',
+    'autodoc2',
     'myst_parser',
 ]
 
