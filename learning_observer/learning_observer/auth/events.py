@@ -312,9 +312,9 @@ async def authenticate(request, headers, first_event, source):
 
     Our thoughts are that the auth metadata ought to contain:
     1. Whether the user was authenticated (`sec` field):
-       * `authenticated` -- we trust who they are
-       * `unauthenticated` -- we think we know who they are, without security
-       * `guest` -- we don't know who they are
+    - `authenticated` -- we trust who they are
+    - `unauthenticated` -- we think we know who they are, without security
+    - `guest` -- we don't know who they are
     2. Providence: How they were authenticated (if at all), or how we believe
        they are who they are.
     3. `user_id` -- a unique user identifier
