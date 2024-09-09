@@ -1,6 +1,12 @@
 '''
 This provides a web interface for making queries via the
 communication protocol and seeing the text of the results.
+
+TODO:
+
+* This isn't really a debugger. Perhaps this should be called
+  interactive mode? Or developer mode? Or similar?
+* Ideally, this should be moved to the Jupyter notebook
 '''
 
 from dash import html, callback, Output, Input, State
@@ -11,6 +17,7 @@ import json
 import lo_dash_react_components as lodrc
 
 
+# These are IDs for page elements, used in the layout and for callbacks
 prefix = 'communication-debugger'
 ws = f'{prefix}-websocket'
 status = f'{prefix}-connection-status'
@@ -27,7 +34,7 @@ def layout():
                     html.H1('Communication Protocol Debugger'),
                     lodrc.LOConnection(
                         id=ws,
-                        url='ws://localhost:8888/wsapi/communication_protocol'
+                        url='ws://localhost:8888/wsapi/communication_protocol'  # HACK/TODO: This might not be 8888. We should use the default port.
                     ),
                     html.Div(id=status)
                 ]
@@ -69,6 +76,9 @@ def layout():
 
 
 def create_status(title, icon):
+    '''
+    Are we connected to the server? Connecting? Disconnected? Used by update_status below
+    '''
     return html.Div(
         [
             html.I(className=f'{icon} me-1'),
@@ -82,6 +92,9 @@ def create_status(title, icon):
     Input(ws, 'state')
 )
 def update_status(state):
+    '''
+    Called when we connect / disconnect / etc.
+    '''
     icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger']
     titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server']
     index = state.get('readyState', 3) if state is not None else 3
@@ -93,6 +106,10 @@ def update_status(state):
     Input(message, 'value')
 )
 def determine_valid_json(value):
+    '''
+    Disable or enable to submit button, so we can only submit a
+    query if it is valid JSON
+    '''
     if value is None:
         return True
     try:
@@ -108,6 +125,9 @@ def determine_valid_json(value):
     State(message, 'value')
 )
 def send_message(clicks, value):
+    '''
+    Send a message to the communication protocol on the web socket.
+    '''
     if clicks is None:
         raise PreventUpdate
     return value
@@ -118,6 +138,10 @@ def send_message(clicks, value):
     Input(ws, 'message')
 )
 def receive_message(message):
+    '''
+    Shows messages from the web socket in the field with ID
+    `response` (defined on top)
+    '''
     if message is None:
         return {}
     return json.loads(message.get("data", {}))

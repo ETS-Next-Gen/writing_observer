@@ -56,6 +56,13 @@ def flatten(endpoint):
 
 
 def generate_base_dag_for_student_reducer(reducer, module):
+    '''
+    A very common use-case is that we want the latest reducer output for a specific reducer for one course.
+
+    This is a shorthand way to do it.
+
+    TODO: We should probably give this a better name. Hopefully quickly, before a lot of code depends on this. E.g. `predefined_query.course_reducer`, `predefined_query.student_reducer`, etc. (so also move them into their own namespace).
+    '''
     course_roster = q.call('learning_observer.courseroster')
     keys_node = f'{reducer}_keys'
     select_node = f'{reducer}_output'
