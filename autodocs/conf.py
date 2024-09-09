@@ -17,10 +17,13 @@ author = 'Bradley Erickson'
 sys.path.insert(0, os.path.abspath('../'))
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode',
+    'sphinx.ext.autodoc2',
     'myst_parser',
+]
+
+autodoc2_packages = [
+    '../learning_observer',
+    '../modules/writing_observer'
 ]
 
 source_suffix = {

@@ -1,11 +1,6 @@
 API
 ===
 
-.. autosummary::
-   :recursive:
-   :toctree: generated/
+.. toctree::
 
-   learning_observer
-   writing_observer
-   lo_dash_react_components
-
+   apidocs/index
