@@ -59,7 +59,6 @@ git clone git@github.com:ETS-Next-Gen/writing_observer.git lo_workshop
 
 ```bash
 cd lo_workshop/
-git checkout berickson/workshop # This is a branch we set up with some extra things for this workshop!
 ```
 
 NOTE: All future commands should be ran starting from the repository's root directory. The command will specify if changing directories is needed.
