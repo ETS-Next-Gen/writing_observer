@@ -8,7 +8,8 @@ Design invariant:
 We can relax the design invariant, but we should think carefully
 before doing so.
 '''
-
+import asyncio
+import collections
 import dash.development.base_component
 import datetime
 import enum
@@ -16,7 +17,6 @@ import hashlib
 import math
 import numbers
 import re
-import socket
 import uuid
 from dateutil import parser
 
@@ -250,6 +250,42 @@ def generate_unique_token():
     global count
     count = count + 1
     return f'{count}-{timestamp()}-{str(uuid.uuid4())}'
+
+
+async def ensure_async_generator(it):
+    '''Take an iterable or single dict item and return it
+    as an async generator.
+    '''
+    if isinstance(it, dict):
+        yield it
+    elif isinstance(it, collections.abc.AsyncIterable):
+        # If it is already an async iterable, yield from it
+        async for item in it:
+            yield item
+    elif isinstance(it, collections.abc.Iterable):
+        # If it is a synchronous iterable, iterate over it and yield items
+        for item in it:
+            yield item
+    else:
+        raise TypeError(f"Object of type {type(it)} is not iterable")
+
+
+async def async_zip(iterator1, iterator2):
+    '''Zip 2 async generators together.
+    This functions similar to `zip`
+    '''
+    gen1 = ensure_async_generator(iterator1)
+    gen2 = ensure_async_generator(iterator2)
+    try:
+        while True:
+            # asyncio.gather finishes when both `anext` items are ready
+            item1, item2 = await asyncio.gather(
+                gen1.__anext__(),
+                gen2.__anext__()
+            )
+            yield item1, item2
+    except StopAsyncIteration:
+        pass
 
 
 # And a test case
