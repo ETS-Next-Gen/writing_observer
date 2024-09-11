@@ -456,9 +456,13 @@ def handle_keys(function, value_path, **kwargs):
 
 
 async def _extract_fields_with_provenance_for_students(students, student_path):
-    '''We want both the field and provenance when iterating over
-    for each student during iteration. This function allows for
-    both items to be returned when handling keys.
+    '''This is a helper function for the `hack_handle_keys` function.
+    This function prepares the key field dictionary and the provenance
+    for each student.
+    The key field dictionary is used to create the key we are attempting
+    to fetch from the KVS (used later in `hack_handle_keys`). The passed in
+    `item_path` is used for setting the appropriate dictionary value.
+    The provenance is the current history of the communication protocol for each item.
     '''
     async for s in ensure_async_generator(students):
         s_field = get_nested_dict_value(s, student_path, '')
@@ -471,9 +475,13 @@ async def _extract_fields_with_provenance_for_students(students, student_path):
 
 
 async def _extract_fields_with_provenance_for_students_and_resources(students, student_path, resources, resources_path):
-    '''We want both the field and provenance when iterating over
-    for each student during iteration. This function allows for
-    both items to be returned when handling keys.
+    '''This is a helper function for the `hack_handle_keys` function.
+    This function prepares the key field dictionary and the provenance
+    for each student/resource pair.
+    The key field dictionary is used to create the key we are attempting
+    to fetch from the KVS (used later in `hack_handle_keys`). The passed in
+    `item_path` is used for setting the appropriate dictionary value.
+    The provenance is the current history of the communication protocol for each item.
     '''
     async for s, r in async_zip(students, resources):
         s_field = get_nested_dict_value(s, student_path, '')
@@ -496,7 +504,9 @@ async def _extract_fields_with_provenance_for_students_and_resources(students, s
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
 async def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
     """
-    We INSTEAD dispatch this function whenever we process a DISPATCH_MODES.KEYS node.
+    This function is a HACK that is being used instead of `handle_keys` for any
+    `DISPATCH_MODE.KEYS` nodes.
+
     Whenever a user wants to perform a select operation, they first must make sure their
     keys are formatted properly. This method builds the keys to access the appropriate
     reducers output.

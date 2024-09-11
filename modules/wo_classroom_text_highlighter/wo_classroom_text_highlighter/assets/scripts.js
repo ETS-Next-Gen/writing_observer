@@ -60,11 +60,12 @@ function formatStudentData (student, selectedHighlights) {
     }
     return acc;
   }, []);
-  const availableDocuments = Object.keys(student.docs).map(id => ({
-    id,
-    title: student.docs[id].title || id
-  }));
-  availableDocuments.push({ id: 'latest', title: 'Latest' });
+  // const availableDocuments = Object.keys(student.docs).map(id => ({
+  //   id,
+  //   title: student.docs[id].title || id
+  // }));
+  // availableDocuments.push({ id: 'latest', title: 'Latest' });
+  const availableDocuments = [{ id: 'latest', title: 'Latest' }]
   // TODO currently we only populate the latest data of the student documents
   // this is currently the muddiest part of the data flow and ought to be
   // cleaned up.
@@ -80,39 +81,6 @@ function formatStudentData (student, selectedHighlights) {
     }
   };
 }
-
-function applyDashboardStoreUpdate (mainDict, message) {
-  const pathKeys = message.path.split('.');
-  let current = mainDict;
-
-  // Traverse the path to get to the right location
-  for (let i = 0; i < pathKeys.length - 1; i++) {
-    const key = pathKeys[i];
-    if (!(key in current)) {
-      current[key] = {}; // Create path if it doesn't exist
-    }
-    current = current[key];
-  }
-
-  const finalKey = pathKeys[pathKeys.length - 1];
-  if (message.op === 'update') {
-    // Shallow merge using spread syntax
-    current[finalKey] = {
-      ...current[finalKey], // Existing data
-      ...message.value // New data (overwrites where necessary)
-    };
-  }
-}
-
-window.dash_clientside.lo_dash_react_components = {
-  update_dashboard_store_with_incoming_message: function (incomingMessage, currentData) {
-    if (incomingMessage !== undefined) {
-      const messages = JSON.parse(incomingMessage.data);
-      return messages.forEach(message => applyDashboardStoreUpdate(currentData, message));
-    }
-    return window.dash_clientside.no_update;
-  }
-};
 
 window.dash_clientside.wo_classroom_text_highlighter = {
   /**
@@ -137,7 +105,8 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       const outgoingMessage = {
         wo_classroom_text_highlighter_query: {
           execution_dag: 'writing_observer',
-          target_exports: ['docs_with_nlp_annotations', 'doc_list'],
+          // TODO add `doc_list` here when available
+          target_exports: ['docs_with_nlp_annotations'],
           kwargs: decodedParams
         }
       };
