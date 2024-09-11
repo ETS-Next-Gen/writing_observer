@@ -310,17 +310,20 @@ async def process_and_cache_missing_features(unfound_features, found_features, r
 async def process_writings_with_caching(writing_data, options=None, mode=RUN_MODES.MULTIPROCESSING, sleep_interval=1, wait_time_for_running_features=60):
     '''
     Caching:
+
     1. Create text hash.
     2. Check if hash exist in cache.
     3. Check if some options are a subset of features_available
-        Yes: add the intersection of features_available and options to results
+        * Yes: add the intersection of features_available and options to results
     4. Check if some options are a subset of running_features.
-        Yes: a. Wait for running_features to finish.
-             b. Update the cache
-             c. Add intersection of running_features and Options to results
+        * Yes:
+        a. Wait for running_features to finish.
+        b. Update the cache
+        c. Add intersection of running_features and Options to results
     5. Check if additional features are required.
-        Yes: a. Collect options not covered till now and add to running_features.
-             b. Once finished, update cache and return results.
+        * Yes:
+        a. Collect options not covered till now and add to running_features.
+        b. Once finished, update cache and return results.
 
     param writing_data: The writing data.
     :param options: The list of additional features (optional).
