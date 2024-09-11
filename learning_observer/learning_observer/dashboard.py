@@ -439,30 +439,34 @@ def fully_qualify_names_with_default_namespace(dag, namespace_prefix):
     return dag
 
 
-async def dispatch_named_execution_dag(dag_name, funcs):
+async def dispatch_named_execution_dag(dag_name):
+    '''This method takes a Named Query and fetches it from the
+    available DAGs on the system.
+    '''
     available_dags = learning_observer.module_loader.execution_dags()
     query = None
     try:
         query = available_dags[dag_name]
     except KeyError:
         debug_log(await dag_not_found(dag_name))
-        funcs.append(dag_not_found(dag_name))
     finally:
         return query
 
 
-async def dispatch_defined_execution_dag(dag, funcs):
+async def dispatch_defined_execution_dag(dag):
+    '''This method confirms that an Open Queries provided by the user
+    are 1) allowed to be submitted and 2) adhere to the appropriate
+    JSON structure.
+    '''
     query = None
     if not learning_observer.settings.pmss_settings.dangerously_allow_insecure_dags():
         debug_log(await dag_submission_not_allowed())
-        funcs.append(dag_submission_not_allowed())
         return query
     try:
         learning_observer.communication_protocol.schema.prevalidate_schema(dag)
         query = dag
     except jsonschema.ValidationError as e:
         debug_log(await dag_incorrect_format(e))
-        funcs.append(dag_incorrect_format(e))
         return query
     finally:
         return query
@@ -520,55 +524,78 @@ async def execute_queries(client_data, request):
     return await asyncio.gather(*funcs, return_exceptions=False)
 
 
-async def _create_dag_generator(client_query, target, request):
+async def _handle_dependent_dags(query):
+    '''
+    Handles dependent DAGs and ensures all dependencies are present.
+    NOTE dependent dags only work for on a single level dependency
+    TODO allow multiple layers of dependency among dags
+    '''
     execution_dags = learning_observer.module_loader.execution_dags()
-    dag = client_query['execution_dag']
-    if type(dag) not in DAG_DISPATCH:
-        debug_log(await dag_unsupported_type(type(dag)))
-        # TODO return something
-        # funcs.append(dag_unsupported_type(type(dag)))
-        return
-
-    # TODO fix this funcs
-    query = await DAG_DISPATCH[type(dag)](dag, [])
-    if query is None:
-        # TODO do we return something here?
-        return
-
-    # NOTE dependent dags only work for on a single level dependency
-    # TODO allow multiple layers of dependency among dags
     dependent_dags = extract_namespaced_dags(query['execution_dag'])
     missing_dags = dependent_dags - execution_dags.keys()
+
     if missing_dags:
-        print('missing dag')
+        # TODO we ought to handle this as an error
         debug_log(await dag_not_found(missing_dags))
-        # TODO return something
-        # funcs.append(dag_not_found(missing_dags))
         return
+
     for dep in dependent_dags:
+        # Copy and qualify names for dependent DAG
         dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
         prefixed_dag = fully_qualify_names_with_default_namespace(dep_dag, dep)
+
+        # Merge dependent DAG with current query
         query['execution_dag'] = {**query['execution_dag'], **{f'{dep}.{k}': v for k, v in prefixed_dag.items()}}
 
+    return query
+
+
+async def _prepare_dag_as_generator(client_query, query, target, request):
+    '''
+    Prepares the query for execution, sets up client parameters and runtime.
+    '''
     target_exports = [target]
+
+    # Prepare the DAG execution function
     query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
+
+    # Handle client parameters and runtime setup
     client_parameters = client_query.get('kwargs', {}).copy()
     runtime = learning_observer.runtime.Runtime(request)
     client_parameters['runtime'] = runtime
+
+    # Execute the query and return the first value from the generator
     generator_dictionary = await query_func(**client_parameters)
     return next(iter(generator_dictionary.values()))
 
 
+async def _create_dag_generator(client_query, target, request):
+    dag = client_query['execution_dag']
+    if type(dag) not in DAG_DISPATCH:
+        debug_log(await dag_unsupported_type(type(dag)))
+        return
+
+    query = await DAG_DISPATCH[type(dag)](dag)
+    if query is None:
+        # the DAG_DISPATCH prints a more detailed message about why
+        debug_log('The submitted query failed.')
+        return
+    query = await _handle_dependent_dags(query)
+    return await _prepare_dag_as_generator(client_query, query, target, request)
+
+
 def _find_student_or_resource(d):
-    '''This method digs into the provenance and returns the user_id and
-    doc_id (if available) in a list to use for creating the update_path
-    that is sent to the client.
-    HACK provenance is normally removed when not in Dev mode
-    however, we are assuming its still around when this method
-    gets called. We ought to include some way for the communication protocol
-    to return the appropriate scope.
-    Currently most queries have `user_id` returned; however, there is no
-    equivalent for the `doc_id`.
+    '''HACK the communication protocol does not provide an easy way to
+    determine which student or student/document pair is being updated.
+    The protocol does include a provenance key with each item that includes
+    the history of what occured within the protocol.
+    In production settings, the provenance should be removed from the
+    user output. However, this method assumes that the provenance is still
+    around.
+    This method digs into the provenance and extracts the corresponding
+    student or student/document id. This information is used to tell the
+    client which items in their data-tree to update (i.e. update Billy's
+    History Essay with this new information).
     '''
     if not isinstance(d, dict):
         return []
