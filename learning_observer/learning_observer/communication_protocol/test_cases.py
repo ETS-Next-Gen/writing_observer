@@ -12,6 +12,7 @@ Options:
 Test Cases:
     docs_with_roster    Prints the dummy Google Docs text DAG.
     map_example         Prints the map example test cases.
+    map_async_example   Prints the map async example test cases.
     parameter_error     Prints the parameter test case.
     field_error         Prints the missing fields test case.
     malformed_key       Prints the malformed key test case.
@@ -26,7 +27,9 @@ import asyncio
 import copy
 import docopt
 import json
+import random
 import sys
+import time
 
 import learning_observer.communication_protocol.executor
 import learning_observer.communication_protocol.integration
@@ -57,7 +60,14 @@ def dummy_exception():
     raise Exception('This is an exception that was raised in a published function.')
 
 
-async def dummy_map(value, example):
+async def dummy_async_map(value, example):
+    await asyncio.sleep(1)
+    if value.endswith('2'):
+        raise ValueError('Item ends with a 2')
+    return {'value': value, 'example': example}
+
+def dummy_sync_map(value, example):
+    time.sleep(1)
     if value.endswith('2'):
         raise ValueError('Item ends with a 2')
     return {'value': value, 'example': example}
@@ -66,12 +76,14 @@ async def dummy_map(value, example):
 DUMMY_FUNCTIONS = {
     "learning_observer.dummyroster": dummy_roster,
     "learning_observer.dummycall": dummy_exception,
-    "learning_observer.dummymap": dummy_map
+    "learning_observer.dummyasyncmap": dummy_async_map,
+    "learning_observer.dummymap": dummy_sync_map
 }
 
 course_roster = q.call('learning_observer.dummyroster')
 exception_func = q.call('learning_observer.dummycall')
 map_func = q.call('learning_observer.dummymap')
+async_map_func = q.call('learning_observer.dummyasyncmap')
 
 TEST_DAG = {
     'execution_dag': {
@@ -79,7 +91,8 @@ TEST_DAG = {
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         "docs_join_roster": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT_ON='user_id'),
-        "map_students": q.map(map_func, q.variable('roster'), 'user_id', {'example': 123}),
+        "map_students": q.map(map_func, q.variable('roster'), 'user_id', {'example': 123}, parallel=True),
+        "map_async_students": q.map(async_map_func, q.variable('roster'), 'user_id', {'example': 123}, parallel=True),
         "field_error": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'nonexistent_key': 'doc_id'}),
         "malformed_key_error": q.select([{'item': 1}, {'item': 2}], fields={'nonexistent_key': 'doc_id'}),
         "call_exception": exception_func(),
@@ -97,6 +110,13 @@ TEST_DAG = {
         },
         'map_example': {
             'returns': 'map_students',
+            'parameters': ['course_id'],
+            'test_parameters': {'course_id': 123},
+            "description": 'Show example of mapping students',
+            'expected': lambda x: isinstance(x, list) and 'value' in x[0]
+        },
+        'map_async_example': {
+            'returns': 'map_async_students',
             'parameters': ['course_id'],
             'test_parameters': {'course_id': 123},
             "description": 'Show example of mapping students',

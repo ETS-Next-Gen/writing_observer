@@ -211,29 +211,16 @@ async def handle_join(left, right, left_on, right_on):
             # ).to_dict())
 
 
-def exception_wrapper(func):
-    """
-    When we map values across a function, we want to catch any errors that may occur.
-    For asynchronous functions, we are able to use `asyncio.gather` which allows us to return
-    exceptions as normal results. This wrapper mimics this behavior for synchronous functions
-    and returns any exceptions as normal results. These exceptions are later caught by the
-    DAG executor and handled appropriately. This allows the system to keep executing the DAG even
-    if some values raise exceptions.
-    """
-    def exception_catcher(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            return e
-    return exception_catcher
-
-
 async def map_coroutine_serial(func, values, value_path):
     """
     We call map for coroutine functions operating in serial.
     See the `handle_map` function for more details regarding parameters.
     """
-    return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
+    async for v in ensure_async_generator(values):
+        try:
+            yield await func(get_nested_dict_value(v, value_path)), v
+        except Exception as e:
+            yield e, v
 
 
 async def map_coroutine_parallel(func, values, value_path):
@@ -241,75 +228,82 @@ async def map_coroutine_parallel(func, values, value_path):
     We call map for coroutine functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
-    raise DAGExecutionException(
-        'Asynchronous parallelization has not yet been implemented.',
-        inspect.currentframe().f_code.co_name,
-        {'function': func, 'values': values, 'value_path': value_path}
-    )
+    tasks = []
+    async for v in ensure_async_generator(values):
+        tasks.append(func(get_nested_dict_value(v, value_path)))
+    for task in asyncio.as_completed(tasks):
+        try:
+            yield await task, v
+        except Exception as e:
+            print(e, type(e))
+            yield e, v
 
 
-def map_parallel(func, values, value_path):
+async def map_parallel(func, values, value_path):
     """
     We call map for synchronous functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        # TODO catch any errors from get_nested_dict_value()
-        futures = [executor.submit(func, get_nested_dict_value(v, value_path)) for v in values]
-    results = [future.result() for future in futures]
-    return results
+    loop = asyncio.get_event_loop()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        async for v in ensure_async_generator(values):
+            futures.append(loop.run_in_executor(executor, func, get_nested_dict_value(v, value_path)))
+        for future in asyncio.as_completed(futures):
+            try:
+                yield await future, v
+            except Exception as e:
+                yield e, v
 
 
-def map_serial(func, values, value_path):
+async def map_serial(func, values, value_path):
     """
     We call map for synchronous functions operating in serial.
     See the `handle_map` function for more details regarding parameters.
     """
-    outputs = []
-    for v in values:
+    async for v in ensure_async_generator(values):
         try:
-            output = func(get_nested_dict_value(v, value_path))
-        except DAGExecutionException as e:
-            output = e.to_dict()
-        outputs.append(output)
-    return outputs
+            yield func(get_nested_dict_value(v, value_path)), v
+        except Exception as e:
+            yield e, v
 
 
-def annotate_map_metadata(function, results, values, value_path, func_kwargs):
+async def _annotate_map_results_with_metadata(function, results, value_path, func_kwargs):
     """
-    We annotate the list of raw results from mapping over a function with provenance
-    about the values passed in and the function used. Additionally, we want to
-    provide the proper metadata and output for any exceptions that took place
-    during execution of the map.
+    Each of the map functions yields the result (or errors) along with the value.
+    This function processes the output and the provenance to be further used in
+    the communicaton protocol.
+    If the result from the map is a dictionary, we use that as our base output.
+    If the result from the map is just a value, we wrap it in a dictionary.
+    If the result is an Exception, we wrap it in a DAGExecutionException and
+    use that as our result. This allows for some items to fail while others
+    were processed just fine.
+    Lastly, the provenance is added to our result.
     """
-    output = []
-    for res, item in zip(results, values):
+    async for map_result, item in results:
         provenance = {
             'function': function,
             'func_kwargs': func_kwargs,
             'value': item,
             'value_path': value_path
         }
-        if isinstance(res, dict):
-            out = res
-        elif isinstance(res, Exception):
+        if isinstance(map_result, dict):
+            out = map_result
+        elif isinstance(map_result, Exception):
             error_provenance = provenance.copy()
-            error_provenance['error'] = str(res)
+            error_provenance['error'] = str(map_result)
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
                 error_provenance,
-                res.__traceback__
+                map_result.__traceback__
             ).to_dict()
         else:
-            out = {'output': res}
+            out = {'output': map_result}
         out['provenance'] = provenance
-        output.append(out)
-    return output
+        yield out
 
 
-# TODO the map functions have not been fully tested with the
-# new async generator pipeline. Do this.
 MAPS = {
     'map_parallel': map_parallel,
     'map_serial': map_serial,
@@ -365,15 +359,12 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
     map_function = MAPS[f'map{"_coroutine" if is_coroutine else ""}_{"parallel" if parallel else "serial"}']
-    if not is_coroutine:
-        # wrap sync functions to return errors similar to asyncio.gather
-        func_with_kwargs = exception_wrapper(func_with_kwargs)
 
     results = map_function(func_with_kwargs, values, value_path)
     if inspect.isawaitable(results):
         results = await results
 
-    output = annotate_map_metadata(function_name, results, values, value_path, func_kwargs)
+    output = _annotate_map_results_with_metadata(function_name, results, value_path, func_kwargs)
     return output
 
 
