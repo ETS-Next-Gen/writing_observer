@@ -20,6 +20,7 @@ ec2client = boto3.client('ec2')
 r53 = boto3.client('route53')
 
 UBUNTU_20_04 = "ami-09e67e426f25ce0d7"
+UBUNTU_24_04 = "ami-0e86e20dae9224db8" 
 
 def create_instance(name):
     '''
@@ -69,7 +70,7 @@ def create_instance(name):
     # It doesn't correspond 1:1, but it's a good starting
     # point.
     response = ec2.create_instances(
-        ImageId=UBUNTU_20_04,
+        ImageId=UBUNTU_24_04,
         InstanceType='t2.small',
         BlockDeviceMappings=blockDeviceMappings,
         KeyName=orchlib.config.creds['aws_keyname'],

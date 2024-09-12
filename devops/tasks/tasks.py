@@ -52,6 +52,39 @@ def provision(c, machine_name):
     orchlib.ubuntu.update(ip)
     print("Baseline...")
     orchlib.ubuntu.baseline_packages(ip)
+    print("Git Repos...")
+    orchlib.ubuntu.install_git_repos(ip)
+    print("Venv...")
+    orchlib.ubuntu.python_venv(ip)
+
+@task
+def initialize(c, machine_name):
+    '''
+    Set up a baseline image with all the packages needed for
+    Learning Observer. Note that this will **not** configure
+    the machine.
+    '''
+    print("Provisioning...")
+    machine_info = orchlib.aws.create_instance(machine_name)
+    print("Updating...")
+    ip = machine_info.public_ip_address
+    print("DNS....")
+    orchlib.aws.register_dns(machine_name, orchlib.config.creds['domain'], ip)
+    print("IP", ip)
+    orchlib.ubuntu.update(ip)
+    
+@task
+def baseline(c, ip):
+    print("Baseline...")
+    orchlib.ubuntu.baseline_packages(ip)
+
+@task
+def gitrepos(c, ip):
+    print("Git Repos...")
+    orchlib.ubuntu.install_git_repos(ip)
+
+@task
+def venv(c, ip):
     print("Venv...")
     orchlib.ubuntu.python_venv(ip)
 

@@ -1,4 +1,18 @@
+
 cd
-sudo apt-get -y install git ansible awscli
-git clone https://github.com/ETS-Next-Gen/writing_observer.git
-cd writing_observer/devops/ansible ; sudo ansible-playbook local.yaml
+
+sudo apt update
+sudo apt-get install -y virtualenvwrapper
+sudo apt-get -y install nginx
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo nginx -s reload
+
+sudo apt-get -y install git ansible python3-pip python3-venv pipx
+
+# Ensure pipx binaries are available in the PATH
+python3 -m pipx ensurepath
+
+# Install awscli using pipx
+pipx install awscli
+
+
