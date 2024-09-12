@@ -89,6 +89,13 @@ inv certbot [machine]
 inv downloadconfig [machine]
 ```
 
+inv provision [machine] can be run step by step as well, using the commands
+
+sudo inv initialize [machine]
+inv baseline [ip address]
+inv gitrepos [ip address]
+inv venv [ip address]
+
 From there, edit configuration files in `config` and to update the
 machine to a new version, run
 
