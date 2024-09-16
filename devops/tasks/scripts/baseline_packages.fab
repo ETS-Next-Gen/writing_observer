@@ -2,17 +2,27 @@
 cd
 
 sudo apt update
-sudo apt-get install -y virtualenvwrapper
-sudo apt-get -y install nginx
-sudo apt-get install -y certbot python3-certbot-nginx
-sudo nginx -s reload
+##sudo apt-get install -y virtualenvwrapper
+##sudo apt-get -y install nginx
+##sudo apt-get install -y certbot python3-certbot-nginx
+##sudo nginx -s reload
+##sudo apt-get -y install git ansible python3-pip python3-venv pipx
 
-sudo apt-get -y install git ansible python3-pip python3-venv pipx
+#sudo apt-get -y install git ansible awscli
+sudo apt-get -y install git ansible
+
+# Check if the writing_observer directory exists before cloning
+
+[ ! -d "writing_observer" ] && git clone https://github.com/ETS-Next-Gen/writing_observer.git || echo "Directory writing_observer already exists. Skipping clone."
+
+## PIOTR: what is the next statement for? It fails with the error:
+## ERROR! [DEPRECATED]: ansible.builtin.include has been removed. Use include_tasks or import_tasks instead. This feature was removed from ansible-core in a release after 2023-05-16. Please update your playbooks.
+cd writing_observer/devops/ansible ; sudo ansible-playbook local.yaml
 
 # Ensure pipx binaries are available in the PATH
-python3 -m pipx ensurepath
+#python3 -m pipx ensurepath
 
 # Install awscli using pipx
-pipx install awscli
+#pipx install awscli
 
 

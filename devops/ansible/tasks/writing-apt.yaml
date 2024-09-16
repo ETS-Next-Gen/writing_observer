@@ -55,3 +55,6 @@
   - apache2-utils
   - fcgiwrap
   - python3-certbot-nginx
+  - npm
+  - virtualenvwrapper
+  - awscli

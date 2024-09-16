@@ -4,4 +4,4 @@
 # name. This is convenient for being able to start / stop the process.
 
 cd /home/ubuntu/toy-sba
-bash -c "npm run dev" >> /home/ubuntu/toy_sba.log 2>> /home/ubuntu/toy_sba.err
+bash -c "sudo -E npm run dev" >> /home/ubuntu/toy_sba.log 2>> /home/ubuntu/toy_sba.err

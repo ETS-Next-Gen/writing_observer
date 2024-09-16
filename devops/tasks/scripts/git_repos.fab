@@ -8,9 +8,6 @@ export OPENAI_URL="{openai_url}"
 export OPENAI_DEPLOYMENT_ID="{openai_deployment_id}"
 export OPENAI_API_KEY="{openai_api_key}"
 
-# Check if the writing_observer directory exists before cloning
-[ ! -d "writing_observer" ] && git clone https://github.com/ETS-Next-Gen/writing_observer.git || echo "Directory writing_observer already exists. Skipping clone."
-
 # Check if the toy-sba directory exists before cloning
 [ ! -d "toy-sba" ] && git clone https://{git_username}:{git_pac}@github.com/ETS-Next-Gen/toy-sba.git || echo "Directory toy-sba already exists. Skipping clone."
 
@@ -29,10 +26,9 @@ cd /home/ubuntu/writing_observer/modules/lo_event && npm install
 cd /home/ubuntu/toy-sba 
 rm -rf node_modules package-lock.json
 npm install --legacy-peer-deps
+npm install react-diff-components --legacy-peer-deps
 npm install @fortawesome/fontawesome-svg-core --legacy-peer-deps
 
-## PIOTR: what is the next statement for? It fails with the error:
-## ERROR! [DEPRECATED]: ansible.builtin.include has been removed. Use include_tasks or import_tasks instead. This feature was removed from ansible-core in a release after 2023-05-16. Please update your playbooks.
-cd writing_observer/devops/ansible ; sudo ansible-playbook local.yaml
+
 
 
