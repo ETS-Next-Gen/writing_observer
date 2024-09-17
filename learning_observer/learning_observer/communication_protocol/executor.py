@@ -191,7 +191,6 @@ async def handle_join(left, right, left_on, right_on):
             right_dict[nested_value] = d
         except KeyError as e:
             pass
-
     async for left_dict in ensure_async_generator(left):
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
@@ -203,6 +202,7 @@ async def handle_join(left, right, left_on, right_on):
                 merged_dict = left_dict
             yield merged_dict
         except KeyError as e:
+            debug_log(f'Encountered an error during join, returning left without right. Error: {e}.')
             yield left_dict
             # result.append(DAGExecutionException(
             #     f'KeyError: key `{left_on}` not found in `{left_dict.keys()}`',
@@ -228,14 +228,22 @@ async def map_coroutine_parallel(func, values, value_path):
     We call map for coroutine functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
+    async def _return_result_and_value(v):
+        '''Wrapper for the function to return both the result and
+        the value passed in. The value is yielded to annotate the
+        results metadata.
+        '''
+        result = await func(get_nested_dict_value(v, value_path))
+        return result, v
+
     tasks = []
     async for v in ensure_async_generator(values):
-        tasks.append(func(get_nested_dict_value(v, value_path)))
+        tasks.append(_return_result_and_value(v))
     for task in asyncio.as_completed(tasks):
         try:
-            yield await task, v
+            task_result, task_value = await task
+            yield task_result, task_value
         except Exception as e:
-            print(e, type(e))
             yield e, v
 
 
@@ -244,14 +252,23 @@ async def map_parallel(func, values, value_path):
     We call map for synchronous functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
+    def _return_result_and_value(v):
+        '''Wrapper for the function to return both the result and
+        the value passed in. The value is yielded to annotate the
+        results metadata.
+        '''
+        result = func(get_nested_dict_value(v, value_path))
+        return result, v
+
     loop = asyncio.get_event_loop()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         async for v in ensure_async_generator(values):
-            futures.append(loop.run_in_executor(executor, func, get_nested_dict_value(v, value_path)))
+            futures.append(loop.run_in_executor(executor, _return_result_and_value, v))
         for future in asyncio.as_completed(futures):
             try:
-                yield await future, v
+                future_result, future_value = await future
+                yield future_result, future_value
             except Exception as e:
                 yield e, v
 
@@ -284,8 +301,9 @@ async def _annotate_map_results_with_metadata(function, results, value_path, fun
         provenance = {
             'function': function,
             'func_kwargs': func_kwargs,
-            'value': item,
-            'value_path': value_path
+            'value': {k: v for k, v in item.items() if k != 'provenance'},
+            'value_path': value_path,
+            'provenance': item['provenance'] if 'provenance' in item else {}
         }
         if isinstance(map_result, dict):
             out = map_result

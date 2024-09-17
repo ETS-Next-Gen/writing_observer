@@ -148,15 +148,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     if (!wsStorageData) {
       return 'No students';
     }
-    const data = wsStorageData?.wo_classroom_text_highlighter_query?.nlp_combined ?? [];
-    // Check if the returned items have errors
-    if (typeof data === 'object' && !Array.isArray(data) && data !== null && 'error' in data) {
-      return window.dash_clientside.no_update;
-    }
     let output = [];
-    // TODO now for the fun stuff. We need to take the options, determine which ones we want
-    // and pass those to the apppropriate place.
-    // how should student look here?
 
     const selectedHighlights = options.filter(option => option.types?.highlight?.value);
     // TODO do something with the selected metrics/progress bars/etc.

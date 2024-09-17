@@ -31,8 +31,14 @@ gpt_bulk_essay = q.call('wo_bulk_essay_analysis.gpt_essay_prompt')
 
 EXECUTION_DAG = {
     'execution_dag': {
-        'gpt_map': q.map(gpt_bulk_essay, values=q.variable('writing_observer.docs'), value_path='text', func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})}),
-        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('writing_observer.roster'), RIGHT_ON='user_id')
+        'gpt_map': q.map(
+            gpt_bulk_essay,
+            values=q.variable('writing_observer.docs'),
+            value_path='text',
+            func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})},
+            parallel=True
+        ),
+        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('writing_observer.roster'), RIGHT_ON='user_id')
     },
     'exports': {
         'gpt_bulk': {

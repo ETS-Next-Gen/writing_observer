@@ -13,8 +13,10 @@ from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Inp
 DEBUG_FLAG = True
 
 prefix = 'bulk-essay-analysis'
-websocket = f'{prefix}-websocket'
-ws_store = f'{prefix}-ws-store'
+_websocket = f'{prefix}-websocket'
+_namespace = 'bulk_essay_feedback'
+# TODO we still need to handle how errors are shown on the dashboard
+# since updating to the async generator pipeline
 error_store = f'{prefix}-error-store'
 
 alert = f'{prefix}-alert'
@@ -25,7 +27,9 @@ query_input = f'{prefix}-query-input'
 
 panel_layout = f'{prefix}-panel-layout'
 
-advanced_collapse = f'{prefix}-advanced-collapse'
+_advanced_toggle = f'{prefix}-advanced-toggle'
+_advanced_collapse = f'{prefix}-advanced-collapse'
+
 system_input = f'{prefix}-system-prompt-input'
 # document source
 doc_src = f'{prefix}-doc-src'
@@ -63,25 +67,23 @@ def layout():
     Generic layout function to create dashboard
     '''
     # advanced menu for system prompt
-    advanced = dbc.Col([
-        lodrc.LOCollapse([
+    advanced = [
+        dbc.InputGroup([
+            dbc.InputGroupText('System prompt:'),
+            dbc.Textarea(id=system_input, value=system_prompt)
+        ]),
+        html.Div([
+            dbc.Label('Document Source'),
+            dbc.RadioItems(options=[
+                {'label': 'Latest Document', 'value': 'latest' },
+                {'label': 'Specific Time', 'value': 'ts'},
+            ], value='latest', id=doc_src),
             dbc.InputGroup([
-                dbc.InputGroupText('System prompt:'),
-                dbc.Textarea(id=system_input, value=system_prompt)
-            ]),
-            html.Div([
-                dbc.Label('Document Source'),
-                dbc.RadioItems(options=[
-                    {'label': 'Latest Document', 'value': 'latest' },
-                    {'label': 'Specific Time', 'value': 'ts'},
-                ], value='latest', id=doc_src),
-                dbc.InputGroup([
-                    dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
-                    dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
-                ])
+                dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
+                dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
             ])
-        ], label='Advanced', id=advanced_collapse, is_open=False),
-    ])
+        ])
+    ]
 
     # history panel
     history_favorite_panel = dbc.Card([
@@ -133,6 +135,12 @@ def layout():
             'The dashboard is subject to change based on ongoing feedback from teachers.'
         ),
         html.H2('AskGPT'),
+        dbc.InputGroup([
+            dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
+            dbc.Button(html.I(className='fas fa-cog'), id=_advanced_toggle),
+            lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
+        ]),
+        dbc.Collapse(advanced, id=_advanced_collapse),
         lodrc.LOPanelLayout(
             input_panel,
             panels=[
@@ -142,11 +150,8 @@ def layout():
             shown=['history-favorite'],
             id=panel_layout
         ),
-        dbc.Row([advanced]),
         alert_component,
         dbc.Row(id=grid, class_name='g-2 mt-2'),
-        lodrc.LOConnection(id=websocket),
-        dcc.Store(id=ws_store, data=[]),
         dcc.Store(id=error_store, data=False)
     ], fluid=True)
     return dcc.Loading(cont)
@@ -160,11 +165,19 @@ clientside_callback(
     Input(doc_src, 'value')
 )
 
+# Toggle if the advanced menu collapse is open or not
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='toggleAdvanced'),
+    Output(_advanced_collapse, 'is_open'),
+    Input(_advanced_toggle, 'n_clicks'),
+    State(_advanced_collapse, 'is_open')
+)
+
 # send request on websocket
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='send_to_loconnection'),
-    Output(websocket, 'send'),
-    Input(websocket, 'state'),  # used for initial setup
+    Output(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'send'),
+    Input(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
     Input('_pages_location', 'hash'),
     Input(submit, 'n_clicks'),
     Input(doc_src, 'value'),
@@ -215,15 +228,6 @@ clientside_callback(
     State(panel_layout, 'shown')
 )
 
-# store message from LOConnection in storage for later use
-clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='receive_ws_message'),
-    Output(ws_store, 'data'),
-    Output(error_store, 'data'),
-    Input(websocket, 'message'),
-    prevent_initial_call=True
-)
-
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_alert_with_error'),
     Output(alert_text, 'children'),
@@ -234,9 +238,9 @@ clientside_callback(
 
 # update student cards based on new data in storage
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_student_grid'),
+    ClientsideFunction(namespace=_namespace, function_name='update_student_grid'),
     Output(grid, 'children'),
-    Input(ws_store, 'data'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
     Input(history_store, 'data')
 )
 
