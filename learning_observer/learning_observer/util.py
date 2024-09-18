@@ -288,6 +288,17 @@ async def async_zip(iterator1, iterator2):
         pass
 
 
+async def async_generator_to_list(gen):
+    '''This is a helper function for converting an async generator
+    to a list. This is often used when testing pieces of an async
+    generator pipeline.
+    '''
+    result = []
+    async for item in gen:
+        result.append(item)
+    return result
+
+
 # And a test case
 if __name__ == '__main__':
     assert to_safe_filename('{') == '-123-'

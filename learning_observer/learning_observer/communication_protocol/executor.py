@@ -21,6 +21,9 @@ from learning_observer.log_event import debug_log
 from learning_observer.util import get_nested_dict_value, clean_json, ensure_async_generator, async_zip
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
+# This function isn't used directly by the code but instead used by doctests
+from learning_observer.util import async_generator_to_list
+
 dispatch = learning_observer.communication_protocol.query.dispatch
 
 
@@ -156,33 +159,30 @@ async def handle_join(left, right, left_on, right_on):
     ```
 
     Generic join where left.lid == right.rid
-    >>> handle_join(
+    >>> asyncio.run(async_generator_to_list(handle_join(
     ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
-    ... )
+    ... )))
     [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
 
     We return every item in `left` even if they do not have a matching item
     in `right`. This also demonstrates the behavior for `RIGHT_ON` not being found in
     one of the elements of `right`.
-    >>> handle_join(
+    >>> asyncio.run(async_generator_to_list(handle_join(
     ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
     ...     right=[{'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
-    ... )
+    ... )))
     [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True}]
 
-    When `LEFT_ON` is not found, we return an error. Instead of throwing exceptions,
-    we return errors like normal results and allow the DAG executor to handle package
-    them and bubble them up. This allows to only error on a singular item and allow
-    the others to continue running.
-    >>> handle_join(
+    When `LEFT_ON` is not found, we return an whatever is in `left`.
+    >>> asyncio.run(async_generator_to_list(handle_join(
     ...     left=[{'left': True}, {'lid': 2, 'left': True}],
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
-    ... )
-    [{'error': "KeyError: key `lid` not found in `dict_keys(['left'])`", 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+    ... )))
+    [{'left': True}, {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
     async for d in ensure_async_generator(right):
@@ -202,7 +202,8 @@ async def handle_join(left, right, left_on, right_on):
                 merged_dict = left_dict
             yield merged_dict
         except KeyError as e:
-            debug_log(f'Encountered an error during join, returning left without right. Error: {e}.')
+            # TODO should we throw an error if we can't find a match in
+            # right or should we just yield left as is?
             yield left_dict
             # result.append(DAGExecutionException(
             #     f'KeyError: key `{left_on}` not found in `{left_dict.keys()}`',
@@ -348,17 +349,20 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     ...     return x * 2
 
     Generic example of mapping a double function over [0, 1].
-    >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path'))
+    >>> asyncio.run(async_generator_to_list(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path')))
     [{'output': 0, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
 
     Exceptions in each function with in the map are returned with normal results
     and handled later by the DAG executor. In our text, we return both a normal result
     and the result of an exception being caught.
-    >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path'))
+    >>> asyncio.run(async_generator_to_list(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path')))
     [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': ... 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
 
+    TODO fix this test case/workflow to work with the async generator pipeline.
+    Throwing the error here will cause the pipeline to break since the exception
+    does not have an `__aiter__` method.
     Example of trying to call nonexistent function, `triple`
-    >>> asyncio.run(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path'))
+    >>> asyncio.run(async_generator_to_list(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path')))
     Traceback (most recent call last):
       ...
     learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, ...)
