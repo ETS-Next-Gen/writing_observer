@@ -15,9 +15,6 @@ DEBUG_FLAG = True
 prefix = 'bulk-essay-analysis'
 _websocket = f'{prefix}-websocket'
 _namespace = 'bulk_essay_feedback'
-# TODO we still need to handle how errors are shown on the dashboard
-# since updating to the async generator pipeline
-error_store = f'{prefix}-error-store'
 
 alert = f'{prefix}-alert'
 alert_text = f'{prefix}-alert-text'
@@ -152,7 +149,6 @@ def layout():
         ),
         alert_component,
         dbc.Row(id=grid, class_name='g-2 mt-2'),
-        dcc.Store(id=error_store, data=False)
     ], fluid=True)
     return dcc.Loading(cont)
 
@@ -229,16 +225,16 @@ clientside_callback(
 )
 
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_alert_with_error'),
+    ClientsideFunction(namespace=_namespace, function_name='updateAlertWithError'),
     Output(alert_text, 'children'),
     Output(alert, 'is_open'),
     Output(alert_error_dump, 'data'),
-    Input(error_store, 'data')
+    Input(lodrc.LOConnectionAIO.ids.error_store(_websocket), 'data')
 )
 
 # update student cards based on new data in storage
 clientside_callback(
-    ClientsideFunction(namespace=_namespace, function_name='update_student_grid'),
+    ClientsideFunction(namespace=_namespace, function_name='updateStudentGridOutput'),
     Output(grid, 'children'),
     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
     Input(history_store, 'data')

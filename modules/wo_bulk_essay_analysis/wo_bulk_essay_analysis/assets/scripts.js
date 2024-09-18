@@ -6,7 +6,7 @@ if (!window.dash_clientside) {
   window.dash_clientside = {};
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
 const createStudentCard = function (s, prompt) {
   // TODO this ought to come from the comm protocol
@@ -75,11 +75,11 @@ const createStudentCard = function (s, prompt) {
 };
 
 const charactersAfterChar = function (str, char) {
-  const commaIndex = str.indexOf(char)
+  const commaIndex = str.indexOf(char);
   if (commaIndex === -1) {
-    return ''
+    return '';
   }
-  return str.slice(commaIndex + 1).trim()
+  return str.slice(commaIndex + 1).trim();
 };
 
 const extractPDF = async function (base64String) {
@@ -194,7 +194,7 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * update student cards based on new data in storage
    */
-  update_student_grid: function (wsStorageData, history) {
+  updateStudentGridOutput: function (wsStorageData, history) {
     if (!wsStorageData) {
       return 'No students';
     }
@@ -322,8 +322,8 @@ window.dash_clientside.bulk_essay_feedback = {
    * - show alert
    * - JSON error data on the alert (only in debug)
    */
-  update_alert_with_error: function (error) {
-    if (!error) {
+  updateAlertWithError: function (error) {
+    if (Object.keys(error).length === 0) {
       return ['', false, ''];
     }
     const text = 'Oops! Something went wrong ' +

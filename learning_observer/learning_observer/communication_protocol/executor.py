@@ -234,18 +234,18 @@ async def map_coroutine_parallel(func, values, value_path):
         the value passed in. The value is yielded to annotate the
         results metadata.
         '''
-        result = await func(get_nested_dict_value(v, value_path))
+        try:
+            result = await func(get_nested_dict_value(v, value_path))
+        except Exception as e:
+            result = e
         return result, v
 
     tasks = []
     async for v in ensure_async_generator(values):
         tasks.append(_return_result_and_value(v))
     for task in asyncio.as_completed(tasks):
-        try:
-            task_result, task_value = await task
-            yield task_result, task_value
-        except Exception as e:
-            yield e, v
+        task_result, task_value = await task
+        yield task_result, task_value
 
 
 async def map_parallel(func, values, value_path):
@@ -258,7 +258,10 @@ async def map_parallel(func, values, value_path):
         the value passed in. The value is yielded to annotate the
         results metadata.
         '''
-        result = func(get_nested_dict_value(v, value_path))
+        try:
+            result = func(get_nested_dict_value(v, value_path))
+        except Exception as e:
+            result = e
         return result, v
 
     loop = asyncio.get_event_loop()
@@ -267,11 +270,8 @@ async def map_parallel(func, values, value_path):
         async for v in ensure_async_generator(values):
             futures.append(loop.run_in_executor(executor, _return_result_and_value, v))
         for future in asyncio.as_completed(futures):
-            try:
-                future_result, future_value = await future
-                yield future_result, future_value
-            except Exception as e:
-                yield e, v
+            future_result, future_value = await future
+            yield future_result, future_value
 
 
 async def map_serial(func, values, value_path):

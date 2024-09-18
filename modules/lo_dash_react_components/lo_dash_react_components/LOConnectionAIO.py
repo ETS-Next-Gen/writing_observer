@@ -36,6 +36,11 @@ class LOConnectionAIO(html.Div):
             'subcomponent': 'ws_store',
             'aio_id': aio_id
         }
+        error_store = lambda aio_id: {
+            'component': 'LOConnectionAIO',
+            'subcomponent': 'error_store',
+            'aio_id': aio_id
+        }
 
     ids = ids
 
@@ -51,12 +56,13 @@ class LOConnectionAIO(html.Div):
             dcc.Interval(id=self.ids.last_updated_interval(aio_id), interval=5000),
             LOConnection(id=self.ids.websocket(aio_id), data_scope=data_scope),
             dcc.Store(id=self.ids.last_updated_store(aio_id), data=-1),
-            dcc.Store(id=self.ids.ws_store(aio_id), data={})
+            dcc.Store(id=self.ids.ws_store(aio_id), data={}),
+            dcc.Store(id=self.ids.error_store(aio_id), data={})
         ]
         super().__init__(component)
 
+    # Update connection status information
     clientside_callback(
-        # ClientsideFunction(namespace='lo_dash_react_components', function_name='update_connection_status_icon'),
         '''function (status) {
             const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
             const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
@@ -71,8 +77,8 @@ class LOConnectionAIO(html.Div):
         Input(ids.websocket(MATCH), 'state'),
     )
 
+    # Update connection last modified text
     clientside_callback(
-        # ClientsideFunction(namespace='lo_dash_react_components', function_name='update_connection_last_modified_text'),
         '''function (lastTime, intervals) {
             if (lastTime === -1) {
                 return 'Never';
@@ -91,8 +97,8 @@ class LOConnectionAIO(html.Div):
         Input(ids.last_updated_interval(MATCH), 'n_intervals')
     )
 
+    # Update when the data was last modified
     clientside_callback(
-        # ClientsideFunction(namespace='lo_dash_react_components', function_name='update_connection_last_modified_store'),
         '''function (data) {
             if (data !== undefined) {
                 return new Date();
@@ -103,37 +109,46 @@ class LOConnectionAIO(html.Div):
         Input(ids.websocket(MATCH), 'message')
     )
 
+    # Handle incoming message from server
     clientside_callback(
-        '''function (incomingMessage, currentData) {
+        '''function (incomingMessage, currentData, errorStore) {
+            // console.log('LOConnection', incomingMessage, currentData, errorStore);
             if (incomingMessage !== undefined) {
-                messages = JSON.parse(incomingMessage.data);
+                const messages = JSON.parse(incomingMessage.data);
                 messages.forEach(message => {
-                const pathKeys = message.path.split('.');
-                let current = currentData;
+                    const pathKeys = message.path.split('.');
+                    let current = currentData;
 
-                // Traverse the path to get to the right location
-                for (let i = 0; i < pathKeys.length - 1; i++) {
-                    const key = pathKeys[i];
-                    if (!(key in current)) {
-                    current[key] = {}; // Create path if it doesn't exist
+                    // Traverse the path to get to the right location
+                    for (let i = 0; i < pathKeys.length - 1; i++) {
+                        const key = pathKeys[i];
+                        if (!(key in current)) {
+                        current[key] = {}; // Create path if it doesn't exist
+                        }
+                        current = current[key];
                     }
-                    current = current[key];
-                }
 
-                const finalKey = pathKeys[pathKeys.length - 1];
-                if (message.op === 'update') {
-                    // Shallow merge using spread syntax
-                    current[finalKey] = {
-                    ...current[finalKey], // Existing data
-                    ...message.value // New data (overwrites where necessary)
-                    };
-                }
+                    if ('error' in message.value) {
+                        errorStore[message.path] = message.value;
+                    } else {
+                        delete errorStore[message.path];
+                    }
+                    const finalKey = pathKeys[pathKeys.length - 1];
+                    if (message.op === 'update' && !('error' in message.value)) {
+                        // Shallow merge using spread syntax
+                        current[finalKey] = {
+                        ...current[finalKey], // Existing data
+                        ...message.value // New data (overwrites where necessary)
+                        };
+                    }
                 });
-                return currentData; // Return updated data
+                return [currentData, errorStore]; // Return updated data
             }
             return window.dash_clientside.no_update;
         }''',
         Output(ids.ws_store(MATCH), 'data'),
+        Output(ids.error_store(MATCH), 'data'),
         Input(ids.websocket(MATCH), 'message'),
-        State(ids.ws_store(MATCH), 'data')
+        State(ids.ws_store(MATCH), 'data'),
+        State(ids.error_store(MATCH), 'data')
     )
