@@ -348,36 +348,39 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     ...         raise ValueError("Input must be an int")
     ...     return x * 2
 
+    >>> async def process_map_test_result(func):
+    ...     '''The map functions return an async generator.
+    ...     This function awaits the creation of the generator and drives it.
+    ...     '''
+    ...     result = await func
+    ...     return await async_generator_to_list(result)
+
     Generic example of mapping a double function over [0, 1].
-    >>> asyncio.run(async_generator_to_list(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path')))
-    [{'output': 0, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
+    >>> asyncio.run(process_map_test_result(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path')))
+    [{'output': 0, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path', 'provenance': {}}}, {'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path', 'provenance': {}}}]
 
     Exceptions in each function with in the map are returned with normal results
     and handled later by the DAG executor. In our text, we return both a normal result
     and the result of an exception being caught.
-    >>> asyncio.run(async_generator_to_list(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path')))
-    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': ... 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
+    >>> asyncio.run(process_map_test_result(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path')))
+    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path', 'provenance': {}}}, {'error': 'Function double did not execute properly during map.', 'function': '_annotate_map_results_with_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'provenance': {}, 'error': 'Input must be an int'}, 'timestamp': ..., 'traceback': ..., 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'provenance': {}}}]
 
-    TODO fix this test case/workflow to work with the async generator pipeline.
-    Throwing the error here will cause the pipeline to break since the exception
-    does not have an `__aiter__` method.
     Example of trying to call nonexistent function, `triple`
-    >>> asyncio.run(async_generator_to_list(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path')))
-    Traceback (most recent call last):
-      ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, ...)
+    >>> asyncio.run(process_map_test_result(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path')))
+    [{'error': 'Could not find function `triple` in available functions.', 'function': 'handle_map', 'error_provenance': {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, 'timestamp': ..., 'traceback': ...}]
     """
     if func_kwargs is None:
         func_kwargs = {}
     try:
         func = functions[function_name]
     except KeyError as e:
-        raise DAGExecutionException(
+        exception = DAGExecutionException(
             f'Could not find function `{function_name}` in available functions.',
             inspect.currentframe().f_code.co_name,
             {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)},
             e.__traceback__
-        )
+        ).to_dict()
+        return ensure_async_generator(exception)
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
     map_function = MAPS[f'map{"_coroutine" if is_coroutine else ""}_{"parallel" if parallel else "serial"}']
