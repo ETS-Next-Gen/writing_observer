@@ -2,4 +2,4 @@ chevron
 boto3
 pyyaml
 fabric
-
+filetype

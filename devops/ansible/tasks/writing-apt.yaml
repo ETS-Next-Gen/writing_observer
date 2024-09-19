@@ -16,6 +16,8 @@
   - wipe
   - build-essential
   - net-tools
+  - npm
+  - awscli
 
 # We don't need all of this per se, but it's convenient. If nothing
 # else, it gives prereqs for `pip`

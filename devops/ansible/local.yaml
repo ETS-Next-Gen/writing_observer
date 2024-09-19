@@ -2,5 +2,5 @@
   hosts: localhost
   connection: local
   tasks:
-  - include: tasks/writing-apt.yaml
+  - include_tasks: tasks/writing-apt.yaml
 
