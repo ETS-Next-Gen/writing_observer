@@ -152,6 +152,9 @@ window.dash_clientside.wo_classroom_text_highlighter = {
 
     const selectedHighlights = options.filter(option => option.types?.highlight?.value);
     // TODO do something with the selected metrics/progress bars/etc.
+    // currently due to a HACK with how we pass data to the `childComponent`
+    // we are only able to have a single child and we expect it to be the
+    // `WOAnnotatedText` component.
     const selectedMetrics = options.filter(option => option.types?.metric?.value);
 
     const optionHash = await hashObject(options);
@@ -174,6 +177,18 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       output = output.concat(studentTile);
     }
     return output;
+  },
+
+  updateAlertWithError: function (error) {
+    if (Object.keys(error).length === 0) {
+      return ['', false, ''];
+    }
+    const text = 'Oops! Something went wrong ' +
+                 "on our end. We've noted the " +
+                 'issue. Please try again later, or consider ' +
+                 'exploring a different dashboard for now. ' +
+                 'Thanks for your patience!';
+    return [text, true, error];
   },
 
   addPreset: function (clicks, name, options, store) {

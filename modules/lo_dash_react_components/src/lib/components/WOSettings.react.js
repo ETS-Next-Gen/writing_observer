@@ -77,7 +77,7 @@ export default class WOSettings extends Component {
       <tr key={row.id}>
         <td>{'\u00A0'.repeat(row.depth * 2) + row.label}</td>
         <td>{highlightCell}</td>
-        <td>{metricCell}</td>
+        {/* <td>{metricCell}</td> */}
       </tr>
     );
   }
@@ -85,6 +85,9 @@ export default class WOSettings extends Component {
   render () {
     const { id, className, options } = this.props;
     const rows = sortOptionsIntoTree(options);
+    // TODO due to a HACK with passing data to the child component of
+    // the student tiles, we currently only support a single child and
+    // expect it to be the highlighted text component.
     return (
       <table
         key={`wo-settings-${id}`}
@@ -95,7 +98,7 @@ export default class WOSettings extends Component {
           <tr>
             <th>Name</th>
             <th>Highlight</th>
-            <th>Metric</th>
+            {/* <th>Metric</th> */}
           </tr>
         </thead>
         <tbody>

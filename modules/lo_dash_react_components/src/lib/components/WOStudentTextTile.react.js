@@ -30,6 +30,11 @@ export default class WOStudentTextTile extends Component {
     const documentIsSelected = selectedDocument && studentInfo.documents[selectedDocument];
     let bodyClassName = documentIsSelected && currentOptionHash !== studentInfo.documents[selectedDocument].optionHash ? 'loading' : '';
     bodyClassName = `${bodyClassName} overflow-auto`;
+
+    // TODO the chunk of commented code allows for linking directly to the selected document
+    // and allows the user to select which document they wish to see at a given moment.
+    // Neither of these features are currently available due to limitations with the communication
+    // protocol. For now they are being commented out so users are not inclined to use them.
     return (
       <Card key={`WOStudentTextTile-${id}`} className={`WOStudentTextTile ${className}`} style={style} id={id}>
         <Card.Header className={showHeader ? '' : 'd-none'}>
@@ -38,7 +43,7 @@ export default class WOStudentTextTile extends Component {
             profile={studentInfo.profile || {}}
             includeName={true}
           />
-          <a
+          {/* <a
             href={createGoogleDocumentURL(selectedDocument)}
             target='_blank'
             className={selectedDocument ? '' : 'd-none'}
@@ -52,7 +57,7 @@ export default class WOStudentTextTile extends Component {
             {studentInfo.availableDocuments.map(doc => (
               <option key={doc.id} value={doc.id}>{doc.title}</option>
             ))}
-          </Form.Select>
+          </Form.Select> */}
         </Card.Header>
         <Card.Body className={bodyClassName}>
         {

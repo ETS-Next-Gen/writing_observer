@@ -16,13 +16,16 @@ _remove_item = f'{_prefix}-remove-item'
 
 
 def create_layout():
+    # TODO we hide `class_name='d-none'` the ability to add presets for now since we
+    # do not have a long term storage solution for them. We could store them locally
+    # in the browser; however, this would just be a short-term solution.
     add_preset = dbc.InputGroup([
         dbc.Input(id=_add_input, placeholder='Preset name', type='text', value=''),
         dbc.Button([
             html.I(className='fas fa-plus me-1'),
             'Preset'
         ], id=_add_button)
-    ])
+    ], class_name='d-none')
     return html.Div([
         add_preset,
         html.Div(id=_tray),
@@ -55,6 +58,8 @@ clientside_callback(
 
 
 def create_tray_item(preset):
+    if preset == 'Clear':
+        return dbc.Button(preset, id={'type': _set_item, 'index': preset}, color='danger')
     contents = dbc.ButtonGroup([
         dbc.Button(preset, id={'type': _set_item, 'index': preset}),
         dbc.Button(dcc.ConfirmDialogProvider(

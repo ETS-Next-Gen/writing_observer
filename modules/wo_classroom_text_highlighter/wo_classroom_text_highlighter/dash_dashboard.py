@@ -9,18 +9,23 @@ execute Python code server side, but Clientside callbacks
 execute Javascript code client side. Clientside functions are
 preferred as it cuts down server and network resources.
 '''
-from dash import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, ALL
+from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
+import dash_renderjson
 import lo_dash_react_components as lodrc
 
+import learning_observer.settings
 import wo_classroom_text_highlighter.options
 import wo_classroom_text_highlighter.preset_component
+
+DEBUG_FLAG = learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV
 
 _prefix = 'wo-classroom-text-highlighter'
 _namespace = 'wo_classroom_text_highlighter'
 _websocket = f'{_prefix}-websocket'
 _output = f'{_prefix}-output'
 
+# Option components
 _options_toggle = f'{_prefix}-options-toggle'
 _options_collapse = f'{_prefix}-options-collapse'
 # TODO abstract these into a more generic options component
@@ -42,12 +47,24 @@ options_component = [
     lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS)
 ]
 
+# Alert Component
+_alert = f'{_prefix}-alert'
+_alert_text = f'{_prefix}-alert-text'
+_alert_error_dump = f'{_prefix}-alert-error-dump'
+
+alert_component = dbc.Alert([
+    html.Div(id=_alert_text),
+    html.Div(dash_renderjson.DashRenderjson(id=_alert_error_dump), className='' if DEBUG_FLAG else 'd-none')
+], id=_alert, color='danger', is_open=False)
+
+
 def layout():
     '''
     Function to define the page's layout.
     '''
     page_layout = html.Div([
         html.H1('Writing Observer Classroom Text Highlighter'),
+        alert_component,
         dbc.InputGroup([
             dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
             dbc.Button(html.I(className='fas fa-cog'), id=_options_toggle),
@@ -116,6 +133,15 @@ clientside_callback(
     Output({'type': 'WOStudentTextTile', 'index': ALL}, 'currentOptionHash'),
     Input(_options_text_information, 'options'),
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
+)
+
+# Update alert with any errors that come through
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='updateAlertWithError'),
+    Output(_alert_text, 'children'),
+    Output(_alert, 'is_open'),
+    Output(_alert_error_dump, 'data'),
+    Input(lodrc.LOConnectionAIO.ids.error_store(_websocket), 'data')
 )
 
 # Save preset
