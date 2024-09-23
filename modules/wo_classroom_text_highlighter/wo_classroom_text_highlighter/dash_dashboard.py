@@ -1,13 +1,6 @@
 '''
-This file will detail how to build a dashboard using
-the Dash framework.
-
-If you are unfamiliar with Dash, it compiles python code
-to react and serves it via a Flask server. You can register
-callbacks to run when specific states change. Normal callbacks
-execute Python code server side, but Clientside callbacks
-execute Javascript code client side. Clientside functions are
-preferred as it cuts down server and network resources.
+This file creates the layout and defines any callbacks
+for the classroom highlight dashboard.
 '''
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 import dash_bootstrap_components as dbc
@@ -75,6 +68,7 @@ def layout():
     ])
     return page_layout
 
+
 # Send the initial state based on the url hash to LO.
 # If this is not included, nothing will be returned from
 # the communication protocol.
@@ -88,8 +82,6 @@ clientside_callback(
 
 # Build the UI based on what we've received from the
 # communicaton protocol
-# This clientside callback and the serverside callback below are
-# the same
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='populateOutput'),
     Output(_output, 'children'),
@@ -117,7 +109,7 @@ clientside_callback(
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
 )
 
-# Handle showing/hiding the student tile header
+# Handle showing or hiding the student tile header
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='showHideHeader'),
     Output({'type': 'WOStudentTextTile', 'index': ALL}, 'showHeader'),
@@ -126,8 +118,8 @@ clientside_callback(
 )
 
 # When options change, update the current option hash for all students.
-# when the option hash is different from the students internal option hash
-# a loading class is applied
+# When the option hash is different from the students internal option hash
+# a loading class is applied to each student tile.
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='updateCurrentOptionHash'),
     Output({'type': 'WOStudentTextTile', 'index': ALL}, 'currentOptionHash'),
@@ -135,7 +127,7 @@ clientside_callback(
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
 )
 
-# Update alert with any errors that come through
+# Update the alert component with any errors that come through
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='updateAlertWithError'),
     Output(_alert_text, 'children'),
@@ -144,7 +136,7 @@ clientside_callback(
     Input(lodrc.LOConnectionAIO.ids.error_store(_websocket), 'data')
 )
 
-# Save preset
+# Save options as preset
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='addPreset'),
     Output(wo_classroom_text_highlighter.preset_component._store, 'data'),
@@ -154,7 +146,7 @@ clientside_callback(
     State(wo_classroom_text_highlighter.preset_component._store, 'data')
 )
 
-# apply preset
+# Apply clicked preset
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='applyPreset'),
     Output(_options_text_information, 'options'),

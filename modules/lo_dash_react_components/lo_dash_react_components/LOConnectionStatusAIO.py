@@ -1,5 +1,13 @@
-from dash import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, MATCH, ALL, Patch, ctx
-import dash_bootstrap_components as dbc
+'''
+This file creates an All-In-One component for the Learning
+Observer server connection. This handles updating data from the
+server and showing the time since it was last updated.
+
+TODO this file is still being used by the cookiecutter module.
+This was replaced by LOConnectionAIO to utilize the new method
+of updating data.
+'''
+from dash import html, dcc, clientside_callback, Output, Input, MATCH
 import uuid
 
 from .LOConnection import LOConnection

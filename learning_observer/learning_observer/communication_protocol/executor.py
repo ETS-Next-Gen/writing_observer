@@ -21,9 +21,6 @@ from learning_observer.log_event import debug_log
 from learning_observer.util import get_nested_dict_value, clean_json, ensure_async_generator, async_zip
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
-# This function isn't used directly by the code but instead used by doctests
-from learning_observer.util import async_generator_to_list
-
 dispatch = learning_observer.communication_protocol.query.dispatch
 
 
@@ -630,7 +627,6 @@ def strip_provenance(variable):
     >>> strip_provenance({'nested_dict': {'provenance': 123, 'other': 123}})
     {'nested_dict': {'provenance': 123, 'other': 123}}
     '''
-    # TODO we might need to add a generator method to this
     if isinstance(variable, dict):
         return {key: value for key, value in variable.items() if key != 'provenance'}
     elif isinstance(variable, list):
@@ -735,6 +731,11 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
         return {e: _clean_json_via_generator(await visit(e)) for e in target_nodes}
 
+    # HACK currently `dashboard.py` relies on the provenance to tell users which
+    # items need updating, such as John Doe's history essay. This ought to be
+    # handled by the communication protocol during execution. Once that occurs,
+    # we can go back to stripping the provenance out.
+    return {e: _clean_json_via_generator(await visit(e)) for e in target_nodes}
     # TODO test this code to make sure it works with async generators
     # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
     return {e: _clean_json_via_generator(strip_provenance(await visit(e))) for e in target_nodes}
@@ -742,4 +743,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
 
 if __name__ == "__main__":
     import doctest
+    # This function is used by doctests
+    from learning_observer.util import async_generator_to_list
+
     doctest.testmod(optionflags=doctest.ELLIPSIS)

@@ -1,4 +1,5 @@
-'''This creates the input and clickable preset badges.
+'''This creates the input and clickable badges for different
+presets the user wants displayed.
 TODO create a react component that does this
 '''
 from dash import html, dcc, clientside_callback, callback, Output, Input, State, ALL, exceptions, Patch, ctx
@@ -16,20 +17,18 @@ _remove_item = f'{_prefix}-remove-item'
 
 
 def create_layout():
-    # TODO we hide `class_name='d-none'` the ability to add presets for now since we
-    # do not have a long term storage solution for them. We could store them locally
-    # in the browser; however, this would just be a short-term solution.
     add_preset = dbc.InputGroup([
         dbc.Input(id=_add_input, placeholder='Preset name', type='text', value=''),
         dbc.Button([
             html.I(className='fas fa-plus me-1'),
             'Preset'
         ], id=_add_button)
-    ], class_name='d-none')
+    ], class_name='')
     return html.Div([
         add_preset,
         html.Div(id=_tray),
-        dcc.Store(id=_store, data=wo_classroom_text_highlighter.options.PRESETS)
+        # TODO we ought to store the presets on the server instead of browser storage
+        dcc.Store(id=_store, data=wo_classroom_text_highlighter.options.PRESETS, storage_type='local')
     ])
 
 

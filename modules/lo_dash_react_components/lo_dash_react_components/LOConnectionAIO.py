@@ -1,5 +1,10 @@
-from dash import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input, State, MATCH, ALL, Patch, ctx
-import dash_bootstrap_components as dbc
+'''
+This file creates an All-In-One component for the Learning
+Observer server connection. This handles updating data from the
+server (based on individual tree updates), storing any errors
+that occured, and showing the time since it was last updated.
+'''
+from dash import html, dcc, clientside_callback, Output, Input, State, MATCH
 import uuid
 
 from .LOConnection import LOConnection

@@ -151,6 +151,8 @@ TEST_DAG = {
             'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         },
         # TODO this test case fails and was failing before switching to an async generator
+        # Should we be erroring if the `left_on` path doesn't exist or just yielding `left`
+        # as is? Currently, `executor.py` yields `left`.
         'join_key_error': {
             'returns': 'join_key_error',
             'parameters': [],

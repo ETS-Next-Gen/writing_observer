@@ -1,4 +1,10 @@
-from dash import html, clientside_callback, ClientsideFunction, Output, Input, State, MATCH
+'''
+This file creates an All-In-One component for a sidebar
+component that allows users to navigate throughout the platform.
+The sidebar shows a Home and Logout button as well as a list
+of available dashboards.
+'''
+from dash import html, clientside_callback, Output, Input, State, MATCH
 import dash_bootstrap_components as dbc
 import uuid
 
@@ -37,8 +43,8 @@ class ProfileSidebarAIO(html.Div):
         ]
         super().__init__(component)
 
+    # Toggle sidebar
     clientside_callback(
-        # ClientsideFunction(namespace='lo_dash_react_components', function_name='toggle_sidebar'),
         '''function (clicks, isOpen) {
             if (clicks > 0) { return !isOpen; }
             return isOpen;
@@ -49,8 +55,8 @@ class ProfileSidebarAIO(html.Div):
         State(ids.offcanvas(MATCH), 'is_open')
     )
 
+    # Update available dashboard items
     clientside_callback(
-        # ClientsideFunction(namespace='lo_dash_react_components', function_name='populate_module_list'),
         # TODO include the course_id in these - will need to parse it out of the current string
         '''async function (empty) {
             const response = await fetch(`${window.location.protocol}//${window.location.hostname}:${window.location.port}/webapi/course_dashboards`);

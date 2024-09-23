@@ -7,6 +7,7 @@ TODO:
 * This isn't really a debugger. Perhaps this should be called
   interactive mode? Or developer mode? Or similar?
 * Ideally, this should be moved to the Jupyter notebook
+* Make work with the new async generator pipeline
 '''
 
 from dash import html, callback, Output, Input, State

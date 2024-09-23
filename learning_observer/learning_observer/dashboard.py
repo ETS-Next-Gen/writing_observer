@@ -1,5 +1,10 @@
 '''
 This generates dashboards from student data.
+
+TODO much of this file is no longer being used and the
+unused code ought to be removed. We have iterated on how
+we do this a few times and have landed in a much better
+place than we started.
 '''
 
 import asyncio
@@ -472,56 +477,7 @@ async def dispatch_defined_execution_dag(dag):
         return query
 
 
-# TODO both of these require us to pass in a list of functions
-# this was the old way of doing this, we ought to change this
 DAG_DISPATCH = {dict: dispatch_defined_execution_dag, str: dispatch_named_execution_dag}
-
-
-async def execute_queries(client_data, request):
-    '''TODO remove this method as it is no longer used.
-    '''
-    execution_dags = learning_observer.module_loader.execution_dags()
-    funcs = []
-    # client_data = {
-    #     'output_name': {
-    #         'execution_dag': 'writing_obssdfsderver',
-    #         'target_exports': ['docs_with_roster'],
-    #         'kwargs': {'course_id': 12345}
-    #     },
-    # }
-    for query_name, client_query in client_data.items():
-        dag = client_query.get('execution_dag', query_name)
-
-        if type(dag) not in DAG_DISPATCH:
-            debug_log(await dag_unsupported_type(type(dag)))
-            funcs.append(dag_unsupported_type(type(dag)))
-            continue
-
-        query = await DAG_DISPATCH[type(dag)](dag, funcs)
-        if query is None:
-            continue
-
-        # NOTE dependent dags only work for on a single level dependency
-        # TODO allow multiple layers of dependency among dags
-        dependent_dags = extract_namespaced_dags(query['execution_dag'])
-        missing_dags = dependent_dags - execution_dags.keys()
-        if missing_dags:
-            debug_log(await dag_not_found(missing_dags))
-            funcs.append(dag_not_found(missing_dags))
-            continue
-        for dep in dependent_dags:
-            dep_dag = copy.deepcopy(execution_dags[dep]['execution_dag'])
-            prefixed_dag = fully_qualify_names_with_default_namespace(dep_dag, dep)
-            query['execution_dag'] = {**query['execution_dag'], **{f'{dep}.{k}': v for k, v in prefixed_dag.items()}}
-
-        target_exports = client_query.get('target_exports', [])
-        query_func = learning_observer.communication_protocol.integration.prepare_dag_execution(query, target_exports)
-        client_parameters = client_query.get('kwargs', {}).copy()
-        runtime = learning_observer.runtime.Runtime(request)
-        client_parameters['runtime'] = runtime
-        query_func = query_func(**client_parameters)
-        funcs.append(query_func)
-    return await asyncio.gather(*funcs, return_exceptions=False)
 
 
 async def _handle_dependent_dags(query):

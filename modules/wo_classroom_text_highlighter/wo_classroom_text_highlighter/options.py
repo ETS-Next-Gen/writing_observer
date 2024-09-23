@@ -15,7 +15,7 @@ OPTIONS.append({'id': 'text-information', 'label': 'Text Information', 'parent':
 # Though if we keep the entire list in the preset, we can choose colors
 # for non-true values before they are selected.
 
-# TODO these are used for creating the presets Paul provided
+# Set of colors to use for highlighting with presets
 HIGHLIGHTING_COLORS = [
     "#FFD700",  # Golden Yellow
     "#87CEEB",  # Sky Blue
@@ -33,6 +33,8 @@ HIGHLIGHTING_COLORS = [
     "#FFE4E1",  # Misty Rose
     "#F5DEB3"   # Wheat
 ]
+
+# TODO these are used for creating the common presets
 PRESETS_TO_CREATE = {
     'Narrative': ['direct_speech_verbs', 'indirect_speech', 'character_trait_words', 'in_past_tense', 'social_awareness'],
     'Argumentative': ['statements_of_opinion', 'statements_of_fact', 'information_sources', 'attributions', 'citations'],
@@ -47,6 +49,11 @@ PRESETS = {'Clear': OPTIONS}
 
 
 def add_preset_to_presets(key, value):
+    '''This function creates a copy of the options and
+    sets each of the items in `value` to True along with
+    a highlighted color. This is for creating presets
+    from the `PRESETS_TO_CREATE` object.
+    '''
     color_index = 0
     preset = copy.deepcopy(OPTIONS)
     for option in preset:
@@ -58,5 +65,6 @@ def add_preset_to_presets(key, value):
     PRESETS[key] = preset
 
 
+# Add each preset to PRESETS
 for k, v in PRESETS_TO_CREATE.items():
     add_preset_to_presets(k, v)
