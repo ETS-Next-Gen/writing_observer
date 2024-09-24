@@ -1,0 +1,17 @@
+- name: Set Environment Variables
+  hosts: all
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Read environment configuration
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Populate /etc/environment
+      lineinfile:
+        path: "/etc/environment"
+        state: present
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+      with_items: "{{ os_environment }}"

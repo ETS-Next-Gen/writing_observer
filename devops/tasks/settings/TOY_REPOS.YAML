@@ -1,0 +1,9 @@
+repos:
+  - name: Writing Observer
+    repo: https://github.com/ETS-Next-Gen/writing_observer.git
+    dest: /home/ubuntu/writing_observer
+    branch: pmitros/lo_event
+  - name: Toy-SBA
+    repo: https://github.com/ETS-Next-Gen/toy-sba.git
+    dest: /home/ubuntu/toy-sba
+    branch: writing_survey

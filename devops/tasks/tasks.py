@@ -72,6 +72,13 @@ def initialize(c, machine_name):
     orchlib.aws.register_dns(machine_name, orchlib.config.creds['domain'], ip)
     print("IP", ip)
     orchlib.ubuntu.update(ip)
+
+    # Write to hosts.ini
+    hosts_ini_path = '../settings/hosts.ini'
+    line_to_write = f"{machine_name} ansible_host={ip} ansible_user=ubuntu ansible_ssh_private_key_file={orchlib.config.creds['key_filename']}\n"
+    with open(hosts_ini_path, 'a') as hosts_file:
+        hosts_file.write(line_to_write)
+    print(f"Added {machine_name} to {hosts_ini_path}")
     
 @task
 def baseline(c, ip):

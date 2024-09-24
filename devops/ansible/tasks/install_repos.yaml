@@ -1,0 +1,40 @@
+- name: Install Git Repositories
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Install Git
+      apt:
+        name: git
+        state: present
+
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Read repository configuration
+      include_vars:
+        file: ../../tasks/settings/WO_REPOS.YAML
+
+#    - name: Debug git_username variable
+#      debug:
+#        var: git_username
+
+#    - name: Debug git_pac variable
+#      debug:
+#        var: git_pac
+
+#    - name: Debug repos variable
+#      debug:
+#        var: repos
+
+    - name: Clone Git repositories
+      git:
+        repo: "https://{{ git_username }}:{{ git_pac }}@{{ item.repo | regex_replace('https://', '') }}"
+        dest: "{{ item.dest }}"
+        clone: yes
+        update: yes
+        version: "{{ item.branch | default('master') }}"
+        force: yes
+      loop: "{{ repos }}"

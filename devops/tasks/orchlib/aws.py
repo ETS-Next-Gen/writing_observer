@@ -28,11 +28,11 @@ def create_instance(name):
     '''
     blockDeviceMappings = [
         {
-            "DeviceName": "/dev/xvda",
+            "DeviceName": "/dev/sda1", ###xvda",
             "Ebs": {
                 "DeleteOnTermination": True,
-                "VolumeSize": 32,
-                "VolumeType": "gp2"
+                "VolumeSize": 16,
+                "VolumeType": "gp3"
             }
         }
     ]
@@ -50,6 +50,10 @@ def create_instance(name):
         {
             'Key': 'deploy-group',
             'Value': orchlib.config.creds['deploy-group']
+        },
+        {
+            'Key': 'Patch Group',
+            'Value': 'pet'
         }
     ]
 
@@ -71,7 +75,7 @@ def create_instance(name):
     # point.
     response = ec2.create_instances(
         ImageId=UBUNTU_24_04,
-        InstanceType='t2.small',
+        InstanceType='t3.small',
         BlockDeviceMappings=blockDeviceMappings,
         KeyName=orchlib.config.creds['aws_keyname'],
         MinCount=1,

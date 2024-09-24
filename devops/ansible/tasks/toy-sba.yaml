@@ -1,0 +1,108 @@
+- name: Additional provisions for toy-sba server
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  vars_files:
+    - ../../tasks/settings/TOY_SBA_FILES.yaml
+    - ../../tasks/settings/CREDS.yaml
+    - ../../tasks/settings/TOY_REPOS.YAML
+
+  tasks:
+    - name: Populate /etc/environment
+      lineinfile:
+        path: "/etc/environment"
+        state: present
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+      with_items: "{{ os_environment }}"
+
+    - name: Clone Git repositories
+      git:
+        repo: "https://{{ git_username }}:{{ git_pac }}@{{ item.repo | regex_replace('https://', '') }}"
+        dest: "{{ item.dest }}"
+        clone: yes
+        update: yes
+        version: "{{ item.branch | default('master') }}"
+        force: yes
+      loop: "{{ repos }}"
+
+    - name: Install npm
+      apt:
+        name: npm
+        state: present
+
+    - name: Install pm2 using npm
+      npm:
+        name: pm2
+        global: yes
+
+    - name: Run npm install for lo_event
+      shell: npm install
+      args:
+        chdir: /home/ubuntu/writing_observer/modules/lo_event
+
+    - name: Run npm install for toy-sba
+      shell: npm install --legacy-peer-deps
+      args:
+        chdir: /home/ubuntu/toy-sba
+
+    - name: Ensure destination directories exist
+      file:
+        path: "{{ item.dest | dirname | replace('{hostname}', inventory_hostname) }}"
+        state: directory
+      loop: "{{ files }}"
+
+    - name: Copy files to server
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest | replace('{hostname}', inventory_hostname) }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ files }}"
+      vars:
+        hostname: "{{ inventory_hostname }}"
+        server_domain: "{{ domain }}"
+        nginx_root_options: ""
+    
+    - name: Create a symlink for the nginx file
+      file:
+        src: /etc/nginx/sites-available/{ inventory_hostname }}
+        dest: /etc/nginx/sites-enabled/{ inventory_hostname }}
+        state: link
+        
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+      become: yes
+        
+    - name: Check if toy-sba is running with pm2
+      shell: pm2 describe toy-sba
+      register: pm2_toy_sba_running
+      ignore_errors: true
+      failed_when: false
+
+    - name: Debug pm2_toy_sba_running
+      debug:
+        msg: "pm2_toy_sba_running.rc is {{ pm2_toy_sba_running.rc }}"
+
+    - name: Start toy-sba with pm2 if not running
+      shell: pm2 start npm --name "toy-sba" -- run dev
+      when: pm2_toy_sba_running.rc != 0
+      args:
+        chdir: /home/ubuntu/toy-sba
+      become: yes
+
+    - name: Wait for 5 seconds before restarting toy-sba
+      wait_for:
+        timeout: 5
+      when: pm2_toy_sba_running.rc == 0
+
+    - name: Restart toy-sba with pm2 if running
+      shell: pm2 restart toy-sba
+      when: pm2_toy_sba_running.rc == 0
+      args:
+        chdir: /home/ubuntu/toy-sba
+      become: yes

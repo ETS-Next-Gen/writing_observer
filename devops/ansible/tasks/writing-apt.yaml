@@ -19,8 +19,10 @@
 
 # We don't need all of this per se, but it's convenient. If nothing
 # else, it gives prereqs for `pip`
-- name: Python
-  apt: name={{ item }} 
+- name: Install Python Packages
+  apt: 
+    name: "{{ item }} "
+    state: present
   with_items:
   - ipython3
   - libxml2-dev
@@ -42,19 +44,31 @@
   - python3-aiohttp
   - python3-aiohttp-cors
   - python3-tornado
+  - python3-venv
   - python3-yaml
   - python3-asyncpg
   - python3-bcrypt
 
-- name: Server
-  apt: name={{ item }} 
-  with_items:
-  - redis
-  - nginx
-  - certbot
-  - apache2-utils
-  - fcgiwrap
-  - python3-certbot-nginx
-  - npm
-  - virtualenvwrapper
-  - awscli
+- name: Install server packages
+  apt: 
+    name: "{{ item }}"
+    state: present
+  loop:
+    - redis
+    - nginx
+    - certbot
+    - apache2-utils
+    - fcgiwrap
+    - python3-certbot-nginx
+    - virtualenvwrapper
+
+- name: Install pip
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Create a virtual environment for AWS CLI
+  command: python3 -m venv /opt/learning-observer
+
+- name: Install AWS CLI using pip in virtual environment
+  command: /opt/learning-observer/bin/pip install awscli

@@ -1,0 +1,34 @@
+- name: Copy files to server
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  vars_files:
+    - ../../tasks/settings/CREDS.yaml
+    - ../../tasks/settings/TOY_SBA_FILES.yaml
+
+  tasks:
+    - name: Ensure destination directories exist
+      file:
+        path: "{{ item.dest | dirname | replace('{hostname}', inventory_hostname) }}"
+        state: directory
+      loop: "{{ files }}"
+
+    - name: Copy files to server
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest | replace('{hostname}', inventory_hostname) }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ files }}"
+      vars:
+        hostname: "{{ inventory_hostname }}"
+        server_domain: "{{ domain }}"
+        nginx_root_options: ""
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+      become: yes

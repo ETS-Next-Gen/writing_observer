@@ -18,7 +18,7 @@ if not os.path.exists(creds_file):
         "owner": "Your name",
         "email": "Your email",
         "git_username": "Your git username",
-        "git_pac": "Your git personal access token",
+        "git_pac": "Your git personal access token; See https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens",
         "openai_url": " URL for OPENAI API",
         "openai_deployment_id": "OPEN AI deployment ID",
         "openai_api_key": "your api key for the azure instance",
