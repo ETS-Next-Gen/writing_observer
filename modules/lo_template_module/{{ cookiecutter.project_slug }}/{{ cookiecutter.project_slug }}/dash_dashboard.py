@@ -8,11 +8,17 @@ callbacks to run when specific states change. Normal callbacks
 execute Python code server side, but Clientside callbacks
 execute Javascript code client side. Clientside functions are
 preferred as it cuts down server and network resources.
+
+This file contains the hard stuff. You'll need to understand
+this if you want to build dynamic, interactive dashboards. For
+most simple dashboards, we tossed everything you need into
+my_layout.
 '''
 from dash import html, dcc, callback, clientside_callback, ClientsideFunction, Output, Input
 import dash_bootstrap_components as dbc
 import lo_dash_react_components as lodrc
 
+from .my_layout import my_layout, my_data_layout
 
 _prefix = '{{ cookiecutter.project_hyphenated }}'
 _namespace = '{{ cookiecutter.project_slug }}'
@@ -24,17 +30,7 @@ def layout():
     '''
     Function to define the page's layout.
     '''
-    page_layout = html.Div(children=[
-        html.H1(children='{{ cookiecutter.project_name }}'),
-        dbc.InputGroup([
-            dbc.InputGroupText(lodrc.LOConnectionStatusAIO(aio_id=_websocket)),
-            lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
-        ]),
-        dcc.Store(id=_websocket_storage),
-        html.H2('Output from reducers'),
-        html.Div(id=_output)
-    ])
-    return page_layout
+    return my_layout(_websocket, _websocket_storage, _output)
 
 # Send the initial state based on the url hash to LO.
 # If this is not included, nothing will be returned from
@@ -78,13 +74,4 @@ def populate_output(data):
     This will use more network traffic and server resources
     than using the equivalent clientside callback, `populateOutput`.
     '''
-    if not data:
-        return 'No students'
-    output = [html.Div([
-        lodrc.LONameTag(
-            profile=s['profile'], className='d-inline-block student-name-tag',
-            includeName=True, id=f'{s["user_id"]}-name-tag'
-        ),
-        html.Span(f' - {s["count"]} events')
-    ]) for s in data]
-    return output
+    return my_data_layout(data)

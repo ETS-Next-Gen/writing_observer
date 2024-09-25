@@ -1,29 +1,6 @@
 import React from 'react';
-
-import * as reduxLogger from '../../reduxLogger.js';
-import * as util from '../util.js';
-
-/*
- * Parent of all buttons!
- */
-export function Button( {...props} ) {
-  const className = props.className ?? "blue-button";
-  return <button className={className} {...props}/>;
-}
-
-/*
- * Reset the system state
- *
- * This should be folded into action button?
- */
-export function ResetButton({children, ...props}) {
-  return (
-    <Button onClick={() => reduxLogger.setState({})} {...props} >
-      { children }
-    </Button>
-  );
-}
-
+import * as reduxLogger from '../../../reduxLogger.js';
+import { Button } from './Button.jsx';
 
 export function executeChildActions(children) {
   console.log("Running child actions");
@@ -42,9 +19,6 @@ export function executeChildActions(children) {
   });
 }
 
-/*
- * 
- */
 export const ActionButton = ({ children, target, systemPrompt, showPrompt = true, ...props }) => {
   const onClick = () => executeChildActions(children);
   return (
