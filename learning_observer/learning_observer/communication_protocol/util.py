@@ -13,7 +13,10 @@ dispatch = q.dispatch
 
 def _flatten_helper(top_level, current_level, prefix=''):
     """
-    Flatten the dictionary.
+    This is a helper function for taking a dictionary of nested
+    calls to the communication protocol, such as `select(keys(...))`,
+    and converting them to a flat dictionary. E.g. one item for
+    the `select` call and one item for the `key` call.
 
     :param top_level: The top level dictionary
     :type top_level: dict
@@ -42,7 +45,11 @@ def _flatten_helper(top_level, current_level, prefix=''):
 
 def flatten(endpoint):
     """
-    Flatten the endpoint.
+    The DAG is provided as a complex dictinoary structure. This function
+    flattens the dictionary to a single layer.
+    A query with a node `select(keys(...))` would start with a single
+    dictionary item and be translated to one for the `select` and another
+    for the `keys` portion.
 
     :param endpoint: The endpoint dictionary
     :type endpoint: dict
