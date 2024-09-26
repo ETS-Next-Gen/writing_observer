@@ -1,0 +1,12 @@
+- name: Provision writing analysis server
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Include BASELINE.YAML from flock_config 
+      include_tasks: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml/BASELINE.YAML"

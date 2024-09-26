@@ -48,8 +48,8 @@ def create_instance(name):
             'Value': orchlib.config.creds['owner']
         },
         {
-            'Key': 'deploy-group',
-            'Value': orchlib.config.creds['deploy-group']
+            'Key': 'deploy_group',
+            'Value': orchlib.config.creds['deploy_group']
         },
         {
             'Key': 'Patch Group',
@@ -127,8 +127,8 @@ def list_instances():
     '''
     reservations = ec2client.describe_instances(Filters=[
         {
-            'Name': 'tag:deploy-group',
-            'Values': [orchlib.config.creds['deploy-group']]
+            'Name': 'tag:deploy_group',
+            'Values': [orchlib.config.creds['deploy_group']]
         },
     ])['Reservations']
     instances = sum([i['Instances'] for i in reservations], [])

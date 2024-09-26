@@ -71,8 +71,7 @@ def initialize(c, machine_name):
     print("DNS....")
     orchlib.aws.register_dns(machine_name, orchlib.config.creds['domain'], ip)
     print("IP", ip)
-    orchlib.ubuntu.update(ip)
-
+    
     # Write to hosts.ini
     hosts_ini_path = '../settings/hosts.ini'
     line_to_write = f"{machine_name} ansible_host={ip} ansible_user=ubuntu ansible_ssh_private_key_file={orchlib.config.creds['key_filename']}\n"
@@ -367,7 +366,7 @@ def commit(c, msg):
     '''
     system(
         "cd {gitpath} ; git add -A; git commit -m {msg}".format(
-            gitpath=orchlib.config.creds["flock-config"],
+            gitpath=orchlib.config.creds["flock_config"],
             msg=msg
         )
     )

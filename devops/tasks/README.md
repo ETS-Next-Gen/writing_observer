@@ -148,5 +148,7 @@ design:
   inv downloadconfig [machine]
 
 
-  inv certbot coglabs
-  inv downloadconfig coglabs
+###TODO- replace hosts.ini with a python script that returns inv list output in correct format
+
+
+  ansible-playbook -i hosts.ini ../ansible/tasks/baseline.yaml --limit coglabs

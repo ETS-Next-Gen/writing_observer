@@ -1,9 +1,3 @@
-- name: Provision writing analysis server
-  hosts: servers
-  become: yes
-  vars:
-    ansible_python_interpreter: /usr/bin/python3.12
-  tasks:
     - apt: upgrade=dist update_cache=yes
 
     - name: Basic utils
@@ -22,7 +16,7 @@
       - wipe
       - build-essential
       - net-tools
-
+      
     # We don't need all of this per se, but it's convenient. If nothing
     # else, it gives prereqs for `pip`
     - name: Install Python Packages
@@ -66,7 +60,6 @@
         - apache2-utils
         - fcgiwrap
         - python3-certbot-nginx
-        - virtualenvwrapper
 
     - name: Install pip
       apt:

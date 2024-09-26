@@ -4,31 +4,19 @@
   vars:
     ansible_python_interpreter: /usr/bin/python3.12
   tasks:
-    - name: Install Git
-      apt:
-        name: git
-        state: present
-
     - name: Read credentials
       include_vars:
         file: ../../tasks/settings/CREDS.YAML
 
+    - name: Assign variables
+      set_fact:
+        yaml_file: "REPOS.YAML"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+       
     - name: Read repository configuration
       include_vars:
-        file: ../../tasks/settings/WO_REPOS.YAML
-
-#    - name: Debug git_username variable
-#      debug:
-#        var: git_username
-
-#    - name: Debug git_pac variable
-#      debug:
-#        var: git_pac
-
-#    - name: Debug repos variable
-#      debug:
-#        var: repos
-
+        file: "{{ yaml_dir }}/{{ yaml_file }}"
+      
     - name: Clone Git repositories
       git:
         repo: "https://{{ git_username }}:{{ git_pac }}@{{ item.repo | regex_replace('https://', '') }}"

@@ -1,0 +1,4 @@
+ os_environment:
+  - key: "ANSIBLE_TEST"
+    value : "test_value"
+  

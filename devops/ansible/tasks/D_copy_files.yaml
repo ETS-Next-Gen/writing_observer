@@ -3,11 +3,21 @@
   become: yes
   vars:
     ansible_python_interpreter: /usr/bin/python3.12
-  vars_files:
-    - ../../tasks/settings/CREDS.yaml
-    - ../../tasks/settings/TOY_SBA_FILES.yaml
-
   tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Assign variables
+      set_fact:
+        yaml_file: "FILES.YAML"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+        files_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/files"
+       
+    - name: Read repository configuration
+      include_vars:
+        file: "{{ yaml_dir }}/{{ yaml_file }}"
+
     - name: Ensure destination directories exist
       file:
         path: "{{ item.dest | dirname | replace('{hostname}', inventory_hostname) }}"
@@ -16,7 +26,7 @@
 
     - name: Copy files to server
       template:
-        src: "{{ item.src }}"
+        src: "{{files_dir }}/{{ item.name }}"
         dest: "{{ item.dest | replace('{hostname}', inventory_hostname) }}"
         owner: root
         group: root
@@ -27,8 +37,4 @@
         server_domain: "{{ domain }}"
         nginx_root_options: ""
 
-    - name: Restart nginx
-      service:
-        name: nginx
-        state: restarted
-      become: yes
+    

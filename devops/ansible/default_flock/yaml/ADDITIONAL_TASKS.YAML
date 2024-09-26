@@ -1,0 +1,22 @@
+    - name: Delete the symlink /etc/nginx/sites-enabled/default
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+    
+    - name: Delete the symlink /etc/nginx/sites-available/default
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Create a symlink for the nginx file
+      file:
+        src: /etc/nginx/sites-available/{{ inventory_hostname }}
+        dest: /etc/nginx/sites-enabled/{{ inventory_hostname }}
+        state: link
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+      become: yes
+  

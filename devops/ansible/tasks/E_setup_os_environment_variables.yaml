@@ -4,9 +4,18 @@
   vars:
     ansible_python_interpreter: /usr/bin/python3.12
   tasks:
-    - name: Read environment configuration
+    - name: Read credentials
       include_vars:
         file: ../../tasks/settings/CREDS.YAML
+
+    - name: Assign variables
+      set_fact:
+        yaml_file: "OS_ENV_VARS.YAML"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+       
+    - name: Read repository configuration
+      include_vars:
+        file: "{{ yaml_dir }}/{{ yaml_file }}"
 
     - name: Populate /etc/environment
       lineinfile:

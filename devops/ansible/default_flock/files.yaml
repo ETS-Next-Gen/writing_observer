@@ -1,0 +1,5 @@
+files:
+  - name: authorized_keys
+  - name: htpasswd
+  - name: nginx
+ 

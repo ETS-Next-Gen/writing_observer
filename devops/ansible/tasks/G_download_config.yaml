@@ -1,0 +1,34 @@
+- name: Download files from server
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Assign variables
+      set_fact:
+        yaml_file: "FILES.YAML"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+        files_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/files"
+       
+    - name: Read repository configuration
+      include_vars:
+        file: "{{ yaml_dir }}/{{ yaml_file }}"
+
+    - name: Ensure the local files directory exists
+      file:
+        path: "{{ files_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: download files from server
+      fetch:
+        src: "{{ item.dest | replace('{hostname}', inventory_hostname) }}"
+        dest: "{{files_dir }}/{{ item.name }}"
+        flat: yes
+      loop: "{{ files }}"
+      
+    

@@ -1,0 +1,14 @@
+- name: Install baseline packages
+  import_playbook: B_install_baseline.yaml
+
+- name: Install repos
+  import_playbook: C_install_repos.yaml
+
+- name: Copy files to server
+  import_playbook: D_copy_files.yaml
+
+- name: Setup os environment variables
+  import_playbook: E_setup_os_environment_variables.yaml
+
+- name: Run additional tasks for server
+  import_playbook: F_run_additional_tasks.yaml
