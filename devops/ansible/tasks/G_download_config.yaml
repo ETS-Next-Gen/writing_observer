@@ -10,7 +10,7 @@
 
     - name: Assign variables
       set_fact:
-        yaml_file: "FILES.YAML"
+        yaml_file: "files.yaml"
         yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
         files_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/files"
        

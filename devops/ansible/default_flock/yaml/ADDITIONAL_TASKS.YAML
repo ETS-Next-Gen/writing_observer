@@ -1,22 +1,46 @@
-    - name: Delete the symlink /etc/nginx/sites-enabled/default
-      file:
-        path: /etc/nginx/sites-enabled/default
-        state: absent
-    
-    - name: Delete the symlink /etc/nginx/sites-available/default
-      file:
-        path: /etc/nginx/sites-enabled/default
-        state: absent
+- name: Change ownership to ubuntu:ubuntu for /home/ubuntu
+  ansible.builtin.file:
+    path: /home/ubuntu
+    state: directory
+    recurse: yes
+    owner: ubuntu
+    group: ubuntu
 
-    - name: Create a symlink for the nginx file
-      file:
-        src: /etc/nginx/sites-available/{{ inventory_hostname }}
-        dest: /etc/nginx/sites-enabled/{{ inventory_hostname }}
-        state: link
+- name: Delete the symlink /etc/nginx/sites-enabled/default
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
 
-    - name: Restart nginx
-      service:
-        name: nginx
-        state: restarted
-      become: yes
-  
+- name: Delete the symlink /etc/nginx/sites-available/default
+  ansible.builtin.file:
+    path: /etc/nginx/sites-available/default
+    state: absent
+
+- name: Create a symlink for the nginx file
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ inventory_hostname }}
+    dest: /etc/nginx/sites-enabled/{{ inventory_hostname }}
+    state: link
+
+- name: Create a virtual environment named learning_observer
+  ansible.builtin.command:
+    cmd: python3 -m venv /home/ubuntu/.virtualenvs/learning_observer
+  args:
+    creates: /home/ubuntu/.virtualenvs/learning_observer/bin/activate
+
+- name: Install requirements from requirements.txt in virtual environment
+  ansible.builtin.command:
+    cmd: /home/ubuntu/.virtualenvs/learning_observer/bin/pip install -r requirements.txt
+    chdir: /home/ubuntu/writing_observer
+
+- name: Install learning observer in virtual environment
+  ansible.builtin.command:
+    cmd: /home/ubuntu/.virtualenvs/learning_observer/bin/pip install -e learning_observer
+    chdir: /home/ubuntu/writing_observer
+
+- name: Restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  become: yes
+        

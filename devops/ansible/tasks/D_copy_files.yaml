@@ -10,7 +10,7 @@
 
     - name: Assign variables
       set_fact:
-        yaml_file: "FILES.YAML"
+        yaml_file: "files.yaml"
         yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
         files_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/files"
        
@@ -24,6 +24,10 @@
         state: directory
       loop: "{{ files }}"
 
+    - name: Generate a random number
+      set_fact:
+        random_num: "{{ 1000000 | random }}"
+
     - name: Copy files to server
       template:
         src: "{{files_dir }}/{{ item.name }}"
@@ -36,5 +40,6 @@
         hostname: "{{ inventory_hostname }}"
         server_domain: "{{ domain }}"
         nginx_root_options: ""
+        RANDOM1: "{{ random_num }}"
 
     

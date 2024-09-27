@@ -1,7 +1,7 @@
 yamls:
-  - name: ADDITIONAL_TASKS.YAML
-  - name: BASELINE.YAML
-  - name: FILES.YAML
-  - name: REPOS.YAML
-  - name: OS_ENV_VARS.YAML
+  - name: additional_tasks.yaml
+  - name: baseline.yaml
+  - name: files.yaml
+  - name: repos.yaml
+  - name: os_env_vars.yaml
  

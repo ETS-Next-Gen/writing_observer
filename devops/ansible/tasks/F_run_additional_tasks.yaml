@@ -10,7 +10,7 @@
 
     - name: Assign variables
       set_fact:
-        yaml_file: "ADDITIONAL_TASKS.YAML"
+        yaml_file: "additional_tasks.yaml"
         yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
        
     - name: Include additional tasks

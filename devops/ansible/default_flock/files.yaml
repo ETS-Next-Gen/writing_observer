@@ -2,4 +2,8 @@ files:
   - name: authorized_keys
   - name: htpasswd
   - name: nginx
+  - name: creds.yaml
+  - name: lo.sh
+  - name: password.lo
+  - name: systemd
  

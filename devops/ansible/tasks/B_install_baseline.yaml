@@ -9,4 +9,4 @@
         file: ../../tasks/settings/CREDS.YAML
 
     - name: Include BASELINE.YAML from flock_config 
-      include_tasks: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml/BASELINE.YAML"
+      include_tasks: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml/baseline.yaml"

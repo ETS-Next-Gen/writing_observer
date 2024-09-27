@@ -10,7 +10,7 @@
 
     - name: Assign variables
       set_fact:
-        yaml_file: "REPOS.YAML"
+        yaml_file: "repos.yaml"
         yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
        
     - name: Read repository configuration
