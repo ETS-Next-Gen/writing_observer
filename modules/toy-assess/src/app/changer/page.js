@@ -1,4 +1,4 @@
-// This is a little demo which changes the style of text
+// This is a little demo that retypes text as different characters.
 
 'use client';
 // @refresh reset
