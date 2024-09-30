@@ -9,3 +9,6 @@ StandardError=syslog
 SyslogIdentifier=learning_observer
 User=ubuntu
 Group=ubuntu
+
+[Install]
+WantedBy=multi-user.target

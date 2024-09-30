@@ -28,6 +28,10 @@
       set_fact:
         random_num: "{{ 1000000 | random }}"
 
+    - name: Generate a random GUID
+      set_fact:
+        random_guid: "{{ lookup('pipe', 'uuidgen') }}"
+
     - name: Copy files to server
       template:
         src: "{{files_dir }}/{{ item.name }}"
@@ -40,6 +44,6 @@
         hostname: "{{ inventory_hostname }}"
         server_domain: "{{ domain }}"
         nginx_root_options: ""
-        RANDOM1: "{{ random_num }}"
+        RANDOM1: "{{ random_guid }}"
 
     
