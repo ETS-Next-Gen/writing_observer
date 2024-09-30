@@ -27,7 +27,7 @@ def get_inventory():
         ip_address = instance['PublicIpAddress']
         
         # Add instance to the aws_servers group
-        inventory['aws_servers']['hosts'].append(instance_name)
+        inventory['servers']['hosts'].append(instance_name)
         
         # Add host-specific variables
         inventory['_meta']['hostvars'][instance_name] = {
