@@ -14,7 +14,7 @@
  * - `error`: any errors that occured
  * - `readyState`: the current status of the websocket connection
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const LOConnection = ({
   url, dataScope
@@ -25,11 +25,11 @@ export const LOConnection = ({
   const clientRef = useRef(null);
 
   useEffect(() => {
-    const protocol = { "http:": "ws:", "https:": "wss:" }[window.location.protocol];
-    const newUrl = url ? url : `${protocol}//${window.location.hostname}:${window.location.port}/wsapi/communication_protocol`;
+    const protocol = { 'http:': 'ws:', 'https:': 'wss:' }[window.location.protocol];
+    const newUrl = url || `${protocol}//${window.location.hostname}:${window.location.port}/wsapi/communication_protocol`;
     const client = new WebSocket(newUrl);
     clientRef.current = client;
-    
+
     client.onopen = () => {
       setReadyState(WebSocket.OPEN);
       if (typeof dataScope !== 'undefined') {

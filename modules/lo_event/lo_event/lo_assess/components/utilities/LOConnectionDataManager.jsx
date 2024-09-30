@@ -1,4 +1,4 @@
-// TODO this file is untested, but goes along the with 
+// TODO this file is untested, but goes along the with
 // communication protocol changes introduced in PR #162.
 // This won't do anything until that branch is merged in.
 /**
@@ -20,7 +20,7 @@
  * return ( <LOConnectionDataManager message={message} onDataUpdate={handleDataUpdate} /> );
  * ```
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export const LOConnectionDataManager = ({ message, onDataUpdate }) => {
   const [dataObject, setDataObject] = useState({});
@@ -47,7 +47,7 @@ export const LOConnectionDataManager = ({ message, onDataUpdate }) => {
       if ('error' in msg.value) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          [msg.path]: msg.value,
+          [msg.path]: msg.value
         }));
       } else {
         setErrors((prevErrors) => {
@@ -59,7 +59,7 @@ export const LOConnectionDataManager = ({ message, onDataUpdate }) => {
           // Update the user data with new information
           current[finalKey] = {
             ...current[finalKey], // Existing data
-            ...msg.value, // New data (overwrites where necessary)
+            ...msg.value // New data (overwrites where necessary)
           };
         }
       }
