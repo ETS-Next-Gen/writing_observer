@@ -1,0 +1,34 @@
+#Install npm for the toy-sba project
+sudo apt-get -y install npm
+
+cd
+
+# Set system variables
+export OPENAI_URL="{openai_url}"
+export OPENAI_DEPLOYMENT_ID="{openai_deployment_id}"
+export OPENAI_API_KEY="{openai_api_key}"
+
+# Check if the toy-sba directory exists before cloning
+[ ! -d "toy-sba" ] && git clone https://{git_username}:{git_pac}@github.com/ETS-Next-Gen/toy-sba.git || echo "Directory toy-sba already exists. Skipping clone."
+
+
+#switch branches for writing_observer and toy-sba
+# Navigate to the writing_observer repository directory
+
+cd /home/ubuntu/writing_observer && pwd && git fetch && git switch pmitros/lo_event
+
+cd /home/ubuntu/toy-sba && git fetch &&  git switch writing_survey
+
+# Navigate to the lo_event module and install npm packages
+cd /home/ubuntu/writing_observer/modules/lo_event && npm install
+
+# Install npm packages for toy-sba
+cd /home/ubuntu/toy-sba 
+rm -rf node_modules package-lock.json
+npm install --legacy-peer-deps
+npm install react-diff-components --legacy-peer-deps
+npm install @fortawesome/fontawesome-svg-core --legacy-peer-deps
+
+
+
+

@@ -1,0 +1,49 @@
+- name: Copy files to server
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Assign variables
+      set_fact:
+        yaml_file: "files.yaml"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+        files_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/files"
+       
+    - name: Read repository configuration
+      include_vars:
+        file: "{{ yaml_dir }}/{{ yaml_file }}"
+
+    - name: Ensure destination directories exist
+      file:
+        path: "{{ item.dest | dirname | replace('{hostname}', inventory_hostname) }}"
+        state: directory
+      loop: "{{ files }}"
+
+    - name: Generate a random number
+      set_fact:
+        random_num: "{{ 1000000 | random }}"
+
+    - name: Generate a random GUID
+      set_fact:
+        random_guid: "{{ lookup('pipe', 'uuidgen') }}"
+
+    - name: Copy files to server
+      template:
+        src: "{{files_dir }}/{{ item.name }}"
+        dest: "{{ item.dest | replace('{hostname}', inventory_hostname) }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ files }}"
+      vars:
+        hostname: "{{ inventory_hostname }}"
+        server_domain: "{{ domain }}"
+        nginx_root_options: ""
+        RANDOM1: "{{ random_guid }}"
+
+    

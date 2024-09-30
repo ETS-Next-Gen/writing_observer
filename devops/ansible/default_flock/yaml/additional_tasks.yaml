@@ -1,0 +1,59 @@
+- name: Change ownership to ubuntu:ubuntu for /home/ubuntu
+  ansible.builtin.file:
+    path: /home/ubuntu
+    state: directory
+    recurse: yes
+    owner: ubuntu
+    group: ubuntu
+
+- name: Delete the symlink /etc/nginx/sites-enabled/default
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Delete the symlink /etc/nginx/sites-available/default
+  ansible.builtin.file:
+    path: /etc/nginx/sites-available/default
+    state: absent
+
+- name: Create a symlink for the nginx file
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ inventory_hostname }}
+    dest: /etc/nginx/sites-enabled/{{ inventory_hostname }}
+    state: link
+
+- name: Ensure virtualenvwrapper is installed
+  ansible.builtin.package:
+    name: virtualenvwrapper
+    state: present
+
+- name: Add virtualenvwrapper initialization to profile
+  ansible.builtin.shell: |
+    echo ". /usr/share/virtualenvwrapper/virtualenvwrapper.sh" >> /home/ubuntu/.profile
+  args:
+    executable: /bin/bash
+
+- name: Source profile and create virtual environment learning_observer
+  ansible.builtin.shell: |
+    cd /home/ubuntu/writing_observer
+    make install
+    . /home/ubuntu/.profile
+    mkvirtualenv learning_observer
+    echo "workon learning_observer" >> /home/ubuntu/.profile
+    . /home/ubuntu/.profile
+    pip install --upgrade pip
+    cd /home/ubuntu/writing_observer/
+    pip install -r requirements.txt
+    cd /home/ubuntu/writing_observer/learning_observer/
+    python setup.py develop
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: ubuntu
+
+- name: Restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  become: yes
+        

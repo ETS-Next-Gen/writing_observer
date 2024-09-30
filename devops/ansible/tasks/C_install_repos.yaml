@@ -1,0 +1,28 @@
+- name: Install Git Repositories
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Assign variables
+      set_fact:
+        yaml_file: "repos.yaml"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+       
+    - name: Read repository configuration
+      include_vars:
+        file: "{{ yaml_dir }}/{{ yaml_file }}"
+      
+    - name: Clone Git repositories
+      git:
+        repo: "https://{{ git_username }}:{{ git_pac }}@{{ item.repo | regex_replace('https://', '') }}"
+        dest: "{{ item.dest }}"
+        clone: yes
+        update: yes
+        version: "{{ item.branch | default('master') }}"
+        force: yes
+      loop: "{{ repos }}"

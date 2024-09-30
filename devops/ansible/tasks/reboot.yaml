@@ -1,0 +1,10 @@
+- name: Reboot the server
+  hosts: servers
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Reboot the server
+      reboot:
+        msg: "Reboot initiated by Ansible"
+        reboot_timeout: 600
