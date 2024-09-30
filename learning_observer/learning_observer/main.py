@@ -56,7 +56,7 @@ def configure_event_loop():
     This is a feature flag. We have not tested / benchmarked it, but
     it claims to make async Python much faster.
     '''
-    if 'uvloop' in settings.settings.get("feature_flags", {}):
+    if settings.feature_flag('uvloop'):
         debug_log("Running with uvloop")
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     else:

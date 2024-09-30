@@ -223,7 +223,10 @@ def initialized():
 
 
 # Not all of these are guaranteed to work on every branch of the codebase.
-AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page', 'merkle', 'save_google_ajax', 'use_google_ajax']
+AVAILABLE_FEATURE_FLAGS = [
+    'uvloop', 'watchdog', 'auth_headers_page', 'merkle', 'save_google_ajax', 'use_google_ajax',
+    'google_routes', 'save_clean_ajax', 'use_clean_ajax'
+]
 
 
 def feature_flag(flag):
@@ -231,23 +234,35 @@ def feature_flag(flag):
     Return `None` if the given feature flag is disabled.
 
     Returns the value of the feature flag if it is enabled.
+
+    Feature flags should look like an object in settings.
+    `feature_flags: {uvloop, google_routes: false, watchdog: { foo: bar }}`
+    Both `uvloop` and `watchdog` will be enabled, with `watchdog`
+    returning additional content. `google_routes` and other
+    other flags not listed will be disabled, `return None`.
     '''
     initialized()
     if flag not in AVAILABLE_FEATURE_FLAGS:
         raise ValueError(
-            f"Unknown feature flag: {flag}"
+            f"Unknown feature flag: {flag} "
             f"Available feature flags: {AVAILABLE_FEATURE_FLAGS}"
         )
 
-    flag = settings.get(
+    flags = settings.get('feature_flags', {})
+
+    flag_setting = settings.get(
         'feature_flags', {}
     ).get(flag, None)
 
-    # The feature flag is disabled if it is False, None, or omitted
-    if flag is False:
+    # The feature flag is disabled if it is False or omitted
+    if flag_setting is False:
         return None
 
-    return flag
+    # Flag is available, but no further settings are included.
+    if flag in flags and flag_setting is None:
+        return True
+
+    return flag_setting
 
 
 def module_setting(module_name, setting=None, default=None):
