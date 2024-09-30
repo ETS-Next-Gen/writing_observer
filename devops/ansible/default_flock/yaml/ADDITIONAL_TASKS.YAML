@@ -22,21 +22,34 @@
     dest: /etc/nginx/sites-enabled/{{ inventory_hostname }}
     state: link
 
-- name: Create a virtual environment named learning_observer
-  ansible.builtin.command:
-    cmd: python3 -m venv /home/ubuntu/.virtualenvs/learning_observer
+- name: Ensure virtualenvwrapper is installed
+  ansible.builtin.package:
+    name: virtualenvwrapper
+    state: present
+
+- name: Add virtualenvwrapper initialization to profile
+  ansible.builtin.shell: |
+    echo ". /usr/share/virtualenvwrapper/virtualenvwrapper.sh" >> /home/ubuntu/.profile
   args:
-    creates: /home/ubuntu/.virtualenvs/learning_observer/bin/activate
+    executable: /bin/bash
 
-- name: Install requirements from requirements.txt in virtual environment
-  ansible.builtin.command:
-    cmd: /home/ubuntu/.virtualenvs/learning_observer/bin/pip install -r requirements.txt
-    chdir: /home/ubuntu/writing_observer
-
-- name: Install learning observer in virtual environment
-  ansible.builtin.command:
-    cmd: /home/ubuntu/.virtualenvs/learning_observer/bin/pip install -e learning_observer
-    chdir: /home/ubuntu/writing_observer
+- name: Source profile and create virtual environment learning_observer
+  ansible.builtin.shell: |
+    cd /home/ubuntu/writing_observer
+    make install
+    . /home/ubuntu/.profile
+    mkvirtualenv learning_observer
+    echo "workon learning_observer" >> /home/ubuntu/.profile
+    . /home/ubuntu/.profile
+    pip install --upgrade pip
+    cd /home/ubuntu/writing_observer/
+    pip install -r requirements.txt
+    cd /home/ubuntu/writing_observer/learning_observer/
+    python setup.py develop
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: ubuntu
 
 - name: Restart nginx
   ansible.builtin.service:
