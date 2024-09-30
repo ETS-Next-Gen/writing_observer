@@ -14,7 +14,7 @@ def update_hosts_ini():
     # Open or create the hosts.ini file
     with open('hosts.ini', 'w') as hosts_file:
         # Write a default header or group for the ansible inventory
-        hosts_file.write('[aws_servers]\n')
+        hosts_file.write('[servers]\n')
         
         key_file =  orchlib.config.creds['key_filename']
          
