@@ -4,6 +4,6 @@ files:
   - name: nginx
   - name: creds.yaml
   - name: lo.sh
-  - name: password.lo
+  - name: passwrd.lo
   - name: systemd
  
