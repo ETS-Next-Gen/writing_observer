@@ -1,3 +1,14 @@
+/**
+ * LOConnectionLastUpdated is a helper function for displaying
+ * connection information and last received message information
+ * about a websocket.
+ * 
+ * Usage:
+ * ```js
+ * const { readyState, message, } = LOConnection({ url, dataScope }); // or some other websocket
+ * return ( <LOConnectionLastUpdated message={message} readyState={readyState} /> );
+ * ```
+ */
 import React, { useState, useEffect } from 'react';
 
 function renderTime(t) {
@@ -10,6 +21,9 @@ function renderTime(t) {
     3600   ==> 1h
     7601   ==> 2h
     764450 ==> 8d
+
+  TODO this code exists in `liblo.js` include these functions
+  or migrate them to a utilities file in this LO Event.
    */
   var seconds = Math.floor(t) % 60;
   var minutes = Math.floor(t / 60) % 60;
@@ -32,7 +46,7 @@ function renderTime(t) {
 }
 
 function renderReadableTimeSinceUpdate(timeDifference) {
-    if (timeDifference < 3) {
+    if (timeDifference < 5) {
       return 'Just now'
     }
     return `${renderTime(timeDifference)} ago`
@@ -45,12 +59,14 @@ export const LOConnectionLastUpdated = ({ message, readyState }) => {
   const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
   const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
 
+  // Set last updated time when new message arrives
   useEffect(() => {
     if (message) {
       setLastUpdated(new Date());
     }
   }, [message]);
 
+  // Every second update last updated message
   useEffect(() => {
     const interval = setInterval(() => {
       if (lastUpdated) {
