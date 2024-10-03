@@ -4,6 +4,7 @@ Map URLs to functions which handle them.
 
 import getpass
 import os
+import pmss
 import secrets
 import sys
 
@@ -33,6 +34,15 @@ from learning_observer.log_event import debug_log, startup_state
 
 from learning_observer.utility_handlers import *
 
+# NOTE this was previously listed under config.debug where debug
+# was a list of nothing or only tracemalloc.
+pmss.register_field(
+    name='tracemalloc_enabled',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Flag for determining if we should include trace memory allocations.',
+    default=False
+)
+
 
 def add_routes(app):
     '''
@@ -43,7 +53,7 @@ def add_routes(app):
     '''
     # Allow debugging of memory leaks.  Helpful, but this is a massive
     # resource hog. Don't accidentally turn this on in prod :)
-    if 'tracemalloc' in settings.settings['config'].get("debug", []):
+    if settings.pmss_settings.tracemalloc_enabled(types=['config']):
         import tracemalloc
         tracemalloc.start(25)
 
@@ -115,7 +125,7 @@ def add_routes(app):
     # We'd like to be able to have the root page themeable, for
     # non-ETS deployments. This is a quick-and-dirty way to override
     # the main page.
-    root_file = settings.settings.get("theme", {}).get("root_file", "webapp.html")
+    root_file = settings.pmss_settings.root_file(types=['theme'])
     app.add_routes([
         aiohttp.web.get('/', static_file_handler(paths.static(root_file))),
     ])
@@ -236,7 +246,7 @@ def register_auth_webapp_views(app):
             handler=learning_observer.auth.user_info_handler)
     ])
 
-    if 'google_oauth' in settings.settings['auth']:
+    if settings.pmss_settings.google_oauth_enabled(types=['auth']):
         debug_log("Running with Google authentication")
         app.add_routes([
             aiohttp.web.get(
@@ -244,16 +254,17 @@ def register_auth_webapp_views(app):
                 handler=learning_observer.auth.social_handler),
         ])
 
-    if 'password_file' in settings.settings['auth']:
+    if settings.pmss_settings.password_file_enabled(types=['auth']):
         debug_log("Running with password authentication")
-        if not os.path.exists(settings.settings['auth']['password_file']):
+        password_file = settings.pmss_settings.password_file(types=['auth'])
+        if not os.path.exists(password_file):
             print("Configured to run with password file,"
                   "but no password file exists")
             print()
             print("Please either:")
             print("* Remove auth/password_file from the settings file")
             print("* Create a file {fn} with lo_passwd.py".format(
-                fn=settings.settings['auth']['password_file']
+                fn=password_file
             ))
             print("Typically:")
             print("{python_src} learning_observer/util/lo_passwd.py "
@@ -262,14 +273,14 @@ def register_auth_webapp_views(app):
                       python_src=paths.PYTHON_EXECUTABLE,
                       username=getpass.getuser(),
                       password=secrets.token_urlsafe(16),
-                      fn=settings.settings['auth']['password_file']
+                      fn=password_file
                   ))
             sys.exit(-1)
         app.add_routes([
             aiohttp.web.post(
                 '/auth/login/password',
                 learning_observer.auth.password_auth(
-                    settings.settings['auth']['password_file'])
+                    password_file)
             )])
 
     # If we want to support multiple modes of authentication, including
@@ -281,7 +292,7 @@ def register_auth_webapp_views(app):
         # At the very least, the user should explicitly set it to `null`
         # if they are planning on using nginx for auth
         debug_log("Enabling http basic auth page")
-        auth_file = settings.settings['auth']['http_basic']["password_file"]
+        auth_file = settings.pmss_settings.password_file(types=['auth', 'http_basic'])
         app.add_routes([
             aiohttp.web.get(
                 '/auth/login/http-basic',

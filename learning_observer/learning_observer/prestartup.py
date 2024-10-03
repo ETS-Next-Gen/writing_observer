@@ -284,10 +284,12 @@ def startup_checks_and_init():
 
 @register_startup_check
 def check_aio_session_settings():
-    if 'aio' not in settings.settings or \
-       'session_secret' not in settings.settings['aio'] or \
-       isinstance(settings.settings['aio']['session_secret'], dict) or \
-       'session_max_age' not in settings.settings['aio']:
+    try:
+        # Attempt to fetch settings, if an exception is raised, the
+        # settings are not configured.
+        settings.pmss_settings.session_max_age(types=['aio'])
+        settings.pmss_settings.session_secret(types=['aio'])
+    except:
         raise StartupCheck(
             "Settings file needs an `aio` section with a `session_secret`\n"
             "subsection containing a secret string. This is used for\n"

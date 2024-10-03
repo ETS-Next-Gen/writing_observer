@@ -18,6 +18,7 @@ import functools
 import json
 import os
 import os.path
+import pmss
 
 import learning_observer.paths
 import learning_observer.prestartup
@@ -26,6 +27,28 @@ import learning_observer.settings
 import learning_observer.util
 
 OBJECT_STORE = dict()
+
+pmss.register_field(
+    name='type',
+    type=pmss.TYPES.string, # TODO one of
+    description='The type of KVS being defined'
+)
+pmss.register_field(
+    name='expiry',
+    type=pmss.TYPES.integer,
+    description='How long the data lasts within a KVS.'
+)
+pmss.register_field(
+    name='path',
+    type=pmss.TYPES.string,
+    description='The path on to the directory on the filesystem to use as a KVS.'
+)
+pmss.register_field(
+    name='subdirs',
+    type=pmss.TYPES.boolean,
+    description='If set, keys with slashes will result in the creation of subdirs',
+    default=False
+)
 
 
 class _KVS:
@@ -311,10 +334,38 @@ class MissingKVSParameters(AttributeError):
         super().__init__(msg)
 
 
+def prepare_kvs(key):
+    kvs_type = learning_observer.settings.pmss_settings.type(types=['kvs', key])
+    if kvs_type not in KVS_MAP:
+        raise KeyError(f"Invalid KVS type '{kvs_type}'")
+    kvs_class = KVS_MAP[kvs_type]
+    if kvs_type == 'redis_ephemeral':
+        try:
+            expiry = learning_observer.settings.pmss_settings.expiry(types=['kvs', key])
+        except:
+            raise MissingKVSParameters(key, kvs_type, 'expiry')
+        kvs_class = functools.partial(kvs_class, expiry)
+    elif kvs_type == 'filesystem':
+        try:
+            filesystem_path = learning_observer.settings.pmss_settings.path(types=['kvs', key])
+            allow_subdirs = learning_observer.settings.pmss_settings.subdirs(types=['kvs', key])
+        except:
+            raise MissingKVSParameters(key, kvs_type, 'path')
+        kvs_class = functools.partial(kvs_class, filesystem_path, allow_subdirs)
+    return kvs_class
+
+
+def initialize_kvs():
+    global KVS
+    if KVS is None:
+        KVS = KVSRouter()
+    return KVS
+
+
 class KVSRouter:
     """Routes KVS calls to the appropriate backend."""
 
-    def __init__(self, default=None, items=None):
+    def __init__(self, default=None):
         """
         Initialize the router with a default KVS and optional additional items.
 
@@ -323,21 +374,10 @@ class KVSRouter:
         """
         self._items = {'default': default}
 
-        if items is not None:
-            for key, kvs_item in items:
-                kvs_type = kvs_item['type']
-                if kvs_type not in KVS_MAP:
-                    raise KeyError(f"Invalid KVS type '{kvs_type}'")
-                kvs_class = KVS_MAP[kvs_type]
-                if kvs_type == 'redis_ephemeral':
-                    if 'expiry' not in kvs_item:
-                        raise MissingKVSParameters(key, kvs_type, 'expiry')
-                    kvs_class = functools.partial(kvs_class, kvs_item['expiry'])
-                elif kvs_type == 'filesystem':
-                    if 'path' not in kvs_item:
-                        raise MissingKVSParameters(key, kvs_type, 'path')
-                    kvs_class = functools.partial(kvs_class, kvs_item['path'], kvs_item.get('subdirs', False))
-                self.add_item(key, kvs_class)
+        general_use_kvs = ['default', 'memoization']
+        for key in general_use_kvs:
+            kvs_class = prepare_kvs(key)
+            self.add_item(key, kvs_class)
 
     def __call__(self):
         """Call the default KVS callable."""
@@ -371,35 +411,7 @@ def kvs_startup_check():
 
     Checks like this one allow us to fail on startup, rather than later
     '''
-    global KVS
-    try:
-        KVS = KVSRouter(items=learning_observer.settings.settings['kvs'].items())
-
-    except KeyError:
-        if 'kvs' not in learning_observer.settings.settings:
-            raise learning_observer.prestartup.StartupCheck(
-                "No KVS configured. Please set kvs.type in settings.py\n"
-                "Look at example settings file to see what's available."
-            )
-        elif any([kvs['type'] not in KVS_MAP for _, kvs in learning_observer.settings.settings['kvs'].items()]):
-            raise learning_observer.prestartup.StartupCheck(
-                "Unknown KVS type: {}\n"
-                "Look at example settings file to see what's available. \n"
-                "Suppported types: {}".format(
-                    ', '.join([kvs['type'] for _, kvs in learning_observer.settings.settings['kvs'].items() if kvs['type'] not in KVS_MAP]),
-                    list(KVS_MAP.keys())
-                )
-            )
-        elif 'default' not in learning_observer.settings.settings['kvs']:
-            raise learning_observer.prestartup.StartupCheck(
-                "No default KVS configured. Please set default kvs.\n"
-                "See example settings file for usage."
-            )
-        else:
-            raise learning_observer.prestartup.StartupCheck(
-                "KVS incorrectly configured. Please fix the error, and\n"
-                "then replace this with a more meaningful error message"
-            )
+    initialize_kvs()
     return True
 
 

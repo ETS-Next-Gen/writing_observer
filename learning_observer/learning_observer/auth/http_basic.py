@@ -16,6 +16,7 @@ DEVELOPMENT, and NOT YET WORKING.
 '''
 import base64
 import json
+import pmss
 import yaml
 import sys
 
@@ -29,6 +30,29 @@ import learning_observer.prestartup
 import learning_observer.auth
 
 from learning_observer.log_event import debug_log
+
+# TODO I noticed that this code consistently referred to
+# `http_basic` whereas the creds example that I've been using
+# refers to `http_basic_auth`. We ought make sure we are
+# using a consistent reference.
+pmss.register_field(
+    name='full_site_auth',
+    type=pmss.TYPES.boolean,
+    description='', # TODO
+    default=False
+)
+pmss.register_field(
+    name='login_page_enabled',
+    type=pmss.TYPES.boolean,
+    description='', # TODO
+    default=False
+)
+pmss.register_field(
+    name='delegate_nginx_auth',
+    type=pmss.TYPES.boolean,
+    description='', # TODO,
+    default=False
+)
 
 
 def http_basic_extract_username_password(request):
@@ -73,10 +97,9 @@ def http_auth_middleware_enabled():
     to accidentally receive requests with auth headers on pages which
     nginx has not secured.
     '''
-    if 'http_basic' not in learning_observer.settings.settings['auth']:
+    if not learning_observer.settings.pmss_settings.http_basic_auth_enabled(types=['auth']):
         return False
-    auth_basic_settings = learning_observer.settings.settings['auth']['http_basic']
-    return auth_basic_settings.get("full_site_auth", False)
+    return learning_observer.settings.pmss_settings.full_site_auth(types=['auth', 'http_basic_auth'])
 
 
 def http_auth_page_enabled():
@@ -88,11 +111,10 @@ def http_auth_page_enabled():
     this.
     '''
     # Is http basic auth enabled?
-    if 'http_basic' not in learning_observer.settings.settings['auth']:
+    if not learning_observer.settings.pmss_settings.http_basic_auth_enabled(types=['auth']):
         return False
-    auth_basic_settings = learning_observer.settings.settings['auth']['http_basic']
     # And is it configured with a dedicated login page?
-    if not auth_basic_settings.get("login_page_enabled", False):
+    if not learning_observer.settings.pmss_settings.login_page_enabled(types=['auth', 'http_basic_auth']):
         return False
     return True
 
@@ -185,9 +207,9 @@ def http_basic_startup_check():
         )
 
     if (
-        'http_basic' in learning_observer.settings.settings['auth']
-        and learning_observer.settings.settings['auth']['http_basic'].get("delegate_nginx_auth", False)
-        and learning_observer.settings.settings['auth']['http_basic'].get("password_file", False)
+        learning_observer.settings.pmss_settings.http_basic_auth_enabled(types=['auth'])
+        and learning_observer.settings.pmss_settings.password_file(types=['auth', 'http_basic_auth'])
+        and learning_observer.settings.pmss_settings.delegate_nginx_auth(types=['auth', 'http_basic_auth'])
     ):
         raise learning_observer.prestartup.StartupCheck(
             "Your HTTP Basic authentication is misconfigured.\n"

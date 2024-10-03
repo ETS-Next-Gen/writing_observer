@@ -348,17 +348,13 @@ def init():
     or smaller functions otherwise.
     '''
     global ajax
-    roster_source = settings.pmss_settings.source(types=['roster_data'])
-    if 'roster_data' not in settings.settings:
-        print(settings.settings)
+    try:
+        roster_source = settings.pmss_settings.source(types=['roster_data'])
+    except:
         raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster_data` element with a `source` element. No `roster_data` element found."
+            "Settings file needs a `roster_data` element with a `source` element. No relevant element found."
         )
-    elif 'source' not in settings.settings['roster_data']:
-        raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
-        )
-    elif roster_source in ['test', 'filesystem']:
+    if roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
     elif roster_source in ["google_api"]:
         ajax = google_ajax

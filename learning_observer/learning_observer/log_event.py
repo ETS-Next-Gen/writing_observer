@@ -112,7 +112,8 @@ pmss.register_field(
     description='How much information do we want to log.\n'\
                 '`NONE`: do not print anything\n'\
                 '`SIMPLE`: print simple debug messages\n'\
-                '`EXTENDED`: print debug message with stack trace and timestamp'
+                '`EXTENDED`: print debug message with stack trace and timestamp',
+    default=LogLevel.NONE.value
 )
 
 class LogDestination(Enum):
@@ -122,6 +123,19 @@ class LogDestination(Enum):
     CONSOLE = 'CONSOLE'
     FILE = 'FILE'
 
+
+# TODO eventually we want to support a list of debug destinations
+# however pmss does not support lists at this time. Instead we
+# only allow a single debug destination to be defined in settings.
+pmss.parser('debug_log_destinations', parent='string', choices=[level.value for level in LogDestination], transform=None)
+pmss.register_field(
+    name='debug_log_destinations',
+    type='debug_log_destinations',
+    description='Where do we want to log the information.\n'\
+                '`CONSOLE`: print debug information to the console\n'\
+                '`FILE`: print debug information to a file',
+    default=LogDestination.CONSOLE.value
+)
 
 # Before we've read the settings file, we'll log basic messages to the
 # console and to the log file.
@@ -152,11 +166,8 @@ def initialize_logging_framework():
         DEBUG_LOG_DESTINATIONS = [LogDestination.CONSOLE, LogDestination.FILE]
 
     # In either case, we want to override from the settings file.
-    if "logging" in settings.settings:
-        if "debug_log_level" in settings.settings["logging"]:
-            DEBUG_LOG_LEVEL = LogLevel(settings.pmss_settings.debug_log_level(types=['logging']))
-        if "debug_log_destinations" in settings.settings["logging"]:
-            DEBUG_LOG_DESTINATIONS = list(map(LogDestination, settings.settings["logging"]["debug_log_destinations"]))
+    DEBUG_LOG_LEVEL = LogLevel(settings.pmss_settings.debug_log_level(types=['logging']))
+    DEBUG_LOG_DESTINATIONS = [LogDestination(settings.pmss_settings.debug_log_destinations(types=['logging']))]
 
     debug_log("DEBUG_LOG_LEVEL:", DEBUG_LOG_LEVEL)
     debug_log("DEBUG_DESTINATIONS:", DEBUG_LOG_DESTINATIONS)
