@@ -4,11 +4,11 @@ This is an interface to AWE_Workbench.
 
 import asyncio
 import enum
-import hashlib
-import time
 import functools
-import os
 import multiprocessing
+import os
+import pmss
+import time
 
 from concurrent.futures import ProcessPoolExecutor
 from learning_observer.log_event import debug_log
@@ -28,7 +28,26 @@ import warnings
 import writing_observer.nlp_indicators
 import learning_observer.kvs
 import learning_observer.paths
+import learning_observer.settings
 import learning_observer.util
+
+
+SPACY_PREFERENCE = {
+    'require': spacy.require_gpu,
+    'prefer': spacy.prefer_gpu,
+    'none': lambda: None
+}
+
+pmss.parser('spacy_gpu_preference', parent='string', choices=['require', 'prefer', 'none'], transform=None)
+pmss.register_field(
+    name='spacy_gpu_preference',
+    type='spacy_gpu_preference',
+    description='Determine if we should use the GPU for Spacy or not.\n'\
+                '`require`: use GPU for spacy operations, raises error if GPU is not preset.\n'\
+                '`prefer`: uses GPU, if available, for spacy operations, otherwise use CPU.\n'\
+                '`none`: use CPU for spacy operations.',
+    default='none'
+)
 
 RUN_MODES = enum.Enum('RUN_MODES', 'MULTIPROCESSING SERIAL')
 
@@ -38,6 +57,10 @@ def init_nlp():
     Initialize the spacy pipeline with the AWE components. This takes a while
     to run.
     '''
+    gpu_preference = learning_observer.settings.pmss_settings.spacy_gpu_preference()
+    debug_log(f'Spacy GPU preference set to {gpu_preference}.')
+    SPACY_PREFERENCE[gpu_preference]()
+
     warnings.filterwarnings('ignore', category=UserWarning, module='nltk')
     try:
         nlp = spacy.load("en_core_web_lg")
