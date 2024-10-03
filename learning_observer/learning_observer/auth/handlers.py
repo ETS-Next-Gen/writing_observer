@@ -6,6 +6,7 @@ We should give it a better name, since it also contains middlewares
 
 import base64
 import json
+import pmss
 import random
 
 import aiohttp
@@ -20,6 +21,22 @@ import learning_observer.settings
 import learning_observer.graphics_helpers
 
 import names
+
+# TODO we ought to define all the auth items for pmss
+# in one spot. Currently they are split up across
+# multiple files.
+pmss.register_field(
+    name='test_case_insecure',
+    type=pmss.TYPES.boolean,
+    description='For testing to allow no-login required.',
+    default=False
+)
+pmss.register_field(
+    name='demo_insecure',
+    type=pmss.TYPES.string,
+    description='Similar to `test_case_insecure`, but provides a name.',
+    default=None
+)
 
 
 async def logout_handler(request):
@@ -67,7 +84,7 @@ async def test_case_user(request):
     This is a short circuit for test cases without logging in.
     THIS SHOULD NEVER BE ENABLED ON A LIVE SERVER
     '''
-    tci = learning_observer.settings.settings['auth'].get("test_case_insecure", False)
+    tci = learning_observer.settings.pmss_settings.test_case_insecure(types=['auth'])
     if not tci:
         return None
     if not isinstance(tci, dict):
@@ -96,7 +113,7 @@ async def demo_user(request):
     In contrast to the test case user, this assigns a dummy name and similar. That's
     bad for testing, where we want determinism, but it's good for demos.
     '''
-    if not learning_observer.settings.settings['auth'].get("demo_insecure", False):
+    if not learning_observer.settings.pmss_settings.demo_insecure(types=['auth']):
         return None
 
     def name_to_email(name):
@@ -115,9 +132,9 @@ async def demo_user(request):
         name = name.split()
         return name[0][0].lower() + name[-1].lower() + "@localhost"
 
-    demo_auth_setting = learning_observer.settings.settings['auth']["demo_insecure"]
-    if isinstance(demo_auth_setting, dict) and 'name' in demo_auth_setting:
-        name = demo_auth_setting['name']
+    demo_auth_setting = learning_observer.settings.pmss_settings.demo_insecure(types=['auth'])
+    if demo_auth_setting:
+        name = demo_auth_setting
     else:
         name = names.get_full_name()
 

@@ -178,7 +178,7 @@ def _role_required(role):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(request):
-            if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
+            if learning_observer.settings.pmss_settings.test_case_insecure(types=['auth']):
                 return func(request)
             '''TODO evaluate how we should be using `role` with the
             `authorized` key.

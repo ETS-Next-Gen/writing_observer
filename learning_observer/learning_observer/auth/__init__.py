@@ -44,6 +44,7 @@ to their own data).
 We haven't figured out all of the data models here.
 '''
 
+import pmss
 import sys
 
 # Decorators to confirm requests are authenticated
@@ -78,6 +79,34 @@ from learning_observer.auth.password import password_auth
 import learning_observer.prestartup
 import learning_observer.settings as settings
 
+# HACK These enabled items ought to be implicitly defined by pmss if
+# the child settings are available. For now, we define these manually
+# in the creds.pmss file.
+pmss.register_field(
+    name='google_oauth_enabled',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Flag for determining if we should use Google OAuth or not.',
+    default=False
+)
+pmss.register_field(
+    name='password_file_enabled',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Flag for determining if we should use a Password File or not.',
+    default=False
+)
+pmss.register_field(
+    name='http_basic_auth_enabled',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Flag for determining if we should use a HTTP Basic or not.',
+    default=False
+)
+
+pmss.register_field(
+    name='password_file',
+    type=pmss.pmsstypes.TYPES.string,
+    description='Path to the password file on the system.'
+)
+
 
 @learning_observer.prestartup.register_startup_check
 def verify_auth_precheck():
@@ -85,30 +114,27 @@ def verify_auth_precheck():
     This is a pre-startup check to make sure that the auth system is configured
     correctly.
     '''
-    # We need some auth
+    # TODO how should we handle this case?
     if 'auth' not in settings.settings:
         raise learning_observer.prestartup.StartupCheck(
             "Please configure auth")
 
     # If we have Google oauth, we need it properly configured.
     # TODO: Confirm everything works with Google Oauth missing
-    if 'google_oauth' in settings.settings['auth']:
-        if 'web' not in settings.settings['auth']['google_oauth'] or \
-           'client_secret' not in settings.settings['auth']['google_oauth']['web'] or \
-           'project_id' not in settings.settings['auth']['google_oauth']['web'] or \
-           'client_id' not in settings.settings['auth']['google_oauth']['web'] or \
-           isinstance(settings.settings['auth']['google_oauth']['web']['client_secret'], dict) or \
-           isinstance(settings.settings['auth']['google_oauth']['web']['project_id'], dict) or \
-           isinstance(settings.settings['auth']['google_oauth']['web']['client_id'], dict):
-            error = \
-                "Please configure (or disable) Google oauth\n" + \
-                "\n" + \
-                "Go to:\n" + \
-                "  https://console.developers.google.com/ \n" + \
-                "And set up an OAuth client for a web application. Make sure that configuration\n" + \
-                "mirrors the one here.\n" + \
-                "\n" + \
-                "If you are not planning to use Google auth (which is the case for most dev\n" + \
-                "settings), please disable Google authentication in creds.yaml by\n" + \
-                "removing the google_auth section under auth."
-            raise learning_observer.prestartup.StartupCheck("Auth: " + error)
+    try:
+        settings.pmss_settings.client_secret(types=['auth', 'google_oauth', 'web'])
+        settings.pmss_settings.project_id(types=['auth', 'google_oauth', 'web'])
+        settings.pmss_settings.client_id(types=['auth', 'google_oauth', 'web'])
+    except Exception as e:
+        error = \
+            "Please configure (or disable) Google oauth\n" + \
+            "\n" + \
+            "Go to:\n" + \
+            "  https://console.developers.google.com/ \n" + \
+            "And set up an OAuth client for a web application. Make sure that configuration\n" + \
+            "mirrors the one here.\n" + \
+            "\n" + \
+            "If you are not planning to use Google auth (which is the case for most dev\n" + \
+            "settings), please disable Google authentication in creds.yaml by\n" + \
+            "removing the google_auth section under auth."
+        raise learning_observer.prestartup.StartupCheck("Auth: " + error)

@@ -79,6 +79,12 @@ pmss.register_field(
     required=True
 )
 pmss.register_field(
+    name="project_id",
+    type=pmss.pmsstypes.TYPES.string,
+    description="The Google OAuth project id",
+    required=True
+)
+pmss.register_field(
     name='fetch_additional_info_from_teacher_on_login',
     type=pmss.pmsstypes.TYPES.boolean,
     description='Whether we should start an additional task that will '\
@@ -106,6 +112,9 @@ DEFAULT_GOOGLE_SCOPES = [
 ]
 
 # TODO Type list is not yet supported by PMSS 4/24/24
+# We did another pass of PMSS conversion and lists are still
+# not supported. Our current strategy is to try and make things
+# work without lists until they are supported 2/10/24
 # pmss.register_field(
 #     name='base_scopes',
 #     type='list',
