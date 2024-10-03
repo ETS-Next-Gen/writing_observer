@@ -350,9 +350,6 @@ def check_event_auth_config():
     Check that all event auth methods are correctly configured,
     before events come in.
     '''
-    # TODO what do we want to do with this?
-    if 'event_auth' not in learning_observer.settings.settings:
-        raise learning_observer.prestartup.StartupCheck("Please configure event authentication")
     for auth_method in AVAILABLE_AUTH_METHODS:
         if auth_method not in AUTH_METHODS:
             raise learning_observer.prestartup.StartupCheck(

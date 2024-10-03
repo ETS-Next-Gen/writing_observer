@@ -114,11 +114,6 @@ def verify_auth_precheck():
     This is a pre-startup check to make sure that the auth system is configured
     correctly.
     '''
-    # TODO how should we handle this case?
-    if 'auth' not in settings.settings:
-        raise learning_observer.prestartup.StartupCheck(
-            "Please configure auth")
-
     # If we have Google oauth, we need it properly configured.
     # TODO: Confirm everything works with Google Oauth missing
     try:

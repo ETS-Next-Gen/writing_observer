@@ -1,5 +1,6 @@
 import aiohttp
 import os
+import pmss
 
 import learning_observer.communication_protocol.integration
 from learning_observer.log_event import debug_log
@@ -10,6 +11,21 @@ template = """[Task]\n{question}\n\n[Essay]\n{text}"""
 rubric_template = """{task}\n\n[Rubric]\n{rubric}"""
 gpt_responder = None
 
+pmss.register_field(
+    name='model',
+    type=pmss.TYPES.string,
+    description='Which model we wish to use with the GPT responder.'
+)
+pmss.register_field(
+    name='api_key',
+    type=pmss.TYPES.string,
+    description='API Key required for connection.'
+)
+pmss.register_field(
+    name='host',
+    type=pmss.TYPES.string, # TODO this ought to be a hostname, but sometimes we want `None`
+    description='Where to connect for the GPT usage.'
+)
 
 class GPTAPI:
     def chat_completion(self, prompt, system_prompt):
@@ -134,33 +150,19 @@ def initialize_gpt_responder():
     try the next one.
     '''
     global gpt_responder
-    # TODO change this to use settings.module_settings() instead
-    # that method now uses pmss which doesn't support lists and
-    # dictionaries yet.
-    responders = learning_observer.settings.settings['modules']['writing_observer'].get('gpt_responders', {})
-    exceptions = []
-    for key in responders:
-        if key not in GPT_RESPONDERS:
-            exceptions.append(KeyError(
-                f'GPT Responder `{key}` is not yet configured on this system.\n'\
-                f'The available responders are [{", ".join(GPT_RESPONDERS.keys())}].'
-            ))
-            continue
-        try:
-            gpt_responder = GPT_RESPONDERS[key](**responders[key])
-            debug_log(f'INFO:: Using GPT responder `{key}` with model `{responders[key]["model"]}`')
-            return True
-        except GPTInitializationError as e:
-            exceptions.append(e)
-            debug_log(f'WARNING:: Unable to initialize GPT responder `{key}:`.\n{e}')
-            gpt_responder = None
-    no_responders = 'No GPT responders found in `creds.yaml`. To add a responder, add either'\
-        '`openai` or `ollama` along with any subsettings to `modules.writing_observer.gpt_responders`.\n'\
-        'Example:\n```\ngpt_responders:\n  ollama:\n    model: llama2\n```'
-    exception_strings = '\n'.join(str(e) for e in exceptions) if len(exceptions) > 0 else no_responders
-    exception_text = 'Unable to initialize a GPT responder. Encountered the following errors:\n'\
-        f'{exception_strings}'
-    raise learning_observer.prestartup.StartupCheck("GPT: " + exception_text)
+    responder_type = learning_observer.settings.pmss_settings.type(types=['writing_observer', 'gpt_responder'])
+    if responder_type not in GPT_RESPONDERS:
+        raise KeyError(
+            f'GPT Responder `{key}` is not yet configured on this system.\n'\
+            f'The available responders are [{", ".join(GPT_RESPONDERS.keys())}].'
+        )
+    responder_kwargs = {
+        'model': learning_observer.settings.pmss_settings.model(types=['writing_observer', 'gpt_responder']),
+        'host': learning_observer.settings.pmss_settings.host(types=['writing_observer', 'gpt_responder']),
+        'api_key': learning_observer.settings.pmss_settings.api_key(types=['writing_observer', 'gpt_responder'])
+    }
+    gpt_responder = GPT_RESPONDERS[responder_type](**responder_kwargs)
+    debug_log(f'INFO:: Using GPT responder `{responder_type}` with model `{responder_kwargs["model"]}`')
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
@@ -203,7 +205,7 @@ async def process_student_essay(text, prompt, system_prompt, tags):
 
 
 async def test_responder():
-    responder = OllamaGPT('llama2')
+    responder = OllamaGPT(model='llama2', host=None)
     response = await responder.chat_completion('Why is the sky blue?', 'You are a helper agent, please help fulfill user requests.')
     print('Response:', response)
 
