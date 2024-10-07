@@ -332,5 +332,12 @@ window.dash_clientside.bulk_essay_feedback = {
                  'exploring a different dashboard for now. ' +
                  'Thanks for your patience!';
     return [text, true, error];
-  }
+  },
+
+  disable_doc_src_datetime: function (value) {
+    if (value === 'ts') {
+      return [false, false];
+    }
+    return [true, true];
+  },
 };

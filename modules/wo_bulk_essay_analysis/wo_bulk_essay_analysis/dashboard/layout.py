@@ -155,7 +155,7 @@ def layout():
 
 # disbale document date/time options
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='disable_doc_src_datetime'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disable_doc_src_datetime'),
     Output(doc_src_date, 'disabled'),
     Output(doc_src_timestamp, 'disabled'),
     Input(doc_src, 'value')

@@ -28,10 +28,30 @@ async function hashObject (obj) {
   const encoder = new TextEncoder();
   const data = encoder.encode(jsonString);
 
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+  // Check if crypto.subtle is available
+  if (crypto && crypto.subtle) {
+    try {
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    } catch (error) {
+      console.warn('crypto.subtle.digest failed; falling back to simple hash.');
+    }
+  }
+
+  // Fallback to the simple hash if crypto.subtle is unavailable
+  return simpleHash(jsonString);
+}
+
+function simpleHash (str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return hash.toString(16);
 }
 
 // TODO some of this will move to the communication protocol, but for now

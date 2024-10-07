@@ -41,7 +41,7 @@ clientside_callback(
     }''',
     Output(_add_button, 'disabled'),
     Input(_add_input, 'value'),
-    Input(_store, 'data')
+    State(_store, 'data')
 )
 
 # clear input on add
@@ -76,7 +76,7 @@ def create_tray_item(preset):
     State(_store, 'data')
 )
 def create_tray_items_from_store(ts, data):
-    if ts is None:
+    if ts is None and data is None:
         raise exceptions.PreventUpdate
     return [html.Span(create_tray_item(preset), className='me-1') for preset in data.keys()]
 
