@@ -96,6 +96,14 @@ machine to a new version, run
 inv configure [machine]
 ```
 
+Machine configuration
+---------------------
+
+* `uploads.csv` is used for large static files. These are uploaded, but are not synchronized with the configuration.
+* `sync.csv` is used to list files to upload and download. These are synchronized in both directions.
+* `gitclone` is a set of public repositories to download to the machine (and to keep in sync). This would normally point to github, gitlab, or similar.
+* `gitpush` is a list of repositories to upload to the server from the local machine. This is used for non-public repositories.
+
 Debugging
 ---------
 
