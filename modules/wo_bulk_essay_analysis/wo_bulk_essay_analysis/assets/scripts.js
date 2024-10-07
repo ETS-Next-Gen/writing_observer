@@ -3,22 +3,26 @@
  */
 
 if (!window.dash_clientside) {
-  window.dash_clientside = {}
+  window.dash_clientside = {};
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
-const createStudentCard = function (student, prompt) {
+const createStudentCard = function (s, prompt) {
+  // TODO this ought to come from the comm protocol
+  const document = Object.keys(s.documents)[0];
+  const student = s.documents[document];
+
   const header = {
     namespace: 'dash_bootstrap_components',
     type: 'CardHeader',
     props: { children: student.profile.name.full_name }
-  }
+  };
   const studentText = {
     namespace: 'lo_dash_react_components',
     type: 'WOAnnotatedText',
     props: { text: student.text, breakpoints: [], className: 'border-end' }
-  }
+  };
   const feedbackMessage = {
     namespace: 'dash_html_components',
     type: 'Div',
@@ -27,7 +31,7 @@ const createStudentCard = function (student, prompt) {
       className: student?.feedback ? 'p-1 overflow-auto' : '',
       style: { whiteSpace: 'pre-line' }
     }
-  }
+  };
   const feedbackLoading = {
     namespace: 'dash_html_components',
     type: 'Div',
@@ -39,8 +43,8 @@ const createStudentCard = function (student, prompt) {
       },
       className: 'text-center'
     }
-  }
-  const feedback = prompt === student.prompt ? feedbackMessage : feedbackLoading
+  };
+  const feedback = prompt === student.prompt ? feedbackMessage : feedbackLoading;
   const body = {
     namespace: 'lo_dash_react_components',
     type: 'LOPanelLayout',
@@ -50,7 +54,7 @@ const createStudentCard = function (student, prompt) {
       shown: ['feedback-text'],
       className: 'overflow-auto p-1'
     }
-  }
+  };
   const card = {
     namespace: 'dash_bootstrap_components',
     type: 'Card',
@@ -58,7 +62,7 @@ const createStudentCard = function (student, prompt) {
       children: [header, body],
       style: { maxHeight: '375px' }
     }
-  }
+  };
   return {
     namespace: 'dash_bootstrap_components',
     type: 'Col',
@@ -67,16 +71,16 @@ const createStudentCard = function (student, prompt) {
       id: student.user_id,
       width: 4
     }
-  }
-}
+  };
+};
 
 const charactersAfterChar = function (str, char) {
-  const commaIndex = str.indexOf(char)
+  const commaIndex = str.indexOf(char);
   if (commaIndex === -1) {
-    return ''
+    return '';
   }
-  return str.slice(commaIndex + 1).trim()
-}
+  return str.slice(commaIndex + 1).trim();
+};
 
 const extractPDF = async function (base64String) {
   const pdfData = atob(charactersAfterChar(base64String, ','))
@@ -101,7 +105,7 @@ const extractPDF = async function (base64String) {
   const allText = allTexts.join('\n')
 
   return allText
-}
+};
 
 window.dash_clientside.bulk_essay_feedback = {
   /**
@@ -134,10 +138,17 @@ window.dash_clientside.bulk_essay_feedback = {
           target_exports: ['gpt_bulk'],
           kwargs: decoded
         }
-      }
-      return JSON.stringify(message)
+      };
+      return JSON.stringify(message);
     }
-    return window.dash_clientside.no_update
+    return window.dash_clientside.no_update;
+  },
+
+  toggleAdvanced: function (clicks, isOpen) {
+    if (!clicks) {
+      return window.dash_clientside.no_update;
+    }
+    return !isOpen;
   },
 
   /**
@@ -183,12 +194,17 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * update student cards based on new data in storage
    */
-  update_student_grid: function (message, history) {
-    const currPrompt = history.length > 0 ? history[history.length - 1] : ''
-    const cards = message.map((x) => {
-      return createStudentCard(x, currPrompt)
-    })
-    return cards
+  updateStudentGridOutput: function (wsStorageData, history) {
+    if (!wsStorageData) {
+      return 'No students';
+    }
+    const currPrompt = history.length > 0 ? history[history.length - 1] : '';
+
+    let output = [];
+    for (const student in wsStorageData) {
+      output = output.concat(createStudentCard(wsStorageData[student], currPrompt));
+    }
+    return output;
   },
 
   /**
@@ -306,8 +322,8 @@ window.dash_clientside.bulk_essay_feedback = {
    * - show alert
    * - JSON error data on the alert (only in debug)
    */
-  update_alert_with_error: function (error) {
-    if (!error) {
+  updateAlertWithError: function (error) {
+    if (Object.keys(error).length === 0) {
       return ['', false, ''];
     }
     const text = 'Oops! Something went wrong ' +
@@ -316,5 +332,12 @@ window.dash_clientside.bulk_essay_feedback = {
                  'exploring a different dashboard for now. ' +
                  'Thanks for your patience!';
     return [text, true, error];
-  }
+  },
+
+  disable_doc_src_datetime: function (value) {
+    if (value === 'ts') {
+      return [false, false];
+    }
+    return [true, true];
+  },
 };

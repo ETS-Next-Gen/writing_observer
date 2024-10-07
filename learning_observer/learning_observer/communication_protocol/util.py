@@ -13,7 +13,10 @@ dispatch = q.dispatch
 
 def _flatten_helper(top_level, current_level, prefix=''):
     """
-    Flatten the dictionary.
+    This is a helper function for taking a dictionary of nested
+    calls to the communication protocol, such as `select(keys(...))`,
+    and converting them to a flat dictionary. E.g. one item for
+    the `select` call and one item for the `key` call.
 
     :param top_level: The top level dictionary
     :type top_level: dict
@@ -42,7 +45,11 @@ def _flatten_helper(top_level, current_level, prefix=''):
 
 def flatten(endpoint):
     """
-    Flatten the endpoint.
+    The DAG is provided as a complex dictinoary structure. This function
+    flattens the dictionary to a single layer.
+    A query with a node `select(keys(...))` would start with a single
+    dictionary item and be translated to one for the `select` and another
+    for the `keys` portion.
 
     :param endpoint: The endpoint dictionary
     :type endpoint: dict
@@ -56,6 +63,13 @@ def flatten(endpoint):
 
 
 def generate_base_dag_for_student_reducer(reducer, module):
+    '''
+    A very common use-case is that we want the latest reducer output for a specific reducer for one course.
+
+    This is a shorthand way to do it.
+
+    TODO: We should probably give this a better name. Hopefully quickly, before a lot of code depends on this. E.g. `predefined_query.course_reducer`, `predefined_query.student_reducer`, etc. (so also move them into their own namespace).
+    '''
     course_roster = q.call('learning_observer.courseroster')
     keys_node = f'{reducer}_keys'
     select_node = f'{reducer}_output'
