@@ -1,4 +1,6 @@
-import * as crypto from 'crypto';
+// import * as crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
+
 import { storage } from './browserStorage.js';
 
 /**
@@ -163,7 +165,8 @@ export function profileInfoWrapper () {
   str: A string representing the unique key, in the format "{prefix}-{randomUUID}-{timestamp}". If no prefix is provided, the format will be "{randomUUID}-{timestamp}".
   */
 export function keystamp (prefix) {
-  return `${prefix ? prefix + '-' : ''}${crypto.randomUUID()}-${Date.now()}`;
+  return `${prefix ? prefix + '-' : ''}${uuidv4()}-${Date.now()}`;
+  //  return `${prefix ? prefix + '-' : ''}${crypto.randomUUID()}-${Date.now()}`;
 }
 
 /*
