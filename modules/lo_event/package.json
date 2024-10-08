@@ -60,7 +60,7 @@
     "util": "^0.12.5",
     "vm-browserify": "^1.1.2"
   },
-  browser: {
+  "browser": {
     "fs": false
   }
 }
