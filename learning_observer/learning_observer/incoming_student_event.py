@@ -39,6 +39,8 @@ import learning_observer.auth.events
 import learning_observer.adapters.adapter
 import learning_observer.blacklist
 
+import learning_observer.constants as constants
+
 
 def compile_server_data(request):
     '''
@@ -59,6 +61,14 @@ async def student_event_pipeline(metadata):
     '''
     Create an event pipeline, based on header metadata
     '''
+    if "source" not in metadata:
+        raise KeyError("No source in the event metadata. "
+                       "We should have a source (like "
+                       "org.ets.writing-observer or "
+                       "org.mitros.da) to know where "
+                       "to route events. We have seen "
+                       "this error before if lockfields "
+                       "aren't resent on a reconnect.")
     client_source = metadata["source"]
     debug_log("client_source", client_source)
     debug_log("Module", stream_analytics.reducer_modules(client_source))
@@ -338,7 +348,7 @@ async def incoming_websocket_handler(request):
         events
         '''
         if not authenticated:
-            return
+            return False
 
         nonlocal event_handler, reducers_last_updated
         if 'source' in lock_fields:
@@ -349,6 +359,7 @@ async def incoming_websocket_handler(request):
         metadata['auth'] = authenticated
         event_handler = await handle_incoming_client_event(metadata=metadata)
         reducers_last_updated = learning_observer.stream_analytics.LAST_UPDATED
+        return True
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -377,6 +388,12 @@ async def incoming_websocket_handler(request):
                     first_event={},
                     source=''
                 )
+                if authenticated:
+                    print(authenticated)
+                    await ws.send_json({
+                        'status': 'auth',
+                        constants.USER_ID: authenticated[constants.USER_ID]
+                    })
                 await update_event_handler(event)
                 backlog.append(event)
             else:

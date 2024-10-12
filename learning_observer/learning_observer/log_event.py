@@ -315,7 +315,14 @@ def log_ajax(url, resp_json, request):
 
 def close_logfile(filename):
     # remove the file from the dict storing open log files and close it
+    if filename not in files:
+        # If we logged no events, the file was never created, so the code
+        # below fails. This forces the file to be created, and marked
+        # as empty, which also gives some logging of something having
+        # happened.
+        #
+        # I don't know if this is the right sentinel to use. Empty file? A
+        # single event of some kind?
+        log_event("[Empty log file -- no events captured]", preencoded=True, filename=None)
     old_file = files.pop(filename)
-    if old_file is None:
-        raise KeyError(f"Tried to remove log file {old_file} but it was not found")
     old_file.close()
