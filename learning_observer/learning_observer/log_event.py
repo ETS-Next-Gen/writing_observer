@@ -323,6 +323,6 @@ def close_logfile(filename):
         #
         # I don't know if this is the right sentinel to use. Empty file? A
         # single event of some kind?
-        log_event("[Empty log file -- no events captured]", preencoded=True, filename=None)
+        log_event("[Empty log file -- no events captured]", preencoded=True, filename=filename)
     old_file = files.pop(filename)
     old_file.close()
