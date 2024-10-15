@@ -61,18 +61,25 @@ async def student_event_pipeline(metadata):
     '''
     Create an event pipeline, based on header metadata
     '''
+    client_source = None
+
     if "source" not in metadata:
-        raise KeyError("No source in the event metadata. "
-                       "We should have a source (like "
-                       "org.ets.writing-observer or "
-                       "org.mitros.da) to know where "
-                       "to route events. We have seen "
-                       "this error before if lockfields "
-                       "aren't resent on a reconnect.")
-    client_source = metadata["source"]
-    debug_log("client_source", client_source)
-    debug_log("Module", stream_analytics.reducer_modules(client_source))
-    analytics_modules = stream_analytics.reducer_modules(client_source)
+        analytics_modules = []
+        debug_log("Missing client source!")
+        print("We are missing a client source. This should never happen. It can mean a few things:")
+        print("* Someone is sending us malformed events, either due to a cyberattack or due to a client bug")
+        print("* We've got a bug in how we extract metadata")
+        print("* Something else?")
+        print("This shold probably not be ignored.")
+        print("We used to raise a SuspiciousOperation exception, but it's surprisingly easy to lose data to a")
+        print("bug, so we log the data now instead, but with no reducers. This decision might be re-evaluated")
+        print("as the system matures")
+        client_source = "org.ets.generic"
+    else:
+        client_source = metadata["source"]
+        debug_log("client_source", client_source)
+        debug_log("Module", stream_analytics.reducer_modules(client_source))
+        analytics_modules = stream_analytics.reducer_modules(client_source)
 
     # Create an event processor for this user
     # TODO:
