@@ -28,11 +28,12 @@ _advanced_toggle = f'{prefix}-advanced-toggle'
 _advanced_collapse = f'{prefix}-advanced-collapse'
 
 system_input = f'{prefix}-system-prompt-input'
-# document source
+# document source DOM ids
 doc_src = f'{prefix}-doc-src'
 doc_src_date = f'{prefix}-doc-src-date'
 doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
+# attachment upload DOM ids
 attachment_upload = f'{prefix}-attachment-upload'
 attachment_label = f'{prefix}-attachment-label'
 attachment_extracted_text = f'{prefix}-attachment-extracted-text'
@@ -40,13 +41,22 @@ attachment_save = f'{prefix}-attachment-save'
 attachment_warning_message = f'{prefix}-attachment-warning-message'
 attachment_store = f'{prefix}-attachment-store'
 
+# placeholder DOM ids
 tags = f'{prefix}-tags'
+placeholder_tooltip = f'{prefix}-placeholder-tooltip'
 tag = f'{prefix}-tag'
 tag_store = f'{prefix}-tags-store'
 
+# prompt history DOM ids
 history_body = f'{prefix}-history-body'
 history_store = f'{prefix}-history-store'
 favorite_store = f'{prefix}-favorite-store'
+
+# loading message/bar DOM ids
+_loading_prefix = f'{prefix}-loading'
+_loading_collapse = f'{_loading_prefix}-collapse'
+_loading_progress = f'{_loading_prefix}-progress-bar'
+_loading_information = f'{_loading_prefix}-information-text'
 
 submit = f'{prefix}-submit-btn'
 submit_warning_message = f'{prefix}-submit-warning-msg'
@@ -65,8 +75,8 @@ def layout():
     '''
     # advanced menu for system prompt
     advanced = [
-        dbc.InputGroup([
-            dbc.InputGroupText('System prompt:'),
+        html.Div([
+            dbc.Label('System prompt'),
             dbc.Textarea(id=system_input, value=system_prompt)
         ]),
         html.Div([
@@ -84,7 +94,7 @@ def layout():
 
     # history panel
     history_favorite_panel = dbc.Card([
-        dbc.CardHeader('Prompts'),
+        dbc.CardHeader('Prompt History'),
         dbc.CardBody([], id=history_body),
         dcc.Store(id=history_store, data=[])
     ], class_name='h-100')
@@ -107,48 +117,61 @@ def layout():
 
     # query creator panel
     input_panel = dbc.Card([
-        dbc.InputGroup([
-            dbc.InputGroupText([], id=tags, class_name='flex-grow-1', style={'gap': '5px'}),
+        dbc.CardHeader('Prompt Input'),
+        dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload), class_name='d-none'),
+        dbc.CardBody([
+            dbc.Textarea(id=query_input, value=starting_prompt, class_name='h-100', style={'minHeight': '150px'}),
+            html.Div([
+                html.Span([
+                    'Placeholders',
+                    html.I(className='fas fa-circle-question ms-1', id=placeholder_tooltip)
+                ], className='me-1'),
+                html.Span([], id=tags),
+            ], className='mt-1'),
+            dbc.Tooltip(
+                'Click a placeholder to insert it into your prompt. Upon submission, it will be replaced with the corresponding value.',
+                target=placeholder_tooltip
+            ),
             dcc.Store(id=tag_store, data={'student_text': ''}),
-            dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload))
         ]),
-        dbc.CardBody(dbc.Textarea(id=query_input, value=starting_prompt, class_name='h-100', style={'minHeight': '150px'})),
         dbc.CardFooter([
             html.Small(id=submit_warning_message, className='text-danger'),
             dbc.Button('Submit', color='primary', id=submit, n_clicks=0, class_name='float-end')
         ])
-    ], class_name='h-100')
+    ])
 
     alert_component = dbc.Alert([
         html.Div(id=alert_text),
         html.Div(DashRenderjson(id=alert_error_dump), className='' if DEBUG_FLAG else 'd-none')
     ], id=alert, color='danger', is_open=False)
 
+    loading_component = dbc.Collapse([
+        html.Div(id=_loading_information),
+        dbc.Progress(id=_loading_progress, animated=True, striped=True, max=1.1)
+    ], id=_loading_collapse, is_open=False, class_name='mb-1 sticky-top bg-light')
+
     # overall container
     cont = dbc.Container([
-        html.H2('Prototype: Work in Progress'),
-        html.P(
-            'This dashboard is a prototype allowing teachers to run ChatGPT over a set of essays. '
-            'The dashboard is subject to change based on ongoing feedback from teachers.'
-        ),
         html.H2('AskGPT'),
         dbc.InputGroup([
             dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
-            dbc.Button(html.I(className='fas fa-cog'), id=_advanced_toggle),
+            dbc.Button([html.I(className='fas fa-cog me-1'), 'Advanced'], id=_advanced_toggle),
             lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
-        ]),
-        dbc.Collapse(advanced, id=_advanced_collapse),
+        ], class_name='mb-1'),
+        dbc.Collapse(advanced, id=_advanced_collapse, class_name='mb-1'),
         lodrc.LOPanelLayout(
             input_panel,
             panels=[
-                {'children': history_favorite_panel, 'width': '20%', 'id': 'history-favorite', 'side': 'left'},
+                {'children': history_favorite_panel, 'width': '30%', 'id': 'history-favorite'},
                 {'children': attachment_panel, 'width': '40%', 'id': 'attachment'},
             ],
             shown=['history-favorite'],
             id=panel_layout
         ),
         alert_component,
-        dbc.Row(id=grid, class_name='g-2 mt-2'),
+        html.H3('Student Text', className='mt-1'),
+        loading_component,
+        dbc.Row(id=grid, class_name='g-4'),
     ], fluid=True)
     return dcc.Loading(cont)
 
@@ -187,10 +210,11 @@ clientside_callback(
 # enable/disabled submit based on query
 # makes sure there is a query and the tags are properly formatted
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disabled_query_submit'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disableQuerySubmitButton'),
     Output(submit, 'disabled'),
     Output(submit_warning_message, 'children'),
     Input(query_input, 'value'),
+    Input(_loading_collapse, 'is_open'),
     State(tag_store, 'data')
 )
 
@@ -277,4 +301,14 @@ clientside_callback(
     State(tag_store, 'data'),
     State(panel_layout, 'shown'),
     prevent_initial_call=True
+)
+
+# update loading information
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='updateLoadingInformation'),
+    Output(_loading_collapse, 'is_open'),
+    Output(_loading_progress, 'value'),
+    Output(_loading_information, 'children'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
+    Input(history_store, 'data')
 )

@@ -8,10 +8,11 @@ if (!window.dash_clientside) {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
-const createStudentCard = function (s, prompt) {
+const createStudentCard = async function (s, prompt) {
   // TODO this ought to come from the comm protocol
   const document = Object.keys(s.documents)[0];
   const student = s.documents[document];
+  const promptHash = await hashObject({ prompt });
 
   const header = {
     namespace: 'dash_bootstrap_components',
@@ -22,6 +23,13 @@ const createStudentCard = function (s, prompt) {
     namespace: 'lo_dash_react_components',
     type: 'WOAnnotatedText',
     props: { text: student.text, breakpoints: [], className: 'border-end' }
+  };
+  const errorMessage = {
+    namespace: 'dash_html_components',
+    type: 'Div',
+    props: {
+      children: 'An error occurred while processing the text.'
+    }
   };
   const feedbackMessage = {
     namespace: 'dash_html_components',
@@ -36,21 +44,26 @@ const createStudentCard = function (s, prompt) {
     namespace: 'dash_html_components',
     type: 'Div',
     props: {
-      children: {
+      children: [{
         namespace: 'dash_bootstrap_components',
         type: 'Spinner',
         props: {}
-      },
+      }, {
+        namespace: 'dash_html_components',
+        type: 'Div',
+        props: { children: 'Waiting for a response.' }
+      }],
       className: 'text-center'
     }
   };
-  const feedback = prompt === student.prompt ? feedbackMessage : feedbackLoading;
+  const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
+  const feedbackOrError = 'error' in student ? errorMessage : feedback;
   const body = {
     namespace: 'lo_dash_react_components',
     type: 'LOPanelLayout',
     props: {
       children: studentText,
-      panels: [{ children: feedback, id: 'feedback-text', width: '40%' }],
+      panels: [{ children: feedbackOrError, id: 'feedback-text', width: '40%' }],
       shown: ['feedback-text'],
       className: 'overflow-auto p-1'
     }
@@ -69,9 +82,17 @@ const createStudentCard = function (s, prompt) {
     props: {
       children: card,
       id: student.user_id,
-      width: 4
+      xs: 12,
+      lg: 6,
+      xxl: 4
     }
   };
+};
+
+const checkForResponse = function (s, promptHash) {
+  const document = Object.keys(s.documents)[0];
+  const student = s.documents[document];
+  return promptHash === student.option_hash;
 };
 
 const charactersAfterChar = function (str, char) {
@@ -113,24 +134,30 @@ window.dash_clientside.bulk_essay_feedback = {
    */
   send_to_loconnection: async function (state, hash, clicks, docSrc, docDate, docTime, query, systemPrompt, tags) {
     if (state === undefined) {
-      return window.dash_clientside.no_update
+      return window.dash_clientside.no_update;
     }
     if (state.readyState === 1) {
-      if (hash.length === 0) { return window.dash_clientside.no_update }
-      const decoded = decode_string_dict(hash.slice(1))
-      if (!decoded.course_id) { return window.dash_clientside.no_update }
+      if (hash.length === 0) { return window.dash_clientside.no_update; }
+      const decoded = decode_string_dict(hash.slice(1));
+      if (!decoded.course_id) { return window.dash_clientside.no_update; }
 
       decoded.gpt_prompt = '';
       decoded.message_id = '';
       decoded.doc_source = docSrc;
       decoded.requested_timestamp = new Date(`${docDate}T${docTime}`).getTime().toString();
+      // TODO what is a reasonable time to wait inbetween subsequent calls for
+      // the same arguments
+      decoded.rerun_dag_delay = 120;
 
-      const trig = window.dash_clientside.callback_context.triggered[0]
+      const trig = window.dash_clientside.callback_context.triggered[0];
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
         decoded.gpt_prompt = query;
         decoded.system_prompt = systemPrompt;
         decoded.tags = tags;
       }
+
+      const optionsHash = await hashObject({ prompt: decoded.gpt_prompt });
+      decoded.option_hash = optionsHash;
 
       const message = {
         wo: {
@@ -182,19 +209,19 @@ window.dash_clientside.bulk_essay_feedback = {
         namespace: 'dash_html_components',
         type: 'Li',
         props: { children: x }
-      }
-    })
+      };
+    });
     return {
       namespace: 'dash_html_components',
       type: 'Ol',
       props: { children: items }
-    }
+    };
   },
 
   /**
    * update student cards based on new data in storage
    */
-  updateStudentGridOutput: function (wsStorageData, history) {
+  updateStudentGridOutput: async function (wsStorageData, history) {
     if (!wsStorageData) {
       return 'No students';
     }
@@ -202,7 +229,7 @@ window.dash_clientside.bulk_essay_feedback = {
 
     let output = [];
     for (const student in wsStorageData) {
-      output = output.concat(createStudentCard(wsStorageData[student], currPrompt));
+      output = output.concat(await createStudentCard(wsStorageData[student], currPrompt));
     }
     return output;
   },
@@ -217,14 +244,14 @@ window.dash_clientside.bulk_essay_feedback = {
   */
   open_and_populate_attachment_panel: async function (contents, filename, timestamp, shown) {
     if (filename === undefined) {
-      return ['', '', shown]
+      return ['', '', shown];
     }
     let data = ''
     if (filename.endsWith('.pdf')) {
-      data = await extractPDF(contents)
+      data = await extractPDF(contents);
     }
     // TODO add support for docx-like files
-    return [data, filename.slice(0, filename.lastIndexOf('.')), shown.concat('attachment')]
+    return [data, filename.slice(0, filename.lastIndexOf('.')), shown.concat('attachment')];
   },
 
   /**
@@ -248,19 +275,22 @@ window.dash_clientside.bulk_essay_feedback = {
    * - submit query button disbaled status
    * - helper text for why we disabled the submit query button
   */
-  disabled_query_submit: function (query, store) {
+  disableQuerySubmitButton: function (query, loading, store) {
     if (query.length === 0) {
-      return [true, 'Please create a request before submitting.']
+      return [true, 'Please create a request before submitting.'];
     }
-    const tags = Object.keys(store)
-    const queryTags = query.match(/[^{}]+(?=})/g) || []
-    const diffs = queryTags.filter(x => !tags.includes(x))
+    if (loading) {
+      return [true, 'Please wait until current query has finished before resubmitting.'];
+    }
+    const tags = Object.keys(store);
+    const queryTags = query.match(/[^{}]+(?=})/g) || [];
+    const diffs = queryTags.filter(x => !tags.includes(x));
     if (diffs.length > 0) {
-      return [true, `Unable to find [${diffs.join(',')}] within the tags. Please check that the spelling is correct or remove the extra tags.`]
+      return [true, `Unable to find [${diffs.join(',')}] within the tags. Please check that the spelling is correct or remove the extra tags.`];
     } else if (!queryTags.includes('student_text')) {
-      return [true, 'Submission requires the inclusion of {student_text} to run the request over the student essays.']
+      return [true, 'Submission requires the inclusion of {student_text} to run the request over the student essays.'];
     }
-    return [false, '']
+    return [false, ''];
   },
 
   /**
@@ -283,7 +313,7 @@ window.dash_clientside.bulk_essay_feedback = {
    * populate word bank of tags
    */
   update_tag_buttons: function (tagStore) {
-    const tagLabels = Object.keys(tagStore)
+    const tagLabels = Object.keys(tagStore);
     const tags = tagLabels.map((val) => {
       const button = {
         namespace: 'dash_bootstrap_components',
@@ -295,10 +325,10 @@ window.dash_clientside.bulk_essay_feedback = {
           size: 'sm',
           color: 'secondary'
         }
-      }
-      return button
-    })
-    return tags
+      };
+      return button;
+    });
+    return tags;
   },
 
   /**
@@ -340,4 +370,19 @@ window.dash_clientside.bulk_essay_feedback = {
     }
     return [true, true];
   },
+
+  updateLoadingInformation: async function (wsStorageData, history) {
+    const noLoading = [false, 0, ''];
+    if (!wsStorageData) {
+      return noLoading;
+    }
+    const currentPrompt = history.length > 0 ? history[history.length - 1] : '';
+    const promptHash = await hashObject({ prompt: currentPrompt });
+    const returnedResponses = Object.values(wsStorageData).filter(student => checkForResponse(student, promptHash)).length;
+    const totalStudents = Object.keys(wsStorageData).length;
+    if (totalStudents === returnedResponses) { return noLoading; }
+    const loadingProgress = returnedResponses / totalStudents + 0.1;
+    const outputText = `Fetching responses from server. This may take a few minutes. (${returnedResponses}/${totalStudents} received)`;
+    return [true, loadingProgress, outputText];
+  }
 };

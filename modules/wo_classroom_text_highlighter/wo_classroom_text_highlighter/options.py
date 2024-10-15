@@ -4,10 +4,9 @@ import writing_observer.nlp_indicators
 parents = []
 
 OPTIONS = [
-    {'id': indicator['id'], 'types': {'highlight': {}, 'metric': {}}, 'label': indicator['name'], 'parent': 'text-information'}
+    {'id': indicator['id'], 'types': {'highlight': {}, 'metric': {}}, 'label': indicator['name'], 'parent': ''}
     for indicator in writing_observer.nlp_indicators.INDICATOR_JSONS
 ]
-OPTIONS.append({'id': 'text-information', 'label': 'Text Information', 'parent': ''})
 
 # TODO currently each preset is the full list of options with specific
 # values being set to true/including a color. We ought to just store
@@ -45,7 +44,8 @@ PRESETS_TO_CREATE = {
     'Vocabulary': ['academic_language', 'informal_language', 'latinate_words', 'polysyllabic_words', 'low_frequency_words']
 }
 
-PRESETS = {'Clear': OPTIONS}
+deselect_all = 'Deselect All'
+PRESETS = {deselect_all: OPTIONS}
 
 
 def add_preset_to_presets(key, value):

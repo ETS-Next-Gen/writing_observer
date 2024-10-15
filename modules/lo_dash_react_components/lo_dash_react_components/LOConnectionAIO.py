@@ -139,12 +139,21 @@ class LOConnectionAIO(html.Div):
                         delete errorStore[message.path];
                     }
                     const finalKey = pathKeys[pathKeys.length - 1];
-                    if (message.op === 'update' && !('error' in message.value)) {
-                        // Shallow merge using spread syntax
-                        current[finalKey] = {
-                        ...current[finalKey], // Existing data
-                        ...message.value // New data (overwrites where necessary)
-                        };
+                    if (message.op === 'update') {
+                        if (current[finalKey] === undefined) {
+                            current[finalKey] = {};
+                        }
+                        if ('error' in message.value) {
+                            current[finalKey]['error'] = message.value;
+                            current[finalKey]['option_hash'] = message.value['option_hash'];
+                        } else {
+                            delete current[finalKey]['error'];
+                            // Shallow merge using spread syntax
+                            current[finalKey] = {
+                            ...current[finalKey], // Existing data
+                            ...message.value // New data (overwrites where necessary)
+                            };
+                        }
                     }
                 });
                 return [currentData, errorStore]; // Return updated data

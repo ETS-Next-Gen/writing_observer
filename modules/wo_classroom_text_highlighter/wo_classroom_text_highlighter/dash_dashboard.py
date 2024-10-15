@@ -29,15 +29,16 @@ _options_hide_header = f'{_options_prefix}-hide-names'
 _options_text_information = f'{_options_prefix}-text-information'
 
 options_component = [
+    html.H4('View Options'),
     dbc.Label('Students per row'),
     dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
-    dbc.Label('Height'),
+    dbc.Label('Height of student tile'),
     dcc.Slider(min=100, max=800, marks=None, value=500, id=_options_height),
-    dbc.Label('Headers'),
+    dbc.Label('Student name headers'),
     dbc.Switch(value=True, id=_options_hide_header, label='Show/Hide'),
-    dbc.Label('Text information'),
+    html.H4('Highlight Options'),
     wo_classroom_text_highlighter.preset_component.create_layout(),
-    lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS)
+    lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS, className='table table-striped align-middle')
 ]
 
 # Alert Component
@@ -60,11 +61,14 @@ def layout():
         alert_component,
         dbc.InputGroup([
             dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
-            dbc.Button(html.I(className='fas fa-cog'), id=_options_toggle),
+            dbc.Button([
+                html.I(className='fas fa-cog me-1'),
+                'Highlight Options'
+            ], id=_options_toggle),
             lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
-        ]),
-        dbc.Collapse(options_component, id=_options_collapse),
-        html.Div(id=_output, className='d-flex justify-content-around flex-wrap')
+        ], class_name='sticky-top mb-1'),
+        dbc.Offcanvas(options_component, id=_options_collapse, scrollable=True, title='Settings'),
+        html.Div(id=_output, className='d-flex justify-content-between flex-wrap')
     ])
     return page_layout
 

@@ -46,7 +46,12 @@ def init_nlp():
                      '`awe_components` requires various models to operate properly. '\
                      f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} awe_components/setup/data.py` to install all '\
                      'of the necessary models.'
-        raise OSError(error_text) from e
+
+        a = input('Spacy model `en_core_web_lg` not available. Would you like to download? (y/n)')
+        if a.strip().lower() not in ['y', 'yes']:
+            raise OSError(error_text) from e
+        import awe_components.setup.data
+        awe_components.setup.data.download_models()
 
     # Adding all of the components, since
     # each of them turns out to be implicated in

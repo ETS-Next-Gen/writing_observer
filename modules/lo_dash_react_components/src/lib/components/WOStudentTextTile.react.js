@@ -28,8 +28,13 @@ export default class WOStudentTextTile extends Component {
     childComponent.props._dashprivate_layout.props = {...studentInfo.documents[selectedDocument]};
 
     const documentIsSelected = selectedDocument && studentInfo.documents[selectedDocument];
-    let bodyClassName = documentIsSelected && currentOptionHash !== studentInfo.documents[selectedDocument].optionHash ? 'loading' : '';
+    const isLoading = documentIsSelected && currentOptionHash !== studentInfo.documents[selectedDocument].optionHash;
+    let bodyClassName = isLoading ? 'loading' : '';
     bodyClassName = `${bodyClassName} overflow-auto`;
+
+    const loadedItem = documentIsSelected
+      ? <>{childComponent}</>
+      : <div>Document information not found.</div>;
 
     // TODO the chunk of commented code allows for linking directly to the selected document
     // and allows the user to select which document they wish to see at a given moment.
@@ -61,9 +66,9 @@ export default class WOStudentTextTile extends Component {
         </Card.Header>
         <Card.Body className={bodyClassName}>
         {
-          documentIsSelected
-            ? <>{childComponent}</>
-            : <div>Document information not found.</div>
+          isLoading
+            ? <div className='loading-circle'/>
+            : loadedItem
         }
         </Card.Body>
       </Card>

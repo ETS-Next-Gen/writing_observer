@@ -102,6 +102,10 @@ function formatStudentData (student, selectedHighlights) {
   };
 }
 
+function styleStudentTile (width, height) {
+  return { width: `${(100 - width) / width}%`, height: `${height}px` };
+}
+
 window.dash_clientside.wo_classroom_text_highlighter = {
   /**
    * Send updated queries to the communication protocol.
@@ -144,7 +148,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
 
   adjustTileSize: function (width, height, studentIds) {
     const total = studentIds.length;
-    return Array(total).fill({ width: `${100 / width}%`, height: `${height}px` });
+    return Array(total).fill(styleStudentTile(width, height));
   },
 
   showHideHeader: function (show, ids) {
@@ -184,14 +188,15 @@ window.dash_clientside.wo_classroom_text_highlighter = {
         LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
         {
           showHeader,
-          style: { width: `${100 / width}%`, height: `${height}px` },
+          style: styleStudentTile(width, height),
           studentInfo: formatStudentData(wsStorageData[student], selectedHighlights),
           // TODO the selectedDocument ought to remain the same upon updating the student object
           // i.e. it should be pulled from the current client student state
           selectedDocument: 'latest',
           childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
           id: { type: 'WOStudentTextTile', index: student },
-          currentOptionHash: optionHash
+          currentOptionHash: optionHash,
+          className: 'mb-2'
         }
       );
       output = output.concat(studentTile);

@@ -11,6 +11,7 @@ import asyncio
 import copy
 import inspect
 import json
+import aiohttp.client_exceptions
 import jsonschema
 import numbers
 import pmss
@@ -606,6 +607,8 @@ async def websocket_dashboard_handler(request):
                         batch.clear()
                     except aiohttp.web_ws.WebSocketError:
                         break
+                    except aiohttp.client_exceptions.ClientConnectionResetError:
+                        break
             if ws.closed:
                 break
             # TODO this ought to be pulled from somewhere
@@ -619,10 +622,17 @@ async def websocket_dashboard_handler(request):
         if params != client_query:
             # the params are different and we should stop this generator
             return
+
+        # Create DAG generator and drive
         generator = await _create_dag_generator(dag_query, target, request)
         await _drive_generator(generator, dag_query['kwargs'])
-        # TODO pull this from kwargs if available
-        await asyncio.sleep(10)
+
+        # Handle rescheduling the execution of the DAG for fresh data
+        dag_delay = dag_query['kwargs'].get('rerun_dag_delay', 10)
+        if dag_delay < 0:
+            # if dag_delay is negative, we skip repeated execution
+            return
+        await asyncio.sleep(dag_delay)
         await _execute_dag(dag_query, target, params)
 
     async def _drive_generator(generator, dag_kwargs):

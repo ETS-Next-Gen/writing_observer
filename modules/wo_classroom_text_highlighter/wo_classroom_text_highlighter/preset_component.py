@@ -23,7 +23,7 @@ def create_layout():
             html.I(className='fas fa-plus me-1'),
             'Preset'
         ], id=_add_button)
-    ], class_name='')
+    ], class_name='mb-1')
     return html.Div([
         add_preset,
         html.Div(id=_tray),
@@ -57,16 +57,16 @@ clientside_callback(
 
 
 def create_tray_item(preset):
-    if preset == 'Clear':
-        return dbc.Button(preset, id={'type': _set_item, 'index': preset}, color='danger')
+    if preset == wo_classroom_text_highlighter.options.deselect_all:
+        return dbc.Button(preset, id={'type': _set_item, 'index': preset}, color='warning')
     contents = dbc.ButtonGroup([
         dbc.Button(preset, id={'type': _set_item, 'index': preset}),
-        dbc.Button(dcc.ConfirmDialogProvider(
-            html.I(className='fas fa-close fa-sm'),
+        dcc.ConfirmDialogProvider(
+            dbc.Button(html.I(className='fas fa-trash fa-xs'), color='secondary'),
             id={'type': _remove_item, 'index': preset},
             message=f'Are you sure you want to delete the `{preset}` preset?'
-        ), color='secondary')
-    ])
+        )
+    ], class_name='preset')
     return contents
 
 
@@ -78,7 +78,7 @@ def create_tray_item(preset):
 def create_tray_items_from_store(ts, data):
     if ts is None and data is None:
         raise exceptions.PreventUpdate
-    return [html.Span(create_tray_item(preset), className='me-1') for preset in data.keys()]
+    return [html.Div(create_tray_item(preset), className='d-inline-block me-1 mb-1') for preset in reversed(data.keys())]
 
 
 @callback(
