@@ -70,7 +70,7 @@ async def student_event_pipeline(metadata):
         print("* Someone is sending us malformed events, either due to a cyberattack or due to a client bug")
         print("* We've got a bug in how we extract metadata")
         print("* Something else?")
-        print("This shold probably not be ignored.")
+        print("This should probably not be ignored.")
         print("We used to raise a SuspiciousOperation exception, but it's surprisingly easy to lose data to a")
         print("bug, so we log the data now instead, but with no reducers. This decision might be re-evaluated")
         print("as the system matures")
