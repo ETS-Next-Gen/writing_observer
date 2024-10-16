@@ -1,4 +1,5 @@
 import aiohttp
+import loremipsum
 import os
 
 import learning_observer.communication_protocol.integration
@@ -117,9 +118,20 @@ class OllamaGPT(GPTAPI):
                 raise GPTRequestErorr(error)
 
 
+class StubGPT(GPTAPI):
+    '''GPT responder for handling stub requests
+    '''
+    def __init__(self, **kwargs):
+        super().__init__()
+
+    async def chat_completion(self, prompt, system_prompt):
+        return "\n".join(loremipsum.get_paragraphs(1))
+
+
 GPT_RESPONDERS = {
     'openai': OpenAIGPT,
-    'ollama': OllamaGPT
+    'ollama': OllamaGPT,
+    'stub': StubGPT
 }
 
 
