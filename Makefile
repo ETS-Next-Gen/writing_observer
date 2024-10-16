@@ -3,7 +3,7 @@ PACKAGES ?= wo,awe
 run:
 	# If you haven't done so yet, run: make install
 	# we need to make sure we are on the virtual env when we do this
-	cd learning_observer && python learning_observer --watchdog=restart
+	cd learning_observer && python learning_observer
 
 venv:
 	# This is unnecessary since LO installs requirements on install.
@@ -42,7 +42,9 @@ install-packages: venv
 	# components.
 	# TODO remove this extra step after AWE Component's `spacy`
 	# is no longer version locked.
-	pip install -U typing-extensions
+	# pip install -U typing-extensions
+	pip uninstall -y protobuf
+	pip install --no-binary=protobuf protobuf==4.25
 
 # testing commands
 test:
