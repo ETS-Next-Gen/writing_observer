@@ -52,8 +52,22 @@ def dash_to_underscore(event):
     return event
 
 
+# HACK
+import writing_observer.writing_analysis
+
+def document_link_to_doc_id(event):
+    '''
+    Convert a document link to include a doc_id
+    '''
+    doc_id = writing_observer.writing_analysis.get_doc_id(event)
+    if doc_id:
+        event['doc_id'] = doc_id
+    return event
+
+
 common_transformers = [
-    dash_to_underscore
+    dash_to_underscore,
+    document_link_to_doc_id
 ]
 
 
