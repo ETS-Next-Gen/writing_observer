@@ -4,6 +4,10 @@ This is a web interface which provides information about:
 * The available queries
 * The DAG execution graphs associated with those
 * Parameters to said queries
+
+TODO at some point during development this broke and no longer
+displays the DAGs correctly. This was a hacked together prototype
+so efforts to fix have been pushed to wayside.
 '''
 
 from dash import html, dcc, callback, Output, Input, State

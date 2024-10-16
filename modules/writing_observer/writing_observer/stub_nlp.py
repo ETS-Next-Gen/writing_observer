@@ -128,8 +128,7 @@ async def process_texts(writing_data, options=None):
     '''
     if options is None:
         options = writing_observer.nlp_indicators.INDICATORS.keys()
-
-    for writing in writing_data:
+    async for writing in writing_data:
         text = writing.get('text', '')
         if len(text) == 0:
             continue
@@ -158,8 +157,7 @@ async def process_texts(writing_data, options=None):
                 'offsets': select_random_segments(text, seed=id)
             })
         writing.update(results)
-
-    return writing_data
+        yield writing
 
 
 if __name__ == '__main__':
