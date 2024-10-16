@@ -382,7 +382,7 @@ window.dash_clientside.bulk_essay_feedback = {
     const totalStudents = Object.keys(wsStorageData).length;
     if (totalStudents === returnedResponses) { return noLoading; }
     const loadingProgress = returnedResponses / totalStudents + 0.1;
-    const outputText = `Fetching responses from server. This may take a few minutes. (${returnedResponses}/${totalStudents} received)`;
+    const outputText = `Fetching responses from server. This will take a few minutes. (${returnedResponses}/${totalStudents} received)`;
     return [true, loadingProgress, outputText];
   }
 };
