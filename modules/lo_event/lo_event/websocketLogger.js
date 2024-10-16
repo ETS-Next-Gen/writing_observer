@@ -129,6 +129,21 @@ export function websocketLogger (server) {
           response.action
         );
         break;
+      case 'auth':
+        localStorage.setItem("user_id", response.user_id);
+        document.dispatchEvent(
+          new CustomEvent("auth", { detail: { user_id: response.user }})
+        );
+        break;
+      // These should probably be behind a feature flag, as they assume
+      // we trust the server.
+      case 'local_storage':
+        localStorage.setItem(response.key, response.value);
+        break;
+      case 'browser_event':
+        let event = new CustomEvent(response.event_type, { detail: response.detail });
+        document.dispatchEvent(event);
+        break;
       default:
         debug.info(`Received response we do not yet handle: ${response}`);
         break;

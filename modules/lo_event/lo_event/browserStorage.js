@@ -78,7 +78,6 @@ function getWithCallback (getItem) {
  */
 function setWithCallback (setItem) {
   function set (items, callback) {
-    console.log('setting item', items);
     for (const item in items) {
       setItem(item, items[item]);
     }

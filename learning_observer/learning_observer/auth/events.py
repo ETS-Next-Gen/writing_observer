@@ -289,14 +289,6 @@ async def test_case_identify(request, headers, first_event, source):
     }
 
 
-@register_event_auth("http_auth")
-async def http_auth_identify(request, headers, first_event, source):
-    '''
-    TODO: Allow events to be authorized by HTTP basic authentication
-    '''
-    raise NotImplementedError("Not yet built; sorry")
-
-
 async def authenticate(request, headers, first_event, source):
     '''
     Authenticate an event stream.

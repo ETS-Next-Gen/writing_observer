@@ -9,7 +9,7 @@ var RAW_DEBUG = false;
 /* This variable must be manually updated to specify the server that
  * the data will be sent to.  
 */
-var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/" 
+var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/";
 
 import { googledocs_id_from_url } from './writing_common';
 
@@ -35,7 +35,7 @@ const loggers = [
 
 loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
 loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.fetchDebuggingIdentifier()]);
-loEvent.go()
+loEvent.go();
 
 // Function to serve as replacement for 
 // chrome.extension.getBackgroundPage().console.log(event); because it is not allowed in V3
@@ -157,7 +157,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'bundles': JSON.parse(formdata.bundles),
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
-                }
+                };
                 logFromServiceWorker(event);
                 loEvent.logEvent('google_docs_save', event);
             } catch(err) {
@@ -170,7 +170,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'formdata': formdata,
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
-                }
+                };
                 loEvent.logEvent('google_docs_save_extra', event);
             }
         } else if(this_a_google_docs_bind(request)) {
@@ -181,7 +181,7 @@ chrome.webRequest.onBeforeRequest.addListener(
     },
     { urls: ["*://docs.google.com/*"] },
     ['requestBody']
-)
+);
 
 // re-injected scripts when chrome extension is reloaded, upgraded or re-installed
 // https://stackoverflow.com/questions/10994324/chrome-extension-content-script-re-injection-after-upgrade-or-install

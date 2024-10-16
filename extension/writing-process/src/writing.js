@@ -192,7 +192,7 @@ function google_docs_version_history(token) {
       }
     */
 
-    const metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true"
+    const metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true";
 
     fetch(metainfo_url).then(function(response) {
         response.text().then(function(text) {
@@ -354,7 +354,7 @@ function generic_eventlistener(event_type, frameindex) {
         if (event_type=='attention') {
             refresh_stream_view_listeners();
         }
-    }
+    };
 }
 
 function refresh_stream_view_listeners() {
@@ -393,13 +393,13 @@ var editor = document.querySelector('.kix-appview-editor');
 var frames = Array.from(document.getElementsByTagName("iframe"));
 
 // TODO: We should really make a list of documents instead of a fake iframe....
-frames.push({'contentDocument': document})
+frames.push({'contentDocument': document});
 
 // Add an event listener to each iframe in the iframes under frames.
 for(var event_type in EVENT_LIST) {
     for(var event_idx in EVENT_LIST[event_type]['events']) {
         const js_event = EVENT_LIST[event_type]['events'][event_idx];
-        const target = EVENT_LIST[event_type]['target']
+        const target = EVENT_LIST[event_type]['target'];
         if(target === 'document') {
             for(var iframe in frames) {
                 if(frames[iframe].contentDocument) {
@@ -608,7 +608,7 @@ function prepare_mutation_observer() {
     */
     var observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
-            const event = {}
+            const event = {};
 
             // This list guarantees that we'll have the information we need
             // to understand what happened in a change event.
@@ -718,8 +718,8 @@ function writing_onload() {
     if(this_is_a_google_doc()) {
         log_event("document_loaded", {
             "partial_text": google_docs_partial_text()
-        })
-        execute_on_page_space("_docs_flag_initialData.info_params.token")
+        });
+        execute_on_page_space("_docs_flag_initialData.info_params.token");
         const handleFromWeb = async (event) => {
             if (event.data.from && event.data.from === "inject.js") {
                 const data = event.data.data;

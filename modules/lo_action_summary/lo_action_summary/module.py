@@ -34,8 +34,8 @@ EXECUTION_DAG = {
 }
 
 # TODO we want the event history for both SBA and DA
-reducer_context = 'org.ets.sba'
-# reducer_context = 'org.ets.da'
+# reducer_context = 'org.ets.sba'
+reducer_context = 'org.ets.da'
 REDUCERS = [
     {
         'context': reducer_context,
