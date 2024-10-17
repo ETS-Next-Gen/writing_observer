@@ -106,6 +106,9 @@ if (typeof b !== 'undefined') {
   } else if (b.storage && b.storage.local) {
     debug.info('Setting storage to storage.local');
     storage = b.storage.local;
+  } else {
+    debug.info('Setting storage to default, thunkStorage');
+    storage = thunkStorage;
   }
 } else if (typeof localStorage !== 'undefined') {
   // Add compatibility modifications for localStorage
