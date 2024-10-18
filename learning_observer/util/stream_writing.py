@@ -194,11 +194,11 @@ async def stream_document(text, ici, user, doc_id):
     '''
     retries_remaining = 5
     done = False
-    url = ARGS["--url"]
+    url = ARGS["--url"] + "?student=" + user
     while not done:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.ws_connect(url, headers={"student": user}) as web_socket:
+                async with session.ws_connect(url) as web_socket:
                     commands = identify(user)
                     for command in commands:
                         await web_socket.send_str(json.dumps(command))
