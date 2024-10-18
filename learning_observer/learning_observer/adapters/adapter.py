@@ -68,7 +68,7 @@ def document_link_to_doc_id(event):
     doc_id = writing_observer.writing_analysis.get_doc_id({'client': event})
     if doc_id and 'client' in event and 'doc_id' in event['client']:
         event['client']['doc_id'] = doc_id
-    if 'doc_id' in event:
+    else:
         event['doc_id'] = doc_id
     return event
 
