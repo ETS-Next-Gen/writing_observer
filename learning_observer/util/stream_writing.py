@@ -36,6 +36,7 @@ import names
 import random
 import sys
 import time
+import hashlib
 
 
 ARGS = docopt.docopt(__doc__)
@@ -130,7 +131,11 @@ source_files = argument_list(
 
 
 def str_to_hex(s: str) -> str:
-    return hex(abs(hash(s))).replace("0x", "")
+    # return hex(abs(hash(s))).replace("0x", "")
+    s = s.encode()
+    sha256_hasher = hashlib.sha256()
+    sha256_hasher.update(s)
+    return sha256_hasher.hexdigest()
 
 
 if ARGS['--users'] is not None:
