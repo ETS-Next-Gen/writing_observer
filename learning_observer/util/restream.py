@@ -71,31 +71,29 @@ async def restream(
         async with session.ws_connect(url) as web_socket:
             async with aiofiles.open(filename) as log_file:
                 async for line in log_file:
+                    json_line = json.loads(line.split('\t')[0])
                     if rate is not None:
-                        jline = json.loads(line)
-                        if jline['client']['event'] in skip:
+                        if json_line['client']['event'] in skip:
                             continue
-                        new_ts = jline["server"]["time"]
+                        new_ts = json_line["server"]["time"]
                         if old_ts is not None:
                             delay = (new_ts - old_ts) / rate
                             if max_wait is not None:
-                                delay = min(delay, max_wait)
+                                delay = min(delay, float(max_wait))
                             print(line)
                             print(delay)
                             await asyncio.sleep(delay)
                         old_ts = new_ts
                     if extract_client or rename:
-                        json_line = json.loads(line)
                         if extract_client:
                             json_line = json_line['client']
-                        print(json.dumps(json_line, indent=2))
                         if rename:
                             if 'auth' not in json_line:
                                 json_line['auth'] = {}
                             json_line['auth']['user_id'] = new_id
-                        line = json.dumps(json_line)
+                    jline = json.dumps(json_line)
 
-                    await web_socket.send_str(line.strip())
+                    await web_socket.send_str(jline.strip())
         return True
 
 

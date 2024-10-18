@@ -18,7 +18,7 @@ import learning_observer.settings
 import learning_observer.stream_analytics.fields
 import learning_observer.stream_analytics.helpers
 from learning_observer.log_event import debug_log
-from learning_observer.util import get_nested_dict_value, clean_json
+from learning_observer.util import get_nested_dict_value, clean_json, ensure_async_generator, async_zip
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
 dispatch = learning_observer.communication_protocol.query.dispatch
@@ -142,7 +142,7 @@ def substitute_parameter(parameter_name, parameters, required, default):
 
 
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.JOIN)
-def handle_join(left, right, left_on, right_on):
+async def handle_join(left, right, left_on, right_on):
     """
     We dispatch this function whenever we process a DISPATCH_MODES.JOIN node.
     Users will use this when they want to combine the output of multiple nodes.
@@ -156,80 +156,57 @@ def handle_join(left, right, left_on, right_on):
     ```
 
     Generic join where left.lid == right.rid
-    >>> handle_join(
+    >>> asyncio.run(async_generator_to_list(handle_join(
     ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
-    ... )
+    ... )))
     [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
 
     We return every item in `left` even if they do not have a matching item
     in `right`. This also demonstrates the behavior for `RIGHT_ON` not being found in
     one of the elements of `right`.
-    >>> handle_join(
+    >>> asyncio.run(async_generator_to_list(handle_join(
     ...     left=[{'lid': 1, 'left': True}, {'lid': 2, 'left': True}],
     ...     right=[{'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
-    ... )
+    ... )))
     [{'lid': 1, 'left': True, 'rid': 1, 'right': True}, {'lid': 2, 'left': True}]
 
-    When `LEFT_ON` is not found, we return an error. Instead of throwing exceptions,
-    we return errors like normal results and allow the DAG executor to handle package
-    them and bubble them up. This allows to only error on a singular item and allow
-    the others to continue running.
-    >>> handle_join(
+    When `LEFT_ON` is not found, we return an whatever is in `left`.
+    >>> asyncio.run(async_generator_to_list(handle_join(
     ...     left=[{'left': True}, {'lid': 2, 'left': True}],
     ...     right=[{'rid': 2, 'right': True}, {'rid': 1, 'right': True}],
     ...     left_on='lid', right_on='rid'
-    ... )
-    [{'error': "KeyError: key `lid` not found in `dict_keys(['left'])`", 'function': 'handle_join', 'error_provenance': {'target': {'left': True}, 'key': 'lid', 'exception': KeyError("Key lid not found in {'left': True}")}, 'timestamp': ... 'traceback': ... {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
+    ... )))
+    [{'left': True}, {'lid': 2, 'left': True, 'rid': 2, 'right': True}]
     """
     right_dict = {}
-    for d in right:
+    async for d in ensure_async_generator(right):
         try:
             nested_value = get_nested_dict_value(d, right_on)
             right_dict[nested_value] = d
         except KeyError as e:
             pass
-
-    result = []
-    for left_dict in left:
+    async for left_dict in ensure_async_generator(left):
         try:
             lookup_key = get_nested_dict_value(left_dict, left_on)
             right_dict_match = right_dict.get(lookup_key)
-
             if right_dict_match:
                 merged_dict = {**left_dict, **right_dict_match}
             else:
                 # defaults to left_dict if not match isn't found
                 merged_dict = left_dict
-            result.append(merged_dict)
+            yield merged_dict
         except KeyError as e:
-            result.append(left_dict)
+            # TODO should we throw an error if we can't find a match in
+            # right or should we just yield left as is?
+            yield left_dict
             # result.append(DAGExecutionException(
             #     f'KeyError: key `{left_on}` not found in `{left_dict.keys()}`',
             #     inspect.currentframe().f_code.co_name,
             #     {'target': left_dict, 'key': left_on, 'exception': e}
             # ).to_dict())
-
-    return result
-
-
-def exception_wrapper(func):
-    """
-    When we map values across a function, we want to catch any errors that may occur.
-    For asynchronous functions, we are able to use `asyncio.gather` which allows us to return
-    exceptions as normal results. This wrapper mimics this behavior for synchronous functions
-    and returns any exceptions as normal results. These exceptions are later caught by the
-    DAG executor and handled appropriately. This allows the system to keep executing the DAG even
-    if some values raise exceptions.
-    """
-    def exception_catcher(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            return e
-    return exception_catcher
 
 
 async def map_coroutine_serial(func, values, value_path):
@@ -237,7 +214,11 @@ async def map_coroutine_serial(func, values, value_path):
     We call map for coroutine functions operating in serial.
     See the `handle_map` function for more details regarding parameters.
     """
-    return await asyncio.gather(*[func(get_nested_dict_value(v, value_path)) for v in values], return_exceptions=True)
+    async for v in ensure_async_generator(values):
+        try:
+            yield await func(get_nested_dict_value(v, value_path)), v
+        except Exception as e:
+            yield e, v
 
 
 async def map_coroutine_parallel(func, values, value_path):
@@ -245,71 +226,98 @@ async def map_coroutine_parallel(func, values, value_path):
     We call map for coroutine functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
-    raise DAGExecutionException(
-        'Asynchronous parallelization has not yet been implemented.',
-        inspect.currentframe().f_code.co_name,
-        {'function': func, 'values': values, 'value_path': value_path}
-    )
+    async def _return_result_and_value(v):
+        '''Wrapper for the function to return both the result and
+        the value passed in. The value is yielded to annotate the
+        results metadata.
+        '''
+        try:
+            result = await func(get_nested_dict_value(v, value_path))
+        except Exception as e:
+            result = e
+        return result, v
+
+    tasks = []
+    async for v in ensure_async_generator(values):
+        tasks.append(_return_result_and_value(v))
+    for task in asyncio.as_completed(tasks):
+        task_result, task_value = await task
+        yield task_result, task_value
 
 
-def map_parallel(func, values, value_path):
+async def map_parallel(func, values, value_path):
     """
     We call map for synchronous functions operating in parallel.
     See the `handle_map` function for more details regarding parameters.
     """
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        # TODO catch any errors from get_nested_dict_value()
-        futures = [executor.submit(func, get_nested_dict_value(v, value_path)) for v in values]
-    results = [future.result() for future in futures]
-    return results
+    def _return_result_and_value(v):
+        '''Wrapper for the function to return both the result and
+        the value passed in. The value is yielded to annotate the
+        results metadata.
+        '''
+        try:
+            result = func(get_nested_dict_value(v, value_path))
+        except Exception as e:
+            result = e
+        return result, v
+
+    loop = asyncio.get_event_loop()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        async for v in ensure_async_generator(values):
+            futures.append(loop.run_in_executor(executor, _return_result_and_value, v))
+        for future in asyncio.as_completed(futures):
+            future_result, future_value = await future
+            yield future_result, future_value
 
 
-def map_serial(func, values, value_path):
+async def map_serial(func, values, value_path):
     """
     We call map for synchronous functions operating in serial.
     See the `handle_map` function for more details regarding parameters.
     """
-    outputs = []
-    for v in values:
+    async for v in ensure_async_generator(values):
         try:
-            output = func(get_nested_dict_value(v, value_path))
-        except DAGExecutionException as e:
-            output = e.to_dict()
-        outputs.append(output)
-    return outputs
+            yield func(get_nested_dict_value(v, value_path)), v
+        except Exception as e:
+            yield e, v
 
 
-def annotate_map_metadata(function, results, values, value_path, func_kwargs):
+async def _annotate_map_results_with_metadata(function, results, value_path, func_kwargs):
     """
-    We annotate the list of raw results from mapping over a function with provenance
-    about the values passed in and the function used. Additionally, we want to
-    provide the proper metadata and output for any exceptions that took place
-    during execution of the map.
+    Each of the map functions yields the result (or errors) along with the value.
+    This function processes the output and the provenance to be further used in
+    the communicaton protocol.
+    If the result from the map is a dictionary, we use that as our base output.
+    If the result from the map is just a value, we wrap it in a dictionary.
+    If the result is an Exception, we wrap it in a DAGExecutionException and
+    use that as our result. This allows for some items to fail while others
+    were processed just fine.
+    Lastly, the provenance is added to our result.
     """
-    output = []
-    for res, item in zip(results, values):
+    async for map_result, item in results:
         provenance = {
             'function': function,
             'func_kwargs': func_kwargs,
-            'value': item,
-            'value_path': value_path
+            'value': {k: v for k, v in item.items() if k != 'provenance'},
+            'value_path': value_path,
+            'provenance': item['provenance'] if 'provenance' in item else {}
         }
-        if isinstance(res, dict):
-            out = res
-        elif isinstance(res, Exception):
+        if isinstance(map_result, dict):
+            out = map_result
+        elif isinstance(map_result, Exception):
             error_provenance = provenance.copy()
-            error_provenance['error'] = str(res)
+            error_provenance['error'] = str(map_result)
             out = DAGExecutionException(
                 f'Function {function} did not execute properly during map.',
                 inspect.currentframe().f_code.co_name,
                 error_provenance,
-                res.__traceback__
+                map_result.__traceback__
             ).to_dict()
         else:
-            out = {'output': res}
+            out = {'output': map_result}
         out['provenance'] = provenance
-        output.append(out)
-    return output
+        yield out
 
 
 MAPS = {
@@ -337,45 +345,48 @@ async def handle_map(functions, function_name, values, value_path, func_kwargs=N
     ...         raise ValueError("Input must be an int")
     ...     return x * 2
 
+    >>> async def process_map_test_result(func):
+    ...     '''The map functions return an async generator.
+    ...     This function awaits the creation of the generator and drives it.
+    ...     '''
+    ...     result = await func
+    ...     return await async_generator_to_list(result)
+
     Generic example of mapping a double function over [0, 1].
-    >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path'))
-    [{'output': 0, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path'}}, {'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}]
+    >>> asyncio.run(process_map_test_result(handle_map({'double': double}, 'double', [{'path': i} for i in range(2)], 'path')))
+    [{'output': 0, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 0}, 'value_path': 'path', 'provenance': {}}}, {'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path', 'provenance': {}}}]
 
     Exceptions in each function with in the map are returned with normal results
     and handled later by the DAG executor. In our text, we return both a normal result
     and the result of an exception being caught.
-    >>> asyncio.run(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path'))
-    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path'}}, {'error': 'Function double did not execute properly during map.', 'function': 'annotate_map_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'error': 'Input must be an int'}, 'timestamp': ... 'traceback': ... 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path'}}]
+    >>> asyncio.run(process_map_test_result(handle_map({'double': double}, 'double', [{'path': i} for i in [1, 'fail']], 'path')))
+    [{'output': 2, 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 1}, 'value_path': 'path', 'provenance': {}}}, {'error': 'Function double did not execute properly during map.', 'function': '_annotate_map_results_with_metadata', 'error_provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'provenance': {}, 'error': 'Input must be an int'}, 'timestamp': ..., 'traceback': ..., 'provenance': {'function': 'double', 'func_kwargs': {}, 'value': {'path': 'fail'}, 'value_path': 'path', 'provenance': {}}}]
 
     Example of trying to call nonexistent function, `triple`
-    >>> asyncio.run(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path'))
-    Traceback (most recent call last):
-      ...
-    learning_observer.communication_protocol.exception.DAGExecutionException: ('Could not find function `triple` in available functions.', 'handle_map', {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, ...)
+    >>> asyncio.run(process_map_test_result(handle_map({'double': double}, 'triple', [{'path': i} for i in range(2)], 'path')))
+    [{'error': 'Could not find function `triple` in available functions.', 'function': 'handle_map', 'error_provenance': {'function_name': 'triple', 'available_functions': dict_keys(['double']), 'error': "'triple'"}, 'timestamp': ..., 'traceback': ...}]
     """
     if func_kwargs is None:
         func_kwargs = {}
     try:
         func = functions[function_name]
     except KeyError as e:
-        raise DAGExecutionException(
+        exception = DAGExecutionException(
             f'Could not find function `{function_name}` in available functions.',
             inspect.currentframe().f_code.co_name,
             {'function_name': function_name, 'available_functions': functions.keys(), 'error': str(e)},
             e.__traceback__
-        )
+        ).to_dict()
+        return ensure_async_generator(exception)
     func_with_kwargs = functools.partial(func, **func_kwargs)
     is_coroutine = inspect.iscoroutinefunction(func)
     map_function = MAPS[f'map{"_coroutine" if is_coroutine else ""}_{"parallel" if parallel else "serial"}']
-    if not is_coroutine:
-        # wrap sync functions to return errors similar to asyncio.gather
-        func_with_kwargs = exception_wrapper(func_with_kwargs)
 
     results = map_function(func_with_kwargs, values, value_path)
     if inspect.isawaitable(results):
         results = await results
 
-    output = annotate_map_metadata(function_name, results, values, value_path, func_kwargs)
+    output = _annotate_map_results_with_metadata(function_name, results, value_path, func_kwargs)
     return output
 
 
@@ -400,8 +411,7 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
     if fields is None or fields == learning_observer.communication_protocol.query.SelectFields.Missing:
         fields_to_keep = {}
 
-    response = []
-    for k in keys:
+    async for k in ensure_async_generator(keys):
         if isinstance(k, dict) and 'key' in k:
             # output from query added to response later
             query_response_element = {
@@ -436,8 +446,7 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
                 ).to_dict()
             # add necessary outputs to query response
             query_response_element[fields_to_keep[f]] = value
-        response.append(query_response_element)
-    return response
+        yield query_response_element
 
 
 # @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
@@ -459,10 +468,58 @@ def handle_keys(function, value_path, **kwargs):
     return unimplemented_handler()
 
 
+async def _extract_fields_with_provenance_for_students(students, student_path):
+    '''This is a helper function for the `hack_handle_keys` function.
+    This function prepares the key field dictionary and the provenance
+    for each student.
+    The key field dictionary is used to create the key we are attempting
+    to fetch from the KVS (used later in `hack_handle_keys`). The passed in
+    `item_path` is used for setting the appropriate dictionary value.
+    The provenance is the current history of the communication protocol for each item.
+    '''
+    async for s in ensure_async_generator(students):
+        s_field = get_nested_dict_value(s, student_path, '')
+        field = {
+            learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field
+        }
+        provenance = s.get('provenance', {'value': s})
+        provenance[student_path] = s_field
+        yield field, {'STUDENT': provenance}
+
+
+async def _extract_fields_with_provenance_for_students_and_resources(students, student_path, resources, resources_path):
+    '''This is a helper function for the `hack_handle_keys` function.
+    This function prepares the key field dictionary and the provenance
+    for each student/resource pair.
+    The key field dictionary is used to create the key we are attempting
+    to fetch from the KVS (used later in `hack_handle_keys`). The passed in
+    `item_path` is used for setting the appropriate dictionary value.
+    The provenance is the current history of the communication protocol for each item.
+    '''
+    async for s, r in async_zip(students, resources):
+        s_field = get_nested_dict_value(s, student_path, '')
+        r_field = get_nested_dict_value(r, resources_path, '')
+        fields = {
+            learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field,
+            learning_observer.stream_analytics.helpers.EventField('doc_id'): r_field
+        }
+        s_provenance = s.get('provenance', {'value': s})
+        s_provenance[student_path] = s_field
+        r_provenance = r.get('provenance', {'value': r})
+        r_provenance[resources_path] = r_field
+        provenance = {
+            'STUDENT': s_provenance,
+            'RESOURCE': r_provenance
+        }
+        yield fields, provenance
+
+
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
-def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
+async def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
     """
-    We INSTEAD dispatch this function whenever we process a DISPATCH_MODES.KEYS node.
+    This function is a HACK that is being used instead of `handle_keys` for any
+    `DISPATCH_MODE.KEYS` nodes.
+
     Whenever a user wants to perform a select operation, they first must make sure their
     keys are formatted properly. This method builds the keys to access the appropriate
     reducers output.
@@ -472,46 +529,26 @@ def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None
     associated with each. These are zipped together and returned to the user.
     """
     func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
-    fields = []
-    provenances = []
+    fields_and_provenances = None
     if STUDENTS is not None and RESOURCES is None:
-        # handle only students
-        fields = [
-            {
-                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path)  # TODO catch get_nested_dict_value errors
-            } for s in STUDENTS
-        ]
-        provenances = [s.get('provenance', {'value': s}) for s in STUDENTS]
+        fields_and_provenances = _extract_fields_with_provenance_for_students(STUDENTS, STUDENTS_path)
     elif STUDENTS is not None and RESOURCES is not None:
-        # handle both students and resources
-        fields = [
-            {
-                learning_observer.stream_analytics.fields.KeyField.STUDENT: get_nested_dict_value(s, STUDENTS_path),  # TODO catch get_nested_dict_value errors
-                learning_observer.stream_analytics.helpers.EventField('doc_id'): get_nested_dict_value(r, RESOURCES_path, '')  # TODO catch get_nested_dict_value errors
-            } for s, r in zip(STUDENTS, RESOURCES)
-        ]
-        provenances = [
-            {
-                'STUDENT': s.get('provenance', {'value': s}),
-                'RESOURCE': r.get('provenance', {'value': r})
-            } for s, r in zip(STUDENTS, RESOURCES)
-        ]
+        fields_and_provenances = _extract_fields_with_provenance_for_students_and_resources(STUDENTS, STUDENTS_path, RESOURCES, RESOURCES_path)
 
-    keys = []
-    for f, p in zip(fields, provenances):
+    if fields_and_provenances is None:
+        return
+    async for f, p in fields_and_provenances:
         key = learning_observer.stream_analytics.helpers.make_key(
             func['function'],
             f,
             learning_observer.stream_analytics.fields.KeyStateType.INTERNAL
         )
-        keys.append(
-            {
-                'key': key,
-                'provenance': p,
-                'default': func['default']
-            }
-        )
-    return keys
+        key_wrapper = {
+            'key': key,
+            'provenance': p,
+            'default': func['default']
+        }
+        yield key_wrapper
 
 
 def _has_error(node):
@@ -596,6 +633,11 @@ def strip_provenance(variable):
         return [strip_provenance(item) if isinstance(item, dict) else item for item in variable]
     else:
         return variable
+
+
+async def _clean_json_via_generator(iterator):
+    async for item in ensure_async_generator(iterator):
+        yield clean_json(item)
 
 
 async def execute_dag(endpoint, parameters, functions, target_exports):
@@ -687,12 +729,21 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
 
     # Include execution history in output if operating in development settings
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
-        return {e: clean_json(await visit(e)) for e in target_nodes}
+        return {e: _clean_json_via_generator(await visit(e)) for e in target_nodes}
 
+    # HACK currently `dashboard.py` relies on the provenance to tell users which
+    # items need updating, such as John Doe's history essay. This ought to be
+    # handled by the communication protocol during execution. Once that occurs,
+    # we can go back to stripping the provenance out.
+    return {e: _clean_json_via_generator(await visit(e)) for e in target_nodes}
+    # TODO test this code to make sure it works with async generators
     # Remove execution history if in deployed settings, with data flowing back to teacher dashboards
-    return {e: clean_json(strip_provenance(await visit(e))) for e in target_nodes}
+    return {e: _clean_json_via_generator(strip_provenance(await visit(e))) for e in target_nodes}
 
 
 if __name__ == "__main__":
     import doctest
+    # This function is used by doctests
+    from learning_observer.util import async_generator_to_list
+
     doctest.testmod(optionflags=doctest.ELLIPSIS)
