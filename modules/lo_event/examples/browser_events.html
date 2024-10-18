@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>HTML DOM Events</h1>
+
+<p>Demo page for HTML events.</p>
+
+<input id="myInput" type="text" value="Copy/paste test">
+
+<p id="demo"></p>
+
+<div id="output"></div>
+<script type="module">
+  import { subscribeToEvents } from '../lo_event/browser_events.js';
+
+  function logToDiv(eventType, event) {
+      // Select the output div
+      var outputDiv = document.getElementById("output");
+
+      // Append the text to the div
+      outputDiv.innerHTML += `<b>${eventType}</b>: ${JSON.stringify(event)}<br/>`;
+
+      console.log(`${eventType}: ${JSON.stringify(event)}`);
+  }
+
+  subscribeToEvents({dispatch: logToDiv});
+</script>
+
+</body>
+</html>
