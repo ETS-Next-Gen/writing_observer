@@ -39,6 +39,8 @@ import learning_observer.auth.events
 import learning_observer.adapters.adapter
 import learning_observer.blacklist
 
+import learning_observer.constants as constants
+
 
 def compile_server_data(request):
     '''
@@ -59,10 +61,25 @@ async def student_event_pipeline(metadata):
     '''
     Create an event pipeline, based on header metadata
     '''
-    client_source = metadata["source"]
-    debug_log("client_source", client_source)
-    debug_log("Module", stream_analytics.reducer_modules(client_source))
-    analytics_modules = stream_analytics.reducer_modules(client_source)
+    client_source = None
+
+    if "source" not in metadata:
+        analytics_modules = []
+        debug_log("Missing client source!")
+        print("We are missing a client source. This should never happen. It can mean a few things:")
+        print("* Someone is sending us malformed events, either due to a cyberattack or due to a client bug")
+        print("* We've got a bug in how we extract metadata")
+        print("* Something else?")
+        print("This should probably not be ignored.")
+        print("We used to raise a SuspiciousOperation exception, but it's surprisingly easy to lose data to a")
+        print("bug, so we log the data now instead, but with no reducers. This decision might be re-evaluated")
+        print("as the system matures")
+        client_source = "org.ets.generic"
+    else:
+        client_source = metadata["source"]
+        debug_log("client_source", client_source)
+        debug_log("Module", stream_analytics.reducer_modules(client_source))
+        analytics_modules = stream_analytics.reducer_modules(client_source)
 
     # Create an event processor for this user
     # TODO:
@@ -338,7 +355,7 @@ async def incoming_websocket_handler(request):
         events
         '''
         if not authenticated:
-            return
+            return False
 
         nonlocal event_handler, reducers_last_updated
         if 'source' in lock_fields:
@@ -349,6 +366,7 @@ async def incoming_websocket_handler(request):
         metadata['auth'] = authenticated
         event_handler = await handle_incoming_client_event(metadata=metadata)
         reducers_last_updated = learning_observer.stream_analytics.LAST_UPDATED
+        return True
 
     async def handle_auth_events(events):
         '''This method checks a single method for auth and
@@ -377,6 +395,12 @@ async def incoming_websocket_handler(request):
                     first_event={},
                     source=''
                 )
+                if authenticated:
+                    print(authenticated)
+                    await ws.send_json({
+                        'status': 'auth',
+                        constants.USER_ID: authenticated[constants.USER_ID]
+                    })
                 await update_event_handler(event)
                 backlog.append(event)
             else:
