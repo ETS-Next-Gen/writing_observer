@@ -25,7 +25,8 @@ pmss_settings = pmss.init(
     prog=__name__,
     description="A system for monitoring",
     epilog="For more information, see PMSS documentation.",
-    rulesets=[pmss.YAMLFileRuleset(filename=learning_observer.paths.config_file())]
+    rulesets=[pmss.YAMLFileRuleset(
+        filename=learning_observer.paths.config_file())]
 )
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
@@ -38,6 +39,7 @@ if not __name__.startswith("learning_observer."):
 
 args = None
 parser = None
+
 
 def str_to_bool(arg):
     if isinstance(arg, bool):
@@ -91,6 +93,11 @@ def parse_and_validate_arguments():
         help='Launce the Learning Observer application. This can be used with `--ipython-console` and `--ipython-kernel`.',
         default=True, nargs='?', const=True, type=str_to_bool)
 
+    parser.add_argument(
+        '--port',
+        default=8888
+    )
+
     args = parser.parse_args()
 
     if not os.path.exists(args.config_file):
@@ -119,13 +126,14 @@ def parse_and_validate_arguments():
 RUN_MODES = enum.Enum('RUN_MODES', 'DEV DEPLOY INTERACTIVE')
 RUN_MODE = None
 
-pmss.parser('run_mode', parent='string', choices=['dev', 'deploy', 'interactive'], transform=None)
+pmss.parser('run_mode', parent='string', choices=[
+            'dev', 'deploy', 'interactive'], transform=None)
 pmss.register_field(
     name='run_mode',
     type='run_mode',
-    description="Set which mode the server is running in.\n"\
-                "`dev` for local development with full debugging\n"\
-                "`deploy` for running on a server with better performance\n"\
+    description="Set which mode the server is running in.\n"
+                "`dev` for local development with full debugging\n"
+                "`deploy` for running on a server with better performance\n"
                 "`interactive` for processing data offline",
     required=True
 )
@@ -176,16 +184,19 @@ def load_settings(config):
     elif settings_run_mode == 'interactive':
         RUN_MODE = RUN_MODES.INTERACTIVE
     else:
-        raise ValueError("Configuration setting for run_mode must be either 'dev', 'deploy', or 'interactive'")
+        raise ValueError(
+            "Configuration setting for run_mode must be either 'dev', 'deploy', or 'interactive'")
 
     if 'repos' in settings:
         for repo in settings['repos']:
             # In the future, we might allow dicts if we e.g. want more metadata
             if isinstance(settings['repos'][repo], str):
-                learning_observer.paths.register_repo(repo, settings['repos'][repo])
+                learning_observer.paths.register_repo(
+                    repo, settings['repos'][repo])
             elif isinstance(settings['repos'][repo], dict):
                 # HACK. We should figure out where to stick this. This does not belong in paths
-                debug_working = settings['repos'][repo].get("debug_working", None)
+                debug_working = settings['repos'][repo].get(
+                    "debug_working", None)
 
                 learning_observer.paths.register_repo(
                     repo,
@@ -193,7 +204,8 @@ def load_settings(config):
                     debug_working=debug_working
                 )
             else:
-                raise ValueError("settings.repos.{repo} should be a string or a dict. Please fix the settings file.".format(repo=repo))
+                raise ValueError(
+                    "settings.repos.{repo} should be a string or a dict. Please fix the settings file.".format(repo=repo))
 
     return settings
 
@@ -223,7 +235,8 @@ def initialized():
 
 
 # Not all of these are guaranteed to work on every branch of the codebase.
-AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page', 'merkle', 'save_google_ajax', 'use_google_ajax']
+AVAILABLE_FEATURE_FLAGS = ['uvloop', 'watchdog', 'auth_headers_page',
+                           'merkle', 'save_google_ajax', 'use_google_ajax']
 
 
 def feature_flag(flag):

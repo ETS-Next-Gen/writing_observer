@@ -9,6 +9,7 @@ small applications we are testing this system with as well (e.g. dynamic
 assessment).
 '''
 
+import spacy
 import sys
 
 import asyncio
@@ -50,13 +51,12 @@ if not __name__.startswith("learning_observer."):
 # Run argparse
 args = settings.parse_and_validate_arguments()
 
-# This will need to move but for the moment we hack with                                                                                                
-# this to prefer the GPU where possible.                                                                                                                
-import spacy
-#spacy.prefer_gpu()
-#debug_log("Preferring GPU Use.")
-spacy.require_gpu()
-debug_log("Requiring GPU Use.")
+# This will need to move but for the moment we hack with
+# this to prefer the GPU where possible.
+# spacy.prefer_gpu()
+# debug_log("Preferring GPU Use.")
+# spacy.require_gpu()
+# debug_log("Requiring GPU Use.")
 
 
 def configure_event_loop():
@@ -95,6 +95,8 @@ def create_app():
         runmode = settings.pmss_settings.run_mode(types=['config'])
     if port is None and runmode == 'dev':
         port = learning_observer.webapp_helpers.find_open_port()
+
+    port = int(args.port)
 
     # Check that everything is configured correctly,
     # and initialize anything which needs initialization

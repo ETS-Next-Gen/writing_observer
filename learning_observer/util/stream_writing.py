@@ -12,7 +12,7 @@ Usage:
                       [--gpt3=type]
 
 Options:
-    --url=url                URL to connect [default: http://localhost:8888/wsapi/in/]
+    --url=url                URL to connect [default: http://localhost:80/wsapi/in/]
     --streams=N              How many students typing in parallel? [default: 1]
     --users=user_id,uid,uid  Supply the user ID
     --ici=secs,secs          Mean intercharacter interval [default: 0.1]
@@ -90,9 +90,11 @@ def argument_list(argument, default):
     if isinstance(list_string, str):
         list_string = [list_string] * STREAMS
     if len(list_string) != STREAMS:
-        print(f"Failure: {list_string}\nfrom {argument} should make {STREAMS} items")
+        print(
+            f"Failure: {list_string}\nfrom {argument} should make {STREAMS} items")
         sys.exit(-1)
     return list_string
+
 
 # TODO what is `source_files` supposed to be?
 # when running this script for the workshop, we should either
@@ -103,9 +105,11 @@ source_files = None
 if ARGS["--gpt3"] is not None:
     import writing_observer.sample_essays
     TEXT = writing_observer.sample_essays.GPT3_TEXTS[ARGS["--gpt3"]]
-    STREAMS = len(TEXT)
+    text_to_use = TEXT[0]
+    TEXT = [text_to_use for _ in range(STREAMS)]
 elif source_files is None:
-    TEXT = ["\n".join(loremipsum.get_paragraphs(int(ARGS.get("--text-length", 5)))) for i in range(STREAMS)]
+    TEXT = ["\n".join(loremipsum.get_paragraphs(
+        int(ARGS.get("--text-length", 5)))) for i in range(STREAMS)]
 else:
     TEXT = [open(filename).read() for filename in source_files]
 
@@ -124,17 +128,23 @@ source_files = argument_list(
     None
 )
 
+
+def str_to_hex(s: str) -> str:
+    return hex(abs(hash(s))).replace("0x", "")
+
+
 if ARGS['--users'] is not None:
     USERS = argument_list('--users', None)
 elif ARGS['--fake-name']:
     USERS = [names.get_first_name() for i in range(STREAMS)]
 else:
-    USERS = ["test-user-{n}".format(n=i) for i in range(STREAMS)]
+    USERS = [str_to_hex(str(i)) for i in range(STREAMS)]
 
 assert len(TEXT) == STREAMS, "len(filenames) != STREAMS."
 assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
 assert len(USERS) == STREAMS, "len(users) != STREAMS."
 assert len(DOC_IDS) == STREAMS, "len(document IDs) != STREAMS."
+
 
 def current_millis():
     return round(time.time() * 1000)
@@ -188,7 +198,7 @@ async def stream_document(text, ici, user, doc_id):
     while not done:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.ws_connect(url) as web_socket:
+                async with session.ws_connect(url, headers={"student": user}) as web_socket:
                     commands = identify(user)
                     for command in commands:
                         await web_socket.send_str(json.dumps(command))
