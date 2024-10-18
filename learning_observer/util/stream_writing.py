@@ -130,20 +130,12 @@ source_files = argument_list(
 )
 
 
-def str_to_hex(s: str) -> str:
-    # return hex(abs(hash(s))).replace("0x", "")
-    s = s.encode()
-    sha256_hasher = hashlib.sha256()
-    sha256_hasher.update(s)
-    return sha256_hasher.hexdigest()
-
-
 if ARGS['--users'] is not None:
     USERS = argument_list('--users', None)
 elif ARGS['--fake-name']:
     USERS = [names.get_first_name() for i in range(STREAMS)]
 else:
-    USERS = [str_to_hex(str(i)) for i in range(STREAMS)]
+    USERS = [f"test-user-{i}" for i in range(STREAMS)]
 
 assert len(TEXT) == STREAMS, "len(filenames) != STREAMS."
 assert len(ICI) == STREAMS, "len(ICIs) != STREAMS."
@@ -193,13 +185,20 @@ def identify(user):
     ]
 
 
+def str_to_hex(s: str) -> str:
+    s = s.encode()
+    sha256_hasher = hashlib.sha256()
+    sha256_hasher.update(s)
+    return sha256_hasher.hexdigest()
+
+
 async def stream_document(text, ici, user, doc_id):
     '''
     Send a document to the server.
     '''
     retries_remaining = 5
     done = False
-    url = ARGS["--url"] + "?student=" + user
+    url = ARGS["--url"] + "?student=" + str_to_hex(user)
     while not done:
         try:
             async with aiohttp.ClientSession() as session:
