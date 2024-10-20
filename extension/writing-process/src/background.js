@@ -211,7 +211,7 @@ loEvent.logEvent("extension_loaded", {});
 loEventUtils.profileInfoWrapper().then((result) => {
     if (Object.keys(result).length > 0) {
         loEvent.logEvent('chrome_identity', { chrome_identity: result });
-        loEvent.logEvent('metadata_finished', {})
+        loEvent.logEvent('metadata_finished', {});
     }
 });
 
