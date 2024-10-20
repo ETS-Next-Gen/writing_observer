@@ -52,6 +52,22 @@ async function initializeLoggers () {
   }
 }
 
+async function compileMetadata(metadataTasks) {
+  const taskPromises = metadataTasks.map(async task => {
+    try {
+      const result = await (task.async ? task.func() : Promise.resolve(task.func()));
+      return { [task.name]: result };
+    } catch (error) {
+      debug.error(`Error in initialization task ${task.name}:`, error);
+      return null;
+    }
+  });
+
+  const results = await Promise.all(taskPromises);
+  return results.filter(Boolean);
+}
+
+
 /**
  * Set specific key/value pairs using the `lock_fields`
  * event. We use this to set specific fields that we want
