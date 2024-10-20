@@ -132,7 +132,11 @@ export function getBrowserInfo () {
   Example usage:
     const profileInfo = await profileInfoWrapper();
     console.log(profileInfo);
-  */
+
+  Users should switch to chromeIdentityHeader(), below. This function name should also
+  mention `chrome`, but I don't want to do that without updating the extension at the
+  same time.
+*/
 export function profileInfoWrapper () {
   if (typeof chrome !== 'undefined' && chrome.identity) {
     try {
@@ -153,6 +157,11 @@ export function profileInfoWrapper () {
   return new Promise((resolve, reject) => {
     resolve({});
   });
+}
+
+export async function getChromeHeader() {
+    let result = await profileInfoWrapper();
+    return { event: 'chrome_identity', chrome_identity: result };
 }
 
 /*
@@ -205,21 +214,50 @@ export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServe
   return url.href;
 }
 
+function browserStamp() {
+  const stampKey = 'loBrowserStamp'; // Key to store the browser stamp
+  let stamp = localStorage.getItem(stampKey);
+
+  if (!stamp) {
+    // Generate and store browser stamp if not found
+    stamp = keystamp();
+    localStorage.setItem(stampKey, stamp);
+  }
+
+  return stamp;
+}
+
+let eventIndex = 0; // Initialize index counter
+let sessionStamp = keystamp();
+
+// TODO:
+// (a) We probably want this elsewhere
+// (b) With the current flow of logic, init() might be called after logEvent,
+//     and even if set to false, a few events might have extra metadata.
+// This isn't a killer, since the reason not to do this is mostly due to
+// bandwidth.
+export let verboseEvents = true;
+
 /**
  * Example usage:
  *  event = { event: 'ADD', data: 'stuff' }
  *  timestampEvent(event)
  *  event
- *  // { event: 'ADD', data: 'stuff', metadata: { ts, human_ts, iso_ts } }
+ *  // { event: 'ADD', data: 'stuff', metadata: { ts, human_ts, iso_ts, sessionIndex, sessionTag } }
  */
 export function timestampEvent (event) {
   if (!event.metadata) {
     event.metadata = {};
   }
 
-  event.metadata.ts = Date.now();
-  event.metadata.human_ts = Date();
   event.metadata.iso_ts = new Date().toISOString();
+  if(verboseEvents) {
+    event.metadata.ts = Date.now();
+    event.metadata.human_ts = Date();
+    event.metadata.sessionIndex = eventIndex++;
+    event.metadata.sessionTag = sessionStamp;
+    event.metadata.browserTag = browserStamp();
+  }
 }
 
 /**

@@ -2,36 +2,32 @@
   Logging library for Learning Observer clients
 */
 
-import { timestampEvent, mergeMetadata } from './util.js';
+import { timestampEvent, mergeMetadata, getBrowserInfo } from './util.js';
 import * as Queue from './queue.js';
 import * as disabler from './disabler.js';
 import * as debug from './debugLog.js';
+import * as util from './util.js';
 
 export const QueueType = Queue.QueueType;
 
-// Queue events, but don't send them yet.
-const INIT_FALSE = false; // init() has not yet been called.
-const INIT_INPROGRESS = 'init_inprogress'; // init() has been called, but is still waiting on metadata
-const INIT_LOGGERS_READY = 'init_loggers'; // Loggers ready, but we have not yet sent authenticated or sent metadata
-const INIT_ERROR = 'init_error'; // Error occured while initializing data
+// We implement this as something like an FSM.
+const INIT_STATES = {
+  NOT_STARTED: 'NOT_STARTED', // init() has not been called
+  IN_PROGRESS: 'IN_PROGRESS', // init() called, but waiting on loggers or metadata
+  LOGGERS_READY: 'LOGGERS_READY', // loggers initialized, but queuing initial events / auth
+  READY: 'READY', // Events streaming to loggers (which might have their own queues)
+  ERROR: 'ERROR' // Something went very, very wrong
+};
 
-// We are ready to send events! Note that not all loggers might be
-// ready to send events, but some might just queue them up
-const INIT_READY = 'init_ready';
+let initialized = INIT_STATES.NOT_STARTED; // Current FSM state
+let currentState = new Promise((resolve, reject) => { resolve(); }); // promise pipeline to ensure we handle all initialization
 
-let initialized = INIT_FALSE;
 
-// A list of all loggers which should receive events.
-let loggersEnabled = [];
-
-// promise pipeline to ensure we handle all initialization
-// and metadata before routing events to their loggers
-let currentState = new Promise((resolve, reject) => { resolve(); });
-
+let loggersEnabled = []; // A list of all loggers which should receive events.
 let queue;
 
 function isInitialized () {
-  return initialized === INIT_READY;
+  return initialized === INIT_STATES.READY;
 }
 
 /**
@@ -49,9 +45,9 @@ async function initializeLoggers () {
   try {
     await Promise.all(initializedLoggers);
     debug.info('Loggers initialized!');
-    initialized = INIT_LOGGERS_READY;
+    initialized = INIT_STATES.LOGGERS_READY;
   } catch (error) {
-    initialized = INIT_ERROR;
+    initialized = INIT_STATES.ERROR;
     debug.error('Error resolving logger initializers:', error);
   }
 }
@@ -66,7 +62,7 @@ async function initializeLoggers () {
  * which should be the same for every event.
  *
  * This function works even after we are initialized and
- * processing items from the queue (INIT_READY).
+ * processing items from the queue (INIT_STATES.READY).
  *
  * Each individual logger should keep track of state and
  * handle their respecitive reconnects properly.
@@ -101,17 +97,18 @@ export function init (
     debugLevel = debug.LEVEL.SIMPLE,
     debugDest = [debug.LOG_OUTPUT.CONSOLE],
     useDisabler = true,
-    queueType = Queue.QueueType.AUTODETECT
+    queueType = Queue.QueueType.AUTODETECT,
+    sendBrowserInfo = false,
+    verboseEvents = false,
+    initTasks = [],
   } = {}
 ) {
+  if (!source || typeof source !== 'string') throw new Error('source must be a non-null string');
+  if (!version || typeof version !== 'string') throw new Error('version must be a non-null string');
+
+  util.verboseEvents = verboseEvents;
   queue = new Queue.Queue('LOEvent', { queueType });
 
-  if (source === null || typeof source !== 'string') {
-    throw new Error('source must be a non-null string');
-  }
-  if (version === null || typeof version !== 'string') {
-    throw new Error('version must be a non-null string');
-  }
   debug.setLevel(debugLevel);
   debug.setLogOutputs(debugDest);
   if (useDisabler) {
@@ -119,14 +116,20 @@ export function init (
   }
 
   loggersEnabled = loggers;
-  initialized = INIT_INPROGRESS;
+  initialized = INIT_STATES.IN_PROGRESS;
   currentState = currentState.then(initializeLoggers).then(
     () => setFieldSet([{ source, version }]));
+
+  if(sendBrowserInfo) {
+    // In the future, some or all of this might be sent on every
+    // reconnect
+    logEvent("BROWSER_INFO", getBrowserInfo());
+  }
 }
 
 export function go () {
   currentState.then(() => {
-    initialized = INIT_READY;
+    initialized = INIT_STATES.READY;
     queue.startDequeueLoop({
       initialize: isInitialized,
       shouldDequeue: disabler.retry,
