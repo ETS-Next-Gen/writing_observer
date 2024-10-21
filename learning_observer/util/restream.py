@@ -71,7 +71,13 @@ async def restream(
         async with session.ws_connect(url) as web_socket:
             async with aiofiles.open(filename) as log_file:
                 async for line in log_file:
-                    json_line = json.loads(line.split('\t')[0])
+                    if filename.endswith('.study.log'):
+                        # HACK the `.study.log` include the event along
+                        # with a timestamp
+                        json_line = json.loads(line.split('\t')[0])
+                    else:
+                        json_line = json.loads(line)
+
                     if rate is not None:
                         if json_line['client']['event'] in skip:
                             continue

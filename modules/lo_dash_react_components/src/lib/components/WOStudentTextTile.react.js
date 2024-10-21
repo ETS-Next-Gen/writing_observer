@@ -30,7 +30,7 @@ export default class WOStudentTextTile extends Component {
     const documentIsSelected = selectedDocument && studentInfo.documents[selectedDocument];
     const isLoading = documentIsSelected && currentOptionHash !== studentInfo.documents[selectedDocument].optionHash;
     let bodyClassName = isLoading ? 'loading' : '';
-    bodyClassName = `${bodyClassName} overflow-auto`;
+    bodyClassName = `${bodyClassName} overflow-auto position-relative`;
 
     const loadedItem = documentIsSelected
       ? <>{childComponent}</>
@@ -65,11 +65,13 @@ export default class WOStudentTextTile extends Component {
           </Form.Select> */}
         </Card.Header>
         <Card.Body className={bodyClassName}>
-        {
-          isLoading
-            ? <div className='loading-circle'/>
-            : loadedItem
-        }
+          {loadedItem}
+          {isLoading && (
+            <div className='position-absolute top-0 end-0 bg-light p-1 d-flex border border-1 border-top-0 rounded-bottom'>
+              <div className='loading-circle me-1'/>
+              <span>Loading...</span>
+            </div>
+          )}
         </Card.Body>
       </Card>
     );

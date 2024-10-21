@@ -66,9 +66,9 @@ def document_link_to_doc_id(event):
     Convert a document link to include a doc_id
     '''
     doc_id = writing_observer.writing_analysis.get_doc_id({'client': event})
-    if doc_id and 'client' in event and 'doc_id' in event['client']:
+    if doc_id and 'client' in event:
         event['client']['doc_id'] = doc_id
-    else:
+    elif doc_id:
         event['doc_id'] = doc_id
     return event
 
