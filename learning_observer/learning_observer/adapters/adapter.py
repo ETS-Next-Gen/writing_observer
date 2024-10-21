@@ -51,32 +51,19 @@ def dash_to_underscore(event):
 
     return event
 
-
-# TODO this code ought to live in Writing Observer. Then,
-# Learning Observer can import the adapters (rename to migrations)
-# from each module and load them into a canonicalize_event function.
-# We ought to have some pipeline for transforming events between
-# versions for a given source.
-# We ought to include the source and version pair when defining
-# a migration function.
-import writing_observer.writing_analysis
-
-def document_link_to_doc_id(event):
-    '''
-    Convert a document link to include a doc_id
-    '''
-    doc_id = writing_observer.writing_analysis.get_doc_id({'client': event})
-    if doc_id and 'client' in event:
-        event['client']['doc_id'] = doc_id
-    elif doc_id:
-        event['doc_id'] = doc_id
-    return event
-
-
 common_transformers = [
     dash_to_underscore,
-    document_link_to_doc_id
 ]
+
+def add_common_migrator(migrator, file):
+    '''Add a migrator to the common transformers list.
+    TODO
+    We ought check each module on startup for migrators
+    and import them instead of using this function to
+    add them to the transformations.
+    '''
+    print('Adding migrator', migrator, 'from', file),
+    common_transformers.append(migrator)
 
 
 class EventAdapter:
