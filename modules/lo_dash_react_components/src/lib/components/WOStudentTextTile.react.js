@@ -64,14 +64,14 @@ export default class WOStudentTextTile extends Component {
             ))}
           </Form.Select> */}
         </Card.Header>
+        {isLoading && (
+          <div className='position-absolute top-0 end-0 bg-light p-1 d-flex border border-1 border-top-0 rounded-bottom'>
+            <div className='loading-circle me-1'/>
+            <span>Loading...</span>
+          </div>
+        )}
         <Card.Body className={bodyClassName}>
           {loadedItem}
-          {isLoading && (
-            <div className='position-absolute top-0 end-0 bg-light p-1 d-flex border border-1 border-top-0 rounded-bottom'>
-              <div className='loading-circle me-1'/>
-              <span>Loading...</span>
-            </div>
-          )}
         </Card.Body>
       </Card>
     );
