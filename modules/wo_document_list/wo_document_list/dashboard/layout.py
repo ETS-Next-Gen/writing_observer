@@ -1,6 +1,11 @@
 '''
 Define layout for per student list of documents
 '''
+# TODO this module no longer works properly since switching
+# the communication protocol to use an async generator.
+error = f'The module WO Document List is not compatible with the communication protocol api.\n'\
+        'Please uninstall this module with `pip uninstall wo-document-list`.'
+raise RuntimeError(error)
 # package imports
 import dash_bootstrap_components as dbc
 import lo_dash_react_components as lodrc

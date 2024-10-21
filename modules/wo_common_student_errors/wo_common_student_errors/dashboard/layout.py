@@ -3,6 +3,11 @@ Define layout for common student errors
 This layout is pretty messy as we are constantly prototyping
 new ways of displaying information
 '''
+# TODO this module no longer works properly since switching
+# the communication protocol to use an async generator.
+error = f'The module WO Common student errors is not compatible with the communication protocol api.\n'\
+        'Please uninstall this module with `pip uninstall wo-common-student-errors`.'
+raise RuntimeError(error)
 # package imports
 import dash_bootstrap_components as dbc
 from dash_renderjson import DashRenderjson

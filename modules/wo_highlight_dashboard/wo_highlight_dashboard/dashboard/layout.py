@@ -1,6 +1,12 @@
 '''
 Define layout for student dashboard view
 '''
+# TODO this module no longer works properly since switching
+# the communication protocol to use an async generator.
+# Additionally, this module has been re-written as `wo_classroom_text_highlighter`
+error = f'The module WO Highlight Dashboard is not compatible with the communication protocol api.\n'\
+        'Please uninstall this module with `pip uninstall wo-highlight-dashboard`.'
+raise RuntimeError(error)
 # package imports
 import learning_observer.dash_wrapper as dash
 import dash_bootstrap_components as dbc

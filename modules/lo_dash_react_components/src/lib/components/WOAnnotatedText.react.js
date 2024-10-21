@@ -1,90 +1,80 @@
-import React, { Component } from 'react'
-import PropTypes from 'prop-types'
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Popover from 'react-bootstrap/Popover'
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
 
-import 'react-tooltip/dist/react-tooltip.css'
+import 'react-tooltip/dist/react-tooltip.css';
 
 /**
  * WOAnnotatedText
  */
 export default class WOAnnotatedText extends Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.state = {
       selectedItem: null
-    }
-  }
-
-  handleOverlap = (chunks, text) => {
-    return chunks.reduce((prev, curr) => {
-      const lastChunk = prev[prev.length - 1]
-      if (lastChunk && lastChunk.end > curr.start) {
-        const commonText = text.substring(curr.start, lastChunk.end)
-        const remainderText = text.substring(lastChunk.end, curr.end)
-        const newLastChunk = { ...lastChunk, text: text.substring(lastChunk.start, curr.start) }
-        const commonChunk = {
-          text: commonText,
-          annotated: true,
-          id: `${newLastChunk.id}-${curr.id}`,
-          start: curr.start,
-          end: lastChunk.end,
-          tooltip: lastChunk.tooltip.concat(curr.tooltip),
-          style: { ...curr.style, ...lastChunk.style }
-        }
-        const newChunk = {
-          text: remainderText,
-          annotated: true,
-          id: curr.id,
-          start: lastChunk.end,
-          end: curr.end,
-          tooltip: curr.tooltip,
-          style: curr.style
-        }
-        return [...prev.slice(0, prev.length - 1), newLastChunk, commonChunk, newChunk]
-      } else {
-        return [...prev, curr]
-      }
-    }, [])
+    };
   }
 
   replaceNewLines = (str) => {
-    const split = str.split('\n')
+    const split = str.split('\n');
     if (split.length > 1) {
       return split.map((line, index) => (
         <React.Fragment key={index}>
           {line}
           {split.length-1 === index ? <span/> : <br/>}
         </React.Fragment>
-      ))
+      ));
     }
-    return str
+    return str;
   }
 
   render() {
-    const { breakpoints, text, className } = this.props
-    const sortedList = [...breakpoints].sort((a, b) => a.start - b.start)
-    let chunks = sortedList.reduce((prev, { start, offset, tooltip, style }, index) => {
-      const lastOffset = prev.length ? prev[prev.length - 1].end : 0
-      if (start > lastOffset) {
-        prev.push({
-          text: text.substring(lastOffset, start),
-          annotated: false
-        })
-      }
-      prev.push({
-        text: text.substring(start, start + offset),
-        annotated: true,
-        id: index,
-        start: start,
-        end: start + offset,
-        tooltip: [tooltip],
-        style: style
-      })
-      return prev
-    }, [])
+    const { breakpoints, text, className } = this.props;
 
-    chunks = this.handleOverlap(chunks, text)
+    const breaks = new Set();
+    breakpoints.forEach(obj => {
+      breaks.add(obj.start);
+      breaks.add(obj.start + obj.offset);
+    });
+    breaks.add(0);
+    breaks.add(text.length);
+
+    const ids = {};
+    breaks.forEach(item => {
+      ids[item] = [];
+    });
+
+    const breaksList = [...breaks].sort((a, b) => a - b);
+    let matchingBreaks = [];
+
+    breakpoints.forEach(obj => {
+      matchingBreaks = breaksList.filter(v => (v >= obj.start & v < (obj.start + obj.offset)));
+      matchingBreaks.forEach(b => {
+        ids[b] = ids[b].concat({ tooltip: obj.tooltip, style: obj.style });
+      });
+    })
+
+    const chunks = Array(breaksList.length - 1);
+    let curr, textChunk;
+    for (let i = 0; i < chunks.length; i++) {
+      curr = ids[breaksList[i]];
+      textChunk = text.substring(breaksList[i], breaksList[i+1]);
+      if (curr.length === 0) {
+        chunks[i] = {
+          text: textChunk,
+          annotated: false
+        };
+      } else {
+        chunks[i] = {
+          text: textChunk,
+          annotated: true,
+          id: i,
+          tooltip: curr.map(o => o.tooltip),
+          style: curr[0].style
+        };
+      }
+    }
 
     if (chunks.length === 0) {
       return <div className={className}>
@@ -97,7 +87,7 @@ export default class WOAnnotatedText extends Component {
       chunks.push({
         text: text.substring(chunks[chunks.length - 1].end),
         annotated: false
-      })
+      });
     }
     return (
       <div className={className}>
@@ -111,14 +101,18 @@ export default class WOAnnotatedText extends Component {
                 <Popover>
                   <Popover.Header as="h3">Annotations</Popover.Header>
                   <Popover.Body>
-                    {chunk.tooltip}
+                  <ul>
+                    {[...new Set(chunk.tooltip)].map((item, index) => (
+                      <li key={index}>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                   </Popover.Body>
                 </Popover>
               }
             >
-              <span
-                style={chunk.style}
-              >
+              <span style={chunk.style}>
                 {this.replaceNewLines(chunk.text)}
               </span>
             </OverlayTrigger>
@@ -127,7 +121,7 @@ export default class WOAnnotatedText extends Component {
             </span>
         ))}
       </div>
-    )
+    );
   }
 }
 
@@ -156,7 +150,7 @@ WOAnnotatedText.propTypes = {
     id: PropTypes.string,
     start: PropTypes.number,
     offset: PropTypes.number,
-    tooltip: PropTypes.node,
+    tooltip: PropTypes.string,
     style: PropTypes.object
   })),
 
