@@ -44,7 +44,7 @@ def init_nlp():
     except OSError as e:
         error_text = 'There was an issue loading `en_core_web_lg` from spacy. '\
                      '`awe_components` requires various models to operate properly. '\
-                     f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} awe_components/setup/data.py` to install all '\
+                     f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} -m awe_components.setup.data` to install all '\
                      'of the necessary models.'
 
         a = input('Spacy model `en_core_web_lg` not available. Would you like to download? (y/n)')
