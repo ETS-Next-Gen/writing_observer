@@ -52,7 +52,7 @@ def dash_to_underscore(event):
     return event
 
 common_transformers = [
-    dash_to_underscore,
+    dash_to_underscore
 ]
 
 def add_common_migrator(migrator, file):

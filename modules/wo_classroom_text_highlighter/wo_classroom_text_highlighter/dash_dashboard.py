@@ -57,7 +57,7 @@ def layout():
     Function to define the page's layout.
     '''
     page_layout = html.Div([
-        html.H1('Writing Observer Classroom Text Highlighter'),
+        html.H1('Writing Observer - Classroom Text Highlighter'),
         alert_component,
         dbc.InputGroup([
             dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),

@@ -75,6 +75,6 @@ COURSE_DASHBOARDS = [{
     'url': "/wo_bulk_essay_analysis/dash/bulk-essay-analysis",
     "icon": {
         "type": "fas",
-        "icon": "fa-pen-nib"
+        "icon": "fa-lightbulb"
     }
 }]

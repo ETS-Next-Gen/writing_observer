@@ -9,7 +9,7 @@ from learning_observer.dash_integration import thirdparty_url, static_url
 import wo_classroom_text_highlighter.dash_dashboard
 
 # Name for the module
-NAME = 'Writing Observer Classroom Text Highlighter'
+NAME = 'Writing Observer - Classroom Text Highlighter'
 
 '''
 Define pages created with Dash.
@@ -51,6 +51,6 @@ COURSE_DASHBOARDS = [{
     'url': "/wo_classroom_text_highlighter/dash/wo-classroom-text-highlighter",
     "icon": {
         "type": "fas",
-        "icon": "fa-play-circle"
+        "icon": "fa-highlighter"
     }
 }]

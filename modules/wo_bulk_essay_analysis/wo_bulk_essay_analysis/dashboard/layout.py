@@ -118,6 +118,8 @@ def layout():
     # query creator panel
     input_panel = dbc.Card([
         dbc.CardHeader('Prompt Input'),
+        # TODO figure out the proper way to create new tags/upload docs
+        # then remove the `class_name='d-none'` from this button.
         dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload), class_name='d-none'),
         dbc.CardBody([
             dbc.Textarea(id=query_input, value=starting_prompt, class_name='h-100', style={'minHeight': '150px'}),
@@ -152,7 +154,7 @@ def layout():
 
     # overall container
     cont = dbc.Container([
-        html.H2('AskGPT'),
+        html.H2('Writing Observer - AskGPT'),
         dbc.InputGroup([
             dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
             dbc.Button([html.I(className='fas fa-cog me-1'), 'Advanced'], id=_advanced_toggle),
