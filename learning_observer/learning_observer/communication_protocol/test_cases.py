@@ -12,6 +12,7 @@ Options:
 Test Cases:
     docs_with_roster    Prints the dummy Google Docs text DAG.
     map_example         Prints the map example test cases.
+    map_async_example   Prints the map async example test cases.
     parameter_error     Prints the parameter test case.
     field_error         Prints the missing fields test case.
     malformed_key       Prints the malformed key test case.
@@ -26,12 +27,15 @@ import asyncio
 import copy
 import docopt
 import json
+import random
 import sys
+import time
 
 import learning_observer.communication_protocol.executor
 import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query as q
 import learning_observer.communication_protocol.util
+import learning_observer.communication_protocol.exception
 import learning_observer.constants as constants
 import learning_observer.offline
 
@@ -56,7 +60,14 @@ def dummy_exception():
     raise Exception('This is an exception that was raised in a published function.')
 
 
-async def dummy_map(value, example):
+async def dummy_async_map(value, example):
+    await asyncio.sleep(1)
+    if value.endswith('2'):
+        raise ValueError('Item ends with a 2')
+    return {'value': value, 'example': example}
+
+def dummy_sync_map(value, example):
+    time.sleep(1)
     if value.endswith('2'):
         raise ValueError('Item ends with a 2')
     return {'value': value, 'example': example}
@@ -65,12 +76,14 @@ async def dummy_map(value, example):
 DUMMY_FUNCTIONS = {
     "learning_observer.dummyroster": dummy_roster,
     "learning_observer.dummycall": dummy_exception,
-    "learning_observer.dummymap": dummy_map
+    "learning_observer.dummyasyncmap": dummy_async_map,
+    "learning_observer.dummymap": dummy_sync_map
 }
 
 course_roster = q.call('learning_observer.dummyroster')
 exception_func = q.call('learning_observer.dummycall')
 map_func = q.call('learning_observer.dummymap')
+async_map_func = q.call('learning_observer.dummyasyncmap')
 
 TEST_DAG = {
     'execution_dag': {
@@ -78,7 +91,8 @@ TEST_DAG = {
         "doc_ids": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         "docs": q.select(q.keys('writing_observer.reconstruct', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields={'text': 'text'}),
         "docs_join_roster": q.join(LEFT=q.variable("docs"), RIGHT=q.variable("roster"), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT_ON='user_id'),
-        "map_students": q.map(map_func, q.variable('roster'), 'user_id', {'example': 123}),
+        "map_students": q.map(map_func, q.variable('roster'), 'user_id', {'example': 123}, parallel=True),
+        "map_async_students": q.map(async_map_func, q.variable('roster'), 'user_id', {'example': 123}, parallel=True),
         "field_error": q.select(q.keys('writing_observer.last_document', STUDENTS=q.variable("roster"), STUDENTS_path='user_id'), fields={'nonexistent_key': 'doc_id'}),
         "malformed_key_error": q.select([{'item': 1}, {'item': 2}], fields={'nonexistent_key': 'doc_id'}),
         "call_exception": exception_func(),
@@ -101,12 +115,19 @@ TEST_DAG = {
             "description": 'Show example of mapping students',
             'expected': lambda x: isinstance(x, list) and 'value' in x[0]
         },
+        'map_async_example': {
+            'returns': 'map_async_students',
+            'parameters': ['course_id'],
+            'test_parameters': {'course_id': 123},
+            "description": 'Show example of mapping students',
+            'expected': lambda x: isinstance(x, list) and 'value' in x[0]
+        },
         'parameter_error': {
             'returns': 'docs_join_roster',
             'parameters': ['course_id'],
             'test_parameters': {},
             "description": "Fetches student doc text; however, this errors since we do not provide the necessary parameters.",
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         },
         'field_error': {
             'returns': 'field_error',
@@ -127,8 +148,11 @@ TEST_DAG = {
             'parameters': [],
             'test_parameters': {},
             'description': "Throw an exception within a published function",
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         },
+        # TODO this test case fails and was failing before switching to an async generator
+        # Should we be erroring if the `left_on` path doesn't exist or just yielding `left`
+        # as is? Currently, `executor.py` yields `left`.
         'join_key_error': {
             'returns': 'join_key_error',
             'parameters': [],
@@ -141,13 +165,13 @@ TEST_DAG = {
             'parameters': [],
             'test_parameters': {},
             'description': 'Test out circular node errors',
-            'expected': lambda x: isinstance(x, dict) and 'error' in x
+            'expected': lambda x: isinstance(x, list) and 'error' in x[0]
         }
     }
 }
 
 
-def run_test_cases(test_cases, verbose=False):
+async def run_test_cases(test_cases, verbose=False):
     """
     Run all test cases. Print output from the ones specified.
 
@@ -164,21 +188,24 @@ def run_test_cases(test_cases, verbose=False):
         print(f"Invalid test case. Available test cases are: {available_test_cases}")
         sys.exit()
 
-    learning_observer.offline.init()
+    learning_observer.offline.init('creds.yaml')
 
     for key in TEST_DAG['exports']:
         FLAT = learning_observer.communication_protocol.util.flatten(copy.deepcopy(TEST_DAG))
-        EXECUTE = asyncio.run(
-            learning_observer.communication_protocol.executor.execute_dag(
-                copy.deepcopy(FLAT), parameters=TEST_DAG['exports'][key]['test_parameters'],
-                functions=DUMMY_FUNCTIONS, target_exports=[key]
-            )
+        EXECUTE = await learning_observer.communication_protocol.executor.execute_dag(
+            copy.deepcopy(FLAT), parameters=TEST_DAG['exports'][key]['test_parameters'],
+            functions=DUMMY_FUNCTIONS, target_exports=[key]
         )
         if (key in test_cases or 'all' in test_cases) and 'none' not in test_cases:
             print(f"Executing {key}")
             if verbose:
                 print(json.dumps(EXECUTE, indent=2))
-            assert (TEST_DAG['exports'][key]['expected'](EXECUTE[TEST_DAG['exports'][key]['returns']]))
+
+            try:
+                driven_gen = [i async for i in EXECUTE[TEST_DAG['exports'][key]['returns']]]
+            except learning_observer.communication_protocol.exception.DAGExecutionException as e:
+                driven_gen = e.to_dict()
+            assert (TEST_DAG['exports'][key]['expected'](driven_gen))
             print('  Received expected output.')
 
 
@@ -190,4 +217,4 @@ if __name__ == "__main__":
     if args['<test_case>'] == []:
         print(__doc__)
         sys.exit()
-    run_test_cases(args['<test_case>'], args['--verbose'])
+    asyncio.run(run_test_cases(args['<test_case>'], args['--verbose']))

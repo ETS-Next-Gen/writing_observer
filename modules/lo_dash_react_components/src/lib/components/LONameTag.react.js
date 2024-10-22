@@ -7,6 +7,13 @@ import PropTypes from "prop-types";
 export default class LONameTag extends Component {
     render() {
         const { id, profile, className, includeName } = this.props;
+
+        // Check for the existence of necessary profile keys
+        const hasValidPhotoUrl = profile?.photo_url && profile.photo_url !== '//lh3.googleusercontent.com/a/default-user';
+        const givenName = profile?.name?.given_name ?? '';
+        const familyName = profile?.name?.family_name ?? '';
+        const fullName = profile?.name?.full_name ?? '';
+
         return (
             <div
                 key={`lo-name-tag-${id}`}
@@ -14,15 +21,16 @@ export default class LONameTag extends Component {
                 id={id}
             >
                 {
-                    (profile.photo_url & profile.photo_url !== '//lh3.googleusercontent.com/a/default-user')
-                    ? <img className='name-tag-photo' src={`https:${profile.photo_url}`} title={profile.name.full_name} />
-                    : <span className='name-tag-photo' title={profile.name.full_name}>{`${profile.name.given_name.slice(0,1)}${profile.name.family_name.slice(0,1)}`}</span>
+                    hasValidPhotoUrl
+                    ? <img className='name-tag-photo' src={`https:${profile.photo_url}`} title={fullName} />
+                    : <span className='name-tag-photo' title={fullName}>{`${givenName.slice(0, 1)}${familyName.slice(0, 1)}`}</span>
                 }
-                {includeName ? <span className='name-tag-name'>{profile.name.full_name}</span> : <span/>}
+                {includeName ? <span className='name-tag-name'>{fullName}</span> : <span/>}
             </div>
-        )
+        );
     }
 }
+
 LONameTag.defaultProps = {
     id: "",
     className: "",

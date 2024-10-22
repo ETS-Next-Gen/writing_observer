@@ -13,6 +13,7 @@ import time
 
 import writing_observer.reconstruct_doc
 
+import learning_observer.adapters
 import learning_observer.communication_protocol.integration
 from learning_observer.stream_analytics.helpers import student_event_reducer, kvs_pipeline, KeyField, EventField, Scope
 import learning_observer.settings
@@ -409,3 +410,16 @@ def get_doc_id(event):
 
     doc_id = client.get('object', {}).get('id')
     return doc_id
+
+def document_link_to_doc_id(event):
+    '''
+    Convert a document link to include a doc_id
+    '''
+    doc_id = get_doc_id({'client': event})
+    if doc_id and 'client' in event:
+        event['client']['doc_id'] = doc_id
+    elif doc_id:
+        event['doc_id'] = doc_id
+    return event
+
+learning_observer.adapters.adapter.add_common_migrator(document_link_to_doc_id, __file__)

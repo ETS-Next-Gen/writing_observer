@@ -49,7 +49,7 @@ pmss.register_field(
     name='nlp_source',
     type='nlp_source',
     description='Process the NLP components at time of execution '\
-        'dag `nlp` or read results from reducer `npl_sep_proc`.',
+        'dag `nlp` or read results from reducer `nlp_sep_proc`.',
     default='nlp'
 )
 pmss.parser('languagetool_source', parent='string', choices=['overall_lt', 'overall_lt_sep_proc'], transform=None)

@@ -51,10 +51,19 @@ def dash_to_underscore(event):
 
     return event
 
-
 common_transformers = [
     dash_to_underscore
 ]
+
+def add_common_migrator(migrator, file):
+    '''Add a migrator to the common transformers list.
+    TODO
+    We ought check each module on startup for migrators
+    and import them instead of using this function to
+    add them to the transformations.
+    '''
+    print('Adding migrator', migrator, 'from', file),
+    common_transformers.append(migrator)
 
 
 class EventAdapter:

@@ -5,6 +5,8 @@ import LOCollapse from './components/LOCollapse.react';
 import WOAnnotatedText from './components/WOAnnotatedText.react';
 import WOMetrics from './components/WOMetrics.react';
 import WOIndicatorBars from './components/WOIndicatorBars.react';
+import WOSettings from './components/WOSettings.react';
+import WOStudentTextTile from './components/WOStudentTextTile.react';
 import WOTextHighlight from './components/WOTextHighlight.react';
 import StudentSelectHeader from './components/StudentSelectHeader.react';
 import LOTextMinibars from './components/LOTextMinibars.react';
@@ -17,6 +19,8 @@ export {
     LOPanelLayout,
     LOCollapse,
     WOAnnotatedText,
+    WOStudentTextTile,
+    WOSettings,
     WOMetrics,
     WOIndicatorBars,
     WOTextHighlight,

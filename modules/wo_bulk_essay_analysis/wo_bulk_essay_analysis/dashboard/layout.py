@@ -13,9 +13,8 @@ from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Inp
 DEBUG_FLAG = True
 
 prefix = 'bulk-essay-analysis'
-websocket = f'{prefix}-websocket'
-ws_store = f'{prefix}-ws-store'
-error_store = f'{prefix}-error-store'
+_websocket = f'{prefix}-websocket'
+_namespace = 'bulk_essay_feedback'
 
 alert = f'{prefix}-alert'
 alert_text = f'{prefix}-alert-text'
@@ -25,13 +24,16 @@ query_input = f'{prefix}-query-input'
 
 panel_layout = f'{prefix}-panel-layout'
 
-advanced_collapse = f'{prefix}-advanced-collapse'
+_advanced_toggle = f'{prefix}-advanced-toggle'
+_advanced_collapse = f'{prefix}-advanced-collapse'
+
 system_input = f'{prefix}-system-prompt-input'
-# document source
+# document source DOM ids
 doc_src = f'{prefix}-doc-src'
 doc_src_date = f'{prefix}-doc-src-date'
 doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
+# attachment upload DOM ids
 attachment_upload = f'{prefix}-attachment-upload'
 attachment_label = f'{prefix}-attachment-label'
 attachment_extracted_text = f'{prefix}-attachment-extracted-text'
@@ -39,13 +41,22 @@ attachment_save = f'{prefix}-attachment-save'
 attachment_warning_message = f'{prefix}-attachment-warning-message'
 attachment_store = f'{prefix}-attachment-store'
 
+# placeholder DOM ids
 tags = f'{prefix}-tags'
+placeholder_tooltip = f'{prefix}-placeholder-tooltip'
 tag = f'{prefix}-tag'
 tag_store = f'{prefix}-tags-store'
 
+# prompt history DOM ids
 history_body = f'{prefix}-history-body'
 history_store = f'{prefix}-history-store'
 favorite_store = f'{prefix}-favorite-store'
+
+# loading message/bar DOM ids
+_loading_prefix = f'{prefix}-loading'
+_loading_collapse = f'{_loading_prefix}-collapse'
+_loading_progress = f'{_loading_prefix}-progress-bar'
+_loading_information = f'{_loading_prefix}-information-text'
 
 submit = f'{prefix}-submit-btn'
 submit_warning_message = f'{prefix}-submit-warning-msg'
@@ -63,29 +74,27 @@ def layout():
     Generic layout function to create dashboard
     '''
     # advanced menu for system prompt
-    advanced = dbc.Col([
-        lodrc.LOCollapse([
+    advanced = [
+        html.Div([
+            dbc.Label('System prompt'),
+            dbc.Textarea(id=system_input, value=system_prompt)
+        ]),
+        html.Div([
+            dbc.Label('Document Source'),
+            dbc.RadioItems(options=[
+                {'label': 'Latest Document', 'value': 'latest' },
+                {'label': 'Specific Time', 'value': 'ts'},
+            ], value='latest', id=doc_src),
             dbc.InputGroup([
-                dbc.InputGroupText('System prompt:'),
-                dbc.Textarea(id=system_input, value=system_prompt)
-            ]),
-            html.Div([
-                dbc.Label('Document Source'),
-                dbc.RadioItems(options=[
-                    {'label': 'Latest Document', 'value': 'latest' },
-                    {'label': 'Specific Time', 'value': 'ts'},
-                ], value='latest', id=doc_src),
-                dbc.InputGroup([
-                    dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
-                    dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
-                ])
+                dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
+                dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
             ])
-        ], label='Advanced', id=advanced_collapse, is_open=False),
-    ])
+        ])
+    ]
 
     # history panel
     history_favorite_panel = dbc.Card([
-        dbc.CardHeader('Prompts'),
+        dbc.CardHeader('Prompt History'),
         dbc.CardBody([], id=history_body),
         dcc.Store(id=history_store, data=[])
     ], class_name='h-100')
@@ -108,63 +117,88 @@ def layout():
 
     # query creator panel
     input_panel = dbc.Card([
-        dbc.InputGroup([
-            dbc.InputGroupText([], id=tags, class_name='flex-grow-1', style={'gap': '5px'}),
+        dbc.CardHeader('Prompt Input'),
+        # TODO figure out the proper way to create new tags/upload docs
+        # then remove the `class_name='d-none'` from this button.
+        dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload), class_name='d-none'),
+        dbc.CardBody([
+            dbc.Textarea(id=query_input, value=starting_prompt, class_name='h-100', style={'minHeight': '150px'}),
+            html.Div([
+                html.Span([
+                    'Placeholders',
+                    html.I(className='fas fa-circle-question ms-1', id=placeholder_tooltip)
+                ], className='me-1'),
+                html.Span([], id=tags),
+            ], className='mt-1'),
+            dbc.Tooltip(
+                'Click a placeholder to insert it into your prompt. Upon submission, it will be replaced with the corresponding value.',
+                target=placeholder_tooltip
+            ),
             dcc.Store(id=tag_store, data={'student_text': ''}),
-            dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload))
         ]),
-        dbc.CardBody(dbc.Textarea(id=query_input, value=starting_prompt, class_name='h-100', style={'minHeight': '150px'})),
         dbc.CardFooter([
             html.Small(id=submit_warning_message, className='text-danger'),
             dbc.Button('Submit', color='primary', id=submit, n_clicks=0, class_name='float-end')
         ])
-    ], class_name='h-100')
+    ])
 
     alert_component = dbc.Alert([
         html.Div(id=alert_text),
         html.Div(DashRenderjson(id=alert_error_dump), className='' if DEBUG_FLAG else 'd-none')
     ], id=alert, color='danger', is_open=False)
 
+    loading_component = dbc.Collapse([
+        html.Div(id=_loading_information),
+        dbc.Progress(id=_loading_progress, animated=True, striped=True, max=1.1)
+    ], id=_loading_collapse, is_open=False, class_name='mb-1 sticky-top bg-light')
+
     # overall container
     cont = dbc.Container([
-        html.H2('Prototype: Work in Progress'),
-        html.P(
-            'This dashboard is a prototype allowing teachers to run ChatGPT over a set of essays. '
-            'The dashboard is subject to change based on ongoing feedback from teachers.'
-        ),
-        html.H2('AskGPT'),
+        html.H2('Writing Observer - AskGPT'),
+        dbc.InputGroup([
+            dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
+            dbc.Button([html.I(className='fas fa-cog me-1'), 'Advanced'], id=_advanced_toggle),
+            lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
+        ], class_name='mb-1'),
+        dbc.Collapse(advanced, id=_advanced_collapse, class_name='mb-1'),
         lodrc.LOPanelLayout(
             input_panel,
             panels=[
-                {'children': history_favorite_panel, 'width': '20%', 'id': 'history-favorite', 'side': 'left'},
+                {'children': history_favorite_panel, 'width': '30%', 'id': 'history-favorite'},
                 {'children': attachment_panel, 'width': '40%', 'id': 'attachment'},
             ],
             shown=['history-favorite'],
             id=panel_layout
         ),
-        dbc.Row([advanced]),
         alert_component,
-        dbc.Row(id=grid, class_name='g-2 mt-2'),
-        lodrc.LOConnection(id=websocket),
-        dcc.Store(id=ws_store, data=[]),
-        dcc.Store(id=error_store, data=False)
+        html.H3('Student Text', className='mt-1'),
+        loading_component,
+        dbc.Row(id=grid, class_name='g-4'),
     ], fluid=True)
     return dcc.Loading(cont)
 
 
 # disbale document date/time options
 clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='disable_doc_src_datetime'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disable_doc_src_datetime'),
     Output(doc_src_date, 'disabled'),
     Output(doc_src_timestamp, 'disabled'),
     Input(doc_src, 'value')
 )
 
+# Toggle if the advanced menu collapse is open or not
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='toggleAdvanced'),
+    Output(_advanced_collapse, 'is_open'),
+    Input(_advanced_toggle, 'n_clicks'),
+    State(_advanced_collapse, 'is_open')
+)
+
 # send request on websocket
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='send_to_loconnection'),
-    Output(websocket, 'send'),
-    Input(websocket, 'state'),  # used for initial setup
+    Output(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'send'),
+    Input(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
     Input('_pages_location', 'hash'),
     Input(submit, 'n_clicks'),
     Input(doc_src, 'value'),
@@ -178,10 +212,11 @@ clientside_callback(
 # enable/disabled submit based on query
 # makes sure there is a query and the tags are properly formatted
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disabled_query_submit'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disableQuerySubmitButton'),
     Output(submit, 'disabled'),
     Output(submit_warning_message, 'children'),
     Input(query_input, 'value'),
+    Input(_loading_collapse, 'is_open'),
     State(tag_store, 'data')
 )
 
@@ -215,28 +250,19 @@ clientside_callback(
     State(panel_layout, 'shown')
 )
 
-# store message from LOConnection in storage for later use
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='receive_ws_message'),
-    Output(ws_store, 'data'),
-    Output(error_store, 'data'),
-    Input(websocket, 'message'),
-    prevent_initial_call=True
-)
-
-clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_alert_with_error'),
+    ClientsideFunction(namespace=_namespace, function_name='updateAlertWithError'),
     Output(alert_text, 'children'),
     Output(alert, 'is_open'),
     Output(alert_error_dump, 'data'),
-    Input(error_store, 'data')
+    Input(lodrc.LOConnectionAIO.ids.error_store(_websocket), 'data')
 )
 
 # update student cards based on new data in storage
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_student_grid'),
+    ClientsideFunction(namespace=_namespace, function_name='updateStudentGridOutput'),
     Output(grid, 'children'),
-    Input(ws_store, 'data'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
     Input(history_store, 'data')
 )
 
@@ -277,4 +303,14 @@ clientside_callback(
     State(tag_store, 'data'),
     State(panel_layout, 'shown'),
     prevent_initial_call=True
+)
+
+# update loading information
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='updateLoadingInformation'),
+    Output(_loading_collapse, 'is_open'),
+    Output(_loading_progress, 'value'),
+    Output(_loading_information, 'children'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
+    Input(history_store, 'data')
 )

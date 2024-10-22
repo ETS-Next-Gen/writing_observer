@@ -67,9 +67,14 @@ def init_nlp():
     except OSError as e:
         error_text = 'There was an issue loading `en_core_web_lg` from spacy. '\
                      '`awe_components` requires various models to operate properly. '\
-                     f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} awe_components/setup/data.py` to install all '\
+                     f'Run `{learning_observer.paths.PYTHON_EXECUTABLE} -m awe_components.setup.data` to install all '\
                      'of the necessary models.'
-        raise OSError(error_text) from e
+
+        a = input('Spacy model `en_core_web_lg` not available. Would you like to download? (y/n)')
+        if a.strip().lower() not in ['y', 'yes']:
+            raise OSError(error_text) from e
+        import awe_components.setup.data
+        awe_components.setup.data.download_models()
 
     # Adding all of the components, since
     # each of them turns out to be implicated in
@@ -363,7 +368,7 @@ async def process_writings_with_caching(writing_data, options=None, mode=RUN_MOD
         RUN_MODES.SERIAL: process_texts_serial
     }
 
-    for writing in writing_data:
+    async for writing in writing_data:
         text = writing.get('text', '')
         if len(text) == 0:
             continue
@@ -375,20 +380,18 @@ async def process_writings_with_caching(writing_data, options=None, mode=RUN_MOD
         found_features, writing = await check_available_features_in_cache(cache, text_hash, requested_features, writing)
         # If all options were found
         if found_features == requested_features:
-            results.append(writing)
+            yield writing
             continue
 
         # Check if some options are a subset of running_features: features that are needed but are already running
         unfound_features, found_features, writing = await check_and_wait_for_running_features(writing, requested_features, found_features, cache, sleep_interval, wait_time_for_running_features, text_hash)
         # If all options are found
         if found_features == requested_features:
-            results.append(writing)
+            yield writing
             continue
 
         # Add not found options to running_features and update cache
-        results.append(await process_and_cache_missing_features(unfound_features, found_features, requested_features, cache, text_hash, writing))
-
-    return results
+        yield await process_and_cache_missing_features(unfound_features, found_features, requested_features, cache, text_hash, writing)
 
 
 if __name__ == '__main__':

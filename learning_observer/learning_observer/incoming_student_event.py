@@ -387,7 +387,19 @@ async def incoming_websocket_handler(request):
 
         async for event in events:
             if 'auth' in event:
-                raise ValueError('Auth already exists in event, someone may be trying to hack the system')
+                '''
+                If 'auth' already exists, this means
+                    1. Someone is trying to hack the system
+                    2. Someone is restreaming logs into the system
+                We should record the current auth to history and
+                then remove it from the event. The `.authenticate`
+                function will take care of re-authorizing the user.
+
+                TODO determine how to store the auth history and append
+                current auth object.
+                '''
+                del event['auth']
+
             if not authenticated:
                 authenticated = await learning_observer.auth.events.authenticate(
                     request=request,
