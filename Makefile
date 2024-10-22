@@ -34,6 +34,7 @@ install-packages: venv
 	pip install -e learning_observer/[${PACKAGES}]
 
 	# Just a little bit of dependency hell...
+
 	# The AWE Components are built using a specific version of
 	# `spacy`. This requires an out-of-date `typing-extensions`
 	# package. There are few other dependecies that require a
@@ -42,7 +43,14 @@ install-packages: venv
 	# components.
 	# TODO remove this extra step after AWE Component's `spacy`
 	# is no longer version locked.
+	# This is no longer an issue, but we will leave until all
+	# dependecies can be resolved in the appropriate locations.
 	# pip install -U typing-extensions
+
+	# On Python3.11 with tensorflow, we get some odd errors
+	# regarding compatibility with `protobuf`. Some installation
+	# files are missing from the protobuf binary on pip.
+	# Using the `--no-binary` option includes all files.
 	pip uninstall -y protobuf
 	pip install --no-binary=protobuf protobuf==4.25
 
