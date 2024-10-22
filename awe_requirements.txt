@@ -1,5 +1,5 @@
 spacy==3.4.4
-pydantic==1.10
+pydantic==1.10.13
 spacytextblob==3.0.1
 AWE_SpellCorrect @ git+https://github.com/ETS-Next-Gen/AWE_SpellCorrect.git
 AWE_Components @ git+https://github.com/ETS-Next-Gen/AWE_Components.git
