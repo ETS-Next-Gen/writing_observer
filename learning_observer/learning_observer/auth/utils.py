@@ -177,9 +177,9 @@ def _role_required(role):
     '''
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(request):
+        async def wrapper(request):
             if learning_observer.settings.settings['auth'].get("test_case_insecure", False):
-                return func(request)
+                return await func(request)
             '''TODO evaluate how we should be using `role` with the
             `authorized` key.
 
@@ -191,12 +191,12 @@ def _role_required(role):
             When this is resolved, we need to update each source of
             auth in our code (e.g. password, http_basic, google, etc.)
             '''
-            user = request.get(constants.USER, None)
+            user = await get_active_user(request)
             if user is not None:
                 session_authorized = user.get('authorized', False)
                 session_role = user.get('role', roles.ROLES.STUDENT)
                 if session_authorized and session_role in [role, roles.ROLES.ADMIN]:
-                    return func(request)
+                    return await func(request)
             # Else, if unauthorized
             # send user to login page /
             # there may be a slight oddball with the url hash being
