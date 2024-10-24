@@ -2,7 +2,8 @@
   Logging library for Learning Observer clients
 */
 
-import { timestampEvent, mergeMetadata, getBrowserInfo } from './util.js';
+import { timestampEvent, mergeMetadata } from './util.js';
+import { getBrowserInfo } from './metadata/browserinfo.js';
 import * as Queue from './queue.js';
 import * as disabler from './disabler.js';
 import * as debug from './debugLog.js';
@@ -52,7 +53,7 @@ async function initializeLoggers () {
   }
 }
 
-async function compileMetadata(metadataTasks) {
+export async function compileMetadata(metadataTasks) {
   const taskPromises = metadataTasks.map(async task => {
     try {
       const result = await (task.async ? task.func() : Promise.resolve(task.func()));
@@ -64,6 +65,7 @@ async function compileMetadata(metadataTasks) {
   });
 
   const results = await Promise.all(taskPromises);
+  setFieldSet(results);
   return results.filter(Boolean);
 }
 
@@ -110,13 +112,13 @@ export function init (
   version,
   loggers, // e.g. [console_logger(), websocket_logger("/foo/bar")]
   {
-    debugLevel = debug.LEVEL.SIMPLE,
+    debugLevel = debug.LEVEL.NONE,
     debugDest = [debug.LOG_OUTPUT.CONSOLE],
     useDisabler = true,
     queueType = Queue.QueueType.AUTODETECT,
     sendBrowserInfo = false,
     verboseEvents = false,
-    initTasks = [],
+    metadata = [],
   } = {}
 ) {
   if (!source || typeof source !== 'string') throw new Error('source must be a non-null string');
@@ -133,9 +135,10 @@ export function init (
 
   loggersEnabled = loggers;
   initialized = INIT_STATES.IN_PROGRESS;
-  currentState = currentState.then(initializeLoggers).then(
-    () => setFieldSet([{ source, version }]));
-
+  currentState = currentState
+    .then(initializeLoggers)
+    .then(() => setFieldSet([{ source, version }]))
+    .then(() => compileMetadata(metadata));
   if(sendBrowserInfo) {
     // In the future, some or all of this might be sent on every
     // reconnect
