@@ -298,12 +298,15 @@ async def update_reconstruct_reducer_with_google_api(runtime, doc_ids):
         await kvs.set(key, text)
         return text
 
-    if learning_observer.settings.module_setting('writing_observer', 'use_google_documents'):
-        [await fetch_doc_from_google(
-            learning_observer.util.get_nested_dict_value(d, 'provenance.provenance.value.user_id'),
-            learning_observer.util.get_nested_dict_value(d, 'doc_id')
-        ) for d in doc_ids]
-    return doc_ids
+    fetch_from_google_documents = learning_observer.settings.module_setting('writing_observer', 'use_google_documents')
+    async for d in doc_ids:
+        if fetch_from_google_documents:
+            yield await fetch_doc_from_google(
+                learning_observer.util.get_nested_dict_value(d, 'provenance.provenance.value.user_id'),
+                learning_observer.util.get_nested_dict_value(d, 'doc_id')
+            )
+        else:
+            yield d
 
 
 def get_last_document_id(s):
