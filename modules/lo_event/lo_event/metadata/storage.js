@@ -13,6 +13,8 @@ export function getStorageMetadata(storage, keys = null) {
         try {
           items[key] = storage.getItem(key);
         } catch (e) {
+          // TODO: This should probably be communicated out-of-line, rather than
+          // the same place as data.
           items[key] = {
             type: 'error',
             error_type: e.name || 'Unknown',
