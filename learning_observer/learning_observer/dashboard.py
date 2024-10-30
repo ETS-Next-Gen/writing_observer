@@ -588,6 +588,7 @@ async def websocket_dashboard_handler(request):
     previous_client_query = None
     batch = []
     lock = asyncio.Lock()
+    background_tasks = set()
 
     async def _send_update(update):
         '''Send an update to our batch
@@ -646,7 +647,9 @@ async def websocket_dashboard_handler(request):
                 item['option_hash'] = dag_kwargs['option_hash']
             await _send_update({'op': 'update', 'path': update_path, 'value': item})
 
-    send_batches = asyncio.create_task(_batch_send())
+    send_batches_task = asyncio.create_task(_batch_send())
+    background_tasks.add(send_batches_task)
+    send_batches_task.add_done_callback(background_tasks.discard)
 
     while True:
         try:
@@ -676,7 +679,9 @@ async def websocket_dashboard_handler(request):
             # reschedule timeout).
             for k, v in client_query.items():
                 for target in v.get('target_exports', []):
-                    asyncio.create_task(_execute_dag(v, target, client_query))
+                    execute_dag_task = asyncio.create_task(_execute_dag(v, target, client_query))
+                    background_tasks.add(execute_dag_task)
+                    execute_dag_task.add_done_callback(background_tasks.discard)
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use
