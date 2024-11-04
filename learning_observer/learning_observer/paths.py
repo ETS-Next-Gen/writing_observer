@@ -25,6 +25,8 @@ It makes sense to put this logic one place.
 Should this be merges with settings.py? Let's see how complex this gets.
 '''
 
+import errno
+import os
 import os.path
 import sys
 
@@ -54,6 +56,35 @@ def config_file():
     Main configuration file
     '''
     pathname = os.path.join(os.path.dirname(base_path()), 'creds.pmss')
+    # TODO: This is cut-and-paste from settings.py.
+    #
+    # It should be one place.
+    #
+    # The move to pmss moved loading settings into the import
+    # statement of settings.py, which is probably a mistake, as in
+    # some cases, we want to import files without triggering all
+    # this machinery, or use alternative settings. A simple import
+    # should not lead to this exception in the future.
+    #
+    # But here we are, and until we're out of here, this is temporary
+    # code to let us know what's failing.
+    if not os.path.isfile(pathname):
+        print(
+            "Configuration file not found: {config_file}\n"
+            "\n"
+            "Copy the example file into:\n"
+            "{config_file}\n\n"
+            "And then continue setup\n"
+            "The command is probably:\n"
+            "cp {sourcedir}/creds.yaml.example {dest}\n\n"
+            "The file will then need to be customized for your install".format(
+                sourcedir=os.path.dirname(os.path.abspath(__file__)),
+                dest=pathname,
+                config_file=pathname
+            )
+        )
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), pathname)
+
     return pathname
 
 

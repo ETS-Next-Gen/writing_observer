@@ -177,9 +177,9 @@ def _role_required(role):
     '''
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(request):
+        async def wrapper(request):
             if learning_observer.settings.pmss_settings.test_case_insecure(types=['auth']):
-                return func(request)
+                return await func(request)
             '''TODO evaluate how we should be using `role` with the
             `authorized` key.
 
@@ -191,13 +191,12 @@ def _role_required(role):
             When this is resolved, we need to update each source of
             auth in our code (e.g. password, http_basic, google, etc.)
             '''
-            user = request.get(constants.USER, None)
+            user = await get_active_user(request)
             if user is not None:
                 session_authorized = user.get('authorized', False)
                 session_role = user.get('role', roles.ROLES.STUDENT)
                 if session_authorized and session_role in [role, roles.ROLES.ADMIN]:
-                    return func(request)
-            # if the user is none, we should let the user redirect back here after login
+                    return await func(request)
             # if they are not allowed to be here, redirect them to the home page
             # NOTE when the location updates, the url's hash is still included.
             # this is not sent with the request so this inclusion is ideal for

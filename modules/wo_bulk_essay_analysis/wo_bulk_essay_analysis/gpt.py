@@ -1,4 +1,5 @@
 import aiohttp
+import loremipsum
 import os
 import pmss
 
@@ -87,9 +88,6 @@ class OpenAIGPT(GPTAPI):
 
 class OllamaGPT(GPTAPI):
     '''GPT responder for handling request to the Ollama API
-    TODO this ought to just use requests instead of the specific ollama package
-    the format *should* be the same as the OpenAI responder. This will be one
-    less external module to rely on.
     '''
     def __init__(self, **kwargs):
         '''
@@ -127,7 +125,7 @@ class OllamaGPT(GPTAPI):
         content = {'model': self.model, 'messages': messages, 'stream': False}
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=content) as resp:
-                json_resp = await resp.json(content_type=None)
+                json_resp = await resp.json()
                 if resp.status == 200:
                     return json_resp['message']['content']
                 error = 'Error occured while making Ollama request'
@@ -136,9 +134,20 @@ class OllamaGPT(GPTAPI):
                 raise GPTRequestErorr(error)
 
 
+class StubGPT(GPTAPI):
+    '''GPT responder for handling stub requests
+    '''
+    def __init__(self, **kwargs):
+        super().__init__()
+
+    async def chat_completion(self, prompt, system_prompt):
+        return "\n".join(loremipsum.get_paragraphs(1))
+
+
 GPT_RESPONDERS = {
     'openai': OpenAIGPT,
-    'ollama': OllamaGPT
+    'ollama': OllamaGPT,
+    'stub': StubGPT
 }
 
 
@@ -172,7 +181,6 @@ async def process_student_essay(text, prompt, system_prompt, tags):
 
     We use a closure to allow the system to connect to the memoization KVS.
     '''
-
     copy_tags = tags.copy()
 
     @learning_observer.cache.async_memoization()

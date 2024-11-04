@@ -10,6 +10,10 @@ import dash as _dash
 from ._imports_ import *
 from ._imports_ import __all__
 
+from .LOConnectionStatusAIO import LOConnectionStatusAIO
+from .LOConnectionAIO import LOConnectionAIO
+from .ProfileSidebarAIO import ProfileSidebarAIO
+
 if not hasattr(_dash, '__plotly_dash') and not hasattr(_dash, 'development'):
     print('Dash was not successfully imported. '
           'Make sure you don\'t have a file '

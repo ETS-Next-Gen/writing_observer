@@ -7,7 +7,7 @@ import "./LOCards.css";
 
 const LOCard = ({ title, description }) => {
   return (
-    <div className="card">
+    <div className="lo-card">
       <h2>{title}</h2>
       <p>{description}</p>
     </div>
