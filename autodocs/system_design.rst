@@ -12,3 +12,5 @@ System Design
    :parser: myst_parser.sphinx_
 .. include:: ../docs/reducers.md
    :parser: myst_parser.sphinx_
+.. include:: ../learning_observer/learning_observer/communication_protocol/README.md
+   :parser: myst_parser.sphinx_
