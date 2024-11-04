@@ -183,6 +183,9 @@ def connect_to_google_cache():
     for key in ['save_google_ajax', 'use_google_ajax', 'save_clean_ajax', 'use_clean_ajax']:
         if settings.feature_flag(key):
             global cache
+            kvs_router = learning_observer.kvs.initialize_kvs()
+            google_kvs_class = learning_observer.kvs.prepare_kvs('google_cache')
+            kvs_router.add_item('google_cache', google_kvs_class)
             try:
                 cache = learning_observer.kvs.KVS.google_cache()
             except AttributeError:

@@ -55,7 +55,7 @@ def config_file():
     '''
     Main configuration file
     '''
-    pathname = os.path.join(os.path.dirname(base_path()), 'creds.yaml')
+    pathname = os.path.join(os.path.dirname(base_path()), 'creds.pmss')
     # TODO: This is cut-and-paste from settings.py.
     #
     # It should be one place.

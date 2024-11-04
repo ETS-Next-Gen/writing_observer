@@ -20,10 +20,9 @@ We're still figuring out the best ways to do this.
 Some of these code paths are untested. Please test and debug before using.
 '''
 
-import asyncio
+import pmss
 import urllib.parse
 import secrets
-import sys
 
 import aiohttp_session
 import aiohttp.web
@@ -37,7 +36,20 @@ import learning_observer.auth.http_basic
 
 from learning_observer.log_event import debug_log
 
+AVAILABLE_AUTH_METHODS = ['local_storage', 'chromebook', 'testcase_auth', 'guest']
 AUTH_METHODS = {}
+
+
+pmss.register_field(
+    name='userfile',
+    type=pmss.TYPES.string,
+    description='Filename for determining which users to authenticate.'
+)
+pmss.register_field(
+    name='allow_guest',
+    type=pmss.TYPES.boolean,
+    description='Flag for if guests are allowed for a given auth method.'
+)
 
 
 def register_event_auth(name):
@@ -105,13 +117,13 @@ def token_authorize_user(auth_method, user_id_token):
     '''
     Authorize a user based on a list of allowed user ID tokens
     '''
-    am_settings = learning_observer.settings.settings['event_auth'][auth_method]
-    if 'userfile' in am_settings:
-        userfile = am_settings['userfile']
+    userfile = learning_observer.settings.pmss_settings.userfile(types=['event_auth', auth_method])
+    if userfile:
         users = [u.strip() for u in open(learning_observer.paths.data(userfile)).readlines()]
         if user_id_token in users:
             return "authenticated"
-    if am_settings.get("allow_guest", False):
+    allow_guest = learning_observer.settings.pmss_settings.allow_guest(types=['event_auth', auth_method])
+    if allow_guest:
         return "unauthenticated"
     raise aiohttp.web.HTTPUnauthorized()
 
@@ -311,7 +323,7 @@ async def authenticate(request, headers, first_event, source):
     2. Providence: How they were authenticated (if at all), or how we believe they are who they are.
     3. `user_id` -- a unique user identifier
     '''
-    for auth_method in learning_observer.settings.settings['event_auth']:
+    for auth_method in AVAILABLE_AUTH_METHODS:
         auth_metadata = await AUTH_METHODS[auth_method](request, headers, first_event, source)
         if auth_metadata:
             if "safe_user_id" not in auth_metadata:
@@ -330,9 +342,7 @@ def check_event_auth_config():
     Check that all event auth methods are correctly configured,
     before events come in.
     '''
-    if 'event_auth' not in learning_observer.settings.settings:
-        raise learning_observer.prestartup.StartupCheck("Please configure event authentication")
-    for auth_method in learning_observer.settings.settings['event_auth']:
+    for auth_method in AVAILABLE_AUTH_METHODS:
         if auth_method not in AUTH_METHODS:
             raise learning_observer.prestartup.StartupCheck(
                 "Please configure event authentication for {}\n(Methods: {})".format(
@@ -342,6 +352,7 @@ def check_event_auth_config():
 
 
 if __name__ == "__main__":
+    import asyncio
     import doctest
     print("Running tests")
 
