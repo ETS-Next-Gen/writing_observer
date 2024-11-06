@@ -159,6 +159,9 @@ def initialize_gpt_responder():
     # TODO change this to use settings.module_settings() instead
     # that method now uses pmss which doesn't support lists and
     # dictionaries yet.
+    # TODO think through how we might use different gpt responders
+    # with different PMSS groups. We may have mutliple responders
+    # running on the same system for different modules or schools.
     responders = learning_observer.settings.settings['modules']['writing_observer'].get('gpt_responders', {})
     exceptions = []
     for key in responders:
