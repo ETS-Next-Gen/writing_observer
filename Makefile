@@ -53,6 +53,9 @@ install-packages: venv
 	# Using the `--no-binary` option includes all files.
 	pip uninstall -y protobuf
 	pip install --no-binary=protobuf protobuf==4.25
+	# Numpy v2 usually gets installed but causes issues with a
+	# mismatch in binary headers, since something wants numpy v1
+	pip install -U numpy==1.26.4
 
 # testing commands
 test:

@@ -75,6 +75,7 @@ def init_nlp():
             raise OSError(error_text) from e
         import awe_components.setup.data
         awe_components.setup.data.download_models()
+        nlp = spacy.load('en_core_web_lg')
 
     # Adding all of the components, since
     # each of them turns out to be implicated in
