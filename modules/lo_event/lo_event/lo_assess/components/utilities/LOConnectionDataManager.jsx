@@ -12,14 +12,35 @@
  *
  * Usage:
  * ```js
- * const { message, } = LOConnection({ url, dataScope }); // or some other websocket
+ * const [userData, setUserData] = useState({});
+ * const [errors, setErrors] = useState({});
+ * const { message } = LOConnection({ url, dataScope }); // or some other websocket
  * const handleDataUpdate = ({ dataObject, errors }) => {
  *   setUserData(dataObject);
  *   setErrors(errors);
  * };
- * return ( <LOConnectionDataManager message={message} onDataUpdate={handleDataUpdate} /> );
+ *
+ * return (
+ *   <div>
+ *     <LOConnectionDataManager message={message} onDataUpdate={handleDataUpdate} />
+ *     <div>
+ *       <h2>User Data</h2>
+ *         {Object.keys(userData).length > 0
+ *           ? (<pre>{JSON.stringify(userData, null, 2)}</pre>)
+ *           : (<p>No user data available.</p>)
+ *         }
+ *     </div>
+ *     {Object.keys(errors).length > 0 && (
+ *       <div style={{ color: 'red' }}>
+ *         <h2>Errors</h2>
+ *         <pre>{JSON.stringify(errors, null, 2)}</pre>
+ *       </div>
+ *     )}
+ *   </div>
+ * );
  * ```
  */
+import React from 'react';
 import { useEffect, useState } from 'react';
 
 export const LOConnectionDataManager = ({ message, onDataUpdate }) => {
@@ -70,7 +91,7 @@ export const LOConnectionDataManager = ({ message, onDataUpdate }) => {
   useEffect(() => {
     if (message) {
       try {
-        const messages = JSON.parse(message.data);
+        const messages = JSON.parse(message);
         setDataObject((prevData) => processMessages(messages, prevData));
       } catch (e) {
         console.error('Failed to parse incoming message:', e);
