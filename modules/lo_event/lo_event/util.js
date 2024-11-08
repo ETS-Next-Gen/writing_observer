@@ -447,8 +447,8 @@ export function treeget(tree, key) {
     else {
       if (keylist[i] && keylist[i].indexOf('[')>0) {
         const item = keylist[i].split('[')[0];
-        const idx = keylist[i].split('[')[1];
-        idx = idx.split(']')[0];
+        const idx_orig = keylist[i].split('[')[1];
+        const idx = idx.split(']')[0];
         if (item in subtree) {
           if (subtree[item][idx] !== undefined) {
             subtree =subtree[item][idx];
