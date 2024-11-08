@@ -9,6 +9,7 @@
  * return ( <LOConnectionLastUpdated message={message} readyState={readyState} /> );
  * ```
  */
+import React from 'react';
 import { useState, useEffect } from 'react';
 
 function renderTime (t) {
