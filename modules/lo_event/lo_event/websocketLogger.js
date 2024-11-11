@@ -3,10 +3,35 @@ import * as disabler from './disabler.js';
 import * as util from './util.js';
 import * as debug from './debugLog.js';
 
-export function websocketLogger (server) {
+function wsHost(overrides = {}, loc=window.location) {
+  const { hostname, port, path, url } = overrides;
+  const loServer = localStorage.getItem('lo_server');
+  if (loServer) {
+    console.log("Overriding server from localStorage");
+    return loServer;
+  }
+  const protocol = loc.protocol === 'https:' ? 'wss://' : 'ws://';
+  const host = hostname || loc.hostname;
+  const portNumber = port || loc.port || (loc.protocol === 'https:' ? 443 : 80);
+  const pathname = path || '/wsapi/in/';
+  const fullUrl = url || `${host}:${portNumber}${pathname}`;
+
+  return `${protocol}${fullUrl}`;
+}
+
+
+export function websocketLogger (server = {}) {
   /*
     This is a pretty complex logger, which sends events over a web
-    socket. Most of the complexity comes from reconnections, retries,
+    socket.
+
+    `server` can be a URL (usually, ws:// or wss://) or an object
+    containing one or more of hostname, port, path, and url.
+
+    Note that if the server is an object, it can be overwritten in
+    localStorage (key loServer).
+
+    Most of the complexity comes from reconnections, retries,
     etc. and the need to keep robust queues, as well as the need be
     robust about queuing events before we have a socket open or during
     a network failure.
@@ -22,6 +47,14 @@ export function websocketLogger (server) {
   let blockerror;
   let firstConnection = true;
   let metadata = {};
+
+  // This logic might be moved into wsHost, so it's a little bit more
+  // consistent.
+  if(!server) {
+    server = wsHost();
+  } else if(typeof server === 'object') {
+    server = wsHost(server);
+  }
 
   function calculateExponentialBackoff (n) {
     return Math.min(1000 * Math.pow(2, n), 1000 * 60 * 15);
