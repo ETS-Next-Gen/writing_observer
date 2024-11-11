@@ -104,7 +104,7 @@ export function websocketLogger (server = {}) {
 
   function prepareSocket () {
     if(Object.keys(metadata).length > 0) {
-      queue.enqueue(metadata);
+      queue.enqueue(JSON.stringify(metadata));
     }
 
     queue.startDequeueLoop({
