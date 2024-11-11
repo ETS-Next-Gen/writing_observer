@@ -45,7 +45,6 @@ export function websocketLogger (server = {}) {
   // keep this around until we're called from the client, and then we
   // raise it there.
   let blockerror;
-  let firstConnection = true;
   let metadata = {};
 
   // This logic might be moved into wsHost, so it's a little bit more
@@ -55,6 +54,7 @@ export function websocketLogger (server = {}) {
   } else if(typeof server === 'object') {
     server = wsHost(server);
   }
+  // else the server is likely already a url string
 
   function calculateExponentialBackoff (n) {
     return Math.min(1000 * Math.pow(2, n), 1000 * 60 * 15);
@@ -103,36 +103,8 @@ export function websocketLogger (server = {}) {
   }
 
   function prepareSocket () {
-    // TODO fetch local storage items here
-    const event = { local_storage: {} };
-    /**
-     * The extension expects some auth and metadata before processing events
-     * through the reducers. The first time this data is sent is handled by
-     * `lo_event.js`. If the websocket disconnects and reconnects without
-     * restarting the main `lo_event` module, then we need to resend the
-     * auth and metadata.
-     *
-     * This code handles adding the auth and metadata to the processing queue
-     * on all but the initial connection.
-     */
-    if (!firstConnection) {
-      util.profileInfoWrapper().then((result) => {
-        if (Object.keys(result).length > 0) {
-          /**
-           * HACK: this code is wrong
-           * This is for backwards compatibility for the old way of handling auth.
-           * This is scaffolding as we are changing how we handle lock_fields,
-           * metedata, auth, etc. We should not be needing to call `profileInfoWrapper`
-           * as that has been abstracted up many levels. The `metedata_finished` and
-           * `chrome_identity` events should be removed when the server-side code
-           * is updated and we have a new handshake protocol.
-          */
-          queue.enqueue(JSON.stringify(metadata));
-          queue.enqueue(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
-        }
-      });
-    } else {
-      firstConnection = false;
+    if(Object.keys(metadata).length > 0) {
+      queue.enqueue(metadata);
     }
 
     queue.startDequeueLoop({

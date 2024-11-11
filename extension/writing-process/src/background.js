@@ -17,7 +17,9 @@ import * as loEvent from 'lo_event/lo_event/lo_event.js';
 import * as loEventDebug from 'lo_event/lo_event/debugLog.js';
 import { websocketLogger } from 'lo_event/lo_event/websocketLogger.js';
 import { consoleLogger } from 'lo_event/lo_event/consoleLogger.js';
-import * as loEventUtils from 'lo_event/lo_event/util.js';
+import { browserInfo } from 'lo_event/lo_event/metadata/browserinfo.js';
+import { chromeAuth } from 'lo_event/lo_event/metadata/chromeauth.js';
+import { localStorageInfo, sessionStorageInfo } from 'lo_event/lo_event/metadata/storage.js';
 
 // We would like to support fetching the websocket server from storage
 
@@ -33,8 +35,20 @@ const loggers = [
   websocketLogger(WEBSOCKET_SERVER_URL)
 ]
 
-loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
-loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.fetchDebuggingIdentifier()]);
+loEvent.init(
+    'org.mitros.writing_analytics',
+    '0.01',
+    loggers,
+    {
+        debugLevel: loEventDebug.LEVEL.SIMPLE,
+        metadata: [
+            browserInfo(),
+            chromeAuth(),
+            localStorageInfo(),
+            sessionStorageInfo(),
+        ]
+    }
+);
 loEvent.go();
 
 // Function to serve as replacement for 
@@ -205,15 +219,12 @@ async function reinjectContentScripts() {
 // Let the server know we've loaded.
 loEvent.logEvent("extension_loaded", {});
 
-// Send the server the user info. This might not always be available.
-// HACK: this code will be changed pending server side changes to how we
-// handle auth and metadata.
-loEventUtils.profileInfoWrapper().then((result) => {
-    if (Object.keys(result).length > 0) {
-        loEvent.logEvent('chrome_identity', { chrome_identity: result });
-        loEvent.logEvent('metadata_finished', {});
-    }
-});
+// TODO the python code currently expects us to include this event.
+// This event used to be sent after `profileInfoWrapper` logged the
+// `chrome_identity`, but that has moved to the `init` function.
+// We need to figure out where this goes OR remove the need for it
+// within the python code.
+loEvent.logEvent('metadata_finished', {});
 
 // And let the console know we've loaded
 // chrome.extension.getBackgroundPage().console.log("Loaded"); remove
