@@ -64,7 +64,7 @@ def check_languagetool_running():
             raise learning_observer.prestartup.StartupCheck(
                 f'LanguageTool Server was not found running on port {port}.\n'
                 'Please make sure to run the LanguageTool Server before starting Learning Observer. Run:\n'
-                '`python -m awe_languagetool.languagetoolServer.run`\n'
+                '`python -m awe_languagetool.languagetoolServer`\n'
                 'If the LanguageTool is already running on a diffrent port, make sure to adjust '
                 'the `writing_observer.languagetool_port` setting in the `creds.yaml`.'
             )
