@@ -106,6 +106,14 @@ export async function retry () {
   }
   action = DEFAULTS.action;
   expiration = DEFAULTS.expiration;
-  storage.set({ [DISABLER_STORE]: { action, expiration } });
+  // HACK when expiration is set to null, this gets called constantly
+  // causing us to hit the storage set query limit. We now check for
+  // existing values and only reset them if they are different.
+  storage.get([DISABLER_STORE], (result) => {
+    const currentValue = result[DISABLER_STORE];
+    if (!currentValue || currentValue.action !== action || currentValue.expiration !== expiration) {
+      storage.set({ [DISABLER_STORE]: { action, expiration } });
+    }
+  });
   return true;
 }

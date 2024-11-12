@@ -2,12 +2,13 @@ import { Queue } from './queue.js';
 import * as disabler from './disabler.js';
 import * as util from './util.js';
 import * as debug from './debugLog.js';
+import { storage } from './browserStorage.js';
 
 function wsHost(overrides = {}, loc=window.location) {
   const { hostname, port, path, url } = overrides;
-  const loServer = localStorage.getItem('lo_server');
+  const loServer = storage.get('lo_server');
   if (loServer) {
-    console.log("Overriding server from localStorage");
+    console.log("Overriding server from storage");
     return loServer;
   }
   const protocol = loc.protocol === 'https:' ? 'wss://' : 'ws://';
@@ -29,7 +30,7 @@ export function websocketLogger (server = {}) {
     containing one or more of hostname, port, path, and url.
 
     Note that if the server is an object, it can be overwritten in
-    localStorage (key loServer).
+    storage (key loServer).
 
     Most of the complexity comes from reconnections, retries,
     etc. and the need to keep robust queues, as well as the need be
@@ -135,19 +136,16 @@ export function websocketLogger (server = {}) {
         );
         break;
       case 'auth':
-        localStorage.setItem("user_id", response.user_id);
-        document.dispatchEvent(
-          new CustomEvent("auth", { detail: { user_id: response.user }})
-        );
+        storage.set({user_id: response.user_id});
+        util.dispatchCustomEvent("auth", { detail: { user_id: response.user }});
         break;
       // These should probably be behind a feature flag, as they assume
       // we trust the server.
       case 'local_storage':
-        localStorage.setItem(response.key, response.value);
+        storage.set({[response.key]: response.value});
         break;
       case 'browser_event':
-        let event = new CustomEvent(response.event_type, { detail: response.detail });
-        document.dispatchEvent(event);
+        util.dispatchCustomEvent(response.event_type, { detail: response.detail });
         break;
       default:
         debug.info(`Received response we do not yet handle: ${response}`);

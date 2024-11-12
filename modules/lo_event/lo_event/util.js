@@ -75,12 +75,12 @@ export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServe
 
 function browserStamp() {
   const stampKey = 'loBrowserStamp'; // Key to store the browser stamp
-  let stamp = localStorage.getItem(stampKey);
+  let stamp = storage.get(stampKey);
 
   if (!stamp) {
     // Generate and store browser stamp if not found
     stamp = keystamp();
-    localStorage.setItem(stampKey, stamp);
+    storage.set({stampKey: stamp});
   }
 
   return stamp;
@@ -387,5 +387,33 @@ export function formatTime(seconds) {
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   } else {
     return `${formattedMinutes}:${formattedSeconds}`;
+  }
+}
+
+/**
+ * This function dispatches an event in the appropriate context for
+ * our environment.
+ *
+ * When working in an extension, we want to send a message via the
+ * `chrome.runtime` object.
+ *
+ * When working in a browser, we want to dispatch the event via the
+ * `window` object.
+ */
+export function dispatchCustomEvent(eventName, detail) {
+  const event = new CustomEvent(eventName, { detail });
+
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+      // Chrome extension background script: use chrome.runtime to send messages
+      chrome.runtime.sendMessage({ eventName, detail }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn(`No listeners found for event, ${eventName}, in this context.`);
+        }
+      });
+  } else if (typeof window !== "undefined") {
+      // Web page: dispatch directly on window
+      window.dispatchEvent(event);
+  } else {
+      console.warn("Event dispatching is not supported in this environment.");
   }
 }
