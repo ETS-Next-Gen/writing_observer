@@ -63,9 +63,8 @@ def check_languagetool_running():
         if not lt_started:
             raise learning_observer.prestartup.StartupCheck(
                 f'LanguageTool Server was not found running on port {port}.\n'
-                'Please make sure to run the LanguageTool Server before starting Learning Observer.\n'
-                'From within your Python environment, run\n'
-                '```python\nfrom awe_languagetool import languagetoolServer\nlanguagetoolServer.runServer()\n```.\n'
+                'Please make sure to run the LanguageTool Server before starting Learning Observer. Run:\n'
+                '`python -m awe_languagetool.languagetoolServer.run`\n'
                 'If the LanguageTool is already running on a diffrent port, make sure to adjust '
                 'the `writing_observer.languagetool_port` setting in the `creds.yaml`.'
             )
@@ -108,11 +107,9 @@ async def process_texts(texts):
     async def process_text(text):
         return await client.summarizeText(text)
 
-    output = []
-    for t in texts:
+    async for t in texts:
         text = t.get('text', '')
         text_data = await process_text(text)
         text_data['text'] = text
         text_data['provenance'] = t['provenance']
-        output.append(text_data)
-    return output
+        yield text_data
