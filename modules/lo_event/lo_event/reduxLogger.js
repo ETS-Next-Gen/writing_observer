@@ -19,7 +19,7 @@
  * use bits and pieces, or to treat this code as an examplar.
  */
 import * as redux from 'redux';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
