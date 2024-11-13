@@ -47,43 +47,20 @@ def check_languagetool_running():
     if learning_observer.settings.module_setting('writing_observer', 'use_languagetool'):
         host = learning_observer.settings.module_setting('writing_observer', 'languagetool_host')
         port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port')
+        # TODO LanguageTool Client also accepts a full server url, we ought to fetch that from pmss
 
-        # HACK the following code is a hack to check if the LanguageTool Server is up and running or not
-        # We ought to set the LT Client object on startup (here); however,
-        # the LT Client has no way of telling us whether the Server is running or not.
-        # i.e. the LT Client runs normally even without the server running.
-        # Thus, we manually make a request to the server to and check the response.
-        global lt_started
+        global client, lt_started
         try:
-            resp = requests.get(f'http://{host}:{port}/v2/check', params={'text': 'test', 'language': 'en-US'})
-            lt_started = resp.status_code == 200
-        except requests.ConnectionError:
-            pass
-
-        if not lt_started:
+            client = languagetoolClient.languagetoolClient(port=port, host=host)
+            lt_started = True
+        except RuntimeError as e:
             raise learning_observer.prestartup.StartupCheck(
-                f'LanguageTool Server was not found running on port {port}.\n'
-                'Please make sure to run the LanguageTool Server before starting Learning Observer. Run:\n'
-                '`python -m awe_languagetool.languagetoolServer`\n'
-                'If the LanguageTool is already running on a diffrent port, make sure to adjust '
-                'the `writing_observer.languagetool_port` setting in the `creds.yaml`.'
-            )
+                f'Unable to start LanguageTool Client.\n{e}'
+            ) from e
     else:
         debug_log('WARNING:: We are not configured to try and use to LanguageTool. '\
             'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
             'to enable the usage of the LanguageTool client.')
-
-
-def initialize_client():
-    '''
-    Language Tool requires a client to connect with the server.
-    This method checks to see if we've created a client yet and
-    initializes one if we haven't.
-    '''
-    global client
-    if client is None:
-        port = learning_observer.settings.module_setting('writing_observer', 'languagetool_port')
-        client = languagetoolClient.languagetoolClient(port=port)
 
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.languagetool')
@@ -94,9 +71,6 @@ async def process_texts(texts):
 
     We use a closure to allow the system to initialize the memoization KVS.
     '''
-
-    initialize_client()
-
     if not lt_started:
         error_text = 'The LanguageTool server has not started. '\
             'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
