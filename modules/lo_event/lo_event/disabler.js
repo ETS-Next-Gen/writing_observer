@@ -94,6 +94,15 @@ export function streamEvents () {
   return action === EVENT_ACTION.TRANSMIT;
 }
 
+/**
+ * Determines if a client should retry based on the `expiration` status.
+ * This function:
+ * 1. Returns `false` if the expiration is permanent.
+ * 2. Waits for the expiration to pass, resets `storage` (for future
+ *    initializations), and then returns `true` to allow a retry.
+ *
+ * @returns {boolean} Indicates if a retry should occur.
+ */
 export async function retry () {
   if (expiration === TIME_LIMIT.PERMANENT) {
     return false;
@@ -106,9 +115,10 @@ export async function retry () {
   }
   action = DEFAULTS.action;
   expiration = DEFAULTS.expiration;
-  // HACK when expiration is set to null, this gets called constantly
-  // causing us to hit the storage set query limit. We now check for
-  // existing values and only reset them if they are different.
+  // NOTE: If the client continuously sends messages to the server and
+  // keeps generating new messages, we may hit a rate limit depending on
+  // the `storage` API in use. To avoid this, we only call the `set` method
+  // when the new value differs from the existing value in `storage`.
   storage.get([DISABLER_STORE], (result) => {
     const currentValue = result[DISABLER_STORE];
     if (!currentValue || currentValue.action !== action || currentValue.expiration !== expiration) {
