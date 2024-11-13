@@ -402,17 +402,16 @@ export function formatTime(seconds) {
  */
 export function dispatchCustomEvent(eventName, detail) {
   const event = new CustomEvent(eventName, { detail });
-
-  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+  if (typeof window !== "undefined") {
+    // Web page: dispatch directly on window
+    window.dispatchEvent(event);
+  } else if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
       // Chrome extension background script: use chrome.runtime to send messages
       chrome.runtime.sendMessage({ eventName, detail }, (response) => {
         if (chrome.runtime.lastError) {
           console.warn(`No listeners found for event, ${eventName}, in this context.`);
         }
       });
-  } else if (typeof window !== "undefined") {
-      // Web page: dispatch directly on window
-      window.dispatchEvent(event);
   } else {
       console.warn("Event dispatching is not supported in this environment.");
   }
