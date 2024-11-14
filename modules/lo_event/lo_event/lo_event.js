@@ -53,10 +53,16 @@ async function initializeLoggers () {
   }
 }
 
+/**
+ * Executes and compiles metadata tasks into a single metadata object.
+ *
+ * When initializing `lo_event`, clients can set which metadata items
+ * they wish to include.
+ */
 export async function compileMetadata(metadataTasks) {
   const taskPromises = metadataTasks.map(async task => {
     try {
-      const result = await (task.async ? task.func() : Promise.resolve(task.func()));
+      const result = await Promise.resolve(task.func());
       return { [task.name]: result };
     } catch (error) {
       debug.error(`Error in initialization task ${task.name}:`, error);
