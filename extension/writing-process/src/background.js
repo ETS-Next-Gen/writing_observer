@@ -219,12 +219,12 @@ async function reinjectContentScripts() {
 // Let the server know we've loaded.
 loEvent.logEvent("extension_loaded", {});
 
-// TODO the python code currently expects us to include this event.
-// This event used to be sent after `profileInfoWrapper` logged the
-// `chrome_identity`, but that has moved to the `init` function.
-// We need to figure out where this goes OR remove the need for it
-// within the python code.
-loEvent.logEvent('metadata_finished', {});
+// NOTE the Learning Observer server expects a `chrome_identity` event.
+// This event should include the auth information for a given user.
+// The auth information is included in our metadata via the
+// `profileInfoWrapper` metadata task.
+// There may be cleaner ways to handle this.
+loEvent.logEvent('chrome_identity', {});
 
 // And let the console know we've loaded
 // chrome.extension.getBackgroundPage().console.log("Loaded"); remove

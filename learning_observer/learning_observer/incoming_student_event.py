@@ -408,7 +408,6 @@ async def incoming_websocket_handler(request):
                     source=''
                 )
                 if authenticated:
-                    print(authenticated)
                     await ws.send_json({
                         'status': 'auth',
                         constants.USER_ID: authenticated[constants.USER_ID]
