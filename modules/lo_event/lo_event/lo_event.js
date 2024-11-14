@@ -124,7 +124,7 @@ export function init (
   if (!source || typeof source !== 'string') throw new Error('source must be a non-null string');
   if (!version || typeof version !== 'string') throw new Error('version must be a non-null string');
 
-  util.verboseEvents = verboseEvents;
+  util.setVerboseEvents(verboseEvents);
   queue = new Queue.Queue('LOEvent', { queueType });
 
   debug.setLevel(debugLevel);

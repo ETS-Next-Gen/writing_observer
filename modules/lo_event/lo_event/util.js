@@ -17,7 +17,9 @@ export function copyFields (source, fields) {
   const result = {};
   if (source) {
     fields.forEach(field => {
-      result[field] = source[field];
+      if (field in source) {
+        result[field] = source[field];
+      }
     });
   }
   return result;
@@ -95,7 +97,11 @@ let sessionStamp = keystamp();
 //     and even if set to false, a few events might have extra metadata.
 // This isn't a killer, since the reason not to do this is mostly due to
 // bandwidth.
-export let verboseEvents = true;
+let verboseEvents = true;
+
+export function setVerboseEvents(value) {
+  verboseEvents = value;
+}
 
 /**
  * Example usage:
