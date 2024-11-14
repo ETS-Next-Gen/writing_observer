@@ -1,11 +1,13 @@
-export function getStorageMetadata(storage, keys = null) {
+/**
+ * Fetch a set of keys from storage to include with metadata
+ */
+export function getStorageMetadata (storage, keys = null) {
   if (!storage) {
     return null;
   }
 
   try {
     const items = {};
-    
     // If no keys provided, get all items
     if (!keys) {
       for (let i = 0; i < storage.length; i++) {
@@ -22,7 +24,7 @@ export function getStorageMetadata(storage, keys = null) {
           };
         }
       }
-    } 
+    }
     // Otherwise, only get specified keys
     else {
       keys.forEach(key => {
