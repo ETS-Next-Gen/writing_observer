@@ -198,7 +198,7 @@ async def stream_document(text, ici, user, doc_id):
     '''
     retries_remaining = 5
     done = False
-    url = ARGS["--url"] + "?student=" + str_to_hex(user)
+    url = ARGS["--url"] + "?source=extension"
     while not done:
         try:
             async with aiohttp.ClientSession() as session:

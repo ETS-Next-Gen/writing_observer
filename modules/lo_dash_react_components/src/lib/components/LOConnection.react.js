@@ -36,7 +36,7 @@ export default class LOConnection extends Component {
 
         // Determine url
         const protocol = {"http:": "ws:", "https:": "wss:"}[window.location.protocol];
-        url = url ? url : `${protocol}//${window.location.hostname}:${window.location.port}/wsapi/communication_protocol`;
+        url = url ? url : `${protocol}//${window.location.hostname}:${window.location.port}/wsapi/communication_protocol?source=dashboard`;
         this.client = new WebSocket(url);
         // Listen for events.
         this.client.onopen = (e) => {
