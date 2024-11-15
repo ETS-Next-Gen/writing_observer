@@ -167,9 +167,13 @@ export function fetchDebuggingIdentifier () {
  *  obj1
  *  // { a: 1, b: { c: 3, d: 4 }, e: 5 }
  */
-function mergeDictionary (target, source) {
+export function mergeDictionary (target, source) {
   for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(target, key)) {
+    if (
+      Object.prototype.hasOwnProperty.call(target, key) &&
+      typeof target[key] === 'object' && target[key] !== null &&
+      typeof source[key] === 'object' && source[key] !== null
+    ) {
       mergeDictionary(target[key], source[key]);
     } else {
       target[key] = source[key];

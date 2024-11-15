@@ -180,7 +180,7 @@ export function websocketLogger (server = {}) {
   };
 
   wsLogData.setField = function (data) {
-    metadata = { ...metadata, ...JSON.parse(data) };
+    util.mergeDictionary(metadata, JSON.parse(data));
     queue.enqueue(data);
   };
 

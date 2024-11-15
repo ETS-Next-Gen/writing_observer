@@ -219,13 +219,6 @@ async function reinjectContentScripts() {
 // Let the server know we've loaded.
 loEvent.logEvent("extension_loaded", {});
 
-// NOTE the Learning Observer server expects a `chrome_identity` event.
-// This event should include the auth information for a given user.
-// The auth information is included in our metadata via the `chromeAuth`
-// metadata task.
-// There may be cleaner ways to handle this.
-loEvent.logEvent('chrome_identity', {});
-
 // And let the console know we've loaded
 // chrome.extension.getBackgroundPage().console.log("Loaded"); remove
 logFromServiceWorker("Loaded");
