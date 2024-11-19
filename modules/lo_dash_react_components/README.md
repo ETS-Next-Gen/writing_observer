@@ -4,7 +4,13 @@
 
 In Learning Observer, we create React components and generate a Python package for them to be used with the Dash framework. These components are housed in the `lo_dash_react_components` module and enable the creation of highly customizable dashboards. This document guides you through the component development process, the build process, and using the components in your dashboards.
 
+### Pre-built installation
+
+These components take a bit of extra infrastructure to build (mainly `node`). If you just with to use these components, without developing new ones or changing current ones, we suggest installing the pre-built package available in the [LO Assets github repository](https://github.com/ETS-Next-Gen/lo_assets/tree/main/lo_dash_react_components).
+
 ### Requirements
+
+TODO verify which Node versions work. Previously, we encountered dependency issues with newer versions of node.
 
 A downstream dependency in the build process may cause breaking behavior depending on your node version. The latest version of Node `v16` (tested on `v16.19.1`) should work fine; however, we've noticed errors on Node `v18`.
 
