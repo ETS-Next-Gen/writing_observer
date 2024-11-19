@@ -245,11 +245,11 @@ body {
   }
 
   .left-column {
-    @include columnMixin
+    @include columnMixin;
   }
 
   .right-column {
-    @include columnMixin
+    @include columnMixin;
     flex-direction: column;
   }
 

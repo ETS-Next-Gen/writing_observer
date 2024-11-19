@@ -5,8 +5,8 @@
 import * as loEvent from '../lo_event/lo_event.js';
 import * as reduxLogger from '../lo_event/reduxLogger.js';
 import { consoleLogger } from '../lo_event/consoleLogger.js';
-import * as util from '../lo_event/util.js';
 import * as debug from '../lo_event/debugLog.js';
+import { getBrowserInfo } from '../lo_event/metadata/browserinfo.js';
 
 const rl = reduxLogger.reduxLogger();
 
@@ -19,7 +19,7 @@ loEvent.init(
   [debug.LOG_OUTPUT.LOGGER(loEvent.logEvent)]
 );
 loEvent.setFieldSet([{ preauth_type: 'test' }]);
-loEvent.setFieldSet([{ postauth_type: 'test' }, util.getBrowserInfo()]);
+loEvent.setFieldSet([{ postauth_type: 'test' }, getBrowserInfo()]);
 loEvent.go();
 
 console.log('lo_event test: Initialized');

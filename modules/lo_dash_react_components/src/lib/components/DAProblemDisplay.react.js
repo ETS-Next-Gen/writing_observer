@@ -418,7 +418,7 @@ class DAProblemDisplay extends React.Component {
 
     return (
       <div className="App" id="problem-page-wrapper">
-        <Arrows students={students} />
+        {/*<Arrows students={students} />*/}
         <Container problems={problems} scaffolds={scaffolds} />
         <Students students={students} />
         <BackgroundCanvas problems={problems} />

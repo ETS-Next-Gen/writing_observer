@@ -37,7 +37,7 @@ function log_event(event_type, event) {
         "title": google_docs_title(),
         "id": doc_id(),
         "url": window.location.href,
-    }
+    };
 
     event['event'] = event_type;
     // We want to track the page status during events. For example,

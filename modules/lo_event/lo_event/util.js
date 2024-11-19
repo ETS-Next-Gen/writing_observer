@@ -17,142 +17,12 @@ export function copyFields (source, fields) {
   const result = {};
   if (source) {
     fields.forEach(field => {
-      result[field] = source[field];
+      if (field in source) {
+        result[field] = source[field];
+      }
     });
   }
   return result;
-}
-
-/*
-  Browser information object, primarily for debugging. Note that not
-  all fields will be available in all browsers and contexts. If not
-  available, it will return null (this is even usable in node.js,
-  but it will simply return that there is no navigator, window, or
-  document object).
-
-  @returns {Object} An object containing the browser's navigator, window, and document information.
-
-  Example usage:
-    const browserInfo = getBrowserInfo();
-    console.log(browserInfo);
-*/
-export function getBrowserInfo () {
-  const fields = [
-    'appCodeName',
-    'appName',
-    'buildID',
-    'cookieEnabled',
-    'deviceMemory',
-    'language',
-    'languages',
-    'onLine',
-    'oscpu',
-    'platform',
-    'product',
-    'productSub',
-    'userAgent',
-    'webdriver'
-  ];
-
-  const connectionFields = [
-    'effectiveType',
-    'rtt',
-    'downlink',
-    'type',
-    'downlinkMax'
-  ];
-
-  const documentFields = [
-    'URL',
-    'baseURI',
-    'characterSet',
-    'charset',
-    'compatMode',
-    'cookie',
-    'currentScript',
-    'designMode',
-    'dir',
-    'doctype',
-    'documentURI',
-    'domain',
-    'fullscreen',
-    'fullscreenEnabled',
-    'hidden',
-    'inputEncoding',
-    'isConnected',
-    'lastModified',
-    'location',
-    'mozSyntheticDocument',
-    'pictureInPictureEnabled',
-    'plugins',
-    'readyState',
-    'referrer',
-    'title',
-    'visibilityState'
-  ];
-
-  const windowFields = [
-    'closed',
-    'defaultStatus',
-    'innerHeight',
-    'innerWidth',
-    'name',
-    'outerHeight',
-    'outerWidth',
-    'pageXOffset',
-    'pageYOffset',
-    'screenX',
-    'screenY',
-    'status'
-  ];
-
-  const browserInfo = {
-    navigator: typeof navigator !== 'undefined' ? copyFields(navigator, fields) : null,
-    connection: typeof navigator !== 'undefined' && navigator.connection ? copyFields(navigator.connection, connectionFields) : null,
-    document: typeof document !== 'undefined' ? copyFields(document, documentFields) : null,
-    window: typeof window !== 'undefined' ? copyFields(window, windowFields) : null
-  };
-
-  return { browser_info: browserInfo };
-}
-
-/*
-  This function is a wrapper for retrieving profile information using
-  the Chrome browser's identity API. It addresses a bug in the Chrome
-  function and converts it into a modern async function. The bug it
-  works around can be found at
-  https://bugs.chromium.org/p/chromium/issues/detail?id=907425#c6.
-
-  To do: Add chrome.identity.getAuthToken() to retrieve an
-  authentication token, so we can do real authentication.
-
-  Returns:
-    A Promise that resolves with the user's profile information.
-
-  Example usage:
-    const profileInfo = await profileInfoWrapper();
-    console.log(profileInfo);
-  */
-export function profileInfoWrapper () {
-  if (typeof chrome !== 'undefined' && chrome.identity) {
-    try {
-      return new Promise((resolve, reject) => {
-        chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, function (data) {
-          resolve(data);
-        });
-      });
-    } catch (e) {
-      return new Promise((resolve, reject) => {
-        chrome.identity.getProfileUserInfo(function (data) {
-          resolve(data);
-        });
-      });
-    }
-  }
-  // Default to an empty object
-  return new Promise((resolve, reject) => {
-    resolve({});
-  });
 }
 
 /*
@@ -205,21 +75,54 @@ export function fullyQualifiedWebsocketURL (defaultRelativeUrl, defaultBaseServe
   return url.href;
 }
 
+function browserStamp() {
+  const stampKey = 'loBrowserStamp'; // Key to store the browser stamp
+  let stamp = storage.get(stampKey);
+
+  if (!stamp) {
+    // Generate and store browser stamp if not found
+    stamp = keystamp();
+    storage.set({stampKey: stamp});
+  }
+
+  return stamp;
+}
+
+let eventIndex = 0; // Initialize index counter
+let sessionStamp = keystamp();
+
+// TODO:
+// (a) We probably want this elsewhere
+// (b) With the current flow of logic, init() might be called after logEvent,
+//     and even if set to false, a few events might have extra metadata.
+// This isn't a killer, since the reason not to do this is mostly due to
+// bandwidth.
+let verboseEvents = true;
+
+export function setVerboseEvents(value) {
+  verboseEvents = value;
+}
+
 /**
  * Example usage:
  *  event = { event: 'ADD', data: 'stuff' }
  *  timestampEvent(event)
  *  event
- *  // { event: 'ADD', data: 'stuff', metadata: { ts, human_ts, iso_ts } }
+ *  // { event: 'ADD', data: 'stuff', metadata: { ts, human_ts, iso_ts, sessionIndex, sessionTag } }
  */
 export function timestampEvent (event) {
   if (!event.metadata) {
     event.metadata = {};
   }
 
-  event.metadata.ts = Date.now();
-  event.metadata.human_ts = Date();
   event.metadata.iso_ts = new Date().toISOString();
+  if(verboseEvents) {
+    event.metadata.ts = Date.now();
+    event.metadata.human_ts = Date();
+    event.metadata.sessionIndex = eventIndex++;
+    event.metadata.sessionTag = sessionStamp;
+    event.metadata.browserTag = browserStamp();
+  }
 }
 
 /**
@@ -264,9 +167,13 @@ export function fetchDebuggingIdentifier () {
  *  obj1
  *  // { a: 1, b: { c: 3, d: 4 }, e: 5 }
  */
-function mergeDictionary (target, source) {
+export function mergeDictionary (target, source) {
   for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(target, key)) {
+    if (
+      Object.prototype.hasOwnProperty.call(target, key) &&
+      typeof target[key] === 'object' && target[key] !== null &&
+      typeof source[key] === 'object' && source[key] !== null
+    ) {
       mergeDictionary(target[key], source[key]);
     } else {
       target[key] = source[key];
@@ -490,5 +397,32 @@ export function formatTime(seconds) {
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   } else {
     return `${formattedMinutes}:${formattedSeconds}`;
+  }
+}
+
+/**
+ * This function dispatches an event in the appropriate context for
+ * our environment.
+ *
+ * When working in an extension, we want to send a message via the
+ * `chrome.runtime` object.
+ *
+ * When working in a browser, we want to dispatch the event via the
+ * `window` object.
+ */
+export function dispatchCustomEvent(eventName, detail) {
+  const event = new CustomEvent(eventName, { detail });
+  if (typeof window !== "undefined") {
+    // Web page: dispatch directly on window
+    window.dispatchEvent(event);
+  } else if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+      // Chrome extension background script: use chrome.runtime to send messages
+      chrome.runtime.sendMessage({ eventName, detail }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn(`No listeners found for event, ${eventName}, in this context.`);
+        }
+      });
+  } else {
+      console.warn("Event dispatching is not supported in this environment.");
   }
 }
