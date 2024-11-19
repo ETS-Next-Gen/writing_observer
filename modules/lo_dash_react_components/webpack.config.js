@@ -71,7 +71,6 @@ module.exports = (env, argv) => {
                         {
                             loader: 'style-loader',
                             options: {
-                                insertAt: 'top'
                             }
                         },
                         {
@@ -84,9 +83,7 @@ module.exports = (env, argv) => {
         optimization: {
             minimizer: [
                 new TerserPlugin({
-                    sourceMap: true,
                     parallel: true,
-                    cache: './.build_cache/terser',
                     terserOptions: {
                         warnings: false,
                         ie8: false
@@ -94,7 +91,6 @@ module.exports = (env, argv) => {
                 })
             ],
             splitChunks: {
-                name: true,
                 cacheGroups: {
                     async: {
                         chunks: 'async',
