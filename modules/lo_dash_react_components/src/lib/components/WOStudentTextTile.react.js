@@ -25,7 +25,7 @@ export default class WOStudentTextTile extends Component {
   render () {
     const { id, className, style, showHeader, studentInfo, selectedDocument, currentOptionHash, childComponent } = this.props;
     // HACK we need to pass the appropriate student information into the child component
-    childComponent.props._dashprivate_layout.props = {...studentInfo.documents[selectedDocument]};
+    childComponent.props._dashprivate_layout.props = { ...studentInfo.documents[selectedDocument] };
 
     const documentIsSelected = selectedDocument && studentInfo.documents[selectedDocument];
     const isLoading = documentIsSelected && currentOptionHash !== studentInfo.documents[selectedDocument].optionHash;
