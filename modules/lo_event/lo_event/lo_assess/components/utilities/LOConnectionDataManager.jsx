@@ -1,6 +1,3 @@
-// TODO this file is untested, but goes along the with
-// communication protocol changes introduced in PR #162.
-// This won't do anything until that branch is merged in.
 /**
  * LOConnectionDataManager handles storing and processing incoming
  * messages from the communication protocol websocket connection.
