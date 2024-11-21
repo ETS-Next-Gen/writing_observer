@@ -1,12 +1,23 @@
 import copy
 import writing_observer.nlp_indicators
+import writing_observer.languagetool_features
 
 parents = []
 
 OPTIONS = [
-    {'id': indicator['id'], 'types': {'highlight': {}, 'metric': {}}, 'label': indicator['name'], 'parent': ''}
+    {'id': indicator['id'], 'types': {'highlight': {}, 'metric': {}}, 'label': indicator['name'], 'parent': indicator['category']}
     for indicator in writing_observer.nlp_indicators.INDICATOR_JSONS
 ]
+for category, label in writing_observer.nlp_indicators.INDICATOR_CATEGORIES.items():
+    OPTIONS.append({'id': category, 'label': label, 'parent': 'text_information'})
+OPTIONS.append({'id': 'text_information', 'label': 'Text Information', 'parent': ''})
+
+for lt_item in writing_observer.languagetool_features.AVAILABLE_ITEMS:
+    OPTIONS.append({'id': lt_item[1], 'types': {'highlight': {}, 'metric': {}}, 'label': lt_item[1], 'parent': lt_item[0]})
+for lt_category in writing_observer.languagetool_features.CATEGORIES:
+    OPTIONS.append({'id': lt_category, 'label': lt_category, 'parent': 'text_error'})
+OPTIONS.append({'id': 'text_error', 'label': 'Text Errors', 'parent': ''})
+
 
 # TODO currently each preset is the full list of options with specific
 # values being set to true/including a color. We ought to just store

@@ -10,22 +10,6 @@ TODO figure out the best data structure for storing
 the available features
 '''
 
-# LT has a hierarchy of items.
-# Each tuple in TOP_LEVEL_ORGANIZATION provides an initial
-# split of the available categories
-TOP_LEVEL_ORGANIZATION = [
-    ('Language', 'Grammar'),
-    ('Language', 'Semantics'),
-    ('Language', 'Style'),
-    ('Language', 'Usage'),
-    ('Mechanics', 'Capitalization'),
-    ('Mechanics', 'Possible Typo'),
-    ('Mechanics', 'Punctuation'),
-    ('Mechanics', 'Spelling'),
-    ('Mechanics', 'Typography'),
-    ('Mechanics', 'Word Boundaries'),
-]
-
 # Each tuple in AVAILABLE_ITEMS contains the full path of
 # the categories.
 AVAILABLE_ITEMS = [
@@ -137,3 +121,8 @@ AVAILABLE_ITEMS = [
     ('Word Boundaries', 'Missing space')
 ]
 
+CATEGORIES = [
+    'Grammar', 'Semantics', 'Style', 'Usage',
+    'Capitalization', 'Possible Typo', 'Punctuation',
+    'Spelling', 'Typography', 'Word Boundaries'
+]

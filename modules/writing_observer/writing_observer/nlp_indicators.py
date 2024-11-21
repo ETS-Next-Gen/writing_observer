@@ -21,92 +21,92 @@ from recordclass import dataobject, asdict
 # filter (if needed), summary function to use
 SPAN_INDICATORS = [
     # language
-    ('Academic Language', 'Token', 'is_academic', None, 'percent'),
-    ('Informal Language', 'Token', 'vwp_interactive', None, 'percent'),
-    ('Latinate Words', 'Token', 'is_latinate', None, 'percent'),
-    ('Opinion Words', 'Token', 'vwp_evaluation', None, 'total'),
-    ('Emotion Words', 'Token', 'vwp_emotionword', None, 'percent'),
+    ('Academic Language', 'Token', 'is_academic', None, 'percent', 'language'),
+    ('Informal Language', 'Token', 'vwp_interactive', None, 'percent', 'language'),
+    ('Latinate Words', 'Token', 'is_latinate', None, 'percent', 'language'),
+    ('Opinion Words', 'Token', 'vwp_evaluation', None, 'total', 'language'),
+    ('Emotion Words', 'Token', 'vwp_emotionword', None, 'percent', 'language'),
     # vwp_emotion_states looks for noun/emotion word pairs (takes a lot of resources) - ignoring for now
     # Argumentation
     # ('Argumentation', 'Token', 'vwp_argumentation', None, 'percent'),  # most resource heavy - ignoring for now
-    ('Argument Words', 'Token', 'vwp_argumentword', None, 'percent'),  # more surfacey # TODO needs new label
-    ('Explicit argument', 'Token', 'vwp_explicit_argument', None, 'percent'),  # surfacey # TODO needs new label
+    ('Argument Words', 'Token', 'vwp_argumentword', None, 'percent', 'argumentation'),  # more surfacey # TODO needs new label
+    ('Explicit argument', 'Token', 'vwp_explicit_argument', None, 'percent', 'argumentation'),  # surfacey # TODO needs new label
     # statements
-    ('Statements of Opinion', 'Doc', 'vwp_statements_of_opinion', None, 'percent'),
-    ('Statements of Fact', 'Doc', 'vwp_statements_of_fact', None, 'percent'),
+    ('Statements of Opinion', 'Doc', 'vwp_statements_of_opinion', None, 'percent', 'statements'),
+    ('Statements of Fact', 'Doc', 'vwp_statements_of_fact', None, 'percent', 'statements'),
     # Transitions
     # eventually we want to exclude \n\n as transitions using `[('!=', ['introductory'])]`
     # however the introductory category also includes "let us" and "let's"
     # no highlighting is shown on the new lines, so we won't remove it for now.
-    ('Transition Words', 'Doc', 'transitions', None, 'counts'),
+    ('Transition Words', 'Doc', 'transitions', None, 'counts', 'transitions'),
     #
-    ('Positive Transition Words', 'Doc', 'transitions', [('==', ['positive'])], 'total'),
-    ('Conditional Transition Words', 'Doc', 'transitions', [('==', ['conditional'])], 'total'),
-    ('Consequential Transition Words', 'Doc', 'transitions', [('==', ['consequential'])], 'total'),
-    ('Contrastive Transition Words', 'Doc', 'transitions', [('==', ['contrastive'])], 'total'),
-    ('Counterpoint Transition Words', 'Doc', 'transitions', [('==', ['counterpoint'])], 'total'),
-    ('Comparative Transition Words', 'Doc', 'transitions', [('==', ['comparative'])], 'total'),
-    ('Cross Referential Transition Words', 'Doc', 'transitions', [('==', ['crossreferential'])], 'total'),
-    ('Illustrative Transition Words', 'Doc', 'transitions', [('==', ['illustrative'])], 'total'),
-    ('Negative Transition Words', 'Doc', 'transitions', [('==', ['negative'])], 'total'),
-    ('Emphatic Transition Words', 'Doc', 'transitions', [('==', ['emphatic'])], 'total'),
-    ('Evenidentiary Transition Words', 'Doc', 'transitions', [('==', ['evidentiary'])], 'total'),
-    ('General Transition Words', 'Doc', 'transitions', [('==', ['general'])], 'total'),
-    ('Ordinal Transition Words', 'Doc', 'transitions', [('==', ['ordinal'])], 'total'),
-    ('Purposive Transition Words', 'Doc', 'transitions', [('==', ['purposive'])], 'total'),
-    ('Periphrastic Transition Words', 'Doc', 'transitions', [('==', ['periphrastic'])], 'total'),
-    ('Hypothetical Transition Words', 'Doc', 'transitions', [('==', ['hypothetical'])], 'total'),
-    ('Summative Transition Words', 'Doc', 'transitions', [('==', ['summative'])], 'total'),
-    ('Introductory Transition Words', 'Doc', 'transitions', [('==', ['introductory'])], 'total'),
+    ('Positive Transition Words', 'Doc', 'transitions', [('==', ['positive'])], 'total', 'transitions'),
+    ('Conditional Transition Words', 'Doc', 'transitions', [('==', ['conditional'])], 'total', 'transitions'),
+    ('Consequential Transition Words', 'Doc', 'transitions', [('==', ['consequential'])], 'total', 'transitions'),
+    ('Contrastive Transition Words', 'Doc', 'transitions', [('==', ['contrastive'])], 'total', 'transitions'),
+    ('Counterpoint Transition Words', 'Doc', 'transitions', [('==', ['counterpoint'])], 'total', 'transitions'),
+    ('Comparative Transition Words', 'Doc', 'transitions', [('==', ['comparative'])], 'total', 'transitions'),
+    ('Cross Referential Transition Words', 'Doc', 'transitions', [('==', ['crossreferential'])], 'total', 'transitions'),
+    ('Illustrative Transition Words', 'Doc', 'transitions', [('==', ['illustrative'])], 'total', 'transitions'),
+    ('Negative Transition Words', 'Doc', 'transitions', [('==', ['negative'])], 'total', 'transitions'),
+    ('Emphatic Transition Words', 'Doc', 'transitions', [('==', ['emphatic'])], 'total', 'transitions'),
+    ('Evenidentiary Transition Words', 'Doc', 'transitions', [('==', ['evidentiary'])], 'total', 'transitions'),
+    ('General Transition Words', 'Doc', 'transitions', [('==', ['general'])], 'total', 'transitions'),
+    ('Ordinal Transition Words', 'Doc', 'transitions', [('==', ['ordinal'])], 'total', 'transitions'),
+    ('Purposive Transition Words', 'Doc', 'transitions', [('==', ['purposive'])], 'total', 'transitions'),
+    ('Periphrastic Transition Words', 'Doc', 'transitions', [('==', ['periphrastic'])], 'total', 'transitions'),
+    ('Hypothetical Transition Words', 'Doc', 'transitions', [('==', ['hypothetical'])], 'total', 'transitions'),
+    ('Summative Transition Words', 'Doc', 'transitions', [('==', ['summative'])], 'total', 'transitions'),
+    ('Introductory Transition Words', 'Doc', 'transitions', [('==', ['introductory'])], 'total', 'transitions'),
     # pos_
-    ('Adjectives', 'Token', 'pos_', [('==', ['ADJ'])], 'total'),
-    ('Adverbs', 'Token', 'pos_', [('==', ['ADV'])], 'total'),
-    ('Nouns', 'Token', 'pos_', [('==', ['NOUN'])], 'total'),
-    ('Proper Nouns', 'Token', 'pos_', [('==', ['PROPN'])], 'total'),
-    ('Verbs', 'Token', 'pos_', [('==', ['VERB'])], 'total'),
-    ('Numbers', 'Token', 'pos_', [('==', ['NUM'])], 'total'),
-    ('Prepositions', 'Token', 'pos_', [('==', ['ADP'])], 'total'),
-    ('Coordinating Conjunction', 'Token', 'pos_', [('==', ['CCONJ'])], 'total'),
-    ('Subordinating Conjunction', 'Token', 'pos_', [('==', ['SCONJ'])], 'total'),
-    ('Auxiliary Verb', 'Token', 'pos_', [('==', ['AUX'])], 'total'),
-    ('Pronoun', 'Token', 'pos_', [('==', ['PRON'])], 'total'),
+    ('Adjectives', 'Token', 'pos_', [('==', ['ADJ'])], 'total', 'pos'),
+    ('Adverbs', 'Token', 'pos_', [('==', ['ADV'])], 'total', 'pos'),
+    ('Nouns', 'Token', 'pos_', [('==', ['NOUN'])], 'total', 'pos'),
+    ('Proper Nouns', 'Token', 'pos_', [('==', ['PROPN'])], 'total', 'pos'),
+    ('Verbs', 'Token', 'pos_', [('==', ['VERB'])], 'total', 'pos'),
+    ('Numbers', 'Token', 'pos_', [('==', ['NUM'])], 'total', 'pos'),
+    ('Prepositions', 'Token', 'pos_', [('==', ['ADP'])], 'total', 'pos'),
+    ('Coordinating Conjunction', 'Token', 'pos_', [('==', ['CCONJ'])], 'total', 'pos'),
+    ('Subordinating Conjunction', 'Token', 'pos_', [('==', ['SCONJ'])], 'total', 'pos'),
+    ('Auxiliary Verb', 'Token', 'pos_', [('==', ['AUX'])], 'total', 'pos'),
+    ('Pronoun', 'Token', 'pos_', [('==', ['PRON'])], 'total', 'pos'),
     # sentence variety
     # The general 'Sentence Types' will return a complex object of all sentence types
     # that we do not yet handle.
     # ('Sentence Types', 'Doc', 'sentence_types', None, 'counts'),
-    ('Simple Sentences', 'Doc', 'sentence_types', [('==', ['Simple'])], 'total'),
-    ('Simple with Complex Predicates', 'Doc', 'sentence_types', [('==', ['SimpleComplexPred'])], 'total'),
-    ('Simple with Compound Predicates', 'Doc', 'sentence_types', [('==', ['SimpleCompoundPred'])], 'total'),
-    ('Simple with Compound Complex Predicates', 'Doc', 'sentence_types', [('==', ['SimpleCompoundComplexPred'])], 'total'),
-    ('Compound Sentences', 'Doc', 'sentence_types', [('==', ['Compound'])], 'total'),
-    ('Complex Sentences', 'Doc', 'sentence_types', [('==', ['Complex'])], 'total'),
-    ('Compound Complex Sentences', 'Doc', 'sentence_types', [('==', ['CompoundComplex'])], 'total'),
+    ('Simple Sentences', 'Doc', 'sentence_types', [('==', ['Simple'])], 'total', 'sentence_type'),
+    ('Simple with Complex Predicates', 'Doc', 'sentence_types', [('==', ['SimpleComplexPred'])], 'total', 'sentence_type'),
+    ('Simple with Compound Predicates', 'Doc', 'sentence_types', [('==', ['SimpleCompoundPred'])], 'total', 'sentence_type'),
+    ('Simple with Compound Complex Predicates', 'Doc', 'sentence_types', [('==', ['SimpleCompoundComplexPred'])], 'total', 'sentence_type'),
+    ('Compound Sentences', 'Doc', 'sentence_types', [('==', ['Compound'])], 'total', 'sentence_type'),
+    ('Complex Sentences', 'Doc', 'sentence_types', [('==', ['Complex'])], 'total', 'sentence_type'),
+    ('Compound Complex Sentences', 'Doc', 'sentence_types', [('==', ['CompoundComplex'])], 'total', 'sentence_type'),
     # Sources/Attributes/Citations/Quotes
-    ('Information Sources', 'Token', 'vwp_source', None, 'percent'),
-    ('Attributions', 'Token', 'vwp_attribution', None, 'percent'),
-    ('Citations', 'Token', 'vwp_cite', None, 'percent'),
-    ('Quoted Words', 'Token', 'vwp_quoted', None, 'percent'),
+    ('Information Sources', 'Token', 'vwp_source', None, 'percent', 'source_information'),
+    ('Attributions', 'Token', 'vwp_attribution', None, 'percent', 'source_information'),
+    ('Citations', 'Token', 'vwp_cite', None, 'percent', 'source_information'),
+    ('Quoted Words', 'Token', 'vwp_quoted', None, 'percent', 'source_information'),
     # Dialogue
-    ('Direct Speech Verbs', 'Doc', 'vwp_direct_speech', None, 'percent'),
-    ('Indirect Speech', 'Token', 'vwp_in_direct_speech', None, 'percent'),
+    ('Direct Speech Verbs', 'Doc', 'vwp_direct_speech', None, 'percent', 'dialogue'),
+    ('Indirect Speech', 'Token', 'vwp_in_direct_speech', None, 'percent', 'dialogue'),
     # vwp_quoted - already used above
     # tone
-    ('Positive Tone', 'Token', 'vwp_tone', [('>', [.4])], 'percent'),
-    ('Negative Tone', 'Token', 'vwp_tone', [('<', [-.4])], 'percent'),
+    ('Positive Tone', 'Token', 'vwp_tone', [('>', [.4])], 'percent', 'tone'),
+    ('Negative Tone', 'Token', 'vwp_tone', [('<', [-.4])], 'percent', 'tone'),
     # details
-    ('Concrete Details', 'Token', 'concrete_details', None, 'percent'),
-    ('Main Idea Sentences', 'Doc', 'main_ideas', None, 'total'),
-    ('Supporting Idea Sentences', 'Doc', 'supporting_ideas', None, 'total'),
-    ('Supporting Detail Sentences', 'Doc', 'supporting_details', None, 'total'),
+    ('Concrete Details', 'Token', 'concrete_details', None, 'percent', 'details'),
+    ('Main Idea Sentences', 'Doc', 'main_ideas', None, 'total', 'details'),
+    ('Supporting Idea Sentences', 'Doc', 'supporting_ideas', None, 'total', 'details'),
+    ('Supporting Detail Sentences', 'Doc', 'supporting_details', None, 'total', 'details'),
     # Other items
-    ('Polysyllabic Words', 'Token', 'nSyll', [('>', [3])], 'percent'),
-    ('Low Frequency Words', 'Token', 'max_freq', [('<', [4])], 'percent'),
-    ('Sentences', 'Doc', 'sents', None, 'total'),
-    ('Paragraphs', 'Doc', 'delimiter_\n', None, 'total'),
-    ('Character Trait Words', 'Token', 'vwp_character', None, 'percent'),
-    ('In Past Tense', 'Token', 'in_past_tense_scope', None, 'percent'),
-    ('Explicit Claims', 'Doc', 'vwp_propositional_attitudes', None, 'percent'),
-    ('Social Awareness', 'Doc', 'vwp_social_awareness', None, 'percent')
+    ('Polysyllabic Words', 'Token', 'nSyll', [('>', [3])], 'percent', 'other'),
+    ('Low Frequency Words', 'Token', 'max_freq', [('<', [4])], 'percent', 'other'),
+    ('Sentences', 'Doc', 'sents', None, 'total', 'other'),
+    ('Paragraphs', 'Doc', 'delimiter_\n', None, 'total', 'other'),
+    ('Character Trait Words', 'Token', 'vwp_character', None, 'percent', 'other'),
+    ('In Past Tense', 'Token', 'in_past_tense_scope', None, 'percent', 'other'),
+    ('Explicit Claims', 'Doc', 'vwp_propositional_attitudes', None, 'percent', 'other'),
+    ('Social Awareness', 'Doc', 'vwp_social_awareness', None, 'percent', 'other')
 ]
 
 # Create indicator dict to easily refer to each tuple above by name
@@ -125,8 +125,23 @@ class NLPIndicators(dataobject):
     parent: str
     filters: list
     function: str
+    category: str
     # tooltip: str
 
 
 indicators = map(lambda ind: NLPIndicators(*ind), INDICATOR_W_IDS)
 INDICATOR_JSONS = [asdict(ind) for ind in indicators]
+
+INDICATOR_CATEGORIES = {
+    'language': 'Language',
+    'argumentation': 'Argumentation',
+    'statements': 'Statements',
+    'transitions': 'Transition Words',
+    'pos': 'Parts of Speech',
+    'sentence_type': 'Sentence Types',
+    'source_information': 'Source Information',
+    'dialogue': 'Dialogue',
+    'tone': 'Tone',
+    'details': 'Details',
+    'other': 'Other'
+}
