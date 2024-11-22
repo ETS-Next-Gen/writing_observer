@@ -4,6 +4,7 @@ Map URLs to functions which handle them.
 
 import getpass
 import os
+import pmss
 import secrets
 import sys
 
@@ -32,6 +33,20 @@ import learning_observer.settings as settings
 from learning_observer.log_event import debug_log, startup_state
 
 from learning_observer.utility_handlers import *
+
+pmss.register_field(
+    name='disable_extension_routes',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Whether to disable extension-related API routes',
+    default=False
+)
+
+pmss.register_field(
+    name='disable_dashboard_routes',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Whether to disable dashboard-related API routes',
+    default=False
+)
 
 
 def add_routes(app):
@@ -62,9 +77,20 @@ def add_routes(app):
             aiohttp.web.get('/debug/tracemalloc/', tracemalloc_handler),
         ])
 
-    register_dashboard_api(app)
+    if not settings.pmss_settings.disable_dashboard_routes(types=['server']):
+        register_dashboard_api(app)
+        debug_log("Dashbord routes are enabled")
+    else:
+        debug_log("Dashboard routes are disabled")
+
     register_static_routes(app)
-    register_incoming_event_views(app)
+    
+    if not settings.pmss_settings.disable_extension_routes(types=['server']):
+        register_incoming_event_views(app)
+        debug_log("Extension routes are enabled")
+    else:
+        debug_log("Extension routes are disabled")
+    
     register_debug_routes(app)
     learning_observer.google.initialize_and_register_routes(app)
 

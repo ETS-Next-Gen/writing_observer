@@ -26,16 +26,16 @@ import * as loEventUtils from 'lo_event/lo_event/util.js';
 // } /* and other async logic */);
 // websocketLogger( callback );
 
-// // We are not sure if this should be done within `websocketLogger()`'s `init`
-// // or one level up. 
-// const loggers = [
-//   consoleLogger(),
-//   websocketLogger(WEBSOCKET_SERVER_URL)
-// ]
+// We are not sure if this should be done within `websocketLogger()`'s `init`
+// or one level up. 
+const loggers = [
+  consoleLogger(),
+  websocketLogger(WEBSOCKET_SERVER_URL)
+]
 
-// loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
-// loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.fetchDebuggingIdentifier()]);
-// loEvent.go()
+loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
+loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.fetchDebuggingIdentifier()]);
+loEvent.go();
 
 // Function to serve as replacement for 
 // chrome.extension.getBackgroundPage().console.log(event); because it is not allowed in V3
@@ -157,7 +157,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'bundles': JSON.parse(formdata.bundles),
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
-                }
+                };
                 logFromServiceWorker(event);
                 loEvent.logEvent('google_docs_save', event);
             } catch(err) {
@@ -170,7 +170,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                     'formdata': formdata,
                     'rev': formdata.rev,
                     'timestamp': parseInt(request.timeStamp, 10)
-                }
+                };
                 loEvent.logEvent('google_docs_save_extra', event);
             }
         } else if(this_a_google_docs_bind(request)) {
@@ -181,7 +181,7 @@ chrome.webRequest.onBeforeRequest.addListener(
     },
     { urls: ["*://docs.google.com/*"] },
     ['requestBody']
-)
+);
 
 // re-injected scripts when chrome extension is reloaded, upgraded or re-installed
 // https://stackoverflow.com/questions/10994324/chrome-extension-content-script-re-injection-after-upgrade-or-install
@@ -203,50 +203,18 @@ async function reinjectContentScripts() {
 }
 
 // Let the server know we've loaded.
-// loEvent.logEvent("extension_loaded", {});
-
-
-async function digest(message, algo = 'SHA-1') {
-    return Array.from(
-        new Uint8Array(await crypto.subtle.digest(algo, new TextEncoder().encode(message))),
-        (byte) => byte.toString(16).padStart(2, '0')
-    ).join('');
-}
-
+loEvent.logEvent("extension_loaded", {});
 
 // Send the server the user info. This might not always be available.
 // HACK: this code will be changed pending server side changes to how we
 // handle auth and metadata.
-loEventUtils.profileInfoWrapper().then(result => {
-    return digest(result.id).then(hashedId => ({result, hashedId}))
-}).then(({result, hashedId}) => {
-    WEBSOCKET_SERVER_URL += `?student=${hashedId}`;
-
-    // further initialization logic goes here, since the id needs to be retrieved
-    // and appended to the websocket url before we can connect and send log events to 
-    // the backend
-    const loggers = [
-        consoleLogger(),
-        websocketLogger(WEBSOCKET_SERVER_URL)
-    ]
-
-    loEvent.init('org.mitros.writing_analytics', '0.01', loggers, loEventDebug.LEVEL.SIMPLE);
-    loEvent.setFieldSet([loEventUtils.getBrowserInfo(), loEventUtils.fetchDebuggingIdentifier()]);
-    loEvent.go()
-
-    loEvent.logEvent("extension_loaded", {});
-
+loEventUtils.profileInfoWrapper().then((result) => {
     if (Object.keys(result).length > 0) {
         loEvent.logEvent('chrome_identity', { chrome_identity: result });
         loEvent.logEvent('metadata_finished', {})
     }
-
-    logFromServiceWorker("Loaded");
-}).catch(err => {
-    logFromServiceWorker(`Failed to connect to backend: ${err}`)
 });
-
 
 // And let the console know we've loaded
 // chrome.extension.getBackgroundPage().console.log("Loaded"); remove
-// logFromServiceWorker("Loaded");
+logFromServiceWorker("Loaded");

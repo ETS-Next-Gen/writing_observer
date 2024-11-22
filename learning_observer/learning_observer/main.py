@@ -96,8 +96,6 @@ def create_app():
     if port is None and runmode == 'dev':
         port = learning_observer.webapp_helpers.find_open_port()
 
-    port = int(args.port)
-
     # Check that everything is configured correctly,
     # and initialize anything which needs initialization
     learning_observer.prestartup.startup_checks_and_init()
