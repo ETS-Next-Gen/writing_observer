@@ -7,7 +7,7 @@
 import { } from '../components.js';
 
 import React, { useState, useEffect } from 'react';
-import { LOConnection, LOConnectionLastUpdated, LOConnectionDataManager, Button } from 'lo_event/lo_event/lo_assess/components/components.jsx';
+import { LOConnectionLastUpdated, useLOConnectionDataManager, Button } from 'lo_event/lo_event/lo_assess/components/components.jsx';
 
 export default function Home ({ children }) {
   const decoded = {};
@@ -20,20 +20,12 @@ export default function Home ({ children }) {
     }
   };
 
-  const [userData, setUserData] = useState({});
-  const [errors, setErrors] = useState({});
-
-  const { readyState, message, error, sendMessage, openConnection, closeConnection } = LOConnection({ url: 'ws://localhost:8888/wsapi/communication_protocol', dataScope });
-  const handleDataUpdate = ({ dataObject, errors }) => {
-    setUserData(dataObject);
-    setErrors(errors);
-  };
+  const { data, errors, readyState, sendMessage, openConnection, closeConnection } = useLOConnectionDataManager({ url: 'ws://localhost:8888/wsapi/communication_protocol', dataScope });
   return (
     <div>
       <h1>WebSocket Connection Page</h1>
       <div>
-        <LOConnectionLastUpdated message={message} readyState={readyState} />
-        <LOConnectionDataManager message={message} onDataUpdate={handleDataUpdate} />
+        <LOConnectionLastUpdated message={data} readyState={readyState} />
       </div>
       <div>
         <Button onClick={() => sendMessage(JSON.stringify(dataScope))} disabled={readyState !== WebSocket.OPEN}>
@@ -48,8 +40,8 @@ export default function Home ({ children }) {
       </div>
       <div>
         <h2>User Data</h2>
-          {Object.keys(userData).length > 0
-            ? (<pre>{JSON.stringify(userData, null, 2)}</pre>)
+          {Object.keys(data).length > 0
+            ? (<pre>{JSON.stringify(data, null, 2)}</pre>)
             : (<p>No user data available.</p>)
           }
       </div>
