@@ -98,7 +98,7 @@ async def get_active_user(request):
     session = await aiohttp_session.get_session(request)
     if constants.IMPERSONATING_AS in session:
         return session[constants.IMPERSONATING_AS]
-    return session[constants.USER]
+    return session.get(constants.USER, None)
 
 
 def  google_stored_auth():
