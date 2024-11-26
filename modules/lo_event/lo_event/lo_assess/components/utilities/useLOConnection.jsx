@@ -1,14 +1,14 @@
 /**
- * LOConnection is a websocket component used for connecting to
+ * useLOConnection is a websocket hook used for connecting to
  * the communication protocl on Learning Observer.
  *
  * The server expects some data before it will start sending messages.
- * When the connection opens, LOConnection will send the `dataScope`,
+ * When the connection opens, useLOConnection will send the `dataScope`,
  * if available, to initiate receiving messages from the server.
  * Otherwise, users should use the `sendMessage` function to provide
  * data to LO.
  *
- * LOConnection exposes the following items:
+ * useLOConnection exposes the following items:
  * - `sendMessage`: function to send messages to the server
  * - `message`: the most recent message received
  * - `error`: any errors that occured
@@ -19,7 +19,7 @@
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 
-export const LOConnection = ({
+export const useLOConnection = ({
   url, dataScope
 }) => {
   const [readyState, setReadyState] = useState(WebSocket.CLOSED);
