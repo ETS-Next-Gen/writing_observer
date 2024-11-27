@@ -354,4 +354,4 @@ if __name__ == '__main__':
     doc = command_list(doc, docs_history_short)
     print(doc)
     print(doc.position)
-	print(doc.edit_metadata)
+    print(doc.edit_metadata)
