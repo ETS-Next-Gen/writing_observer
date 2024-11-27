@@ -426,3 +426,34 @@ export function dispatchCustomEvent(eventName, detail) {
       console.warn("Event dispatching is not supported in this environment.");
   }
 }
+
+/**
+ * Convert seconds to a time string.
+ *
+ * Compact representation.
+ *  10     ==> 10s
+ *  125    ==> 2m
+ *  3600   ==> 1h
+ *  7601   ==> 2h
+ *  764450 ==> 8d
+ */
+export function renderTime (t) {
+  const seconds = Math.floor(t) % 60;
+  const minutes = Math.floor(t / 60) % 60;
+  const hours = Math.floor(t / 3600) % 60;
+  const days = Math.floor(t / 3600 / 24);
+
+  if (days > 0) {
+    return String(days) + 'd';
+  }
+  if (hours > 0) {
+    return String(hours) + 'h';
+  }
+  if (minutes > 0) {
+    return String(minutes) + 'm';
+  }
+  if (seconds > 0) {
+    return String(seconds) + 's';
+  }
+  return '-';
+}
