@@ -206,6 +206,41 @@ def delete(doc, ty, si, ei):
 
     return doc
 
+def replace(doc, ty, snapshot):
+    for entry in snapshot:
+
+        #The index of the next character after the last 
+        #character of the text
+        nextchar_index = len(doc._text) + 1
+        if 'ty' in entry and entry['ty'] == 'is':
+
+            s = entry['s']
+            ibi = entry['ibi']
+            if 'sl' in entry:
+                sl = entry['sl']
+            else:
+                sl = len(s)
+
+            #If the insert index is greater than
+            #nextchar_index, insert placeholders 
+            #to fill the gap.
+            #
+            # This occurs when the document has undergone
+            # modifications before the logger has been
+            # initialized
+            if ibi > nextchar_index:
+                insert(doc, 
+                       ty, 
+                       nextchar_index, 
+                       PLACEHOLDER * (ibi - nextchar_index))
+
+            doc.update("{start}{insert}{end}".format(
+                start=doc._text[0:ibi - 1],
+                insert=s,
+                end=doc._text[ibi + sl - 1:]
+            ))
+
+    return doc
 
 def alter(doc, si, ei, st, sm, ty):
     '''
@@ -239,14 +274,41 @@ def null(doc, **kwargs):
 # (e.g., 'sugid', presumably, suggestion id.)
 dispatch = {
     'ae': null,
+    'ase': null, #suggestion
+    'ast': null, #suggestion. Image?
+    'astss': null, #suggestion. Autospell?
     'ue': null,
     'de': null,
+    'dse': null, #suggestion
+    'dss': null, #suggested deletion
     'te': null,
     'as': alter,
     'ds': delete,
     'is': insert,
+    'iss': null, #suggested insertion
+    'mefd': null, #suggestion
     'mlti': multi,
-    'null': null
+    'msfd': null, #suggestion
+    'null': null,
+    'ord': null,
+    'ras': null, #suggestion. Autospell?
+    'rplc': replace, #rplc is called as the first edit
+                     #when the document is created from
+                     #a template, so if you want to know
+                     #what text was NOT written by the author,
+                     #logging the text buffer after the initial
+                     #rplc action will give you that.
+    'rte': null, #suggestion
+    'rue': null, #suggestion
+    'rvrt': replace, #apparently logged after an undo
+    'sas': null, #suggestion. Autospell?
+    'sl': null,
+    'ste': null, #suggestion
+    'sue': null, #suggestion
+    'uefd': null, #suggestion
+    'use': null, #suggestion
+    'umv': null,
+    'usfd': null, #suggestion
 }
 
 if __name__ == '__main__':
