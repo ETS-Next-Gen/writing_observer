@@ -7,7 +7,7 @@
 import { } from '../components.js';
 
 import React, { useState, useEffect } from 'react';
-import { LOConnectionLastUpdated, useLOConnectionDataManager, Button } from 'lo_event/lo_event/lo_assess/components/components.jsx';
+import { LOConnectionLastUpdated, useLOConnectionDataManager, LO_CONNECTION_STATUS, Button } from 'lo_event/lo_event/lo_assess/components/components.jsx';
 
 export default function Home ({ children }) {
   const decoded = {};
@@ -20,21 +20,21 @@ export default function Home ({ children }) {
     }
   };
 
-  const { data, errors, readyState, sendMessage, openConnection, closeConnection } = useLOConnectionDataManager({ url: 'ws://localhost:8888/wsapi/communication_protocol', dataScope });
+  const { data, errors, connectionStatus, sendMessage, openConnection, closeConnection } = useLOConnectionDataManager({ url: 'ws://localhost:8888/wsapi/communication_protocol', dataScope });
   return (
     <div>
       <h1>WebSocket Connection Page</h1>
       <div>
-        <LOConnectionLastUpdated message={data} readyState={readyState} />
+        <LOConnectionLastUpdated message={data} connectionStatus={connectionStatus} />
       </div>
       <div>
-        <Button onClick={() => sendMessage(JSON.stringify(dataScope))} disabled={readyState !== WebSocket.OPEN}>
+        <Button onClick={() => sendMessage(JSON.stringify(dataScope))} disabled={connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
           Re-send dataScope to Server
         </Button>
-        <Button onClick={openConnection} disabled={readyState === WebSocket.OPEN || readyState === WebSocket.CONNECTING}>
+        <Button onClick={openConnection} disabled={connectionStatus === LO_CONNECTION_STATUS.OPEN || connectionStatus === LO_CONNECTION_STATUS.CONNECTING}>
           Open Connection
         </Button>
-        <Button onClick={closeConnection} disabled={readyState !== WebSocket.OPEN}>
+        <Button onClick={closeConnection} disabled={connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
           Close Connection
         </Button>
       </div>
