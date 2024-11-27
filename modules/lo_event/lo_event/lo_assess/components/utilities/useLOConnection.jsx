@@ -31,7 +31,7 @@ export const useLOConnection = ({
   // Function to open the WebSocket connection
   const openConnection = () => {
     // Prevent opening a new connection if one is already open or connecting
-    if (clientRef.current && (connectionStatus === LO_CONNECTION_STATUS.OPEN || connectionStatus === LO_CONNECTION_STATUS.CONNECTING)) {
+    if (clientRef.current && (clientRef.current.readyState === LO_CONNECTION_STATUS.OPEN || clientRef.current.readyState === LO_CONNECTION_STATUS.CONNECTING)) {
       console.warn("WebSocket connection is already open or in progress.");
       return;
     }
@@ -62,18 +62,25 @@ export const useLOConnection = ({
     };
   };
 
+  // Function to close the WebSocket connection manually
+  const closeConnection = () => {
+    if (clientRef.current && connectionStatus === LO_CONNECTION_STATUS.OPEN) {
+      clientRef.current.close();
+      clientRef.current = null;
+    } else {
+      console.warn("WebSocket is not open; no connection to close.");
+    }
+  };
+
   // Automatically attempt to open connection on mount
   useEffect(() => {
     openConnection();
 
     // Cleanup on unmount
     return () => {
-      if (clientRef.current) {
-        clientRef.current.close();
-      }
+      closeConnection();
     };
   }, [url]);  // Include `url` as a dependency in case it changes and requires a reconnection
-
 
   // Function to send a message via WebSocket
   const sendMessage = (message) => {
@@ -81,15 +88,6 @@ export const useLOConnection = ({
       clientRef.current.send(message);
     } else {
       console.warn('WebSocket is not open. Ready state:', connectionStatus);
-    }
-  };
-
-  // Function to close the WebSocket connection manually
-  const closeConnection = () => {
-    if (clientRef.current && connectionStatus === LO_CONNECTION_STATUS.OPEN) {
-      clientRef.current.close();
-    } else {
-      console.warn("WebSocket is not open; no connection to close.");
     }
   };
 

@@ -25,7 +25,7 @@ export default function Home ({ children }) {
     <div>
       <h1>WebSocket Connection Page</h1>
       <div>
-        <LOConnectionLastUpdated message={data} connectionStatus={connection.connectionStatus} />
+        <LOConnectionLastUpdated message={data} connectionStatus={connection.connectionStatus} showText />
       </div>
       <div>
         <Button onClick={() => connection.sendMessage(JSON.stringify(dataScope))} disabled={connection.connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
