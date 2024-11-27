@@ -45,15 +45,17 @@ const dataReducer = (state, action) => {
   switch (action.type) {
     case 'update': {
       const { path, value } = action.payload;
-      const updatedState = { ...state };
       const pathKeys = path.split('.');
-      let current = updatedState;
 
-      // Traverse the path to get to the right location
+      // Create a new `data` object with the updated value at the correct path
+      const newData = { ...state.data };
+      let current = newData; // Start at the top-level copy
       for (let i = 0; i < pathKeys.length - 1; i++) {
         const key = pathKeys[i];
         if (!(key in current)) {
           current[key] = {}; // Create path if it doesn't exist
+        } else {
+          current[key] = { ...current[key] }; // Copy the existing nested object
         }
         current = current[key];
       }
@@ -65,7 +67,10 @@ const dataReducer = (state, action) => {
         ...value, // New data (overwrites where necessary)
       };
 
-      return updatedState;
+      return {
+        ...state,
+        data: newData,
+      };
     }
     case 'error': {
       const { path, value } = action.payload;
