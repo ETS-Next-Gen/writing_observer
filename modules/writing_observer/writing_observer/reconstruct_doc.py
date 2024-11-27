@@ -2,7 +2,7 @@
 This can reconstruct a Google Doc from Google's JSON requests. It
 is based on the reverse-engineering by James Somers in his blog
 post about the Traceback extension. The code is, obviously, all
-new.
+new.r
 
 See: `http://features.jsomers.net/how-i-reverse-engineered-google-docs/`
 '''
@@ -48,7 +48,7 @@ class google_text(object):
         two lists for efficiency, and for now, this just confirms they're
         the same length.
         '''
-	        cursor_array_length = len(self._edit_metadata["cursor"])
+	cursor_array_length = len(self._edit_metadata["cursor"])
         textlength_array_length = len(self._edit_metadata["length"])
         length_difference = cursor_array_length - textlength_array_length
         if length_difference != 0:
