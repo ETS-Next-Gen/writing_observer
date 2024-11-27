@@ -21,7 +21,7 @@ function renderReadableTimeSinceUpdate (timeDifference) {
   return `${renderTime(timeDifference)} ago`;
 }
 
-export const LOConnectionLastUpdated = ({ message, connectionStatus }) => {
+export const LOConnectionLastUpdated = ({ message, connectionStatus, showText=false }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [lastUpdatedMessage, setLastUpdatedMessage] = useState('');
 
@@ -62,6 +62,7 @@ export const LOConnectionLastUpdated = ({ message, connectionStatus }) => {
   return (
     <div title={titles[connectionStatus]}>
       <i className={icons[connectionStatus]} />
+      {showText ? <span className='mx-1'>{titles[connectionStatus]}</span> : ''}
       <span className='ms-1'>{lastUpdatedMessage}</span>
     </div>
   );
