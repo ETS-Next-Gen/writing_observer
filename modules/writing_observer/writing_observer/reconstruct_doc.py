@@ -327,7 +327,7 @@ dispatch = {
                      #what text was NOT written by the author,
                      #logging the text buffer after the initial
                      #rplc action will give you that.
-    'rte': null, #suggestion
+    'rte' : null, #suggestion
     'rue': null, #suggestion
     'rvrt': replace, #apparently logged after an undo
     'sas': null, #suggestion. Autospell?
