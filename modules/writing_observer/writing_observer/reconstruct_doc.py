@@ -2,7 +2,7 @@
 This can reconstruct a Google Doc from Google's JSON requests. It
 is based on the reverse-engineering by James Somers in his blog
 post about the Traceback extension. The code is, obviously, all
-new.r
+new.
 
 See: `http://features.jsomers.net/how-i-reverse-engineered-google-docs/`
 '''
