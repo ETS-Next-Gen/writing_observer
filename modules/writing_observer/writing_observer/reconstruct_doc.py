@@ -200,6 +200,12 @@ def insert(doc, ty, ibi, s):
     * `ibi` is where the insert happens
     * `s` is the string to insert
     '''
+    # The index of the next character after the last character of the text
+    nextchar_index = len(doc._text) + 1
+    # If the insert index is greater than nextchar_index, insert placeholders to fill the gap
+    # This occurs when the document has undergone modifications before the logger has been initialized
+    if ibi > nextchar_index:
+        insert(doc, ty, nextchar_index, PLACEHOLDER * (ibi - nextchar_index))
     doc.update("{start}{insert}{end}".format(
         start=doc._text[0:ibi - 1],
         insert=s,
