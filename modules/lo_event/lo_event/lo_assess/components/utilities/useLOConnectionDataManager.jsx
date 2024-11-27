@@ -11,7 +11,7 @@
  * useLOConnectionDataManager exposes the following items:
  * - `data`: current overall data received from websocket messages
  * - `errors`: information about any errors received
- * - all items from useLOConnection as well
+ * - `connection`: all returned items from useLOConnection
  *
  * Usage:
  * ```js
@@ -103,7 +103,6 @@ const initialState = {
   errors: {},
 };
 
-// Custom hook
 export const useLOConnectionDataManager = ({ url, dataScope }) => {
   const { message, ...connection } = useLOConnection({ url, dataScope });
   const [state, dispatch] = useReducer(dataReducer, initialState);
@@ -128,7 +127,7 @@ export const useLOConnectionDataManager = ({ url, dataScope }) => {
   }, [message]);
 
   return {
-    ...connection,
+    connection,
     data: state.data,
     errors: state.errors,
   };

@@ -20,21 +20,21 @@ export default function Home ({ children }) {
     }
   };
 
-  const { data, errors, connectionStatus, sendMessage, openConnection, closeConnection } = useLOConnectionDataManager({ url: 'ws://localhost:8888/wsapi/communication_protocol', dataScope });
+  const { data, errors, connection } = useLOConnectionDataManager({ url: 'ws://localhost:8888/wsapi/communication_protocol', dataScope });
   return (
     <div>
       <h1>WebSocket Connection Page</h1>
       <div>
-        <LOConnectionLastUpdated message={data} connectionStatus={connectionStatus} />
+        <LOConnectionLastUpdated message={data} connectionStatus={connection.connectionStatus} />
       </div>
       <div>
-        <Button onClick={() => sendMessage(JSON.stringify(dataScope))} disabled={connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
+        <Button onClick={() => connection.sendMessage(JSON.stringify(dataScope))} disabled={connection.connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
           Re-send dataScope to Server
         </Button>
-        <Button onClick={openConnection} disabled={connectionStatus === LO_CONNECTION_STATUS.OPEN || connectionStatus === LO_CONNECTION_STATUS.CONNECTING}>
+        <Button onClick={connection.openConnection} disabled={connection.connectionStatus === LO_CONNECTION_STATUS.OPEN || connection.connectionStatus === LO_CONNECTION_STATUS.CONNECTING}>
           Open Connection
         </Button>
-        <Button onClick={closeConnection} disabled={connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
+        <Button onClick={connection.closeConnection} disabled={connection.connectionStatus !== LO_CONNECTION_STATUS.OPEN}>
           Close Connection
         </Button>
       </div>
