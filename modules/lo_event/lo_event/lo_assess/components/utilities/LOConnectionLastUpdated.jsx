@@ -5,12 +5,13 @@
  *
  * Usage:
  * ```js
- * const { readyState, message, } = LOConnection({ url, dataScope }); // or some other websocket
- * return ( <LOConnectionLastUpdated message={message} readyState={readyState} /> );
+ * const { connectionStatus, message, } = LOConnection({ url, dataScope }); // or some other websocket
+ * return ( <LOConnectionLastUpdated message={message} connectionStatus={connectionStatus} /> );
  * ```
  */
 import React from 'react';
 import { useState, useEffect } from 'react';
+import { LO_CONNECTION_STATUS } from '../constants/LO_CONNECTION_STATUS';
 
 function renderTime (t) {
   /*
@@ -53,12 +54,24 @@ function renderReadableTimeSinceUpdate (timeDifference) {
   return `${renderTime(timeDifference)} ago`;
 }
 
-export const LOConnectionLastUpdated = ({ message, readyState }) => {
+export const LOConnectionLastUpdated = ({ message, connectionStatus }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [lastUpdatedMessage, setLastUpdatedMessage] = useState('');
 
-  const icons = ['fas fa-sync-alt', 'fas fa-check text-success', 'fas fa-sync-alt', 'fas fa-times text-danger'];
-  const titles = ['Connecting to server', 'Connected to server', 'Closing connection', 'Disconnected from server'];
+  const icons = {
+    [LO_CONNECTION_STATUS.UNINSTANTIATED]: 'fas fa-circle',
+    [LO_CONNECTION_STATUS.CONNECTING]: 'fas fa-sync-alt',
+    [LO_CONNECTION_STATUS.OPEN]: 'fas fa-check text-success',
+    [LO_CONNECTION_STATUS.CLOSING]: 'fas fa-sync-alt',
+    [LO_CONNECTION_STATUS.CLOSED]: 'fas fa-times text-danger'
+  };
+  const titles = {
+    [LO_CONNECTION_STATUS.UNINSTANTIATED]: 'Uninstantiated',
+    [LO_CONNECTION_STATUS.CONNECTING]: 'Connecting to server',
+    [LO_CONNECTION_STATUS.OPEN]: 'Connected to server',
+    [LO_CONNECTION_STATUS.CLOSING]: 'Closing connection',
+    [LO_CONNECTION_STATUS.CLOSED]: 'Disconnected from server'
+  };
 
   // Set last updated time when new message arrives
   useEffect(() => {
@@ -80,8 +93,8 @@ export const LOConnectionLastUpdated = ({ message, readyState }) => {
   }, [lastUpdated]);
 
   return (
-    <div title={titles[readyState]}>
-      <i className={icons[readyState]} />
+    <div title={titles[connectionStatus]}>
+      <i className={icons[connectionStatus]} />
       <span className='ms-1'>{lastUpdatedMessage}</span>
     </div>
   );

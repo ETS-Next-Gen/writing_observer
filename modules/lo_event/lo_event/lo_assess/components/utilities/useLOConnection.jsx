@@ -12,17 +12,18 @@
  * - `sendMessage`: function to send messages to the server
  * - `message`: the most recent message received
  * - `error`: any errors that occured
- * - `readyState`: the current status of the websocket connection
+ * - `connectionStatus`: the current status of the websocket connection
  * - `openConnection`: function that opens the connection when called
  * - `closeConnection`: function that closes the connection when called
  */
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { LO_CONNECTION_STATUS } from '../constants/LO_CONNECTION_STATUS';
 
 export const useLOConnection = ({
   url, dataScope
 }) => {
-  const [readyState, setReadyState] = useState(WebSocket.CLOSED);
+  const [connectionStatus, setConnectionStatus] = useState(LO_CONNECTION_STATUS.CLOSED);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const clientRef = useRef(null);
@@ -30,7 +31,7 @@ export const useLOConnection = ({
   // Function to open the WebSocket connection
   const openConnection = () => {
     // Prevent opening a new connection if one is already open or connecting
-    if (clientRef.current && (readyState === WebSocket.OPEN || readyState === WebSocket.CONNECTING)) {
+    if (clientRef.current && (connectionStatus === LO_CONNECTION_STATUS.OPEN || connectionStatus === LO_CONNECTION_STATUS.CONNECTING)) {
       console.warn("WebSocket connection is already open or in progress.");
       return;
     }
@@ -41,7 +42,7 @@ export const useLOConnection = ({
     clientRef.current = client;
 
     client.onopen = () => {
-      setReadyState(WebSocket.OPEN);
+      setConnectionStatus(LO_CONNECTION_STATUS.OPEN);
       setError(null);  // Clear any previous errors upon a successful connection
       if (typeof dataScope !== 'undefined') {
         client.send(JSON.stringify(dataScope));
@@ -57,7 +58,7 @@ export const useLOConnection = ({
     };
 
     client.onclose = () => {
-      setReadyState(WebSocket.CLOSED);
+      setConnectionStatus(LO_CONNECTION_STATUS.CLOSED);
     };
   };
 
@@ -76,21 +77,21 @@ export const useLOConnection = ({
 
   // Function to send a message via WebSocket
   const sendMessage = (message) => {
-    if (clientRef.current && readyState === WebSocket.OPEN) {
+    if (clientRef.current && connectionStatus === LO_CONNECTION_STATUS.OPEN) {
       clientRef.current.send(message);
     } else {
-      console.warn('WebSocket is not open. Ready state:', readyState);
+      console.warn('WebSocket is not open. Ready state:', connectionStatus);
     }
   };
 
   // Function to close the WebSocket connection manually
   const closeConnection = () => {
-    if (clientRef.current && readyState === WebSocket.OPEN) {
+    if (clientRef.current && connectionStatus === LO_CONNECTION_STATUS.OPEN) {
       clientRef.current.close();
     } else {
       console.warn("WebSocket is not open; no connection to close.");
     }
   };
 
-  return { sendMessage, message, error, readyState, openConnection, closeConnection };
+  return { sendMessage, message, error, connectionStatus, openConnection, closeConnection };
 };
