@@ -25,7 +25,6 @@ doc._text leaving only the character 'a'.
 """
 PLACEHOLDER = '\x00'
 
-
 class google_text(object):
     '''
     We encapsulate a string object to support a Google Doc snapshot at a
@@ -49,7 +48,7 @@ class google_text(object):
         two lists for efficiency, and for now, this just confirms they're
         the same length.
         '''
-        cursor_array_length = len(self._edit_metadata["cursor"])
+	        cursor_array_length = len(self._edit_metadata["cursor"])
         textlength_array_length = len(self._edit_metadata["length"])
         length_difference = cursor_array_length - textlength_array_length
         if length_difference != 0:
@@ -102,6 +101,7 @@ class google_text(object):
         new_object._edit_metadata = json_rep.get('edit_metadata', {})
         new_object.fix_validity()
         return new_object
+
 
     def update(self, text):
         '''
@@ -161,12 +161,11 @@ class google_text(object):
             'edit_metadata': self._edit_metadata
         }
 
-    def get_parsed_text(self):
-        '''
-        Returns the text ignoring the normal placeholders
-        '''
-        return self._text.replace(PLACEHOLDER, "")
-
+def get_parsed_text(self):
+    '''
+    Returns the text ignoring the normal placeholders
+    '''
+    return self._text.replace(PLACEHOLDER, "")
 
 def command_list(doc, commands):
     '''
@@ -201,13 +200,6 @@ def insert(doc, ty, ibi, s):
     * `ibi` is where the insert happens
     * `s` is the string to insert
     '''
-    # The index of the next character after the last character of the text
-    nextchar_index = len(doc._text) + 1
-    # If the insert index is greater than nextchar_index, insert placeholders to fill the gap
-    # This occurs when the document has undergone modifications before the logger has been initialized
-    if ibi > nextchar_index:
-        insert(doc, ty, nextchar_index, PLACEHOLDER * (ibi - nextchar_index))
-
     doc.update("{start}{insert}{end}".format(
         start=doc._text[0:ibi - 1],
         insert=s,
@@ -226,7 +218,7 @@ def delete(doc, ty, si, ei):
     * `si` is the index of the start of deletion
     * `ei` is the end
     '''
-    # Index of the last character in the text. `si` and `ei` shouldn't go beyond that
+   # Index of the last character in the text. `si` and `ei` shouldn't go beyond that
     lastchar_index = len(doc._text)
     # If the deletion indexes are greater than nextchar_index, insert placeholders to fill the gap
     # This occurs when the document has undergone modifications before the logger has been initialized
@@ -234,7 +226,6 @@ def delete(doc, ty, si, ei):
         insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (si - lastchar_index))
     if ei > lastchar_index:
         insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (ei - lastchar_index))
-
     doc.update("{start}{end}".format(
         start=doc._text[0:si - 1],
         end=doc._text[ei:]
@@ -244,6 +235,41 @@ def delete(doc, ty, si, ei):
 
     return doc
 
+def replace(doc, ty, snapshot):
+    for entry in snapshot:
+
+        #The index of the next character after the last 
+        #character of the text
+        nextchar_index = len(doc._text) + 1
+        if 'ty' in entry and entry['ty'] == 'is':
+
+            s = entry['s']
+            ibi = entry['ibi']
+            if 'sl' in entry:
+                sl = entry['sl']
+            else:
+                sl = len(s)
+
+            #If the insert index is greater than
+            #nextchar_index, insert placeholders 
+            #to fill the gap.
+            #
+            # This occurs when the document has undergone
+            # modifications before the logger has been
+            # initialized
+            if ibi > nextchar_index:
+                insert(doc, 
+                       ty, 
+                       nextchar_index, 
+                       PLACEHOLDER * (ibi - nextchar_index))
+
+            doc.update("{start}{insert}{end}".format(
+                start=doc._text[0:ibi - 1],
+                insert=s,
+                end=doc._text[ibi + sl - 1:]
+            ))
+
+    return doc
 
 def alter(doc, si, ei, st, sm, ty):
     '''
@@ -271,17 +297,47 @@ def null(doc, **kwargs):
 # TODO: `ae,``ue,` `de,` and `te` need to be
 # reverse-engineered. These happens if we e.g. make a new bullet
 # list, or add an image.
+
+# TODO: 'iss' and 'dss' are generated when suggested text is inserted or deleted.
+# these can't be handled like plain 'is' or 'ds' because the include different fields
+# (e.g., 'sugid', presumably, suggestion id.)
 dispatch = {
     'ae': null,
+    'ase': null, #suggestion
+    'ast': null, #suggestion. Image?
+    'astss': null, #suggestion. Autospell?
     'ue': null,
     'de': null,
+    'dse': null, #suggestion
+    'dss': null, #suggested deletion
     'te': null,
     'as': alter,
     'ds': delete,
     'is': insert,
+    'iss': null, #suggested insertion
+    'mefd': null, #suggestion
     'mlti': multi,
+    'msfd': null, #suggestion
     'null': null,
+    'ord': null,
+    'ras': null, #suggestion. Autospell?
+    'rplc': replace, #rplc is called as the first edit
+                     #when the document is created from
+                     #a template, so if you want to know
+                     #what text was NOT written by the author,
+                     #logging the text buffer after the initial
+                     #rplc action will give you that.
+    'rte': null, #suggestion
+    'rue': null, #suggestion
+    'rvrt': replace, #apparently logged after an undo
+    'sas': null, #suggestion. Autospell?
     'sl': null,
+    'ste': null, #suggestion
+    'sue': null, #suggestion
+    'uefd': null, #suggestion
+    'use': null, #suggestion
+    'umv': null,
+    'usfd': null, #suggestion
 }
 
 if __name__ == '__main__':
