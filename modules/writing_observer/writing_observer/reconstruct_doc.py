@@ -355,4 +355,3 @@ if __name__ == '__main__':
     print(doc)
     print(doc.position)
     print(doc.edit_metadata)
-
