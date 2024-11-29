@@ -17,9 +17,14 @@ if not os.path.exists(creds_file):
         "aws_security_group": "AWS security group (e.g. sg-012345abc)",
         "owner": "Your name",
         "email": "Your email",
+        "git_username": "Your git username",
+        "git_pac": "Your git personal access token; See https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens",
+        "openai_url": " URL for OPENAI API",
+        "openai_deployment_id": "OPEN AI deployment ID",
+        "openai_api_key": "your api key for the azure instance",
         "domain": "Domain name (e.g. learning-observer.org)",
-        "flock-config": "Path to git repo where we'll store machine config.",
-        "deploy-group": "Tag to identify all machines (typically, learning-observer)",
+        "flock_config": "Path to git repo where we'll store machine config.",
+        "deploy_group": "Tag to identify all machines (typically, learning-observer)",
         "ec2_tags": "JSON dictionary of any additional tags you'd like on your machines. If you're not sure, type {}"
     }
     print("I'll need:")
@@ -31,9 +36,9 @@ if not os.path.exists(creds_file):
         print(value)
         d[key] = input("{key}: ".format(key=key)).strip()
     d['ec2_tags'] = json.loads(d['ec2_tags'])
-    if not os.path.exists(d['flock-config']):
-        os.system("git init {path}".format(path=d['flock-config']))
-        os.mkdir(os.path.join(d['flock-config'], "config"))
+    if not os.path.exists(d['flock_config']):
+        os.system("git init {path}".format(path=d['flock_config']))
+        os.mkdir(os.path.join(d['flock_config'], "config"))
     with open("settings/CREDS.YAML", "w") as fp:
         yaml.dump(d, fp)
 
@@ -54,15 +59,15 @@ def config_filename(machine_name, file_suffix, create=False):
     paths = [
         # First, we try per-machine configuration
         os.path.join(
-            creds["flock-config"], "config", machine_name, file_suffix
+            creds["flock_config"], "config", machine_name, file_suffix
         ),
         # Next, we try the per-machine override
         os.path.join(
-            creds["flock-config"], "config", machine_name, file_suffix+".base"
+            creds["flock_config"], "config", machine_name, file_suffix+".base"
         ),
         # Then, system-wide configuration
         os.path.join(
-            creds["flock-config"], "config", file_suffix
+            creds["flock_config"], "config", file_suffix
         ),
         # And finally, as a fallback, default files
         os.path.join(

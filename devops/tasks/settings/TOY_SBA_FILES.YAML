@@ -1,0 +1,6 @@
+files:
+  - src: ../../ansible/files_to_upload/nginx_toy_sba
+    dest: /etc/nginx/sites-available/{hostname}
+  - src: ../../ansible/files_to_upload/htpasswd
+    dest: /etc/nginx/htpasswd
+  

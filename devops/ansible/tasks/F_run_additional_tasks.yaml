@@ -1,0 +1,17 @@
+- name: Run additional Ansible Tasks
+  hosts: all
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+  tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Assign variables
+      set_fact:
+        yaml_file: "additional_tasks.yaml"
+        yaml_dir: "{{ flock_config }}/config/{{ inventory_hostname }}/yaml"
+       
+    - name: Include additional tasks
+      include_tasks: "{{ yaml_dir }}/{{ yaml_file }}"

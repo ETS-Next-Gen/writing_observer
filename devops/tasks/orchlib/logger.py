@@ -37,5 +37,5 @@ def exitlog():
     Not done.
     '''
     os.path.join(
-        orchlib.config.creds["flock-config"], "logs"
+        orchlib.config.creds["flock_config"], "logs"
     )

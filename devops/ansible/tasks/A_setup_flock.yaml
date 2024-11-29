@@ -1,0 +1,72 @@
+- name: Setup flock for target_server if needed
+  hosts: localhost
+  tasks:
+    - name: Read credentials
+      include_vars:
+        file: ../../tasks/settings/CREDS.YAML
+
+    - name: Read YAML files list
+      include_vars:
+        file: ../default_flock/yamls.yaml
+      
+    - name: Assign variables
+      set_fact:
+        dest_dir: "{{ flock_config }}/config/{{ target_server }}/yaml"
+        default_dir: "../default_flock/yaml"
+        file_list: "{{ yamls }}"
+        
+    - name: Ensure the destination directory exists
+      file:
+        path: "{{ dest_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check if the file already exists on the server
+      stat:
+        path: "{{ dest_dir }}/{{ item.name }}"
+      register: file_stat
+      loop: "{{ file_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Copy the file to the server if it does not exist
+      copy:
+        src: "{{ default_dir }}/{{ item.name }}"
+        dest: "{{ dest_dir }}/{{ item.name }}"
+      when: not (file_stat.results | selectattr('item.name', 'equalto', item.name) | map(attribute='stat.exists') | first)
+      loop: "{{ file_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Read files list
+      include_vars:
+        file: ../default_flock/files.yaml
+      
+    - name: Assign variables
+      set_fact:
+        dest_dir: "{{ flock_config }}/config/{{ target_server }}/files"
+        default_dir: "../default_flock/files"
+        file_list: "{{ files }}"
+        
+    - name: Ensure the destination directory exists
+      file:
+        path: "{{ dest_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check if the file already exists on the server
+      stat:
+        path: "{{ dest_dir }}/{{ item.name }}"
+      register: file_stat
+      loop: "{{ file_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Copy the file to the server if it does not exist
+      copy:
+        src: "{{ default_dir }}/{{ item.name }}"
+        dest: "{{ dest_dir }}/{{ item.name }}"
+      when: not (file_stat.results | selectattr('item.name', 'equalto', item.name) | map(attribute='stat.exists') | first)
+      loop: "{{ file_list }}"
+      loop_control:
+        label: "{{ item.name }}"
