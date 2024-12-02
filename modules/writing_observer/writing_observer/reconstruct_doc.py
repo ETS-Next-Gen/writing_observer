@@ -14,16 +14,17 @@ The placeholder character is used to fill gaps in the document, particularly
 when there's a mismatch between the index and the length of the document's text (doc._text).
 In an empty document, the insertion index (from the insert event `is`) is 1. However,
 when the extension is started on a non-empty document, the first insertion index will be
-greater than 1. This can lead to inconsistencies in indexing. 
-This placeholder is used to fill the 'gap' between len(doc._text) and the first insertion 
-index recorded in the logs. 
+greater than 1. This can lead to inconsistencies in indexing.
+This placeholder is used to fill the 'gap' between len(doc._text) and the first insertion
+index recorded in the logs.
 This is done for the delete event ('ds') as well.
-Say the first insert event in the logs is of a character 'a' with an index of 10 .
+Say the first insert event in the logs is of a character 'a' with an index of 10.
 This placeholder will be used to fill the gap between 1 and 10. Internally doc._text will
-have 10 characters and when returning the output, all placeholders will be removed from 
+have 10 characters and when returning the output, all placeholders will be removed from
 doc._text leaving only the character 'a'.
 """
 PLACEHOLDER = '\x00'
+
 
 class google_text(object):
     '''
@@ -48,7 +49,7 @@ class google_text(object):
         two lists for efficiency, and for now, this just confirms they're
         the same length.
         '''
-	cursor_array_length = len(self._edit_metadata["cursor"])
+        cursor_array_length = len(self._edit_metadata["cursor"])
         textlength_array_length = len(self._edit_metadata["length"])
         length_difference = cursor_array_length - textlength_array_length
         if length_difference != 0:
@@ -101,7 +102,6 @@ class google_text(object):
         new_object._edit_metadata = json_rep.get('edit_metadata', {})
         new_object.fix_validity()
         return new_object
-
 
     def update(self, text):
         '''
@@ -161,11 +161,13 @@ class google_text(object):
             'edit_metadata': self._edit_metadata
         }
 
+
 def get_parsed_text(self):
     '''
     Returns the text ignoring the normal placeholders
     '''
     return self._text.replace(PLACEHOLDER, "")
+
 
 def command_list(doc, commands):
     '''
@@ -224,7 +226,7 @@ def delete(doc, ty, si, ei):
     * `si` is the index of the start of deletion
     * `ei` is the end
     '''
-   # Index of the last character in the text. `si` and `ei` shouldn't go beyond that
+    # Index of the last character in the text. `si` and `ei` shouldn't go beyond that
     lastchar_index = len(doc._text)
     # If the deletion indexes are greater than nextchar_index, insert placeholders to fill the gap
     # This occurs when the document has undergone modifications before the logger has been initialized
@@ -241,11 +243,12 @@ def delete(doc, ty, si, ei):
 
     return doc
 
+
 def replace(doc, ty, snapshot):
     for entry in snapshot:
 
-        #The index of the next character after the last 
-        #character of the text
+        # The index of the next character after the last
+        # character of the text
         nextchar_index = len(doc._text) + 1
         if 'ty' in entry and entry['ty'] == 'is':
 
@@ -256,17 +259,17 @@ def replace(doc, ty, snapshot):
             else:
                 sl = len(s)
 
-            #If the insert index is greater than
-            #nextchar_index, insert placeholders 
-            #to fill the gap.
+            # If the insert index is greater than
+            # nextchar_index, insert placeholders
+            # to fill the gap.
             #
             # This occurs when the document has undergone
             # modifications before the logger has been
             # initialized
             if ibi > nextchar_index:
-                insert(doc, 
-                       ty, 
-                       nextchar_index, 
+                insert(doc,
+                       ty,
+                       nextchar_index,
                        PLACEHOLDER * (ibi - nextchar_index))
 
             doc.update("{start}{insert}{end}".format(
@@ -276,6 +279,7 @@ def replace(doc, ty, snapshot):
             ))
 
     return doc
+
 
 def alter(doc, si, ei, st, sm, ty):
     '''
@@ -309,41 +313,41 @@ def null(doc, **kwargs):
 # (e.g., 'sugid', presumably, suggestion id.)
 dispatch = {
     'ae': null,
-    'ase': null, #suggestion
-    'ast': null, #suggestion. Image?
-    'astss': null, #suggestion. Autospell?
+    'ase': null,  # suggestion
+    'ast': null,  # suggestion. Image?
+    'astss': null,  # suggestion. Autospell?
     'ue': null,
     'de': null,
-    'dse': null, #suggestion
-    'dss': null, #suggested deletion
+    'dse': null,  # suggestion
+    'dss': null,  # suggested deletion
     'te': null,
     'as': alter,
     'ds': delete,
     'is': insert,
-    'iss': null, #suggested insertion
-    'mefd': null, #suggestion
+    'iss': null,  # suggested insertion
+    'mefd': null,  # suggestion
     'mlti': multi,
-    'msfd': null, #suggestion
+    'msfd': null,  # suggestion
     'null': null,
     'ord': null,
-    'ras': null, #suggestion. Autospell?
-    'rplc': replace, #rplc is called as the first edit
-                     #when the document is created from
-                     #a template, so if you want to know
-                     #what text was NOT written by the author,
-                     #logging the text buffer after the initial
-                     #rplc action will give you that.
-    'rte' : null, #suggestion
-    'rue': null, #suggestion
-    'rvrt': replace, #apparently logged after an undo
-    'sas': null, #suggestion. Autospell?
+    'ras': null,  # suggestion. Autospell?
+    'rplc': replace,  # rplc is called as the first edit
+                      # when the document is created from
+                      # a template, so if you want to know
+                      # what text was NOT written by the author,
+                      # logging the text buffer after the initial
+                      # rplc action will give you that.
+    'rte': null,  # suggestion
+    'rue': null,  # suggestion
+    'rvrt': replace,  # apparently logged after an undo
+    'sas': null,  # suggestion. Autospell?
     'sl': null,
-    'ste': null, #suggestion
-    'sue': null, #suggestion
-    'uefd': null, #suggestion
-    'use': null, #suggestion
+    'ste': null,  # suggestion
+    'sue': null,  # suggestion
+    'uefd': null,  # suggestion
+    'use': null,  # suggestion
     'umv': null,
-    'usfd': null, #suggestion
+    'usfd': null,  # suggestion
 }
 
 if __name__ == '__main__':
