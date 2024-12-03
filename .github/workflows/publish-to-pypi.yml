@@ -3,7 +3,7 @@ name: Publish to PyPI
 on:
   push:
     branches:
-      - master  # Trigger the workflow on a push to the master branch
+      - berickson/versioning-workflow  # Trigger the workflow on a push to the master branch
 
 jobs:
   build_and_publish:
@@ -55,14 +55,20 @@ jobs:
           pip install --upgrade pip
           pip install build twine  # Install build and twine for packaging and publishing
 
-      # Build distribution and Publish to PyPI for ${{ matrix.package }} (only if VERSION file exists and changed)
-      # For now we upload to testpypi while testing the workflow
-      - name: Build distribution and Publish to PyPI for ${{ matrix.package }}
+      - name: Test echo command ${{ matrix.package }}
         if: env.changed == 'true'
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
-          cd ${{ matrix.package }}  # Navigate to the package directory
-          python -m build  # Build distribution files using pyproject.toml
-          twine upload -r testpypi dist/*  # Upload to PyPI
+          echo "WE MADE IT HERE WITH ${{ matrix.package }}"
+
+      # Build distribution and Publish to PyPI for ${{ matrix.package }} (only if VERSION file exists and changed)
+      # For now we upload to testpypi while testing the workflow
+      # - name: Build distribution and Publish to PyPI for ${{ matrix.package }}
+      #   if: env.changed == 'true'
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      #   run: |
+      #     cd ${{ matrix.package }}  # Navigate to the package directory
+      #     python -m build  # Build distribution files using pyproject.toml
+      #     twine upload -r testpypi dist/*  # Upload to PyPI
