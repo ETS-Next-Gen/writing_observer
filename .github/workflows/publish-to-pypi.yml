@@ -57,7 +57,6 @@ jobs:
 
       - name: Test echo command ${{ matrix.package }}
         if: env.changed == 'true'
-        env:
         run: |
           echo "WE MADE IT HERE WITH ${{ matrix.package }}"
 
