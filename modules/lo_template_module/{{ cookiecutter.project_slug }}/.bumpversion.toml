@@ -1,0 +1,2 @@
+[[tool.bumpversion.files]]
+filename = "VERSION"
