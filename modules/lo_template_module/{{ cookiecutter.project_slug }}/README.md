@@ -18,6 +18,7 @@ module/
   MANIFEST.in
   setup.cfg
   pyproject.toml
+  .bumpversion.toml
   VERSION
 ```
 
@@ -47,6 +48,14 @@ The `pyproject.toml` file specifies the build system, which in this case is `set
 The manifest specifies which files to include during Python packaging. This specifies the additional non-python files we want included. If you do not have additional files needed, this file is unnecessary.
 
 For modules with Dash-made dashboards, this will typically include a relative path to the assets folder.
+
+### .bumpversion.toml
+
+This configuration file is used for bumping the version of a package. Packages can be bumped via
+
+```bash
+bump-my-version bump <major|minor|patch>
+```
 
 ### VERSION
 
