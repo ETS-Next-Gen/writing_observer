@@ -23,7 +23,7 @@ jobs:
         run: |
           if [ -f "${{ matrix.package }}/VERSION" ]; then
               echo "VERSION file exists for ${{ matrix.package }}."
-              changes=$(git diff HEAD -- ${{ matrix.package }}/VERSION)
+              changes=$(git show --name-only --oneline HEAD | grep "${{ matrix.package }}/VERSION")
               if [ -z "$changes" ]; then
                   echo "No changes detected in VERSION file for ${{ matrix.package }}."
                   echo "changed=false" >> $GITHUB_ENV
