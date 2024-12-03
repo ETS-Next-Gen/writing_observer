@@ -22,18 +22,19 @@ jobs:
         id: check_version_exists
         run: |
           if [ -f "${{ matrix.package }}/VERSION" ]; then
-            echo "VERSION file exists for ${{ matrix.package }}."
-            git diff --exit-code ${{ matrix.package }}/VERSION
-            if [ $? -eq 0 ]; then
-              echo "No changes detected in VERSION file for ${{ matrix.package }}."
-              echo "changed=false" >> $GITHUB_ENV
-            else
-              echo "Changes detected in VERSION file for ${{ matrix.package }}."
-              echo "changed=true" >> $GITHUB_ENV
-            fi
+              echo "VERSION file exists for ${{ matrix.package }}."
+              changes=$(git diff HEAD -- ${{ matrix.package }}/VERSION)
+              if [ -z "$changes" ]; then
+                  echo "No changes detected in VERSION file for ${{ matrix.package }}."
+                  echo "changed=false" >> $GITHUB_ENV
+              else
+                  echo "Changes detected in VERSION file for ${{ matrix.package }}:"
+                  echo "$changes"
+                  echo "changed=true" >> $GITHUB_ENV
+              fi
           else
-            echo "VERSION file does not exist for ${{ matrix.package }}. Skipping build and publish."
-            echo "changed=false" >> $GITHUB_ENV
+              echo "VERSION file does not exist for ${{ matrix.package }}. Skipping build and publish."
+              echo "changed=false" >> $GITHUB_ENV
           fi
 
       # Exit early if no VERSION file exists or if there are no changes
