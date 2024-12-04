@@ -57,6 +57,8 @@ This configuration file is used for bumping the version of a package. Packages c
 bump-my-version bump <major|minor|patch>
 ```
 
+A new clean commit will be created when bumping. To prevent this, set `commit=false`.
+
 ### VERSION
 
 The VERSION file specifies the version of the package. Each one defaults to `0.1.0` and can be updated via `bump-my-version`.

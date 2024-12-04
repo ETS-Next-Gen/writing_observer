@@ -29,7 +29,6 @@ jobs:
                   echo "changed=false" >> $GITHUB_ENV
               else
                   echo "Changes detected in VERSION file for ${{ matrix.package }}:"
-                  echo "$changes"
                   echo "changed=true" >> $GITHUB_ENV
               fi
           else

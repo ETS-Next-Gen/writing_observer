@@ -1,3 +1,4 @@
+# bump-my-version configuration
 [tool.bumpversion]
 current_version = "0.1.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
@@ -12,7 +13,7 @@ sign_tags = false
 tag_name = "v{new_version}"
 tag_message = "Bump {{ cookiecutter.project_name }} version: {current_version} → {new_version}"
 allow_dirty = false
-commit = false
+commit = true
 message = "Bump {{ cookiecutter.project_name }} version: {current_version} → {new_version}"
 commit_args = ""
 setup_hooks = []

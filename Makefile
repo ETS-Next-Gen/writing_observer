@@ -1,3 +1,4 @@
+# TODO rename these packages to something else
 PACKAGES ?= wo,awe
 
 run:
@@ -5,12 +6,8 @@ run:
 	# we need to make sure we are on the virtual env when we do this
 	cd learning_observer && python learning_observer
 
-venv:
-	# This is unnecessary since LO installs requirements on install.
-	# pip install --no-cache-dir -r requirements.txt
-
 # install commands
-install: venv
+install:
 	# The following only works with specified packages
 	# we need to install learning_observer in dev mode to
 	# more easily pass in specific files we need, such as creds
@@ -25,12 +22,12 @@ install: venv
 	@LODRC_CURRENT=$$(curl -s https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/lo_dash_react_components-current.tar.gz); \
 	pip install https://raw.githubusercontent.com/ETS-Next-Gen/lo_assets/main/lo_dash_react_components/$${LODRC_CURRENT}
 
-install-dev: venv
+install-dev:
 	# TODO create a dev requirements file
 	pip install --no-cache-dir -e learning_observer/[${PACKAGES}]
 	. ${HOME}/.nvm/nvm.sh && nvm use && pip install -v -e modules/lo_dash_react_components/
 
-install-packages: venv
+install-packages:
 	pip install -e learning_observer/[${PACKAGES}]
 
 	# Just a little bit of dependency hell...
@@ -58,11 +55,11 @@ install-packages: venv
 	pip install -U numpy==1.26.4
 
 # testing commands
+# TODO we ought pass in the items we want to test
 test:
-	# this is where we run doctests
-	pytest modules/wo_highlight_dashboard
+	./test.sh $(PKG)
 
-# Linting commands
+# linting commands
 linting-setup:
 	# Setting up linting related packages
 	pip install pycodestyle pylint
@@ -87,8 +84,18 @@ linting-node:
 linting: linting-setup linting-python linting-node
 	# Finished linting
 
+# build commands
 build-writing-ext:
 	# Installing LO Event
 	cd modules/lo_event && npm install & npm link lo_event
 	# Building extension
 	cd extension/writing-process && npm install && npm run build
+
+build-package:
+	# Build specific python package
+
+
+upload-to-pypi: build-package
+	# Uploading package to PyPI
+
+# TODO we ought to have a help command that specifies what each item does
