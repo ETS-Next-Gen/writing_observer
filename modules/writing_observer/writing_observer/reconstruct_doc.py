@@ -14,13 +14,13 @@ The placeholder character is used to fill gaps in the document, particularly
 when there's a mismatch between the index and the length of the document's text (doc._text).
 In an empty document, the insertion index (from the insert event `is`) is 1. However,
 when the extension is started on a non-empty document, the first insertion index will be
-greater than 1. This can lead to inconsistencies in indexing. 
-This placeholder is used to fill the 'gap' between len(doc._text) and the first insertion 
-index recorded in the logs. 
+greater than 1. This can lead to inconsistencies in indexing.
+This placeholder is used to fill the 'gap' between len(doc._text) and the first insertion
+index recorded in the logs.
 This is done for the delete event ('ds') as well.
-Say the first insert event in the logs is of a character 'a' with an index of 10 .
+Say the first insert event in the logs is of a character 'a' with an index of 10.
 This placeholder will be used to fill the gap between 1 and 10. Internally doc._text will
-have 10 characters and when returning the output, all placeholders will be removed from 
+have 10 characters and when returning the output, all placeholders will be removed from
 doc._text leaving only the character 'a'.
 """
 PLACEHOLDER = '\x00'
@@ -161,11 +161,12 @@ class google_text(object):
             'edit_metadata': self._edit_metadata
         }
 
-    def get_parsed_text(self):
-        '''
-        Returns the text ignoring the normal placeholders
-        '''
-        return self._text.replace(PLACEHOLDER, "")
+
+def get_parsed_text(self):
+    '''
+    Returns the text ignoring the normal placeholders
+    '''
+    return self._text.replace(PLACEHOLDER, "")
 
 
 def command_list(doc, commands):
@@ -207,7 +208,6 @@ def insert(doc, ty, ibi, s):
     # This occurs when the document has undergone modifications before the logger has been initialized
     if ibi > nextchar_index:
         insert(doc, ty, nextchar_index, PLACEHOLDER * (ibi - nextchar_index))
-
     doc.update("{start}{insert}{end}".format(
         start=doc._text[0:ibi - 1],
         insert=s,
@@ -234,13 +234,49 @@ def delete(doc, ty, si, ei):
         insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (si - lastchar_index))
     if ei > lastchar_index:
         insert(doc, ty, lastchar_index + 1, PLACEHOLDER * (ei - lastchar_index))
-
     doc.update("{start}{end}".format(
         start=doc._text[0:si - 1],
         end=doc._text[ei:]
     ))
 
     doc.position = si
+
+    return doc
+
+
+def replace(doc, ty, snapshot):
+    for entry in snapshot:
+
+        # The index of the next character after the last
+        # character of the text
+        nextchar_index = len(doc._text) + 1
+        if 'ty' in entry and entry['ty'] == 'is':
+
+            s = entry['s']
+            ibi = entry['ibi']
+            if 'sl' in entry:
+                sl = entry['sl']
+            else:
+                sl = len(s)
+
+            # If the insert index is greater than
+            # nextchar_index, insert placeholders
+            # to fill the gap.
+            #
+            # This occurs when the document has undergone
+            # modifications before the logger has been
+            # initialized
+            if ibi > nextchar_index:
+                insert(doc,
+                       ty,
+                       nextchar_index,
+                       PLACEHOLDER * (ibi - nextchar_index))
+
+            doc.update("{start}{insert}{end}".format(
+                start=doc._text[0:ibi - 1],
+                insert=s,
+                end=doc._text[ibi + sl - 1:]
+            ))
 
     return doc
 
@@ -271,17 +307,47 @@ def null(doc, **kwargs):
 # TODO: `ae,``ue,` `de,` and `te` need to be
 # reverse-engineered. These happens if we e.g. make a new bullet
 # list, or add an image.
+
+# TODO: 'iss' and 'dss' are generated when suggested text is inserted or deleted.
+# these can't be handled like plain 'is' or 'ds' because the include different fields
+# (e.g., 'sugid', presumably, suggestion id.)
 dispatch = {
     'ae': null,
+    'ase': null,  # suggestion
+    'ast': null,  # suggestion. Image?
+    'astss': null,  # suggestion. Autospell?
     'ue': null,
     'de': null,
+    'dse': null,  # suggestion
+    'dss': null,  # suggested deletion
     'te': null,
     'as': alter,
     'ds': delete,
     'is': insert,
+    'iss': null,  # suggested insertion
+    'mefd': null,  # suggestion
     'mlti': multi,
+    'msfd': null,  # suggestion
     'null': null,
+    'ord': null,
+    'ras': null,  # suggestion. Autospell?
+    'rplc': replace,  # rplc is called as the first edit
+                      # when the document is created from
+                      # a template, so if you want to know
+                      # what text was NOT written by the author,
+                      # logging the text buffer after the initial
+                      # rplc action will give you that.
+    'rte': null,  # suggestion
+    'rue': null,  # suggestion
+    'rvrt': replace,  # apparently logged after an undo
+    'sas': null,  # suggestion. Autospell?
     'sl': null,
+    'ste': null,  # suggestion
+    'sue': null,  # suggestion
+    'uefd': null,  # suggestion
+    'use': null,  # suggestion
+    'umv': null,
+    'usfd': null,  # suggestion
 }
 
 if __name__ == '__main__':
