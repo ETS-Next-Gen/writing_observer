@@ -28,7 +28,7 @@ function parsePath(path) {
 
   const lastSlashIndex = path.lastIndexOf('/');
   const fileName = path.substring(lastSlashIndex + 1).split('.')[0];
-  const componentName = fileName.charAt(0).toUpperCase() + fileName.slice(1);
+  const componentName = fileName;
   const fullPathWithoutExtension = path.split('.').slice(0, -1).join('.');
   const jsxFullPath = fullPathWithoutExtension + ".jsx";
   const xmlFullPath = fullPathWithoutExtension + ".xml";

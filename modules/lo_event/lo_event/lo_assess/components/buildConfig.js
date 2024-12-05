@@ -9,7 +9,7 @@ export function getTemplatePath(templateFileName) {
 
 const _baseConfig = {
   loa: {
-    jsPattern: './lo_event/lo_assess/components/**/[A-Z]*.jsx',
+    jsPattern: './lo_event/lo_assess/components/**/{[A-Z]*,use[A-Z]*}.jsx',
     xmlPattern: './lo_event/lo_assess/components/**/[A-Z]*.xml',
     componentsFile: "./lo_event/lo_assess/components/components.jsx",
   },
