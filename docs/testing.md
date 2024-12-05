@@ -2,6 +2,37 @@
 
 Testing is an essential part of software development to ensure the reliability and stability of your code. In the Learning Observer project, we currently support Python testing, using the pytest framework. This document provides an overview of how the testing framework is used in the project.
 
+## Preparing a Module for Testing
+
+Each module should define a `test.sh` at the root of the module's directory. This script should define how to run the tests for the module.
+
+## Running Tests
+
+The Makefile offers a `test` command which calls an overall `test.sh` script. This script takes the passed in module paths and runs each of their respective `test.sh` scripts. To run via the Makefile, use
+
+```bash
+make test PKG=path/to/module
+# OR to test multiple packages at once
+make test PKG="modules/writing_observer learning_observer"
+```
+
+## GitHub Actions for Automated Testing
+
+To automate testing in your project, you can use GitHub Actions. This allows you to run tests automatically when you push changes to your repository. The provided GitHub Action YAML file will iterate over the defined modules and
+
+1. Check for any changes within that module. If no changes are found, proceed to next module in list.
+1. Install Learning Observer - `make install`
+1. Install the module itself - `pip install path/to/module`
+1. Run tests - `make test PKG=path/to/module`
+
+To add an additional module to this testing pipeline, add its path to the list of packages under the matrix strategy in `.github/workflows/test.yml`, like so:
+
+```yml
+  strategy:
+    matrix:
+      package: ['learning_observer/', 'modules/writing_observer/', 'path/to/new/module/']
+```
+
 ## Python Testing
 
 We use the [pytest framework](https://docs.pytest.org/) for Python testing. Pytest is a popular testing framework that simplifies writing and running test cases. It provides powerful features, such as fixtures, parametrized tests, and plugins, to help you test your code efficiently and effectively.
@@ -23,7 +54,7 @@ To write test cases for your Python code, follow these guidelines:
 2. For each file or functionality you want to test, create a separate test file with a name in the format `test_<filename>.py` or `test_<functionality>.py`.
 3. Inside each test file, write test functions that test specific aspects of your code. Start each test function's name with `test_` to ensure that pytest can discover and run the test.
 
-### Running Tests
+### Running PyTests
 
 Once you have written your test cases, you can run them using the pytest command:
 
@@ -35,18 +66,6 @@ For example, to run tests for the `wo_highlight_dashboard` module, you would run
 
 ```bash
 pytest modules/wo_highlight_dashboard/
-```
-
-### GitHub Actions for Automated Testing
-
-To automate testing in your project, you can use GitHub Actions. This allows you to run tests automatically when you push changes to your repository. The provided GitHub Action YAML file sets up a testing environment for the specified Python versions, installs the necessary dependencies, and runs the tests using pytest. You can customize this file to add or modify steps as needed for your project.
-
-If your tests should be automated make sure to provide them as a parameter in the `.github/workflows/pytest.yml`. While we work on cleaning up the prior testing framework, we only run select tests.
-
-```yaml
-    - name: Unit testing with pytest
-      run: |
-        pytest modules/wo_highlight_dashboard/
 ```
 
 ## Other testing

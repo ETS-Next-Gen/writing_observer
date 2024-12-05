@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: ['learning_observer', 'modules/writing_observer']
+        package: ['learning_observer/', 'modules/writing_observer/']
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
       - name: Check if package has changes
         id: package_check
         run: |
-          if grep -qE "^${{ matrix.package }}/" changed_files.txt; then
+          if grep -qE "^${{ matrix.package }}" changed_files.txt; then
             echo "run_tests=true" >> $GITHUB_ENV
           else
             echo "run_tests=false" >> $GITHUB_ENV
