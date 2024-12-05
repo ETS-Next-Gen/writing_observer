@@ -28,11 +28,11 @@ jobs:
       - name: Check if package has changes
         id: package_check
         run: |
-          echo "$(cat changed_files.txt)"
           if grep -qE "^${{ matrix.package }}/" changed_files.txt; then
             echo "run_tests=true" >> $GITHUB_ENV
           else
             echo "run_tests=false" >> $GITHUB_ENV
+          fi
 
       - name: Skip tests if no changes
         if: env.run_tests == 'false'
