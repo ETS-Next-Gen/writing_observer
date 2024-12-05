@@ -1,0 +1,30 @@
+name: Test packages
+
+on: [push]
+
+jobs:
+  test-packages:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ['learning_observer', 'modules/writing_observer']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Make
+        run: sudo apt-get install make
+
+      - name: Install the base Learning Observer
+        run: make install
+
+      - name: Install the package with pip
+        run: pip install ${{ matrix.package }}
+
+      - name: Run tests
+        run: make test PKG=${{ matrix.package }}
