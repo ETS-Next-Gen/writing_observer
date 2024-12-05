@@ -11,4 +11,7 @@ echo "Running doctests"
 # the `main.py` file as it expects us to pass command
 # line arguments which interferes with PyTest's
 # `--doctest-modules` flag.
+if [ ! -f "creds.yaml" ]; then
+    cp learning_observer/creds.yaml.workshop creds.yaml
+fi
 pytest --doctest-modules learning_observer/ --ignore=learning_observer/main.py
