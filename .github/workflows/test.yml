@@ -23,7 +23,7 @@ jobs:
         id: changes
         run: |
           git fetch origin master
-          git diff --name-only origin/masterd HEAD > changed_files.txt
+          git diff --name-only origin/master HEAD > changed_files.txt
           echo "CHANGED_FILES=$(cat changed_files.txt)" >> $GITHUB_ENV
 
       - name: Check if package has changes
