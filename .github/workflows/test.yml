@@ -24,7 +24,7 @@ jobs:
         run: make install
 
       - name: Install the package with pip
-        run: pip install ${{ matrix.package }}
+        run: pip install -e ${{ matrix.package }}
 
       - name: Run tests
         run: make test PKG=${{ matrix.package }}
