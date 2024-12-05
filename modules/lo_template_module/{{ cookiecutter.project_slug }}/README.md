@@ -10,11 +10,12 @@ module/
   {{ cookiecutter.project_slug }}/
     assets/
       ...
-    helpers/
-      additional_script.py
     module.py
     reducers.py
     dash_dashboards.py
+    utils.py
+  tests/
+    test_utils.py
   MANIFEST.in
   setup.cfg
   pyproject.toml
