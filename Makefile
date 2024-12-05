@@ -78,17 +78,14 @@ test:
 	./test.sh $(PKG)
 
 # Linting commands
-linting-setup:
-	# Setting up linting related packages
-	pip install pycodestyle pylint
-	npm install
-
 linting-python:
 	# Linting Python modules
+	pip install pycodestyle pylint
 	pycodestyle --ignore=E501,W503 $$(git ls-files 'learning_observer/*.py' 'modules/*.py')
 	pylint -d W0613,W0511,C0301,R0913,too-few-public-methods $$(git ls-files 'learning_observer/*.py' 'modules/*.py')
 
 linting-node:
+	npm install
 	# TODO each of these have lots of errors and block
 	# the next item from running
 	# Starting to lint Node modules
