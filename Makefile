@@ -1,12 +1,30 @@
 # TODO rename these packages to something else
 PACKAGES ?= wo,awe
 
+help:
+	@echo "Available commands:"
+	@echo ""
+	@echo "run                  Run the learning_observer Python application."
+	@echo "install              Install the learning_observer package in development mode."
+	@echo "install-dev          Install dev dependencies (requires additional setup)."
+	@echo "install-packages     Install specific packages: [${PACKAGES}]."
+	@echo "test                 Run tests for the specified package (PKG=<package>)."
+	@echo "linting-setup        Setup linting tools and dependencies."
+	@echo "linting-python       Lint Python files using pycodestyle and pylint."
+	@echo "linting-node         Lint Node files (JS, CSS, and unused CSS detection)."
+	@echo "linting              Perform all linting tasks (Python and Node)."
+	@echo "build-writing-ext    Build the writing-process extension."
+	@echo "build-dist           Build a distribution for the specified package (PKG=<package>)."
+	@echo "upload-to-pypi       Upload the specified package to Test PyPI (PKG=<package>)."
+	@echo ""
+	@echo "Use 'make <command>' to execute a command. For example: make run"
+
 run:
 	# If you haven't done so yet, run: make install
 	# we need to make sure we are on the virtual env when we do this
 	cd learning_observer && python learning_observer
 
-# install commands
+# Install commands
 install:
 	# The following only works with specified packages
 	# we need to install learning_observer in dev mode to
@@ -54,12 +72,12 @@ install-packages:
 	# mismatch in binary headers, since something wants numpy v1
 	pip install -U numpy==1.26.4
 
-# testing commands
-# TODO we ought pass in the items we want to test
+# Testing commands
 test:
+	@if [ -z "$(PKG)" ]; then echo "No module specified, please try again with \"make test PKG=path/to/module\""; exit 1; fi
 	./test.sh $(PKG)
 
-# linting commands
+# Linting commands
 linting-setup:
 	# Setting up linting related packages
 	pip install pycodestyle pylint
@@ -84,18 +102,24 @@ linting-node:
 linting: linting-setup linting-python linting-node
 	# Finished linting
 
-# build commands
+# Build commands
 build-writing-ext:
 	# Installing LO Event
 	cd modules/lo_event && npm install & npm link lo_event
 	# Building extension
 	cd extension/writing-process && npm install && npm run build
 
-build-package:
-	# Build specific python package
+build-dist:
+	# Building distribution for package
+	pip install build
+	# Switching to package directory
+	cd $(PKG) && python -m build
 
-
-upload-to-pypi: build-package
+# TODO we may want to have a separate command for uploading to testpypi
+upload-to-pypi: build-dist
 	# Uploading package to PyPI
-
-# TODO we ought to have a help command that specifies what each item does
+	pip install twine
+	# TODO we currently only upload to testpypi
+	# TODO we need to include `TWINE_USERNAME=__token__`
+	# and `TWINE_PASSWORD={ourTwineToken}` to authenticate
+	cd $(PKG) && twine upload -r testpypi dist/*
