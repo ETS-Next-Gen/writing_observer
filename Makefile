@@ -4,18 +4,21 @@ PACKAGES ?= wo,awe
 help:
 	@echo "Available commands:"
 	@echo ""
-	@echo "run                  Run the learning_observer Python application."
-	@echo "install              Install the learning_observer package in development mode."
-	@echo "install-dev          Install dev dependencies (requires additional setup)."
-	@echo "install-packages     Install specific packages: [${PACKAGES}]."
-	@echo "test                 Run tests for the specified package (PKG=<package>)."
-	@echo "linting-setup        Setup linting tools and dependencies."
-	@echo "linting-python       Lint Python files using pycodestyle and pylint."
-	@echo "linting-node         Lint Node files (JS, CSS, and unused CSS detection)."
-	@echo "linting              Perform all linting tasks (Python and Node)."
-	@echo "build-writing-ext    Build the writing-process extension."
-	@echo "build-dist           Build a distribution for the specified package (PKG=<package>)."
-	@echo "upload-to-pypi       Upload the specified package to Test PyPI (PKG=<package>)."
+	@echo "  run                          Run the learning_observer Python application."
+	@echo "  install                      Install the learning_observer package in development mode."
+	@echo "  install-dev                  Install dev dependencies (requires additional setup)."
+	@echo "  install-packages             Install specific packages: [${PACKAGES}]."
+	@echo "  test                         Run tests for the specified package (PKG=<package>)."
+	@echo "  linting-setup                Setup linting tools and dependencies."
+	@echo "  linting-python               Lint Python files using pycodestyle and pylint."
+	@echo "  linting-node                 Lint Node files (JS, CSS, and unused CSS detection)."
+	@echo "  linting                      Perform all linting tasks (Python and Node)."
+	@echo "  build-wo-chrome-extension    Build the writing-process extension."
+	@echo "  build-python-distribution    Build a distribution for the specified package (PKG=<package>)."
+	@echo ""
+	@echo "Note: All commands are executed in the current shell environment."
+	@echo "      Ensure your virtual environment is activated if desired, as installs and actions"
+	@echo "      will occur in the environment where the 'make' command is run."
 	@echo ""
 	@echo "Use 'make <command>' to execute a command. For example: make run"
 
@@ -100,23 +103,26 @@ linting: linting-setup linting-python linting-node
 	# Finished linting
 
 # Build commands
-build-writing-ext:
+build-wo-chrome-extension:
 	# Installing LO Event
 	cd modules/lo_event && npm install & npm link lo_event
 	# Building extension
 	cd extension/writing-process && npm install && npm run build
 
-build-dist:
+build-python-distribution:
 	# Building distribution for package
 	pip install build
 	# Switching to package directory
 	cd $(PKG) && python -m build
 
 # TODO we may want to have a separate command for uploading to testpypi
-upload-to-pypi: build-dist
-	# Uploading package to PyPI
+upload-python-package-to-pypi: build-python-distribution
 	pip install twine
 	# TODO we currently only upload to testpypi
 	# TODO we need to include `TWINE_USERNAME=__token__`
 	# and `TWINE_PASSWORD={ourTwineToken}` to authenticate
-	cd $(PKG) && twine upload -r testpypi dist/*
+	#
+	# TODO We have not fully tested the following commands.
+	# Try out the following steps and fix any bugs so the
+	# Makefile can do it automatically.
+	# cd $(PKG) && twine upload -r testpypi dist/*
