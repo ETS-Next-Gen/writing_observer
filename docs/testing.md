@@ -4,7 +4,24 @@ Testing is an essential part of software development to ensure the reliability a
 
 ## Preparing a Module for Testing
 
+The following workflow is a **HACK** while we work toward better testing infrastructure.
 Each module should define a `test.sh` at the root of the module's directory. This script should define how to run the tests for the module.
+
+### How Testing Ought to be
+
+We want to have a finite set of testing infrastructure. The types of tests we ought to support are
+
+- Client / dashboard tests
+  - Basic: we're not getting 500 errors on any pages (which can be semi-automatic from routes)
+  - Advanced: things work as expected.
+- Python unit tests
+- Server-side integration tests
+- Data pipeline tests
+  - The very explicit models, like reducers, are designed to support this
+  - Also, query language, etc.
+  - This is related to replicability, which is important in science and in debugging in ways we discussed
+
+We should have an opinionated, recommended way to do things, included in the example template package.
 
 ## Running Tests
 

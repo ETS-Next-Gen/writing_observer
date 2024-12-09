@@ -6,7 +6,6 @@ aiohttp_session
 aiohttp_wsgi
 asyncio_redis
 asyncpg
-bump-my-version
 cookiecutter
 cryptography
 cython
