@@ -5,7 +5,7 @@ help:
 	@echo "Available commands:"
 	@echo ""
 	@echo "  run                          Run the learning_observer Python application."
-	@echo "	 install-pre-commit           Install the pre-commit git hook."
+	@echo "	 install-pre-commit-hook      Install the pre-commit git hook."
 	@echo "  install                      Install the learning_observer package in development mode."
 	@echo "  install-dev                  Install dev dependencies (requires additional setup)."
 	@echo "  install-packages             Install specific packages: [${PACKAGES}]."
@@ -29,12 +29,12 @@ run:
 	cd learning_observer && python learning_observer
 
 # Install commands
-install-pre-commit:
+install-pre-commit-hook:
 	# Adding pre-commit.sh to Git hooks
 	cp pre-commit.sh .git/hooks/pre-commit
 	chmod +x .git/hooks/pre-commit
 
-install: install-pre-commit
+install: install-pre-commit-hook
 	# The following only works with specified packages
 	# we need to install learning_observer in dev mode to
 	# more easily pass in specific files we need, such as creds
