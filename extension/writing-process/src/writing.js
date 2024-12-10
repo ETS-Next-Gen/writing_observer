@@ -3,7 +3,7 @@
 */
 
 /* For debugging purposes: we know the extension is active */
-document.body.style.border = "5px solid blue";
+// document.body.style.border = "1px solid blue";
 
 import { googledocs_id_from_url, treeget } from './writing_common';
 /*
@@ -142,29 +142,31 @@ function is_string(myVar) {
     }
 }
 
-function injectScript(file_path, tag) {
-    /* 
-        This function is to inject a script from 'file_path' 
-        into a specific DOM tag passed in as 'tag'
-    */
-    var node = document.getElementsByTagName(tag)[0];
-    var script = document.createElement('script');
-    script.setAttribute('type', 'text/javascript');
-    script.setAttribute('src', file_path);
-    node.appendChild(script);
-}
-
-function execute_on_page_space(code){
-    /* This is from
-       https://stackoverflow.com/questions/9602022/chrome-extension-retrieving-global-variable-from-webpage
-
-       It is used to run code outside of the extension isolation box,
-       for example to access page JavaScript variables.
+function extractDocsToken() {
+    /**
+     * We need the doc token to be able to fetch the document
+     * history. This token is provided via a <script> tag within
+     * the `_docs_flag_initialData` value. This code iterates
+     * over all the scripts on the page, finds the appropriate
+     * one and extracts the `info_params.token` from it.
      */
+    const scripts = document.querySelectorAll('script');
 
-    if (!document.getElementById('tmpScript')) {
-        injectScript(chrome.runtime.getURL('inject.js'), 'body');
+    for (const script of scripts) {
+        if (script.textContent.includes('_docs_flag_initialData')) {
+            try {
+                // Use a regex to extract the JSON structure
+                const match = script.textContent.match(/_docs_flag_initialData\s*=\s*(\{.*?\});/);
+                if (match && match[1]) {
+                    const data = JSON.parse(match[1]); // Parse the JSON string
+                    return data.info_params.token;
+                }
+            } catch (error) {
+                console.error('Error parsing _docs_flag_initialData:', error);
+            }
+        }
     }
+    return null;
 }
 
 function google_docs_version_history(token) {
@@ -719,16 +721,10 @@ function writing_onload() {
         log_event("document_loaded", {
             "partial_text": google_docs_partial_text()
         });
-        execute_on_page_space("_docs_flag_initialData.info_params.token");
-        const handleFromWeb = async (event) => {
-            if (event.data.from && event.data.from === "inject.js") {
-                const data = event.data.data;
-                var token = JSON.parse(data);
-                google_docs_version_history(token);
-            }
-        };
-    
-        window.addEventListener('message', handleFromWeb);
+        const docsToken = extractDocsToken();
+        if (docsToken) {
+            google_docs_version_history(docsToken);
+        }
     }
 }
 
@@ -739,17 +735,21 @@ AJAX responses.
 This is impossible to do directly from within an extension.
 
 This is currently unused.
+
+We get `SyntaxError: Invalid or unexpected token` for the end of the
+first line commented out immediately below. Since this code is not
+used, we commented it out instead of fixing.
 */
-const LOG_AJAX = "\n\
-const WO_XHR = XMLHttpRequest.prototype;\n\
-const wo_send = WO_XHR.send;\n\
-\n\
-\n\
-WO_XHR.send = function () {\n\
-    this.addEventListener('load', function () {\n\
-        console.log(this); console.log(this.getAllResponseHeaders());\n\
-    }); return wo_send.apply(this, arguments); }\n\
-"
+// const LOG_AJAX = "\n\
+// const WO_XHR = XMLHttpRequest.prototype;\n\
+// const wo_send = WO_XHR.send;\n\
+// \n\
+// \n\
+// WO_XHR.send = function () {\n\
+//     this.addEventListener('load', function () {\n\
+//         console.log(this); console.log(this.getAllResponseHeaders());\n\
+//     }); return wo_send.apply(this, arguments); }\n\
+// "
 
 window.addEventListener("load", writing_onload);
 
