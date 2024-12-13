@@ -3,7 +3,7 @@
 */
 
 /* For debugging purposes: we know the extension is active */
-document.body.style.border = "5px solid blue";
+// document.body.style.border = "1px solid blue";
 
 import { googledocs_id_from_url, treeget } from './writing_common';
 /*
@@ -37,7 +37,7 @@ function log_event(event_type, event) {
         "title": google_docs_title(),
         "id": doc_id(),
         "url": window.location.href,
-    }
+    };
 
     event['event'] = event_type;
     // We want to track the page status during events. For example,
@@ -142,29 +142,31 @@ function is_string(myVar) {
     }
 }
 
-function injectScript(file_path, tag) {
-    /* 
-        This function is to inject a script from 'file_path' 
-        into a specific DOM tag passed in as 'tag'
-    */
-    var node = document.getElementsByTagName(tag)[0];
-    var script = document.createElement('script');
-    script.setAttribute('type', 'text/javascript');
-    script.setAttribute('src', file_path);
-    node.appendChild(script);
-}
-
-function execute_on_page_space(code){
-    /* This is from
-       https://stackoverflow.com/questions/9602022/chrome-extension-retrieving-global-variable-from-webpage
-
-       It is used to run code outside of the extension isolation box,
-       for example to access page JavaScript variables.
+function extractDocsToken() {
+    /**
+     * We need the doc token to be able to fetch the document
+     * history. This token is provided via a <script> tag within
+     * the `_docs_flag_initialData` value. This code iterates
+     * over all the scripts on the page, finds the appropriate
+     * one and extracts the `info_params.token` from it.
      */
+    const scripts = document.querySelectorAll('script');
 
-    if (!document.getElementById('tmpScript')) {
-        injectScript(chrome.runtime.getURL('inject.js'), 'body');
+    for (const script of scripts) {
+        if (script.textContent.includes('_docs_flag_initialData')) {
+            try {
+                // Use a regex to extract the JSON structure
+                const match = script.textContent.match(/_docs_flag_initialData\s*=\s*(\{.*?\});/);
+                if (match && match[1]) {
+                    const data = JSON.parse(match[1]); // Parse the JSON string
+                    return data.info_params.token;
+                }
+            } catch (error) {
+                throw new Error('Error parsing _docs_flag_initialData: ' + error);
+            }
+        }
     }
+    throw new Error('Unable to find document token used for extracting additional data.');
 }
 
 function google_docs_version_history(token) {
@@ -180,32 +182,22 @@ function google_docs_version_history(token) {
 
       It also lets us debug the system.
 
-      NOTE (CL) in past cases use of the execute on page space by itself triggered
-      an error.  If it creates excessive delays or error due to history use the
-      following code block in lieu of the next call. 
-
-      try {
-        var token = executeOnPageSpace("_docs_flag_initialData.info_params.token");
-      } catch (error) {
-     	log_event("Error on Page History.", {"ERROR" : error})
- 	return -1;
-      }
+      TODO the following code ought to be refactored into more atomic
+      functions
     */
 
     const metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true";
 
-    fetch(metainfo_url).then(function(response) {
-        response.text().then(function(text) {
+    return fetch(metainfo_url).then(function(response) {
+        return response.text().then(function(text) {
             const tiles = JSON.parse(text.substring(5)); // Google adds a header to prevent JavaScript injection. This removes it.
             var first_revision = tiles.firstRev;
             var last_revision = tiles.tileInfo[tiles.tileInfo.length - 1].end;
             const version_history_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/load?id="+doc_id()+"&start="+first_revision+"&end="+last_revision;
-            fetch(version_history_url).then(function(history_response) {
-                history_response.text().then(function(history_text) {
-                    log_event(
-                        "document_history",
-                        {'history': JSON.parse(history_text.substring(4))}
-                    );
+            return fetch(version_history_url).then(function(history_response) {
+                return history_response.text().then(function(history_text) {
+                    const output = JSON.parse(history_text.substring(4));
+                    return output;
                 });
             });
         });
@@ -719,16 +711,19 @@ function writing_onload() {
         log_event("document_loaded", {
             "partial_text": google_docs_partial_text()
         });
-        execute_on_page_space("_docs_flag_initialData.info_params.token");
-        const handleFromWeb = async (event) => {
-            if (event.data.from && event.data.from === "inject.js") {
-                const data = event.data.data;
-                var token = JSON.parse(data);
-                google_docs_version_history(token);
+        try {
+            const docsToken = extractDocsToken();
+            if (!docsToken) {
+                throw new Error(`Document token is missing or invalid: ${docsToken}`)
             }
-        };
-    
-        window.addEventListener('message', handleFromWeb);
+            google_docs_version_history(docsToken).then(function (history) {
+                log_event('document_history', {'history': history});
+            }).catch(function (error) {
+                throw error;
+            });
+        } catch (error) {
+            log_event('google_document_history_error', {'error': error})
+        }
     }
 }
 
@@ -739,17 +734,21 @@ AJAX responses.
 This is impossible to do directly from within an extension.
 
 This is currently unused.
+
+We get `SyntaxError: Invalid or unexpected token` for the end of the
+first line commented out immediately below. Since this code is not
+used, we commented it out instead of fixing.
 */
-const LOG_AJAX = "\n\
-const WO_XHR = XMLHttpRequest.prototype;\n\
-const wo_send = WO_XHR.send;\n\
-\n\
-\n\
-WO_XHR.send = function () {\n\
-    this.addEventListener('load', function () {\n\
-        console.log(this); console.log(this.getAllResponseHeaders());\n\
-    }); return wo_send.apply(this, arguments); }\n\
-"
+// const LOG_AJAX = "\n\
+// const WO_XHR = XMLHttpRequest.prototype;\n\
+// const wo_send = WO_XHR.send;\n\
+// \n\
+// \n\
+// WO_XHR.send = function () {\n\
+//     this.addEventListener('load', function () {\n\
+//         console.log(this); console.log(this.getAllResponseHeaders());\n\
+//     }); return wo_send.apply(this, arguments); }\n\
+// "
 
 window.addEventListener("load", writing_onload);
 

@@ -2,11 +2,37 @@ import { Queue } from './queue.js';
 import * as disabler from './disabler.js';
 import * as util from './util.js';
 import * as debug from './debugLog.js';
+import { storage } from './browserStorage.js';
 
-export function websocketLogger (server) {
+function wsHost(overrides = {}, loc=window.location) {
+  const { hostname, port, path, url } = overrides;
+  const loServer = storage.get('lo_server');
+  if (loServer) {
+    console.log("Overriding server from storage");
+    return loServer;
+  }
+  const protocol = loc.protocol === 'https:' ? 'wss://' : 'ws://';
+  const host = hostname || loc.hostname;
+  const portNumber = port || loc.port || (loc.protocol === 'https:' ? 443 : 80);
+  const pathname = path || '/wsapi/in/';
+  const fullUrl = url || `${host}:${portNumber}${pathname}`;
+
+  return `${protocol}${fullUrl}`;
+}
+
+
+export function websocketLogger (server = {}) {
   /*
     This is a pretty complex logger, which sends events over a web
-    socket. Most of the complexity comes from reconnections, retries,
+    socket.
+
+    `server` can be a URL (usually, ws:// or wss://) or an object
+    containing one or more of hostname, port, path, and url.
+
+    Note that if the server is an object, it can be overwritten in
+    storage (key loServer).
+
+    Most of the complexity comes from reconnections, retries,
     etc. and the need to keep robust queues, as well as the need be
     robust about queuing events before we have a socket open or during
     a network failure.
@@ -20,8 +46,16 @@ export function websocketLogger (server) {
   // keep this around until we're called from the client, and then we
   // raise it there.
   let blockerror;
-  let firstConnection = true;
   let metadata = {};
+
+  // This logic might be moved into wsHost, so it's a little bit more
+  // consistent.
+  if(!server) {
+    server = wsHost();
+  } else if(typeof server === 'object') {
+    server = wsHost(server);
+  }
+  // else the server is likely already a url string
 
   function calculateExponentialBackoff (n) {
     return Math.min(1000 * Math.pow(2, n), 1000 * 60 * 15);
@@ -70,36 +104,8 @@ export function websocketLogger (server) {
   }
 
   function prepareSocket () {
-    // TODO fetch local storage items here
-    const event = { local_storage: {} };
-    /**
-     * The extension expects some auth and metadata before processing events
-     * through the reducers. The first time this data is sent is handled by
-     * `lo_event.js`. If the websocket disconnects and reconnects without
-     * restarting the main `lo_event` module, then we need to resend the
-     * auth and metadata.
-     *
-     * This code handles adding the auth and metadata to the processing queue
-     * on all but the initial connection.
-     */
-    if (!firstConnection) {
-      util.profileInfoWrapper().then((result) => {
-        if (Object.keys(result).length > 0) {
-          /**
-           * HACK: this code is wrong
-           * This is for backwards compatibility for the old way of handling auth.
-           * This is scaffolding as we are changing how we handle lock_fields,
-           * metedata, auth, etc. We should not be needing to call `profileInfoWrapper`
-           * as that has been abstracted up many levels. The `metedata_finished` and
-           * `chrome_identity` events should be removed when the server-side code
-           * is updated and we have a new handshake protocol.
-          */
-          queue.enqueue(JSON.stringify(metadata));
-          queue.enqueue(JSON.stringify({ event: 'chrome_identity', chrome_identity: result }));
-        }
-      });
-    } else {
-      firstConnection = false;
+    if(Object.keys(metadata).length > 0) {
+      queue.enqueue(JSON.stringify(metadata));
     }
 
     queue.startDequeueLoop({
@@ -130,19 +136,16 @@ export function websocketLogger (server) {
         );
         break;
       case 'auth':
-        localStorage.setItem("user_id", response.user_id);
-        document.dispatchEvent(
-          new CustomEvent("auth", { detail: { user_id: response.user }})
-        );
+        storage.set({user_id: response.user_id});
+        util.dispatchCustomEvent("auth", { detail: { user_id: response.user }});
         break;
       // These should probably be behind a feature flag, as they assume
       // we trust the server.
       case 'local_storage':
-        localStorage.setItem(response.key, response.value);
+        storage.set({[response.key]: response.value});
         break;
       case 'browser_event':
-        let event = new CustomEvent(response.event_type, { detail: response.detail });
-        document.dispatchEvent(event);
+        util.dispatchCustomEvent(response.event_type, { detail: response.detail });
         break;
       default:
         debug.info(`Received response we do not yet handle: ${response}`);
@@ -177,7 +180,7 @@ export function websocketLogger (server) {
   };
 
   wsLogData.setField = function (data) {
-    metadata = { ...metadata, ...JSON.parse(data) };
+    util.mergeDictionary(metadata, JSON.parse(data));
     queue.enqueue(data);
   };
 

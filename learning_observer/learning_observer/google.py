@@ -129,7 +129,7 @@ async def raw_google_ajax(runtime, target_url, **kwargs):
     request = runtime.get_request()
     url = target_url.format(**kwargs)
     user = await learning_observer.auth.get_active_user(request)
-    if constants.AUTH_HEADERS not in request:
+    if constants.AUTH_HEADERS not in request or user is None:
         raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
 
     cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user[constants.USER_ID]) + '/' + learning_observer.util.url_pathname(url)

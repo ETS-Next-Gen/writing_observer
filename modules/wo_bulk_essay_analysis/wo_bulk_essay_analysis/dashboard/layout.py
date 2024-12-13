@@ -175,7 +175,7 @@ def layout():
         loading_component,
         dbc.Row(id=grid, class_name='g-4'),
     ], fluid=True)
-    return dcc.Loading(cont)
+    return html.Div(cont)
 
 
 # disbale document date/time options

@@ -9,7 +9,7 @@ import 'react-tooltip/dist/react-tooltip.css';
  * WOAnnotatedText
  */
 export default class WOAnnotatedText extends Component {
-  constructor(props) {
+  constructor (props) {
     super(props);
     this.state = {
       selectedItem: null
@@ -22,14 +22,14 @@ export default class WOAnnotatedText extends Component {
       return split.map((line, index) => (
         <React.Fragment key={index}>
           {line}
-          {split.length-1 === index ? <span/> : <br/>}
+          {split.length - 1 === index ? <span/> : <br/>}
         </React.Fragment>
       ));
     }
     return str;
-  }
+  };
 
-  render() {
+  render () {
     const { breakpoints, text, className } = this.props;
 
     const breaks = new Set();
@@ -53,13 +53,13 @@ export default class WOAnnotatedText extends Component {
       matchingBreaks.forEach(b => {
         ids[b] = ids[b].concat({ tooltip: obj.tooltip, style: obj.style });
       });
-    })
+    });
 
     const chunks = Array(breaksList.length - 1);
     let curr, textChunk;
     for (let i = 0; i < chunks.length; i++) {
       curr = ids[breaksList[i]];
-      textChunk = text.substring(breaksList[i], breaksList[i+1]);
+      textChunk = text.substring(breaksList[i], breaksList[i + 1]);
       if (curr.length === 0) {
         chunks[i] = {
           text: textChunk,
@@ -79,7 +79,7 @@ export default class WOAnnotatedText extends Component {
     if (chunks.length === 0) {
       return <div className={className}>
         {this.replaceNewLines(text)}
-      </div>
+      </div>;
     }
 
     // TODO figure out how empty breakpoints
@@ -93,8 +93,7 @@ export default class WOAnnotatedText extends Component {
       <div className={className}>
         {chunks.map((chunk, index) => (
           chunk.annotated
-            ?
-            <OverlayTrigger
+            ? <OverlayTrigger
               key={index}
               placement='bottom'
               overlay={
@@ -130,7 +129,7 @@ WOAnnotatedText.defaultProps = {
   className: '',
   text: '',
   breakpoints: []
-}
+};
 
 WOAnnotatedText.propTypes = {
   /**
@@ -164,4 +163,4 @@ WOAnnotatedText.propTypes = {
    * to Dash, to make them available for callbacks.
    */
   setProps: PropTypes.func
-}
+};

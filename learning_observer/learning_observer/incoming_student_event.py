@@ -403,12 +403,10 @@ async def incoming_websocket_handler(request):
             if not authenticated:
                 authenticated = await learning_observer.auth.events.authenticate(
                     request=request,
-                    headers=[event],
-                    first_event={},
+                    event=event,
                     source=''
                 )
                 if authenticated:
-                    print(authenticated)
                     await ws.send_json({
                         'status': 'auth',
                         constants.USER_ID: authenticated[constants.USER_ID]
