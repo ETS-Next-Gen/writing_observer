@@ -6,7 +6,6 @@ module.exports = {
         service_worker: path.join(__dirname, 'src', 'service_worker.js'),
         writing_common: path.join(__dirname, 'src', 'writing_common.js'),
         writing: path.join(__dirname, 'src', 'writing.js'),
-        inject: path.join(__dirname, 'src', 'inject.js'),
     },
     output: {
         path: path.join(__dirname, 'src'),

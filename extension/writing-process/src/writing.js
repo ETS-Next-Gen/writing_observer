@@ -162,11 +162,11 @@ function extractDocsToken() {
                     return data.info_params.token;
                 }
             } catch (error) {
-                console.error('Error parsing _docs_flag_initialData:', error);
+                throw new Error('Error parsing _docs_flag_initialData: ' + error);
             }
         }
     }
-    return null;
+    throw new Error('Unable to find document token used for extracting additional data.');
 }
 
 function google_docs_version_history(token) {
@@ -182,32 +182,22 @@ function google_docs_version_history(token) {
 
       It also lets us debug the system.
 
-      NOTE (CL) in past cases use of the execute on page space by itself triggered
-      an error.  If it creates excessive delays or error due to history use the
-      following code block in lieu of the next call. 
-
-      try {
-        var token = executeOnPageSpace("_docs_flag_initialData.info_params.token");
-      } catch (error) {
-     	log_event("Error on Page History.", {"ERROR" : error})
- 	return -1;
-      }
+      TODO the following code ought to be refactored into more atomic
+      functions
     */
 
     const metainfo_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/tiles?id="+doc_id()+"&start=1&showDetailedRevisions=false&filterNamed=false&token="+token+"&includes_info_params=true";
 
-    fetch(metainfo_url).then(function(response) {
-        response.text().then(function(text) {
+    return fetch(metainfo_url).then(function(response) {
+        return response.text().then(function(text) {
             const tiles = JSON.parse(text.substring(5)); // Google adds a header to prevent JavaScript injection. This removes it.
             var first_revision = tiles.firstRev;
             var last_revision = tiles.tileInfo[tiles.tileInfo.length - 1].end;
             const version_history_url = "https://docs.google.com/document/d/"+doc_id()+"/revisions/load?id="+doc_id()+"&start="+first_revision+"&end="+last_revision;
-            fetch(version_history_url).then(function(history_response) {
-                history_response.text().then(function(history_text) {
-                    log_event(
-                        "document_history",
-                        {'history': JSON.parse(history_text.substring(4))}
-                    );
+            return fetch(version_history_url).then(function(history_response) {
+                return history_response.text().then(function(history_text) {
+                    const output = JSON.parse(history_text.substring(4));
+                    return output;
                 });
             });
         });
@@ -721,9 +711,18 @@ function writing_onload() {
         log_event("document_loaded", {
             "partial_text": google_docs_partial_text()
         });
-        const docsToken = extractDocsToken();
-        if (docsToken) {
-            google_docs_version_history(docsToken);
+        try {
+            const docsToken = extractDocsToken();
+            if (!docsToken) {
+                throw new Error(`Document token is missing or invalid: ${docsToken}`)
+            }
+            google_docs_version_history(docsToken).then(function (history) {
+                log_event('document_history', {'history': history});
+            }).catch(function (error) {
+                throw error;
+            });
+        } catch (error) {
+            log_event('google_document_history_error', {'error': error})
         }
     }
 }
