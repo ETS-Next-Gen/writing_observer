@@ -13,38 +13,34 @@ function generateNewHighlightColor () {
 }
 
 function sortOptionsIntoTree (options) {
-  // Create a map of options by their ids
   const optionsMap = new Map();
   options.forEach(option => optionsMap.set(option.id, option));
 
-  // Initialize an array to store the sorted options
   const sortedOptions = [];
 
-  // Function to recursively add children to the sorted array
   function addChildren (parentId, depth) {
     options
       .filter(option => option.parent === parentId)
       .forEach(option => {
         sortedOptions.push({ ...option, depth });
-        addChildren(option.id, depth + 1); // Recursively add children
+        addChildren(option.id, depth + 1);
       });
   }
 
-  // Start by adding top-level items (those with an empty parent)
   addChildren('', 0);
 
   return sortedOptions;
 }
 
-/**
- * WOSettings is a generic settings interface.
- * User can define
- */
 export default class WOSettings extends Component {
   constructor (props) {
     super(props);
+    this.state = {
+      collapsed: {} // Tracks which rows are collapsed
+    };
     this.handleRowEvent = this.handleRowEvent.bind(this);
     this.renderRow = this.renderRow.bind(this);
+    this.toggleCollapse = this.toggleCollapse.bind(this);
   }
 
   handleRowEvent (event, key, type, colorPicker = false) {
@@ -61,33 +57,74 @@ export default class WOSettings extends Component {
     setProps({ options: oldOptions });
   }
 
-  renderRow (row) {
-    const highlightCell = (row.types && 'highlight' in row.types)
+  toggleCollapse (id) {
+    this.setState(prevState => ({
+      collapsed: {
+        ...prevState.collapsed,
+        [id]: !prevState.collapsed[id]
+      }
+    }));
+  }
+
+  renderRow (row, allRows) {
+    const { collapsed } = this.state;
+    const hasChildren = allRows.some(option => option.parent === row.id);
+    const isCollapsed = collapsed[row.id] || false;
+
+    const highlightCell = row.types && 'highlight' in row.types
       ? (<>
-        <input type='checkbox' checked={row.types.highlight.value || false} onChange={(e) => this.handleRowEvent(e, row.id, 'highlight')} />
+        <input
+          type="checkbox"
+          checked={row.types.highlight.value || false}
+          onChange={(e) => this.handleRowEvent(e, row.id, 'highlight')}
+        />
         {row.types.highlight.value
-          ? <input type='color' value={row.types.highlight.color || '#121212'} onChange={(e) => this.handleRowEvent(e, row.id, 'highlight', true)} />
+          ? (<input
+            type="color"
+            value={row.types.highlight.color || '#121212'}
+            onChange={(e) => this.handleRowEvent(e, row.id, 'highlight', true)}
+          />)
           : null}
       </>)
       : null;
-    const metricCell = (row.types && 'metric' in row.types)
-      ? <input type='checkbox' checked={row.types.metric.value || false} onChange={(e) => this.handleRowEvent(e, row.id, 'metric')} />
-      : null;
+
+    const nestedTextPrefix = row.depth > 0 ? '- '.repeat(row.depth) : '';
+    // TODO we may want to add a count for items highlighted under a parent
+
     return (
-      <tr key={row.id}>
-        <td>{'\u00A0'.repeat(row.depth * 2) + row.label}</td>
-        <td>{highlightCell}</td>
-        {/* <td>{metricCell}</td> */}
-      </tr>
+      <>
+        <tr key={row.id}>
+          <td >
+            {nestedTextPrefix + row.label}
+            {hasChildren && (
+              <button
+                onClick={() => this.toggleCollapse(row.id)}
+                style={{
+                  marginLeft: '4px',
+                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none'
+                }}
+              >
+                {isCollapsed ? '▶' : '▼'}
+              </button>
+            )}
+          </td>
+          <td>{highlightCell}</td>
+        </tr>
+        {/* Render children rows if not collapsed */}
+        {!isCollapsed &&
+          allRows
+            .filter(child => child.parent === row.id)
+            .map(child => this.renderRow(child, allRows))}
+      </>
     );
   }
 
   render () {
     const { id, className, options } = this.props;
     const rows = sortOptionsIntoTree(options);
-    // TODO due to a HACK with passing data to the child component of
-    // the student tiles, we currently only support a single child and
-    // expect it to be the highlighted text component.
+
     return (
       <table
         key={`wo-settings-${id}`}
@@ -98,16 +135,17 @@ export default class WOSettings extends Component {
           <tr>
             <th>Name</th>
             <th>Highlight</th>
-            {/* <th>Metric</th> */}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => this.renderRow(r))}
+          {rows
+            .filter(row => row.parent === '') // Start with top-level rows
+            .map(row => this.renderRow(row, rows))}
         </tbody>
       </table>
     );
   }
-};
+}
 
 WOSettings.defaultProps = {
   id: '',
