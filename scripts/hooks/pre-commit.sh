@@ -2,7 +2,7 @@
 
 # Function to get current timestamp and branch
 get_version_string() {
-    local timestamp=$(date +"%Y-%m-%d-%H:%M:%S.%3N")
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
     local commit_hash=$(git rev-parse --short HEAD)
     local branch=$(git rev-parse --abbrev-ref HEAD)
     echo "${timestamp}-${commit_hash}-${branch}"

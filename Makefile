@@ -31,7 +31,7 @@ run:
 # Install commands
 install-pre-commit-hook:
 	# Adding pre-commit.sh to Git hooks
-	cp pre-commit.sh .git/hooks/pre-commit
+	cp scripts/hooks/pre-commit.sh .git/hooks/pre-commit
 	chmod +x .git/hooks/pre-commit
 
 install: install-pre-commit-hook
