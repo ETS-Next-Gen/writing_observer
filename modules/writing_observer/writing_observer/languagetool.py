@@ -1,5 +1,4 @@
 import pmss
-import requests
 
 import learning_observer.cache
 import learning_observer.communication_protocol.integration
