@@ -13,6 +13,10 @@ from awe_languagetool import languagetoolClient
 client = None
 DEFAULT_PORT = 8081
 lt_started = False
+# TODO fill this in
+STUB_LANGUAGETOOL_OUTPUT = {
+    'languagetool_stub': 'This is stub output. It will probably break something until we clean this up.'
+}
 
 pmss.register_field(
     name='use_languagetool',
@@ -71,19 +75,13 @@ async def process_texts(texts):
 
     We use a closure to allow the system to initialize the memoization KVS.
     '''
-    if not lt_started:
-        error_text = 'The LanguageTool server has not started. '\
-            'Set `modules.writing_observer.use_languagetool: true` in `creds.yaml` '\
-            'to enable the usage of the LanguageTool client.'
-        raise ConnectionError(error_text)
-
     @learning_observer.cache.async_memoization()
     async def process_text(text):
         return await client.summarizeText(text)
 
     async for t in texts:
         text = t.get('text', '')
-        text_data = await process_text(text)
+        text_data = await process_text(text) if lt_started else STUB_LANGUAGETOOL_OUTPUT
         text_data['text'] = text
         text_data['provenance'] = t['provenance']
         yield text_data
