@@ -99,7 +99,7 @@ async def generic_dashboard(request):
     GraphQL looks super-relevant. Implementing it is a big lift, and
     it might need to be slightly adapted to the context.
 
-    The test case for this is in `util/generic_websocket_dashboard.py`
+    The test case for this is in `scripts/generic_websocket_dashboard.py`
     '''
     # We never send data more than twice per second, because performance.
     MIN_REFRESH = 0.5

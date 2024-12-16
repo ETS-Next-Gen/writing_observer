@@ -149,7 +149,7 @@ We can stream data into the system to simulate a classroom of students working. 
 
 ```bash
 workon lo_workshop
-python learning_observer/util/stream_writing.py --streams=10
+python scripts/stream_writing.py --streams=10
 ```
 
 To avoid cache issues, we recommend this order:
