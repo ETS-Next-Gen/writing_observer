@@ -20,13 +20,13 @@ const nextConfig = {
         options: {
           // Add your babel presets here (e.g., @babel/preset-react)
           presets: ['@babel/preset-react'] // Assuming you use React
-        }
-      }
+        },
+      },
     });
     return config;
   },
   eslint: {
-    ignoreDuringBuilds: true
+    ignoreDuringBuilds: true,
   },
   output: 'export',
   // TODO this is only needed when building for use within LO

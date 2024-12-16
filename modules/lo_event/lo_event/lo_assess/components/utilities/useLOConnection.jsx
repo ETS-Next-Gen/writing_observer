@@ -82,12 +82,33 @@ export const useLOConnection = ({
     };
   }, [url]);  // Include `url` as a dependency in case it changes and requires a reconnection
 
+  const messageQueue = [];
+
+  // Send any messages on the queue
+  const processQueue = () => {
+    while (messageQueue.length > 0) {
+      if (clientRef.current && connectionStatus === LO_CONNECTION_STATUS.OPEN) {
+        const message = messageQueue.shift();
+        clientRef.current.send(message);
+      } else {
+        break;
+      }
+    }
+  };
+
+  // Start processing the queue when the connection opens
+  useEffect(() => {
+    if (connectionStatus === LO_CONNECTION_STATUS.OPEN) {
+      processQueue();
+    }
+  }, [connectionStatus]);
+
   // Function to send a message via WebSocket
   const sendMessage = (message) => {
     if (clientRef.current && connectionStatus === LO_CONNECTION_STATUS.OPEN) {
       clientRef.current.send(message);
     } else {
-      console.warn('WebSocket is not open. Ready state:', connectionStatus);
+      messageQueue.push(message);
     }
   };
 
