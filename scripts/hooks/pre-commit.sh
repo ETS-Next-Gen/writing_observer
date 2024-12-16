@@ -1,18 +1,18 @@
 #!/bin/bash
 
 # Function to get current timestamp and branch
-get_version_string() {
-    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+get_new_local_version_string() {
+    local timestamp=$(date -u +"%Y.%m.%dT%H.%M.%S.%3NZ")
     local commit_hash=$(git rev-parse --short HEAD)
-    local branch=$(git rev-parse --abbrev-ref HEAD)
-    echo "${timestamp}-${commit_hash}-${branch}"
+    local branch=$(git rev-parse --abbrev-ref HEAD | tr '/' '.' | tr '-' '.' | tr '_' '.')
+    echo "${timestamp}.${commit_hash}.${branch}"
 }
 
 # Function to find relevant VERSION files based on changed paths
 find_version_files() {
     local changed_files=$(git diff --cached --name-only)
-    local version_files=()
     local project_root=$(git rev-parse --show-toplevel)
+    local version_files=("$project_root/VERSION")
 
     # Function to find the nearest VERSION file within the project root
     find_nearest_version_file() {
@@ -45,12 +45,18 @@ find_version_files() {
 
 # Main versioning logic
 update_version_files() {
-    local version_string=$(get_version_string)
+    local version_string=$(get_new_local_version_string)
     local version_files=$(find_version_files)
 
     # Update each relevant VERSION file
     while IFS= read -r file; do
-        echo "$version_string" > "$file"
+        # Extract semantic version from file
+        base_version=$(sed -n 's/\(.*\)+.*/\1/p' "$file")
+
+        # Prepend the semantic version to local version
+        new_version_string="$base_version+$version_string"
+
+        echo "$new_version_string" > "$file"
         git add "$file"
     done < <(echo "$version_files")
 }
