@@ -30,7 +30,7 @@ def create_layout():
         # TODO we ought to store the presets on the server instead of browser storage
         # TODO we need to migrate the old options to new ones
         dcc.Store(id=_store, data=wo_classroom_text_highlighter.options.PRESETS, storage_type='local')
-    ])
+    ], id=_prefix)
 
 
 # disabled add preset when name already exists
@@ -93,3 +93,27 @@ def remove_item_from_store(clicks):
     patched_store = Patch()
     del patched_store[ctx.triggered_id['index']]
     return patched_store
+
+
+@callback(
+    Output(_store, 'data', allow_duplicate=True),
+    Input(_prefix, 'id'),
+    State(_store, 'data'),
+    prevent_initial_call='initial_duplicate'
+)
+def migrate_stored_items(id, data):
+    '''HACK This function checks for differences in length between
+    what is currently stored and how many items each preset has. If
+    the length differs, then we update the store with the presets.
+    We ought to iterate over each item within the current store and
+    update it to be the same format as the presets. This will overwrite
+    any presets a teacher has defined. Since we are still in the demo
+    phase and items are stored in the browser, this will suffice. The
+    presets themselves ought to just be a list of selected values as
+    opposed to an entire options object.
+    '''
+    preset_len = len(next(iter(wo_classroom_text_highlighter.options.PRESETS.values())))
+    current_len = len(next(iter(data.values())))
+    if preset_len != current_len:
+        return wo_classroom_text_highlighter.options.PRESETS
+    raise exceptions.PreventUpdate

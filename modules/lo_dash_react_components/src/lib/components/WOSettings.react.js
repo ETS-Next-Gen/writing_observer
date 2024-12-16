@@ -89,7 +89,6 @@ export default class WOSettings extends Component {
       : null;
 
     const nestedTextPrefix = row.depth > 0 ? '- '.repeat(row.depth) : '';
-    // TODO we may want to add a count for items highlighted under a parent
 
     return (
       <>
