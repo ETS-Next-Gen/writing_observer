@@ -6,7 +6,7 @@ We can create custom dashboards for the system.
 
 Dash is a package for writing and serving web applications directly in Python. In Dash, there are 2 primary items, 1) page components such as headers, divs, spans, etc. and 2) callbacks.
 
-### Getting started
+### Getting Started with Dash
 
 Page components can be set up similar to other `html` layouts, like so
 
@@ -178,5 +178,40 @@ DASH_PAGES = [
             static_url("liblo.js")
         ]
     }
+]
+```
+
+## NextJS
+
+NextJS is web framework for building React-based web applications along with additional server-side functionality.
+
+### Getting Started with NextJS
+
+Follow the [Getting Started Guide](https://nextjs.org/docs/app/getting-started) in the official NextJS documentation.
+
+### NextJS in the Learning Observer
+
+Before add a NextJS application can be built and added to the system, a few configurations changes need to be made. The built application will not access the server-side code. Any server-side API endpoints need to be implemented in Python. The code that calls these endpoints will need to be updated to point to the correct path.
+
+Additionally, we need to add a `basePath` to our `next.config.js` file. When building the application, this replaces prefixes all paths with the defined base path. This allows links to function appropriately while being served from Learning Observer.
+
+```js
+const nextConfig = {
+  // ... the rest of your config
+  basePath: '/_next/moduleName/pathOfBuiltApplication'
+```
+
+To add a NextJS project to a module, first the code needs to be built with `npm run build`. A directory named `out` will be created and the built application will be placed there. Copy this directoy to a module within Learning Observer.
+
+Next, add the path to the built application to the module's `module.py` file
+
+```python
+# module.py
+# ...other definitions
+'''
+Next js dashboards
+'''
+NEXTJS_PAGES = [
+    {'path': 'pathOfBuiltApplication/'}
 ]
 ```

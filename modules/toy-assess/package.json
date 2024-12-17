@@ -16,7 +16,7 @@
     "bufferutil": "^4.0.8",
     "indexeddb-js": "^0.0.14",
     "jasmine": "^5.1.0",
-    "lo_event": "file:../lo_event/lo_event-0.0.2.tgz",
+    "lo_event": "file:../lo_event/lo_event-0.0.3.tgz",
     "mapbox": "^1.0.0-beta10",
     "mock-aws-s3": "^4.0.2",
     "next": "13.5.5",
