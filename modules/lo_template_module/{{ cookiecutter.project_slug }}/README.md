@@ -19,7 +19,6 @@ module/
   MANIFEST.in
   setup.cfg
   pyproject.toml
-  .bumpversion.toml
   VERSION
 ```
 
@@ -50,19 +49,9 @@ The manifest specifies which files to include during Python packaging. This spec
 
 For modules with Dash-made dashboards, this will typically include a relative path to the assets folder.
 
-### .bumpversion.toml
-
-This configuration file is used for bumping the version of a package. Packages can be bumped via
-
-```bash
-bump-my-version bump <major|minor|patch>
-```
-
-A new clean commit will be created when bumping. To prevent this, set `commit=false`.
-
 ### VERSION
 
-The VERSION file specifies the version of the package. Each one defaults to `0.1.0` and can be updated via `bump-my-version`.
+The VERSION file specifies the version of the package. Each one defaults to `0.1.0`.
 
 ### module.py
 
