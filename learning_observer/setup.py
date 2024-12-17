@@ -27,5 +27,5 @@ setup(
         "awe": clean_requirements(awe_path)
     },
     packages=find_packages(),
-    package_data={'': ['util/*', 'static/**/*', 'static_data/*.template', 'creds.yaml.example', 'communication_protocol/schema.json']}
+    package_data={'': ['static/**/*', 'static_data/*.template', 'creds.yaml.example', 'communication_protocol/schema.json']}
 )

@@ -256,7 +256,7 @@ def register_auth_webapp_views(app):
                 fn=settings.settings['auth']['password_file']
             ))
             print("Typically:")
-            print("{python_src} learning_observer/util/lo_passwd.py "
+            print("{python_src} scripts/lo_passwd.py "
                   "--username {username} --password {password} "
                   "--filename learning_observer/{fn}".format(
                       python_src=paths.PYTHON_EXECUTABLE,

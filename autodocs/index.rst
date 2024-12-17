@@ -17,6 +17,7 @@ data.
 
    development
    system_design
+   modules
    extension
    api
 

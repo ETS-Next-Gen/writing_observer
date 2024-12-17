@@ -63,11 +63,12 @@ The platform expects both of these files to exist under `learning_observer/learn
 
 ### passwd.lo
 
-Each install of the system needs an admin password file associated with it. The `learning_observer/util/lo_passwd.py` file can be used to generate this password file. This does not have to be done in the same virtual environment as the main server. If you are using Docker, just create a local virtual environment to run this command.
+Each install of the system needs an admin password file associated with it. The `scripts/lo_passwd.py` file can be used to generate this password file. This does not have to be done in the same virtual environment as the main server. If you are using Docker, just create a local virtual environment to run this command.
 
 ```bash
-cd learning_observer/
-python util/lo_passwd.py --username admin --password supersecureadminpassword --filename passwd.lo
+python scripts/lo_passwd.py --username admin --password supersecureadminpassword --filename learning_observer/passwd.lo
 ```
+
+Note that Learning Observer expects the file to be placed in the `learning_observer/` directory, similar to `creds.yaml`.
 
 Depending on how the `creds.yaml` authorization settings are configured, you may be required to use the password you create.

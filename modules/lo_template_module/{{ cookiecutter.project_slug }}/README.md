@@ -10,19 +10,17 @@ module/
   {{ cookiecutter.project_slug }}/
     assets/
       ...
-    helpers/
-      additional_script.py
     module.py
     reducers.py
     dash_dashboards.py
+    utils.py
+  tests/
+    test_utils.py
   MANIFEST.in
-  setup.py
   setup.cfg
+  pyproject.toml
+  VERSION
 ```
-
-### setup.py
-
-This is a standard `setup.py` file.
 
 ### setup.cfg
 
@@ -41,11 +39,19 @@ The `lo_modules` entry point tells Learning Observer to treat `{{ cookiecutter.p
 
 The package data section is where we include additional directories we want included in the build.
 
+### pyproject.toml
+
+The `pyproject.toml` file specifies the build system, which in this case is `setuptools`. It works alongside the `setup.cfg` file to provide metadata for the installation process.
+
 ### MANIFEST.in
 
 The manifest specifies which files to include during Python packaging. This specifies the additional non-python files we want included. If you do not have additional files needed, this file is unnecessary.
 
 For modules with Dash-made dashboards, this will typically include a relative path to the assets folder.
+
+### VERSION
+
+The VERSION file specifies the version of the package. Each one defaults to `0.1.0`.
 
 ### module.py
 
