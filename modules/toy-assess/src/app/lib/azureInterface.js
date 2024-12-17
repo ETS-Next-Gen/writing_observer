@@ -4,7 +4,7 @@ const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 
 const resource=await process.env.OPENAI_URL;
 const deploymentID=process.env.OPENAI_DEPLOYMENT_ID;
-const key = await process.env.OPENAI_API_KEY;
+const key = await process.env.OPENAI_API_KEY || 'EMPTY';
 
 console.log("In azureInterface");
 console.log("key: " + key);
