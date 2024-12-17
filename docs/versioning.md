@@ -11,19 +11,25 @@ name = Module name
 version = file:VERSION
 ```
 
-## Bumping Versions
+## Version Format
 
-Versioning is automatically managed using a Git pre-commit hook. Before each commit is made, the appropriate `VERSION` files are updated with a timestamped format that includes the following details:
+The version format is split into 2 pieces, the semantic version and the local version string separated by a `+`. The semantic version is primarily used for uploading to PyPI and resolving dependency conflicts. The local version string contains additional metadata about when the code was last modified and the commit it came from. The versions should follow the following format:
 
 ```sh
-%Y-%m-%d-%H:%M:%S.%3N-shortCommitHash-branchName
+major.minor.patch+%Y.%m.%dT%H.%M.%S.%3NZ.abc123.branch.name
 ```
 
 A example version string might look like this:
 
 ```sh
-2024-12-09-15:45:32.123-abc123-main
+0.1.0+2024.12.16T16.42.38.637Z.abc123.branch.name
 ```
+
+## Bumping Versions
+
+The local version strings that contain metadata are automatically managed using a Git pre-commit hook. Before each commit is made, the appropriate `VERSION` is updated to reflect the current time and commit.
+
+Bumping the semantic version is done manually.
 
 ## Setting Up the Pre-Commit Hook
 
