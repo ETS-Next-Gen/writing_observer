@@ -20,6 +20,8 @@
  */
 import * as redux from 'redux';
 import { thunk } from 'redux-thunk';
+import { createStateSyncMiddleware, initMessageListener, } from "redux-state-sync";
+import debounce from "lodash/debounce";
 
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
@@ -31,6 +33,27 @@ const DEBUG = false;
 function debug_log(...args) {
   if(DEBUG) {
     console.log(...args);
+  }
+}
+
+const KEY = "redux";
+export function loadState() {
+  try {
+    const serializedState = localStorage.getItem(KEY);
+    if (!serializedState) return undefined;
+    return JSON.parse(serializedState);
+  } catch (e) {
+    return undefined;
+  }
+}
+
+export async function saveState(state) {
+  console.log("Saving state");
+  try {
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem(KEY, serializedState);
+  } catch (e) {
+    // Ignore
   }
 }
 
@@ -173,8 +196,11 @@ const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOO
 export let store = redux.createStore(
   reducer,
   {event: null}, // Base state
-  composeEnhancers(redux.applyMiddleware(thunk.default || thunk))
+  composeEnhancers(redux.applyMiddleware((thunk.default || thunk), createStateSyncMiddleware()))
 );
+
+initMessageListener(store);
+
 let promise = null;
 let previousEvent = null;
 let lockFields = null;
@@ -204,9 +230,18 @@ export function setState(state) {
   store.dispatch(emitSetState(state));
 }
 
+const debouncedSaveState = debounce((state) => {
+  saveState(state);
+}, 1000);
+
 function initializeStore () {
   store.subscribe(() => {
     const state = store.getState();
+
+    // we use debounce to save the state once every second
+    // for better performances in case multiple changes occur in a short time
+    debouncedSaveState(state);
+
     if (state.lock_fields) {
       lockFields = state.lock_fields.fields;
     }
