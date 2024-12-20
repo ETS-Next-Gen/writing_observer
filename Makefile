@@ -1,5 +1,5 @@
 # TODO rename these packages to something else
-PACKAGES ?= wo,awe
+PACKAGES ?= wo
 
 help:
 	@echo "Available commands:"
@@ -58,28 +58,12 @@ install-packages:
 	pip install -e learning_observer/[${PACKAGES}]
 
 	# Just a little bit of dependency hell...
-
-	# The AWE Components are built using a specific version of
-	# `spacy`. This requires an out-of-date `typing-extensions`
-	# package. There are few other dependecies that require a
-	# newer version. As far as I can tell, upgrading this package
-	# does not effect the functionality we receive from the AWE
-	# components.
-	# TODO remove this extra step after AWE Component's `spacy`
-	# is no longer version locked.
-	# This is no longer an issue, but we will leave until all
-	# dependecies can be resolved in the appropriate locations.
-	# pip install -U typing-extensions
-
 	# On Python3.11 with tensorflow, we get some odd errors
 	# regarding compatibility with `protobuf`. Some installation
 	# files are missing from the protobuf binary on pip.
 	# Using the `--no-binary` option includes all files.
 	pip uninstall -y protobuf
 	pip install --no-binary=protobuf protobuf==4.25
-	# Numpy v2 usually gets installed but causes issues with a
-	# mismatch in binary headers, since something wants numpy v1
-	pip install -U numpy==1.26.4
 
 # Testing commands
 test:

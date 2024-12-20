@@ -12,7 +12,6 @@ so efforts to fix have been pushed to wayside.
 
 from dash import html, dcc, callback, Output, Input, State
 import dash_bootstrap_components as dbc
-import dash_extensions as de
 import json
 
 import learning_observer.module_loader
@@ -168,9 +167,9 @@ def create_query(item):
             html.H4('Exports'),
             # TODO create exports piece
             html.H4('Flow chart'),
-            de.Mermaid(
-                chart=create_mermaid_flowchart(copy)
-            )
+            # TODO this used to use Dash Extensions to show a Mermaid chart
+            # Dash Extensions was causing dependency issues and since this
+            # code was already broken, we opted to remove it.
         ]
     )
     return div

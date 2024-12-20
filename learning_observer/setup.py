@@ -11,7 +11,6 @@ import os
 my_path = os.path.dirname(os.path.realpath(__file__))
 parent_path = os.path.abspath(os.path.join(my_path, os.pardir))
 req_path = os.path.join(parent_path, 'requirements.txt')
-awe_path = os.path.join(parent_path, 'awe_requirements.txt')
 wo_path = os.path.join(parent_path, 'wo_requirements.txt')
 
 
@@ -24,7 +23,6 @@ setup(
     install_requires=clean_requirements(req_path),
     extras_require={
         "wo": clean_requirements(wo_path),
-        "awe": clean_requirements(awe_path)
     },
     packages=find_packages(),
     package_data={'': ['static/**/*', 'static_data/*.template', 'creds.yaml.example', 'communication_protocol/schema.json']}
