@@ -193,9 +193,11 @@ const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOO
 //
 // This shows up as an error in the test case. If the error goes away, we should switch this
 // back to thunk.
+const presistedState = loadState();
+
 export let store = redux.createStore(
   reducer,
-  {event: null}, // Base state
+  presistedState, // Base state
   composeEnhancers(redux.applyMiddleware((thunk.default || thunk), createStateSyncMiddleware()))
 );
 
@@ -268,7 +270,7 @@ function initializeStore () {
   });
 }
 
-export function reduxLogger (subscribers, initialState = {}) {
+export function reduxLogger (subscribers, initialState = null) {
   if (subscribers != null) {
     eventSubscribers = subscribers;
   }
@@ -289,7 +291,10 @@ export function reduxLogger (subscribers, initialState = {}) {
 
   logEvent.getLockFields = function () { return lockFields; };
 
-  setState(initialState);
+  //do we want to initialize the store here? We set it to the stored state in create store
+  //if (initialState) {
+  //  setState(initialState);
+  //}
 
   return logEvent;
 }
