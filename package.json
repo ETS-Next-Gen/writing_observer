@@ -36,5 +36,8 @@
     "stylelint": "^15.5.0",
     "stylelint-config-standard": "^33.0.0",
     "stylelint-scss": "^4.6.0"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.5"
   }
 }

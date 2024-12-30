@@ -1,0 +1,12 @@
+files:
+  - name: nginx
+    dest: /etc/nginx/sites-available/{hostname}
+  - name: authorized_keys
+    dest: /home/ubuntu/.ssh/authorized_keys
+  - name: passwd.lo
+    dest: /home/ubuntu/writing_observer/learning_observer/passwd.lo
+  - name: lo.sh
+    dest: /home/ubuntu/writing_observer/learning_observer/lo.sh
+  - name: systemd
+    dest: /etc/systemd/system/{hostname}.service
+ 

@@ -1,0 +1,37 @@
+hostname: {{hostname}}.{{server_domain}}
+auth:
+  password_file: passwd.lo
+pubsub:
+    type: redis
+kvs:
+    # stub for in-memory debugging
+    # redis_ephemeral for redis / debugging (object disappear)
+    # redis for deploy
+    # If using redis_ephemeral, persist objects for 60s = 1 minute
+    # I typically use:
+    # * 1-10s for test cases
+    # * 1-5 minutes for interactive debugging
+    # * 6-24 hours for development
+  default:
+    type: stub
+    expiry: 6000
+  memoization:
+    type: redis_ephemeral
+    expiry: 60
+feature_flags: {}
+roster_data:
+    source: all
+aio:
+    session_secret: {{RANDOM1}}
+    session_max_age: 3600
+config:
+    run_mode: dev
+    debug: []
+theme:
+    server_name: Learning Observer
+    front_page_pitch: Learning Observer is an experimental dashboard. If you'd like to be part of the experiment, please contact us. If you're already part of the experiment, log in!
+    logo_big: /static/media/logo-clean.jpg
+event_auth:
+    local_storage:
+        userfile: students.yaml
+        allow_guest: true

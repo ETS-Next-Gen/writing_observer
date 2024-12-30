@@ -89,6 +89,13 @@ inv certbot [machine]
 inv downloadconfig [machine]
 ```
 
+inv provision [machine] can be run step by step as well, using the commands
+
+sudo inv initialize [machine]
+inv baseline [ip address]
+inv gitrepos [ip address]
+inv venv [ip address]
+
 From there, edit configuration files in `config` and to update the
 machine to a new version, run
 
@@ -122,3 +129,26 @@ design:
   move right before the commit.
 * However, it is possible to reverse-engineered exactly what happened,
   roughly when. This is good enough for now.
+
+
+  @@@@PB
+  setup hosts.ini file, and run the following command to configure the remote server:
+  (from inside devops/tasks folder)
+
+  sudo inv initialize [machine]
+  ansible-playbook -i hosts.ini ../ansible/tasks/baseline.yaml --limit [machine]
+  ansible-playbook -i hosts.ini ../ansible/tasks/install_repos.yaml --limit [machine]
+  ansible-playbook -i hosts.ini ../ansible/tasks/copy_files.yaml --limit [machine]
+  ansible-playbook -i hosts.ini ../ansible/tasks/reboot.yaml --limit [machine]
+  
+  ###If setting up 
+  ansible-playbook -i hosts.ini ../ansible/tasks/toy-sba.yaml --limit [machine]
+  
+  inv certbot [machine]
+  inv downloadconfig [machine]
+
+
+###TODO- replace hosts.ini with a python script that returns inv list output in correct format
+
+
+  ansible-playbook -i hosts.ini ../ansible/tasks/baseline.yaml --limit coglabs

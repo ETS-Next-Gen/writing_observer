@@ -52,6 +52,45 @@ def provision(c, machine_name):
     orchlib.ubuntu.update(ip)
     print("Baseline...")
     orchlib.ubuntu.baseline_packages(ip)
+    print("Git Repos...")
+    orchlib.ubuntu.install_git_repos(ip)
+    print("Venv...")
+    orchlib.ubuntu.python_venv(ip)
+
+@task
+def initialize(c, machine_name):
+    '''
+    Set up a baseline image with all the packages needed for
+    Learning Observer. Note that this will **not** configure
+    the machine.
+    '''
+    print("Provisioning...")
+    machine_info = orchlib.aws.create_instance(machine_name)
+    print("Updating...")
+    ip = machine_info.public_ip_address
+    print("DNS....")
+    orchlib.aws.register_dns(machine_name, orchlib.config.creds['domain'], ip)
+    print("IP", ip)
+    
+    # Write to hosts.ini
+    hosts_ini_path = '../settings/hosts.ini'
+    line_to_write = f"{machine_name} ansible_host={ip} ansible_user=ubuntu ansible_ssh_private_key_file={orchlib.config.creds['key_filename']}\n"
+    with open(hosts_ini_path, 'a') as hosts_file:
+        hosts_file.write(line_to_write)
+    print(f"Added {machine_name} to {hosts_ini_path}")
+    
+@task
+def baseline(c, ip):
+    print("Baseline...")
+    orchlib.ubuntu.baseline_packages(ip)
+
+@task
+def gitrepos(c, ip):
+    print("Git Repos...")
+    orchlib.ubuntu.install_git_repos(ip)
+
+@task
+def venv(c, ip):
     print("Venv...")
     orchlib.ubuntu.python_venv(ip)
 
@@ -327,7 +366,7 @@ def commit(c, msg):
     '''
     system(
         "cd {gitpath} ; git add -A; git commit -m {msg}".format(
-            gitpath=orchlib.config.creds["flock-config"],
+            gitpath=orchlib.config.creds["flock_config"],
             msg=msg
         )
     )

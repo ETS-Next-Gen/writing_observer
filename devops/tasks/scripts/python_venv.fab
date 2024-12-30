@@ -1,6 +1,19 @@
+sudo apt-get install -y virtualenvwrapper
+
+# Source virtualenvwrapper.sh
+export WORKON_HOME=$HOME/.virtualenvs
+source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+
+source ~/.bashrc
+mkvirtualenv --version
+
+# Create a virtual environment
+mkvirtualenv learning_observer
+
 cd
 echo . /usr/share/virtualenvwrapper/virtualenvwrapper.sh >> ~/.profile
-source ~/.profile; mkvirtualenv learning_observer
+source ~/.profile; 
+
 echo workon learning_observer >> ~/.profile
 source ~/.profile; pip install --upgrade pip
 source ~/.profile; cd writing_observer/ ; pip install -r requirements.txt

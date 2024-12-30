@@ -4,8 +4,9 @@
 *__pycache__*
 webapp/logs
 webapp/static_data/teachers.yaml
-creds.yaml
-CREDS.YAML
+learning_observer/*/creds.yaml
+learning_observer/*/CREDS.YAML
+devops/tasks/settings/CREDS.YAML
 uncommitted
 extension.crx
 extension.pem

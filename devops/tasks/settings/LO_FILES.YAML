@@ -1,0 +1,6 @@
+files:
+  - src: ../../ansible/files_to_upload/nginx
+    dest: /etc/nginx/sites-available/{hostname}
+  - src: ../../ansible/files_to_upload/authorized_keys
+    dest: /home/ubuntu/authorized_keys
+ 

@@ -1,0 +1,7 @@
+creds.yaml,root:root,644,/home/ubuntu/writing_observer/learning_observer/creds.yaml,"Learning Observer settings file"
+nginx_toy_sba,root:root,644,/etc/nginx/sites-available/{hostname},"nginx site configuration"
+authorized_keys,root:root,644,/home/ubuntu/authorized_keys,"nginx site configuration"
+passwd.lo,root:root,644,/home/ubuntu/writing_observer/learning_observer/passwd.lo,"(Generally blank) passwords file"
+toy-sba.sh,ubuntu:ubuntu,744,/home/ubuntu/toy-sba/toy-sba.sh,"Script to start toy-sba"
+systemd_toy_sba,root:root,644,/etc/systemd/system/toy_sba.service,"Systemd init script for toy-sba"
+rsyslog.conf,root:root,644,/etc/rsyslog.d/learning_observer.conf,"rsyslog script (for stdout/stderr)"

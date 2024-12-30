@@ -20,6 +20,7 @@ ec2client = boto3.client('ec2')
 r53 = boto3.client('route53')
 
 UBUNTU_20_04 = "ami-09e67e426f25ce0d7"
+UBUNTU_24_04 = "ami-0e86e20dae9224db8" 
 
 def create_instance(name):
     '''
@@ -27,11 +28,11 @@ def create_instance(name):
     '''
     blockDeviceMappings = [
         {
-            "DeviceName": "/dev/xvda",
+            "DeviceName": "/dev/sda1", ###xvda",
             "Ebs": {
                 "DeleteOnTermination": True,
-                "VolumeSize": 32,
-                "VolumeType": "gp2"
+                "VolumeSize": 16,
+                "VolumeType": "gp3"
             }
         }
     ]
@@ -47,8 +48,12 @@ def create_instance(name):
             'Value': orchlib.config.creds['owner']
         },
         {
-            'Key': 'deploy-group',
-            'Value': orchlib.config.creds['deploy-group']
+            'Key': 'deploy_group',
+            'Value': orchlib.config.creds['deploy_group']
+        },
+        {
+            'Key': 'Patch Group',
+            'Value': 'pet'
         }
     ]
 
@@ -69,8 +74,8 @@ def create_instance(name):
     # It doesn't correspond 1:1, but it's a good starting
     # point.
     response = ec2.create_instances(
-        ImageId=UBUNTU_20_04,
-        InstanceType='t2.small',
+        ImageId=UBUNTU_24_04,
+        InstanceType='t3.small',
         BlockDeviceMappings=blockDeviceMappings,
         KeyName=orchlib.config.creds['aws_keyname'],
         MinCount=1,
@@ -122,8 +127,8 @@ def list_instances():
     '''
     reservations = ec2client.describe_instances(Filters=[
         {
-            'Name': 'tag:deploy-group',
-            'Values': [orchlib.config.creds['deploy-group']]
+            'Name': 'tag:deploy_group',
+            'Values': [orchlib.config.creds['deploy_group']]
         },
     ])['Reservations']
     instances = sum([i['Instances'] for i in reservations], [])
