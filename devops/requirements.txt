@@ -2,4 +2,5 @@ chevron
 boto3
 pyyaml
 fabric
-
+invoke
+filetype
