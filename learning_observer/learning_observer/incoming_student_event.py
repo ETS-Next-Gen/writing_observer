@@ -38,6 +38,7 @@ import learning_observer.exceptions
 import learning_observer.auth.events
 import learning_observer.adapters.adapter
 import learning_observer.blacklist
+import learning_observer.blob_storage
 
 import learning_observer.constants as constants
 
@@ -447,6 +448,35 @@ async def incoming_websocket_handler(request):
                 await ws.send_json(bl_status)
                 await ws.close()
 
+    async def process_blob_storage_events(events):
+        '''HACK This function manages events related to storing and
+        retrieving blobs from server-side storage. It is primarily
+        used for LO Assess. Ideally, this functionality should reside
+        in an independent module, rather than being directly integrated
+        into Learning Observer, as it is currently implemented.
+        '''
+        async for event in events:
+            print('***EVENT', event)
+            # Extract metadata
+            if event['event'] in ['save_blob', 'fetch_blob']:
+                # TODO not 100% sure how auth/source/activity are stored
+                # in the event. That's why we have a print statement above
+                user_id = event['auth']
+                source = event['source']
+                activity = event['activity']
+
+            # Save, fetch, or ignore (continue)
+            if event['event'] == 'save_blob':
+                await learning_observer.blob_storage.save_blob(
+                    user_id, source, activity,
+                    event['blob']
+                )
+            elif event['event'] == 'fetch_blob':
+                blob = await learning_observer.blob_storage.fetch_blob(user_id, source, activity)
+                await ws.send_json(blob)
+            else:
+                yield event
+
     async def check_for_reducer_update(events):
         '''Check to see if the reducers updated
         '''
@@ -470,6 +500,7 @@ async def incoming_websocket_handler(request):
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)
+        events = process_blob_storage_events(events)
         events = check_for_reducer_update(events)
         events = pass_through_reducers(events)
         # empty loop to start the generator pipeline
