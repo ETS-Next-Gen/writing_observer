@@ -5,11 +5,13 @@ const DEBUG = false;
 const dclog = (...args) => {if(DEBUG) {console.log.apply(console, Array.from(args));} };
 
 export const LOAD_DATA_EVENT = 'LOAD_DATA_EVENT';
+export const LOAD_STATE = 'LOAD_STATE';
 export const NAVIGATE = 'NAVIGATE';
 export const SHOW_SECTION='SHOW_SECTION';
 export const STEPTHROUGH_NEXT = 'STEPTHROUGH_NEXT';
 export const STEPTHROUGH_PREV = 'STEPTHROUGH_PREV';
 export const STORE_VARIABLE = 'STORE_VARIABLE';
+export const STORE_SETTING = 'STORE_SETTING';
 export const UPDATE_INPUT = 'UPDATE_INPUT';
 export const UPDATE_LLM_RESPONSE = 'UPDATE_LLM_RESPONSE';
 export const VIDEO_TIME_EVENT = 'VIDEO_TIME_EVENT';
@@ -46,11 +48,14 @@ export const updateResponseReducer = (state = initialState, action) => {
 
 registerReducer(
   [LOAD_DATA_EVENT,
+   LOAD_STATE,
    NAVIGATE,
    SHOW_SECTION,
    STEPTHROUGH_NEXT, STEPTHROUGH_PREV,
+   STORE_SETTING,
    STORE_VARIABLE,
    UPDATE_INPUT,
-   UPDATE_LLM_RESPONSE, VIDEO_TIME_EVENT],
+   UPDATE_LLM_RESPONSE, 
+   VIDEO_TIME_EVENT],
   updateResponseReducer
 );

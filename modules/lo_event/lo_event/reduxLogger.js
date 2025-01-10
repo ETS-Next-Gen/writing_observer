@@ -26,6 +26,18 @@ import debounce from "lodash/debounce";
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
 const EMIT_SET_STATE = 'SET_STATE';
+const EMIT_LOAD_STATE = 'LOAD_STATE';
+const EMIT_STORE_SETTING = 'SET_SETTING';
+const EMIT_SAVE_BLOB = 'save_blob';
+const EMIT_FETCH_BLOB = 'fetch_blob';
+
+const ACTION_LOAD_STATE = 'fetch_blob';
+
+const REDUX_STORE_STATES = {
+  NOT_STARTED: 'NOT_STARTED', // init() has not been called
+  LOADING: 'LOADING', //loading event has fired
+  LOADED: 'LOADED' //loading event has completed
+};
 
 // TODO: Import debugLog and use those functions.
 const DEBUG = false;
@@ -36,22 +48,39 @@ function debug_log(...args) {
   }
 }
 
-const KEY = "redux";
-export function loadState() {
+export function loadState(reduxStoreID) {
+  debug_log("***EMITTING FETCH BLOB***");
+  emitEvent({ event: EMIT_FETCH_BLOB, reduxStoreID: reduxStoreID });
+  //how do we get the fetched blob here?
+}
+
+async function saveStateToLocalStorage(state) {
+  const reduxStoreStatus = state?.settings?.reduxStoreStatus || REDUX_STORE_STATES.NOT_STARTED;
+  if (reduxStoreStatus !== REDUX_STORE_STATES.LOADED) {
+    debug_log("not saving store locally b/c store has status: " + reduxStoreStatus);
+    return;
+  }
+
   try {
-    const serializedState = localStorage.getItem(KEY);
-    if (!serializedState) return undefined;
-    return JSON.parse(serializedState);
+    const KEY = state?.settings?.reduxID || "redux";
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem(KEY, serializedState);
+    
   } catch (e) {
-    return undefined;
+    // Ignore
   }
 }
 
-export async function saveState(state) {
-  console.log("Saving state");
+async function saveStateToServer(state) {
+  const reduxStoreStatus = state?.settings?.reduxStoreStatus || REDUX_STORE_STATES.NOT_STARTED;
+  if (reduxStoreStatus !== REDUX_STORE_STATES.LOADED) {
+    debug_log("not saving store locally b/c store has status: " + reduxStoreStatus);
+    return;
+  }
+
   try {
     const serializedState = JSON.stringify(state);
-    localStorage.setItem(KEY, serializedState);
+    emitEvent({ event: EMIT_SAVE_BLOB, state: serializedState });
   } catch (e) {
     // Ignore
   }
@@ -143,19 +172,30 @@ function set_state_reducer(state = {}, action) {
   return action.payload;
 }
 
+function set_setting_reducer(state = initialState, action) {
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      pageIdentifier: "testing",
+    }
+  };
+}
+
 const BASE_REDUCERS = {
   [EMIT_EVENT]: [store_last_event_reducer],
   [EMIT_LOCKFIELDS]: [lock_fields_reducer],
-  [EMIT_SET_STATE]: [set_state_reducer]
+  [EMIT_SET_STATE]: [set_state_reducer],
+  [EMIT_STORE_SETTING]: [set_setting_reducer]
 }
 
-const APPLICATION_REDUCERS = {
-}
+const APPLICATION_REDUCERS = {}
 
 export const registerReducer = (keys, reducer) => {
   const reducerKeys = Array.isArray(keys) ? keys : [keys];
 
   reducerKeys.forEach(key => {
+   debug_log("registering key: " + key);
     if (!APPLICATION_REDUCERS[key])
       APPLICATION_REDUCERS[key] = [];
 
@@ -173,11 +213,39 @@ const reducer = (state = {}, action) => {
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
+    if (action.type === EMIT_LOAD_STATE) {
+      const reduxStoreID = payload.reduxID || "reduxStore";
+      loadState(reduxStoreID);
+      return {
+        ...state,
+        ...serverState,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: REDUX_STORE_STATES.LOADING,
+          reduxID: reduxStoreID,
+        }
+      };
+    }
+    if (action.type === "state_recieved") {
+      console.log("fetch_blob action returned");
+      console.log({payload:payload});
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: REDUX_STORE_STATES.LOADED,
+          reduxID: reduxStoreID,
+        }
+      };
+    }
+    
+    
     debug_log(Object.keys(payload));
 
     if (APPLICATION_REDUCERS[payload.event]) {
       state = { ...state, application_state: composeReducers(...APPLICATION_REDUCERS[payload.event])(state.application_state || {}, payload) };
     }
+  
   }
 
   return state;
@@ -193,11 +261,15 @@ const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOO
 //
 // This shows up as an error in the test case. If the error goes away, we should switch this
 // back to thunk.
-const presistedState = loadState();
+//const presistedState = loadState();
 
 export let store = redux.createStore(
   reducer,
-  presistedState, // Base state
+  {
+    settings: {
+      reduxStoreStatus: REDUX_STORE_STATES.NOT_STARTED,
+    }
+  }, // Base state
   composeEnhancers(redux.applyMiddleware((thunk.default || thunk), createStateSyncMiddleware()))
 );
 
@@ -232,17 +304,23 @@ export function setState(state) {
   store.dispatch(emitSetState(state));
 }
 
-const debouncedSaveState = debounce((state) => {
-  saveState(state);
+const debouncedSaveStateToLocalStorage = debounce((state) => {
+  saveStateToLocalStorage(state);
+}, 1000);
+
+const debouncedSaveStateToServer = debounce((state) => {
+  saveStateToServer(state);
 }, 1000);
 
 function initializeStore () {
   store.subscribe(() => {
     const state = store.getState();
+    debouncedSaveStateToLocalStorage(state);
+    debouncedSaveStateToServer(state);
 
     // we use debounce to save the state once every second
     // for better performances in case multiple changes occur in a short time
-    debouncedSaveState(state);
+    //debouncedSaveState(state);
 
     if (state.lock_fields) {
       lockFields = state.lock_fields.fields;
@@ -276,6 +354,7 @@ export function reduxLogger (subscribers, initialState = null) {
   }
 
   function logEvent (event) {
+   debug_log("logEvent fired");
     store.dispatch(emitEvent(event));
   }
   logEvent.lo_name = 'Redux Logger'; // A human-friendly name for the logger
@@ -293,7 +372,6 @@ export function reduxLogger (subscribers, initialState = null) {
 
   //do we want to initialize the store here? We set it to the stored state in create store
   //if (initialState) {
-  //  setState(initialState);
   //}
 
   return logEvent;

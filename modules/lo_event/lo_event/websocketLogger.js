@@ -147,6 +147,12 @@ export function websocketLogger (server = {}) {
       case 'browser_event':
         util.dispatchCustomEvent(response.event_type, { detail: response.detail });
         break;
+      case 'fetch_blob':
+        util.dispatchCustomEvent("state_recieved", { detail: response.detail });
+        break;
+      case 'save_blob':
+        util.dispatchCustomEvent("save_blob", { detail: response.detail });
+        break;
       default:
         debug.info(`Received response we do not yet handle: ${response}`);
         break;
