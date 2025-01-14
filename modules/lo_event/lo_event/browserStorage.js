@@ -81,7 +81,6 @@ function setWithCallback (setItem) {
     for (const item in items) {
       setItem(item, items[item]);
     }
-    console.log("checking if callback exists");
     if (callback) callback();
   }
   return set;

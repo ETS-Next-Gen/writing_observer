@@ -20,24 +20,16 @@
  */
 import * as redux from 'redux';
 import { thunk } from 'redux-thunk';
-import { createStateSyncMiddleware, initMessageListener, } from "redux-state-sync";
+import { createStateSyncMiddleware, initMessageListener } from "redux-state-sync";
 import debounce from "lodash/debounce";
+
+import * as util from './util.js';
 
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
 const EMIT_SET_STATE = 'SET_STATE';
-const EMIT_LOAD_STATE = 'LOAD_STATE';
-const EMIT_STORE_SETTING = 'SET_SETTING';
-const EMIT_SAVE_BLOB = 'save_blob';
-const EMIT_FETCH_BLOB = 'fetch_blob';
 
-const ACTION_LOAD_STATE = 'fetch_blob';
-
-const REDUX_STORE_STATES = {
-  NOT_STARTED: 'NOT_STARTED', // init() has not been called
-  LOADING: 'LOADING', //loading event has fired
-  LOADED: 'LOADED' //loading event has completed
-};
+let IS_LOADED = false;
 
 // TODO: Import debugLog and use those functions.
 const DEBUG = false;
@@ -48,16 +40,18 @@ function debug_log(...args) {
   }
 }
 
-export function loadState(reduxStoreID) {
-  debug_log("***EMITTING FETCH BLOB***");
-  emitEvent({ event: EMIT_FETCH_BLOB, reduxStoreID: reduxStoreID });
-  //how do we get the fetched blob here?
+export function handleLoadState (data) {
+  IS_LOADED = true;
+  if (data) {
+    setState(data)
+  } else {
+    debug_log('No data provided while handling state from server, continuing.')
+  }
 }
 
 async function saveStateToLocalStorage(state) {
-  const reduxStoreStatus = state?.settings?.reduxStoreStatus || REDUX_STORE_STATES.NOT_STARTED;
-  if (reduxStoreStatus !== REDUX_STORE_STATES.LOADED) {
-    debug_log("not saving store locally b/c store has status: " + reduxStoreStatus);
+  if (!IS_LOADED) {
+    debug_log('Not saving store locally because IS_LOADED is set to false.')
     return;
   }
 
@@ -72,15 +66,13 @@ async function saveStateToLocalStorage(state) {
 }
 
 async function saveStateToServer(state) {
-  const reduxStoreStatus = state?.settings?.reduxStoreStatus || REDUX_STORE_STATES.NOT_STARTED;
-  if (reduxStoreStatus !== REDUX_STORE_STATES.LOADED) {
-    debug_log("not saving store locally b/c store has status: " + reduxStoreStatus);
+  if (!IS_LOADED) {
+    debug_log('Not saving store on the server because IS_LOADED is set to false.')
     return;
   }
 
   try {
-    const serializedState = JSON.stringify(state);
-    emitEvent({ event: EMIT_SAVE_BLOB, state: serializedState });
+    util.dispatchCustomEvent('save_blob', { detail: state });
   } catch (e) {
     // Ignore
   }
@@ -172,21 +164,10 @@ function set_state_reducer(state = {}, action) {
   return action.payload;
 }
 
-function set_setting_reducer(state = initialState, action) {
-  return {
-    ...state,
-    settings: {
-      ...state.settings,
-      pageIdentifier: "testing",
-    }
-  };
-}
-
 const BASE_REDUCERS = {
   [EMIT_EVENT]: [store_last_event_reducer],
   [EMIT_LOCKFIELDS]: [lock_fields_reducer],
   [EMIT_SET_STATE]: [set_state_reducer],
-  [EMIT_STORE_SETTING]: [set_setting_reducer]
 }
 
 const APPLICATION_REDUCERS = {}
@@ -208,53 +189,23 @@ export const registerReducer = (keys, reducer) => {
 const reducer = (state = {}, action) => {
   let payload;
 
-  debug_log("Reducing ", action," on ", state);
+  debug_log('Reducing ', action, ' on ', state);
   state = BASE_REDUCERS[action.redux_type] ? composeReducers(...BASE_REDUCERS[action.redux_type])(state, action) : state;
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
-    if (action.type === EMIT_LOAD_STATE) {
-      const reduxStoreID = payload.reduxID || "reduxStore";
-      loadState(reduxStoreID);
-      return {
-        ...state,
-        ...serverState,
-        settings: {
-          ...state.settings,
-          reduxStoreStatus: REDUX_STORE_STATES.LOADING,
-          reduxID: reduxStoreID,
-        }
-      };
-    }
-    if (action.type === "state_recieved") {
-      console.log("fetch_blob action returned");
-      console.log({payload:payload});
-      return {
-        ...state,
-        settings: {
-          ...state.settings,
-          reduxStoreStatus: REDUX_STORE_STATES.LOADED,
-          reduxID: reduxStoreID,
-        }
-      };
-    }
-    
-    
     debug_log(Object.keys(payload));
 
     if (APPLICATION_REDUCERS[payload.event]) {
       state = { ...state, application_state: composeReducers(...APPLICATION_REDUCERS[payload.event])(state.application_state || {}, payload) };
     }
-  
   }
 
   return state;
 };
 
-
 const eventQueue = [];
 const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) || redux.compose;
-
 
 // This should just be redux.applyMiddleware(thunk))
 // There is a bug in our version of redux-thunk where, in node, this must be thunk.default.
@@ -265,11 +216,7 @@ const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOO
 
 export let store = redux.createStore(
   reducer,
-  {
-    settings: {
-      reduxStoreStatus: REDUX_STORE_STATES.NOT_STARTED,
-    }
-  }, // Base state
+  {event: null}, // Base state
   composeEnhancers(redux.applyMiddleware((thunk.default || thunk), createStateSyncMiddleware()))
 );
 
@@ -400,3 +347,6 @@ export const awaitEvent = () => {
   promise.resolve = resolvePromise;
   return promise;
 };
+
+// Start listening for fetch
+util.consumeCustomEvent('fetch_blob', handleLoadState);

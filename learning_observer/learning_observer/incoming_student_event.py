@@ -428,7 +428,7 @@ async def incoming_websocket_handler(request):
         '''
         async for event in events:
             if event['event'] == 'lock_fields':
-                if event['fields'].get('source', '') != lock_fields.get('source', ''):
+                if 'source' not in event['fields'] or event['fields'].get('source', '') != lock_fields.get('source', ''):
                     lock_fields.update(event['fields'])
             else:
                 event.update(lock_fields)
@@ -456,12 +456,11 @@ async def incoming_websocket_handler(request):
         into Learning Observer, as it is currently implemented.
         '''
         async for event in events:
-            print('***EVENT', event)
             # Extract metadata
             if event['event'] in ['save_blob', 'fetch_blob']:
                 # TODO not 100% sure how auth/source/activity are stored
                 # in the event. That's why we have a print statement above
-                user_id = event['auth']
+                user_id = event['auth']['user_id']
                 source = event['source']
                 activity = event['activity']
 
@@ -473,7 +472,10 @@ async def incoming_websocket_handler(request):
                 )
             elif event['event'] == 'fetch_blob':
                 blob = await learning_observer.blob_storage.fetch_blob(user_id, source, activity)
-                await ws.send_json(blob)
+                await ws.send_json({
+                    'status': 'fetch_blob',
+                    'data': blob
+                })
             else:
                 yield event
 

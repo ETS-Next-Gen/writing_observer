@@ -410,19 +410,59 @@ export function formatTime(seconds) {
  * When working in a browser, we want to dispatch the event via the
  * `window` object.
  */
-export function dispatchCustomEvent(eventName, detail) {
-  const event = new CustomEvent(eventName, { detail });
-  if (typeof window !== "undefined") {
+export function dispatchCustomEvent (eventName, detail) {
+  const event = new CustomEvent(eventName, detail);
+  if (typeof window !== 'undefined') {
     // Web page: dispatch directly on window
     window.dispatchEvent(event);
-  } else if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
-      // Chrome extension background script: use chrome.runtime to send messages
-      chrome.runtime.sendMessage({ eventName, detail }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.warn(`No listeners found for event, ${eventName}, in this context.`);
-        }
-      });
+  } else if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+    // Chrome extension background script: use chrome.runtime to send messages
+    chrome.runtime.sendMessage({ eventName, detail }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn(`No listeners found for event, ${eventName}, in this context.`);
+      }
+    });
   } else {
-      console.warn("Event dispatching is not supported in this environment.");
+    console.warn('Event dispatching is not supported in this environment.');
+  }
+}
+
+/**
+ * This function consumes a custom event in the appropriate context for
+ * our environment.
+ *
+ * When working in an extension, it listens for messages via the
+ * `chrome.runtime.onMessage` object.
+ *
+ * When working in a browser, it listens for events on the
+ * `window` object.
+ */
+export function consumeCustomEvent (eventName, callback) {
+  if (typeof window !== 'undefined') {
+    // Web page: listen for the event on the window object
+    const listener = (event) => {
+      callback(event.detail);
+    };
+    window.addEventListener(eventName, listener);
+
+    // Return a function to remove the event listener
+    return () => window.removeEventListener(eventName, listener);
+  } else if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    // Chrome extension background script: listen for messages via chrome.runtime
+    const listener = (message, sender, sendResponse) => {
+      if (message.eventName === eventName) {
+        callback(message.detail, sender);
+        sendResponse?.({ status: 'received' });
+      }
+    };
+    chrome.runtime.onMessage.addListener(listener);
+
+    // Return a function to remove the message listener
+    return () => chrome.runtime.onMessage.removeListener(listener);
+  } else {
+    console.warn('Event consumption is not supported in this environment.');
+    return () => {
+      console.warn('No listener to remove in this environment.');
+    };
   }
 }

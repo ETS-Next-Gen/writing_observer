@@ -125,7 +125,6 @@ export function websocketLogger (server = {}) {
 
   function receiveMessage (event) {
     const response = JSON.parse(event.data);
-
     switch (response.status) {
       case 'blocklist':
         debug.info('Received block error from server');
@@ -136,22 +135,19 @@ export function websocketLogger (server = {}) {
         );
         break;
       case 'auth':
-        storage.set({user_id: response.user_id});
-        util.dispatchCustomEvent("auth", { detail: { user_id: response.user }});
+        storage.set({ user_id: response.user_id });
+        util.dispatchCustomEvent('auth', { detail: { user_id: response.user } });
         break;
       // These should probably be behind a feature flag, as they assume
       // we trust the server.
       case 'local_storage':
-        storage.set({[response.key]: response.value});
+        storage.set({ [response.key]: response.value });
         break;
       case 'browser_event':
         util.dispatchCustomEvent(response.event_type, { detail: response.detail });
         break;
       case 'fetch_blob':
-        util.dispatchCustomEvent("state_recieved", { detail: response.detail });
-        break;
-      case 'save_blob':
-        util.dispatchCustomEvent("save_blob", { detail: response.detail });
+        util.dispatchCustomEvent('fetch_blob', { detail: response.data });
         break;
       default:
         debug.info(`Received response we do not yet handle: ${response}`);
@@ -189,6 +185,12 @@ export function websocketLogger (server = {}) {
     util.mergeDictionary(metadata, JSON.parse(data));
     queue.enqueue(data);
   };
+
+  function handleSaveBlob (blob) {
+    queue.enqueue(JSON.stringify({ event: 'save_blob', blob }));
+  }
+
+  util.consumeCustomEvent('save_blob', handleSaveBlob)
 
   return wsLogData;
 }
