@@ -43,9 +43,25 @@ function debug_log(...args) {
 export function handleLoadState (data) {
   IS_LOADED = true;
   if (data) {
-    setState(data)
+    setState(
+      {
+        ...state,
+        ...data,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: IS_LOADED
+        }
+      });  
   } else {
     debug_log('No data provided while handling state from server, continuing.')
+    setState(
+      {
+        ...state,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: IS_LOADED
+        }
+      });  
   }
 }
 
