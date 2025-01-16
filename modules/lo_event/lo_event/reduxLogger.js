@@ -42,6 +42,7 @@ function debug_log(...args) {
 
 export function handleLoadState (data) {
   IS_LOADED = true;
+  const state = store.getState();
   if (data) {
     setState(
       {
