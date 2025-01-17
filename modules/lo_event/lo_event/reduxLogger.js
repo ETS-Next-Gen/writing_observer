@@ -89,7 +89,7 @@ async function saveStateToServer(state) {
   }
 
   try {
-    util.dispatchCustomEvent('save_blob', { detail: state });
+    store.dispatch('save_blob', { detail: state });
   } catch (e) {
     // Ignore
   }
@@ -211,18 +211,12 @@ const reducer = (state = {}, action) => {
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
-    console.log('@@@@ action.type: ', action.type);
-    if (action.type === "init_fetch_state") {
-      const reduxStoreID = payload.reduxID || "reduxStore";
-      console.log('@@@@ fetch_blob dispatching');
-      util.dispatchCustomEvent('fetch_blob', { blob_key_id: reduxStoreID });
+    if (action.type === "save_setting") {
       return {
         ...state,
-        ...serverState,
         settings: {
           ...state.settings,
-          reduxStoreStatus: false,
-          reduxID: reduxStoreID,
+          payload
         }
       };
     }
