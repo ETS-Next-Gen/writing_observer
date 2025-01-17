@@ -211,6 +211,21 @@ const reducer = (state = {}, action) => {
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
+    console.log('@@@@ action.type: ', action.type);
+    if (action.type === "init_fetch_state") {
+      const reduxStoreID = payload.reduxID || "reduxStore";
+      console.log('@@@@ fetch_blob dispatching');
+      util.dispatchCustomEvent('fetch_blob', { blob_key_id: reduxStoreID });
+      return {
+        ...state,
+        ...serverState,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: false,
+          reduxID: reduxStoreID,
+        }
+      };
+    }
     debug_log(Object.keys(payload));
 
     if (APPLICATION_REDUCERS[payload.event]) {
@@ -265,6 +280,15 @@ function composeReducers(...reducers) {
 
 export function setState(state) {
   debug_log("Set state called");
+  if (Object.keys(state).length === 0) {
+    const storeState = store.getState();
+    state = {
+      settings: {
+        ...storeState.settings,
+        reduxStoreStatus: IS_LOADED
+      }
+    }
+  }
   store.dispatch(emitSetState(state));
 }
 
