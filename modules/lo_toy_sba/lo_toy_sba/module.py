@@ -3,13 +3,10 @@ Toy-SBA Module
 
 Toy-SBA Module
 '''
-import learning_observer.downloads as d
 import learning_observer.communication_protocol.util
-from learning_observer.dash_integration import thirdparty_url, static_url
 from learning_observer.stream_analytics.helpers import KeyField, Scope
 
 import lo_toy_sba.reducers
-import lo_toy_sba.dash_dashboard
 
 # Name for the module
 NAME = 'Toy-SBA Module'
@@ -34,18 +31,14 @@ ought to be improved.
 EXECUTION_DAG = learning_observer.communication_protocol.util.generate_base_dag_for_student_reducer('student_event_counter', 'lo_toy_sba')
 
 '''
-Add reducers to the module.
-
-`context`: TODO
-`scope`: the granularity of event (by student, by student + document, etc)
-`function`: the reducer function to run
-`default` (optional): initial value to start with
+This is a simple reducer we use to ensure events are
+passed into the event pipeline to save/fetch state.
+We need a reducer whose context matches the source of
+a page using LO Event.
 '''
 REDUCERS = [
     {
         'context': 'org.ets.sba',
-        # TODO scope is defined as a decorator on the function, why is
-        # is also defined here?
         'scope': Scope([KeyField.STUDENT]),
         'function': lo_toy_sba.reducers.student_event_counter,
         'default': {'count': 0}
@@ -53,45 +46,35 @@ REDUCERS = [
 ]
 
 '''
-Define pages created with Dash.
+Which pages to link on the home page.
 '''
-DASH_PAGES = [
-    {
-        'MODULE': lo_toy_sba.dash_dashboard,
-        'LAYOUT': lo_toy_sba.dash_dashboard.layout,
-        'ASSETS': 'assets',
-        'TITLE': 'Toy-SBA Module',
-        'DESCRIPTION': 'Toy-SBA Module',
-        'SUBPATH': 'lo-toy-sba',
-        'CSS': [
-            thirdparty_url("css/fontawesome_all.css")
-        ],
-        'SCRIPTS': [
-            static_url("liblo.js")
-        ]
-    }
+COURSE_DASHBOARDS = [
+    # {
+    #     'name': NAME,
+    #     'url': "/lo_toy_sba/toy-sba/",
+    #     "icon": {
+    #         "type": "fas",
+    #         "icon": "fa-play-circle"
+    #     }
+    # }
+]
+
+
+'''
+Additional API calls we can define, this one returns the colors of the rainbow
+'''
+EXTRA_VIEWS = [
+    # {
+    #     'name': 'Colors of the Rainbow',
+    #     'suburl': 'api/llm',
+    #     'method': 'POST',
+    #     'handler': function_to_call
+    # }
 ]
 
 '''
-Additional files we want included that come from a third part.
+Built NextJS pages we want to serve.
 '''
-THIRD_PARTY = {
-    "css/fontawesome_all.css": d.FONTAWESOME_CSS,
-    "webfonts/fa-solid-900.woff2": d.FONTAWESOME_WOFF2,
-    "webfonts/fa-solid-900.ttf": d.FONTAWESOME_TTF
-}
-
-'''
-The Course Dashboards are used to populate the modules
-on the home screen.
-
-Note the icon uses Font Awesome v5
-'''
-COURSE_DASHBOARDS = [{
-    'name': NAME,
-    'url': "/lo_toy_sba/dash/lo-toy-sba",
-    "icon": {
-        "type": "fas",
-        "icon": "fa-play-circle"
-    }
-}]
+NEXTJS_PAGES = [
+    # {'path': 'toy_sba/'}
+]
