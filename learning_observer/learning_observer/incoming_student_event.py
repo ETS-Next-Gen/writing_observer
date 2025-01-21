@@ -20,6 +20,7 @@ import uuid
 import weakref
 
 import aiohttp
+import aiofiles
 
 import learning_observer.log_event as log_event
 import learning_observer.paths as paths
@@ -268,6 +269,9 @@ def event_decoder_and_logger(
         }
         merkle_store.start(session)
 
+        # TODO this did not get updated to the async generator pipeline
+        # we should also remove the decoding from here as we moved it
+        # to its own piece of the pipeilne
         def decode_and_log_event(msg):
             '''
             Decode and store the event in the Merkle tree
@@ -295,16 +299,21 @@ def event_decoder_and_logger(
         Take an aiohttp web sockets message, log it, and return
         a clean event.
         '''
-        async for msg in events:
-            if isinstance(msg, dict):
-                json_event = msg
-            else:
-                json_event = json.loads(msg.data)
-            log_event.log_event(json_event, filename=filename)
-            yield json_event
+        async for event in events:
+            log_event.log_event(event, filename=filename)
+            yield event
         # done processing events, can close logfile now
         log_event.close_logfile(filename)
     return decode_and_log_event
+
+
+async def decode_events(events):
+    async for event in events:
+        if isinstance(event, dict):
+            json_event = event
+        else:
+            json_event = json.loads(event.data)
+        yield json_event
 
 
 async def failing_event_handler(*args, **kwargs):
@@ -318,21 +327,34 @@ async def failing_event_handler(*args, **kwargs):
     raise aiohttp.web.HTTPBadRequest(text=exception_text)
 
 
-async def incoming_websocket_handler(request):
+async def incoming_event_handler(request, use_websocket=True, filename=None):
     '''This handles incoming WebSocket requests. We pass each event
     through minimal processing before it is added to a queue. Once
     we receive enough initial information (e.g. source and auth),
     we start processing each event in our queue through the reducers.
     '''
     debug_log("Incoming web socket connected")
-    ws = aiohttp.web.WebSocketResponse()
-    await ws.prepare(request)
+    ws = aiohttp.web.WebSocketResponse() if use_websocket else None
+    if ws:
+        await ws.prepare(request)
     lock_fields = {}
     authenticated = False
     reducers_last_updated = None
     event_handler = failing_event_handler
 
-    decoder_and_logger = event_decoder_and_logger(request)
+    log_events = event_decoder_and_logger(request)
+
+    async def process_message_from_log_file():
+        '''Extract lines from a log file using an
+        async generator for use in the processing pipeline
+        '''
+        if not filename:
+            debug_log('Filename is not specified, not continuing through event pipeline')
+            return
+
+        with aiofiles.open(filename, 'r', encoding='utf-8') as file:
+            async for line in file:
+                yield line.strip()
 
     async def process_message_from_ws():
         '''This function makes sure that the ws is an
@@ -465,8 +487,16 @@ async def incoming_websocket_handler(request):
     async def process_ws_message_through_pipeline():
         '''Prepare each event we receive for processing
         '''
-        events = process_message_from_ws()
-        events = decoder_and_logger(events)
+        if ws:
+            events = process_message_from_ws()
+        else:
+            events = process_message_from_log_file()
+
+        events = decode_events(events)
+
+        if ws:
+            events = log_events(events)
+
         events = decode_lock_fields(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)

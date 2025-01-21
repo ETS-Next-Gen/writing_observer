@@ -188,7 +188,7 @@ def register_incoming_event_views(app):
     app.add_routes([
         aiohttp.web.get(
             '/wsapi/in/',
-            incoming_student_event.incoming_websocket_handler)
+            incoming_student_event.incoming_event_handler)
     ])
 
 
