@@ -458,8 +458,6 @@ async def incoming_websocket_handler(request):
         async for event in events:
             # Extract metadata
             if event['event'] in ['save_blob', 'fetch_blob']:
-                # TODO not 100% sure how auth/source/activity are stored
-                # in the event. That's why we have a print statement above
                 user_id = event['auth']['user_id']
                 source = event['source']
                 activity = event['activity']

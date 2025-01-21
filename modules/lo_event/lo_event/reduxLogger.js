@@ -40,6 +40,11 @@ function debug_log(...args) {
   }
 }
 
+/**
+ * Update the redux logger's state with `data`.
+ * This is fired when consuming a custom `fetch_blob`
+ * event.
+ */
 export function handleLoadState (data) {
   IS_LOADED = true;
   const state = store.getState();
@@ -82,6 +87,10 @@ async function saveStateToLocalStorage(state) {
   }
 }
 
+/**
+ * Dispatch a `save_blob` event on the redux
+ * logger.
+ */
 async function saveStateToServer(state) {
   if (!IS_LOADED) {
     debug_log('Not saving store on the server because IS_LOADED is set to false.')
@@ -184,7 +193,7 @@ function set_state_reducer(state = {}, action) {
 const BASE_REDUCERS = {
   [EMIT_EVENT]: [store_last_event_reducer],
   [EMIT_LOCKFIELDS]: [lock_fields_reducer],
-  [EMIT_SET_STATE]: [set_state_reducer],
+  [EMIT_SET_STATE]: [set_state_reducer]
 }
 
 const APPLICATION_REDUCERS = {}
@@ -336,7 +345,6 @@ export function reduxLogger (subscribers, initialState = null) {
   }
 
   function logEvent (event) {
-   debug_log("logEvent fired");
     store.dispatch(emitEvent(event));
   }
   logEvent.lo_name = 'Redux Logger'; // A human-friendly name for the logger

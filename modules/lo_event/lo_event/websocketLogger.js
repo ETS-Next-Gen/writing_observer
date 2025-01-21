@@ -147,7 +147,6 @@ export function websocketLogger (server = {}) {
         util.dispatchCustomEvent(response.event_type, { detail: response.detail });
         break;
       case 'fetch_blob':
-        console.log({responsedata: response.data});
         util.dispatchCustomEvent('fetch_blob', { detail: response.data });
         break;
       default:
