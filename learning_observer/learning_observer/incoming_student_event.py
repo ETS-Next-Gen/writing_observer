@@ -335,7 +335,8 @@ async def incoming_event_handler(request, use_websocket=True, filename=None):
     '''
     debug_log("Incoming web socket connected")
     ws = aiohttp.web.WebSocketResponse() if use_websocket else None
-    if ws:
+    print('****ws', ws)
+    if use_websocket:
         await ws.prepare(request)
     lock_fields = {}
     authenticated = False
@@ -428,7 +429,7 @@ async def incoming_event_handler(request, use_websocket=True, filename=None):
                     event=event,
                     source=''
                 )
-                if authenticated:
+                if authenticated and use_websocket:
                     await ws.send_json({
                         'status': 'auth',
                         constants.USER_ID: authenticated[constants.USER_ID]
@@ -466,8 +467,9 @@ async def incoming_event_handler(request, use_websocket=True, filename=None):
                 yield event
             else:
                 debug_log('Event is blacklisted.')
-                await ws.send_json(bl_status)
-                await ws.close()
+                if use_websocket:
+                    await ws.send_json(bl_status)
+                    await ws.close()
 
     async def check_for_reducer_update(events):
         '''Check to see if the reducers updated
@@ -487,14 +489,14 @@ async def incoming_event_handler(request, use_websocket=True, filename=None):
     async def process_ws_message_through_pipeline():
         '''Prepare each event we receive for processing
         '''
-        if ws:
+        if use_websocket:
             events = process_message_from_ws()
         else:
             events = process_message_from_log_file()
 
         events = decode_events(events)
 
-        if ws:
+        if use_websocket:
             events = log_events(events)
 
         events = decode_lock_fields(events)
