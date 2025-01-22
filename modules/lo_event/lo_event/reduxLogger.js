@@ -98,8 +98,9 @@ async function saveStateToServer(state) {
   }
 
   try {
-    console.log("dispatching save_blob")
-    store.dispatch('save_blob', { detail: state });
+    //console.log("dispatching save_blob")
+    util.dispatchCustomEvent('save_blob', { detail: state });
+    //store.dispatch('save_blob', { detail: state });
   } catch (e) {
     // Ignore
     console.log("Error in dispatch");
