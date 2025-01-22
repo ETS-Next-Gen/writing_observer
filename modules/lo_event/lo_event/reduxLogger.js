@@ -98,9 +98,12 @@ async function saveStateToServer(state) {
   }
 
   try {
+    console.log("dispatching save_blob")
     store.dispatch('save_blob', { detail: state });
   } catch (e) {
     // Ignore
+    console.log("Error in dispatch");
+    console.log({e:e});
   }
 }
 
@@ -300,6 +303,9 @@ const debouncedSaveStateToLocalStorage = debounce((state) => {
 }, 1000);
 
 const debouncedSaveStateToServer = debounce((state) => {
+  console.log("****************************************");
+  console.log("Saving state to server");
+  console.log("****************************************");
   saveStateToServer(state);
 }, 1000);
 
