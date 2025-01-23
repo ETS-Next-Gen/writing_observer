@@ -88,13 +88,14 @@ export default class WOSettings extends Component {
       </>)
       : null;
 
-    const nestedTextPrefix = row.depth > 0 ? '- '.repeat(row.depth) : '';
-
     return (
       <>
         <tr key={row.id}>
           <td >
-            {nestedTextPrefix + row.label}
+            <div style={{
+              display: 'inline-block',
+              paddingLeft: `${row.depth}em`
+            }}>{row.label}</div>
             {hasChildren && (
               <button
                 onClick={() => this.toggleCollapse(row.id)}
