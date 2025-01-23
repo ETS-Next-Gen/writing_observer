@@ -64,7 +64,7 @@ function formatStudentData (student, selectedHighlights) {
   const document = Object.keys(student.documents)[0];
 
   // TODO make sure the comm protocol is providing the doc id
-  const highlightBreakpoints = selectedHighlights.reduce((acc, option) => {
+  const nlpFeatureBreakpoints = selectedHighlights.reduce((acc, option) => {
     const offsets = student.documents[document][option.id]?.offsets || [];
     if (offsets) {
       const modifiedOffsets = offsets.map(offset => {
@@ -80,6 +80,25 @@ function formatStudentData (student, selectedHighlights) {
     }
     return acc;
   }, []);
+
+  // Handle adding LanguageTool features
+  const highlightsById = selectedHighlights.reduce((acc, item) => {
+    acc[item.id] = item; // Use the `id` as the key
+    return acc;
+  }, {});
+  const ltFeatureBreakpoints = student.documents[document].matches ? student.documents[document].matches
+    .filter(match => match.detail in highlightsById)
+    .map(match => {
+      return {
+        id: '',
+        tooltip: `${match.label} - ${match.detail} - ${match.message}`,
+        start: match.offset,
+        offset: match.length,
+        style: { backgroundColor: highlightsById[match.detail].types.highlight.color }
+      };
+    })
+    : [];
+
   // const availableDocuments = Object.keys(student.docs).map(id => ({
   //   id,
   //   title: student.docs[id].title || id
@@ -89,6 +108,8 @@ function formatStudentData (student, selectedHighlights) {
   // TODO currently we only populate the latest data of the student documents
   // this is currently the muddiest part of the data flow and ought to be
   // cleaned up.
+
+  const highlightBreakpoints = nlpFeatureBreakpoints.concat(ltFeatureBreakpoints);
   return {
     profile: student.documents[document].profile,
     availableDocuments,
@@ -130,7 +151,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
         wo_classroom_text_highlighter_query: {
           execution_dag: 'writing_observer',
           // TODO add `doc_list` here when available
-          target_exports: ['docs_with_nlp_annotations'],
+          target_exports: ['docs_with_nlp_annotations', 'overall_errors'],
           kwargs: decodedParams
         }
       };
