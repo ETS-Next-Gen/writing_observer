@@ -80,7 +80,7 @@ AVAILABLE_ITEMS = [
     ('Spelling', 'Misused idiom'),
     ('Spelling', 'Missing letter'),
     ('Spelling', 'Extra letter'),
-    # ('Spelling', 'Possible Typo'),
+    ('Spelling', 'Possible Typo'),
     ('Spelling', 'Added or dropped t/ed'),
     ('Spelling', 'Phonetic spelling'),
     ('Spelling', 'Inconsistent Spelling'),
