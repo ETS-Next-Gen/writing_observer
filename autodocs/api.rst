@@ -1,0 +1,6 @@
+API
+===
+
+.. toctree::
+
+   apidocs/index
