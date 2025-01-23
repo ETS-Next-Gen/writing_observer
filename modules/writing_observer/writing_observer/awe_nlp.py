@@ -154,7 +154,7 @@ def process_text(text, options=None):
         if item not in writing_observer.nlp_indicators.INDICATORS:
             continue
         indicator = writing_observer.nlp_indicators.INDICATORS[item]
-        (id, label, infoType, select, filterInfo, summaryType) = indicator
+        (id, label, infoType, select, filterInfo, summaryType, category) = indicator
         results[id] = outputIndicator(doc, select, infoType, stype=summaryType, text=text, added_filter=filterInfo)
         results[id].update({
             "label": label,

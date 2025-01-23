@@ -137,7 +137,7 @@ async def process_texts(writing_data, options=None):
             if option not in writing_observer.nlp_indicators.INDICATORS:
                 continue
             indicator = writing_observer.nlp_indicators.INDICATORS[option]
-            (id, label, infoType, select, filterInfo, summaryType) = indicator
+            (id, label, infoType, select, filterInfo, summaryType, category) = indicator
             results[id] = {}
             state = random.getstate()
             random.seed(id)
