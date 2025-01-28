@@ -20,8 +20,8 @@
  */
 import * as redux from 'redux';
 import { thunk } from 'redux-thunk';
-import { createStateSyncMiddleware, initMessageListener } from "redux-state-sync";
-import debounce from "lodash/debounce";
+import { createStateSyncMiddleware, initMessageListener } from 'redux-state-sync';
+import debounce from 'lodash/debounce';
 
 import * as util from './util.js';
 
@@ -34,8 +34,8 @@ let IS_LOADED = false;
 // TODO: Import debugLog and use those functions.
 const DEBUG = false;
 
-function debug_log(...args) {
-  if(DEBUG) {
+function debug_log (...args) {
+  if (DEBUG) {
     console.log(...args);
   }
 }
@@ -57,9 +57,9 @@ export function handleLoadState (data) {
           ...state.settings,
           reduxStoreStatus: IS_LOADED
         }
-      });  
+      });
   } else {
-    debug_log('No data provided while handling state from server, continuing.')
+    debug_log('No data provided while handling state from server, continuing.');
     setState(
       {
         ...state,
@@ -67,21 +67,20 @@ export function handleLoadState (data) {
           ...state.settings,
           reduxStoreStatus: IS_LOADED
         }
-      });  
+      });
   }
 }
 
-async function saveStateToLocalStorage(state) {
+async function saveStateToLocalStorage (state) {
   if (!IS_LOADED) {
-    debug_log('Not saving store locally because IS_LOADED is set to false.')
+    debug_log('Not saving store locally because IS_LOADED is set to false.');
     return;
   }
 
   try {
-    const KEY = state?.settings?.reduxID || "redux";
+    const KEY = state?.settings?.reduxID || 'redux';
     const serializedState = JSON.stringify(state);
     localStorage.setItem(KEY, serializedState);
-    
   } catch (e) {
     // Ignore
   }
@@ -91,20 +90,19 @@ async function saveStateToLocalStorage(state) {
  * Dispatch a `save_blob` event on the redux
  * logger.
  */
-async function saveStateToServer(state) {
+async function saveStateToServer (state) {
   if (!IS_LOADED) {
-    debug_log('Not saving store on the server because IS_LOADED is set to false.')
+    debug_log('Not saving store on the server because IS_LOADED is set to false.');
     return;
   }
 
   try {
-    //console.log("dispatching save_blob")
+    // console.log("dispatching save_blob")
     util.dispatchCustomEvent('save_blob', { detail: state });
-    //store.dispatch('save_blob', { detail: state });
+    // store.dispatch('save_blob', { detail: state });
   } catch (e) {
     // Ignore
-    console.log("Error in dispatch");
-    console.log({e:e});
+    debug_log('Error in dispatch', { e });
   }
 }
 
@@ -139,11 +137,11 @@ const emitSetState = (state) => {
   };
 };
 
-function store_last_event_reducer(state = {}, action) {
+function store_last_event_reducer (state = {}, action) {
   return { ...state, event: action.payload };
 };
 
-function lock_fields_reducer(state = {}, action) {
+function lock_fields_reducer (state = {}, action) {
   const payload = JSON.parse(action.payload);
   return {
     ...state,
@@ -190,7 +188,7 @@ export const updateComponentStateReducer = ({}) => (state = initialState, action
   return new_state;
 }
 
-function set_state_reducer(state = {}, action) {
+function set_state_reducer (state = {}, action) {
   return action.payload;
 }
 
@@ -200,16 +198,16 @@ const BASE_REDUCERS = {
   [EMIT_SET_STATE]: [set_state_reducer]
 }
 
-const APPLICATION_REDUCERS = {}
+const APPLICATION_REDUCERS = {};
 
 export const registerReducer = (keys, reducer) => {
   const reducerKeys = Array.isArray(keys) ? keys : [keys];
 
   reducerKeys.forEach(key => {
-   debug_log("registering key: " + key);
-    if (!APPLICATION_REDUCERS[key])
+    debug_log('registering key: ' + key);
+    if (!APPLICATION_REDUCERS[key]) {
       APPLICATION_REDUCERS[key] = [];
-
+    }
     APPLICATION_REDUCERS[key].push(reducer);
   });
   return reducer;
@@ -224,7 +222,7 @@ const reducer = (state = {}, action) => {
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
-    if (action.type === "save_setting") {
+    if (action.type === 'save_setting') {
       return {
         ...state,
         settings: {
@@ -251,11 +249,11 @@ const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOO
 //
 // This shows up as an error in the test case. If the error goes away, we should switch this
 // back to thunk.
-//const presistedState = loadState();
+// const presistedState = loadState();
 
 export let store = redux.createStore(
   reducer,
-  {event: null}, // Base state
+  { event: null }, // Base state
   composeEnhancers(redux.applyMiddleware((thunk.default || thunk), createStateSyncMiddleware()))
 );
 
@@ -286,7 +284,7 @@ function composeReducers(...reducers) {
 }
 
 export function setState(state) {
-  debug_log("Set state called");
+  debug_log('Set state called');
   if (Object.keys(state).length === 0) {
     const storeState = store.getState();
     state = {
@@ -294,7 +292,7 @@ export function setState(state) {
         ...storeState.settings,
         reduxStoreStatus: IS_LOADED
       }
-    }
+    };
   }
   store.dispatch(emitSetState(state));
 }
@@ -304,21 +302,16 @@ const debouncedSaveStateToLocalStorage = debounce((state) => {
 }, 1000);
 
 const debouncedSaveStateToServer = debounce((state) => {
-  console.log("****************************************");
-  console.log("Saving state to server");
-  console.log("****************************************");
   saveStateToServer(state);
 }, 1000);
 
 function initializeStore () {
   store.subscribe(() => {
     const state = store.getState();
-    debouncedSaveStateToLocalStorage(state);
-    debouncedSaveStateToServer(state);
-
     // we use debounce to save the state once every second
     // for better performances in case multiple changes occur in a short time
-    //debouncedSaveState(state);
+    debouncedSaveStateToLocalStorage(state);
+    debouncedSaveStateToServer(state);
 
     if (state.lock_fields) {
       lockFields = state.lock_fields.fields;
@@ -367,9 +360,9 @@ export function reduxLogger (subscribers, initialState = null) {
 
   logEvent.getLockFields = function () { return lockFields; };
 
-  //do we want to initialize the store here? We set it to the stored state in create store
-  //if (initialState) {
-  //}
+  // do we want to initialize the store here? We set it to the stored state in create store
+  // if (initialState) {
+  // }
 
   return logEvent;
 }
