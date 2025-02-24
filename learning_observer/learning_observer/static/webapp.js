@@ -31,6 +31,19 @@ function ajax(config)
     }
 }
 
+function initializeBurgerMenu() {
+	console.log('initializing burger menu');
+    document.querySelectorAll('.navbar-burger').forEach(burger => {
+        burger.addEventListener('click', () => {
+            const target = burger.dataset.target;
+            const targetMenu = document.getElementById(target);
+            burger.classList.toggle('is-active');
+            targetMenu.classList.toggle('is-active');
+        });
+    });
+}
+
+
 
 requirejs(
     // TODO: Clean up absolute paths. We hardcoded these for now, due to refactor.
@@ -52,11 +65,12 @@ requirejs(
     function(config, tool_list, d3, mustache, showdown, fontawesome, unauth, login, courses, course, tool, navbar_li, info, auth_info) {
 	// Parse client configuration.
 	config = JSON.parse(config);
-	console.log(tool_list);
+	// console.log(tool_list);
 	tool_list = JSON.parse(tool_list);
-	console.log(tool_list);
-	console.log(auth_info);
-	console.log(JSON.stringify(auth_info));
+	// console.log(tool_list);
+	// console.log(auth_info);
+	// console.log(JSON.stringify(auth_info));
+
 	// Add libraries
 	config.d3 = d3;
 	config.ajax = ajax(config);
@@ -152,7 +166,7 @@ requirejs(
 						// * course_json are the course properties
 						// Merged, we can render tools for courses!
 						joined = Object.assign({}, course_json, tool_list[i]);
-					console.log(joined);
+					// console.log(joined);
 					tools += mustache.render(tool, joined);
 			    }
 			    course_json['tools'] = tools;
@@ -225,10 +239,16 @@ requirejs(
 	}
 
 	function loggedin_navbar_menu() {
-	    d3.select(".main-navbar-menu").html(mustache.render(navbar_li, {
-		'user_name': user_info()['name'],
-		'user_picture': user_info()['picture']
-	    }));
+		const navbarMenu = d3.select("#mainNavbar");
+		const navbarBurger = d3.select(".navbar-burger");
+
+		navbarMenu.html(mustache.render(navbar_li, {
+			'user_name': user_info()['name'],
+			'user_picture': user_info()['picture']
+		}));
+		navbarMenu.classed("is-hidden", false);
+		navbarBurger.classed("is-hidden", false);
+		initializeBurgerMenu();
 	}
 
 	function setup_page() {
