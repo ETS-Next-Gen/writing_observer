@@ -26,6 +26,7 @@
   "type": "module",
   "dependencies": {
     "aws-sdk": "^2.1614.0",
+    "debounce": "^2.2.0",
     "http-server": "^14.1.1",
     "indexeddb-js": "^0.0.14",
     "jasmine": "^5.1.0",
@@ -33,6 +34,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "redux": "^5.0.1",
+    "redux-state-sync": "^3.1.4",
     "redux-thunk": "^3.1.0",
     "sqlite3": "^5.1.6",
     "uuid": "^10.0.0",

@@ -36,5 +36,8 @@
     "stylelint": "^15.5.0",
     "stylelint-config-standard": "^33.0.0",
     "stylelint-scss": "^4.6.0"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.0"
   }
 }
