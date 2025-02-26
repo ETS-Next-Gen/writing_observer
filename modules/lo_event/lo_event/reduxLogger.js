@@ -20,17 +20,89 @@
  */
 import * as redux from 'redux';
 import { thunk } from 'redux-thunk';
+import { createStateSyncMiddleware, initMessageListener } from 'redux-state-sync';
+import debounce from 'lodash/debounce';
+
+import * as util from './util.js';
 
 const EMIT_EVENT = 'EMIT_EVENT';
 const EMIT_LOCKFIELDS = 'EMIT_LOCKFIELDS';
 const EMIT_SET_STATE = 'SET_STATE';
 
+let IS_LOADED = false;
+
 // TODO: Import debugLog and use those functions.
 const DEBUG = false;
 
-function debug_log(...args) {
-  if(DEBUG) {
+function debug_log (...args) {
+  if (DEBUG) {
     console.log(...args);
+  }
+}
+
+/**
+ * Update the redux logger's state with `data`.
+ * This is fired when consuming a custom `fetch_blob`
+ * event.
+ */
+export function handleLoadState (data) {
+  IS_LOADED = true;
+  const state = store.getState();
+  if (data) {
+    setState(
+      {
+        ...state,
+        ...data,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: IS_LOADED
+        }
+      });
+  } else {
+    debug_log('No data provided while handling state from server, continuing.');
+    setState(
+      {
+        ...state,
+        settings: {
+          ...state.settings,
+          reduxStoreStatus: IS_LOADED
+        }
+      });
+  }
+}
+
+async function saveStateToLocalStorage (state) {
+  if (!IS_LOADED) {
+    debug_log('Not saving store locally because IS_LOADED is set to false.');
+    return;
+  }
+
+  try {
+    const KEY = state?.settings?.reduxID || 'redux';
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem(KEY, serializedState);
+  } catch (e) {
+    // Ignore
+  }
+}
+
+/**
+ * Dispatch a `save_blob` event on the redux
+ * logger.
+ */
+async function saveStateToServer (state) {
+  if (!IS_LOADED) {
+    debug_log('Not saving store on the server because IS_LOADED is set to false.');
+    return;
+  }
+
+  try {
+    // console.log("dispatching save_blob")
+    util.dispatchCustomEvent('save_blob', { detail: state });
+    // store.dispatch('save_blob', { detail: state });
+  } catch (e) {
+    // Ignore
+    debug_log('Error in dispatch', { e });
   }
 }
 
@@ -65,11 +137,11 @@ const emitSetState = (state) => {
   };
 };
 
-function store_last_event_reducer(state = {}, action) {
+function store_last_event_reducer (state = {}, action) {
   return { ...state, event: action.payload };
 };
 
-function lock_fields_reducer(state = {}, action) {
+function lock_fields_reducer (state = {}, action) {
   const payload = JSON.parse(action.payload);
   return {
     ...state,
@@ -116,7 +188,7 @@ export const updateComponentStateReducer = ({}) => (state = initialState, action
   return new_state;
 }
 
-function set_state_reducer(state = {}, action) {
+function set_state_reducer (state = {}, action) {
   return action.payload;
 }
 
@@ -126,16 +198,16 @@ const BASE_REDUCERS = {
   [EMIT_SET_STATE]: [set_state_reducer]
 }
 
-const APPLICATION_REDUCERS = {
-}
+const APPLICATION_REDUCERS = {};
 
 export const registerReducer = (keys, reducer) => {
   const reducerKeys = Array.isArray(keys) ? keys : [keys];
 
   reducerKeys.forEach(key => {
-    if (!APPLICATION_REDUCERS[key])
+    debug_log('registering key: ' + key);
+    if (!APPLICATION_REDUCERS[key]) {
       APPLICATION_REDUCERS[key] = [];
-
+    }
     APPLICATION_REDUCERS[key].push(reducer);
   });
   return reducer;
@@ -145,11 +217,20 @@ export const registerReducer = (keys, reducer) => {
 const reducer = (state = {}, action) => {
   let payload;
 
-  debug_log("Reducing ", action," on ", state);
+  debug_log('Reducing ', action, ' on ', state);
   state = BASE_REDUCERS[action.redux_type] ? composeReducers(...BASE_REDUCERS[action.redux_type])(state, action) : state;
 
   if (action.redux_type === EMIT_EVENT) {
     payload = JSON.parse(action.payload);
+    if (action.type === 'save_setting') {
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          payload
+        }
+      };
+    }
     debug_log(Object.keys(payload));
 
     if (APPLICATION_REDUCERS[payload.event]) {
@@ -160,21 +241,24 @@ const reducer = (state = {}, action) => {
   return state;
 };
 
-
 const eventQueue = [];
 const composeEnhancers = (typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) || redux.compose;
-
 
 // This should just be redux.applyMiddleware(thunk))
 // There is a bug in our version of redux-thunk where, in node, this must be thunk.default.
 //
 // This shows up as an error in the test case. If the error goes away, we should switch this
 // back to thunk.
+// const presistedState = loadState();
+
 export let store = redux.createStore(
   reducer,
-  {event: null}, // Base state
-  composeEnhancers(redux.applyMiddleware(thunk.default || thunk))
+  { event: null }, // Base state
+  composeEnhancers(redux.applyMiddleware((thunk.default || thunk), createStateSyncMiddleware()))
 );
+
+initMessageListener(store);
+
 let promise = null;
 let previousEvent = null;
 let lockFields = null;
@@ -200,13 +284,35 @@ function composeReducers(...reducers) {
 }
 
 export function setState(state) {
-  debug_log("Set state called");
+  debug_log('Set state called');
+  if (Object.keys(state).length === 0) {
+    const storeState = store.getState();
+    state = {
+      settings: {
+        ...storeState.settings,
+        reduxStoreStatus: IS_LOADED
+      }
+    };
+  }
   store.dispatch(emitSetState(state));
 }
+
+const debouncedSaveStateToLocalStorage = debounce((state) => {
+  saveStateToLocalStorage(state);
+}, 1000);
+
+const debouncedSaveStateToServer = debounce((state) => {
+  saveStateToServer(state);
+}, 1000);
 
 function initializeStore () {
   store.subscribe(() => {
     const state = store.getState();
+    // we use debounce to save the state once every second
+    // for better performances in case multiple changes occur in a short time
+    debouncedSaveStateToLocalStorage(state);
+    debouncedSaveStateToServer(state);
+
     if (state.lock_fields) {
       lockFields = state.lock_fields.fields;
     }
@@ -233,7 +339,7 @@ function initializeStore () {
   });
 }
 
-export function reduxLogger (subscribers, initialState = {}) {
+export function reduxLogger (subscribers, initialState = null) {
   if (subscribers != null) {
     eventSubscribers = subscribers;
   }
@@ -254,7 +360,9 @@ export function reduxLogger (subscribers, initialState = {}) {
 
   logEvent.getLockFields = function () { return lockFields; };
 
-  setState(initialState);
+  // do we want to initialize the store here? We set it to the stored state in create store
+  // if (initialState) {
+  // }
 
   return logEvent;
 }
@@ -282,3 +390,6 @@ export const awaitEvent = () => {
   promise.resolve = resolvePromise;
   return promise;
 };
+
+// Start listening for fetch
+util.consumeCustomEvent('fetch_blob', handleLoadState);
