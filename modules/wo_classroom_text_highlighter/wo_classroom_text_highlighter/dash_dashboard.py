@@ -18,9 +18,22 @@ _namespace = 'wo_classroom_text_highlighter'
 _websocket = f'{_prefix}-websocket'
 _output = f'{_prefix}-output'
 
+# loading message/bar DOM ids
+_loading_prefix = f'{_prefix}-loading'
+_loading_collapse = f'{_loading_prefix}-collapse'
+_loading_progress = f'{_loading_prefix}-progress-bar'
+_loading_information = f'{_loading_prefix}-information-text'
+
+loading_component = dbc.Collapse([
+    html.Div(id=_loading_information),
+    dbc.Progress(id=_loading_progress, animated=True, striped=True, max=1.1)
+], id=_loading_collapse, is_open=False)
+
 # Option components
 _options_toggle = f'{_prefix}-options-toggle'
+_options_toggle_count = f'{_prefix}-options-toggle-count'
 _options_collapse = f'{_prefix}-options-collapse'
+_options_close = f'{_prefix}-options-close'
 # TODO abstract these into a more generic options component
 _options_prefix = f'{_prefix}-options'
 _options_width = f'{_options_prefix}-width'
@@ -28,7 +41,14 @@ _options_height = f'{_options_prefix}-height'
 _options_hide_header = f'{_options_prefix}-hide-names'
 _options_text_information = f'{_options_prefix}-text-information'
 
-options_component = [
+options_component = html.Div([
+    html.Div([
+        html.H3('Settings', className='d-inline-block'),
+        dbc.Button(
+            html.I(className='fas fa-close'),
+            className='float-end', id=_options_close,
+            color='transparent'),
+    ]),
     html.H4('View Options'),
     dbc.Label('Students per row'),
     dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
@@ -39,7 +59,28 @@ options_component = [
     html.H4('Highlight Options'),
     wo_classroom_text_highlighter.preset_component.create_layout(),
     lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS, className='table table-striped align-middle')
-]
+], className='p-2')
+
+# Legend
+_legend = f'{_prefix}-legend'
+_legend_button = f'{_legend}-button'
+_legend_children = f'{_legend}-children'
+
+# Expanded student
+_expanded_student = f'{_prefix}-expanded-student'
+_expanded_student_panel = f'{_expanded_student}-panel'
+_expanded_student_child = f'{_expanded_student}-child'
+_expanded_student_close = f'{_expanded_student}-close'
+expanded_student_component = html.Div([
+    html.Div([
+        html.H3('Individual Student', className='d-inline-block'),
+        dbc.Button(
+            html.I(className='fas fa-close'),
+            className='float-end', id=_expanded_student_close,
+            color='transparent'),
+    ]),
+    html.Div(id=_expanded_student_child)
+], className='p-2')
 
 # Alert Component
 _alert = f'{_prefix}-alert'
@@ -51,6 +92,25 @@ alert_component = dbc.Alert([
     html.Div(dash_renderjson.DashRenderjson(id=_alert_error_dump), className='' if DEBUG_FLAG else 'd-none')
 ], id=_alert, color='danger', is_open=False)
 
+# Settings buttons
+input_group = dbc.InputGroup([
+    dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
+    dbc.Button([
+        html.I(className='fas fa-cog me-1'),
+        'Highlight Options (',
+        html.Span('0', id=_options_toggle_count),
+        ')'
+    ], id=_options_toggle),
+    dbc.Button(
+        'Legend',
+        id=_legend_button, color='primary'),
+    dbc.Popover(
+        'No options selected. Click on the `Highlight Options` to select them.',
+        id=_legend_children, target=_legend_button,
+        trigger='click', body=True, placement='bottom'),
+    lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
+], class_name='align-items-center')
+
 
 def layout():
     '''
@@ -59,16 +119,18 @@ def layout():
     page_layout = html.Div([
         html.H1('Writing Observer - Classroom Text Highlighter'),
         alert_component,
-        dbc.InputGroup([
-            dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
-            dbc.Button([
-                html.I(className='fas fa-cog me-1'),
-                'Highlight Options'
-            ], id=_options_toggle),
-            lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
-        ], class_name='sticky-top mb-1'),
-        dbc.Offcanvas(options_component, id=_options_collapse, scrollable=True, title='Settings'),
-        html.Div(id=_output, className='d-flex justify-content-between flex-wrap')
+        html.Div([
+            html.Div(input_group, className='d-flex me-2'),
+            html.Div(loading_component, className='d-flex')
+        ], className='d-flex sticky-top pb-1 bg-light'),
+        lodrc.LOPanelLayout(
+            html.Div(id=_output, className='d-flex justify-content-between flex-wrap'),
+            panels=[
+                {'children': options_component, 'width': '30%', 'id': _options_prefix, 'side': 'left' },
+                {'children': expanded_student_component, 'width': '30%', 'id': _expanded_student_panel, 'side': 'right' }
+            ],
+            id=_options_collapse, shown=[]
+        ),
     ])
     return page_layout
 
@@ -99,18 +161,26 @@ clientside_callback(
 # Toggle if the options collapse is open or not
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='toggleOptions'),
-    Output(_options_collapse, 'is_open'),
+    Output(_options_collapse, 'shown'),
     Input(_options_toggle, 'n_clicks'),
-    State(_options_collapse, 'is_open')
+    State(_options_collapse, 'shown')
+)
+
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='closeOptions'),
+    Output(_options_collapse, 'shown', allow_duplicate=True),
+    Input(_options_close, 'n_clicks'),
+    State(_options_collapse, 'shown'),
+    prevent_initial_call=True
 )
 
 # Adjust student tile size
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='adjustTileSize'),
-    Output({'type': 'WOStudentTextTile', 'index': ALL}, 'style'),
+    Output({'type': 'WOStudentTile', 'index': ALL}, 'style'),
     Input(_options_width, 'value'),
     Input(_options_height, 'value'),
-    State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
+    State({'type': 'WOStudentTile', 'index': ALL}, 'id'),
 )
 
 # Handle showing or hiding the student tile header
@@ -130,6 +200,29 @@ clientside_callback(
     Input(_options_text_information, 'options'),
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
 )
+
+# Expand a single student
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='expandCurrentStudent'),
+    Output(_expanded_student_child, 'children'),
+    Output(_options_collapse, 'shown', allow_duplicate=True),
+    Input({'type': 'WOStudentTileExpand', 'index': ALL}, 'n_clicks'),
+    Input({'type': 'WOStudentTile', 'index': ALL}, 'children'),
+    State({'type': 'WOStudentTile', 'index': ALL}, 'id'),
+    State(_options_collapse, 'shown'),
+    State(_expanded_student_child, 'children'),
+    prevent_initial_call=True
+)
+
+# Close expanded student
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='closeExpandedStudent'),
+    Output(_options_collapse, 'shown', allow_duplicate=True),
+    Input(_expanded_student_close, 'n_clicks'),
+    State(_options_collapse, 'shown'),
+    prevent_initial_call=True
+)
+
 
 # Update the alert component with any errors that come through
 clientside_callback(
@@ -157,4 +250,22 @@ clientside_callback(
     Input({'type': wo_classroom_text_highlighter.preset_component._set_item, 'index': ALL}, 'n_clicks'),
     State(wo_classroom_text_highlighter.preset_component._store, 'data'),
     prevent_initial_call=True
+)
+
+# update loading information
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='updateLoadingInformation'),
+    Output(_loading_collapse, 'is_open'),
+    Output(_loading_progress, 'value'),
+    Output(_loading_information, 'children'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
+    Input(_options_text_information, 'options')
+)
+
+# Update legend
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='updateLegend'),
+    Output(_legend_children, 'children'),
+    Output(_options_toggle_count, 'children'),
+    Input(_options_text_information, 'options')
 )
