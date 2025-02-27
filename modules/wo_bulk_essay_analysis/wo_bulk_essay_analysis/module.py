@@ -6,15 +6,15 @@ import wo_bulk_essay_analysis.gpt
 import wo_bulk_essay_analysis.dashboard.layout
 
 
-NAME = "Writing Observer - AskGPT"
+NAME = "Writing Observer - Classroom AI Feedback Assistant"
 
 DASH_PAGES = [
     {
         "MODULE": wo_bulk_essay_analysis.dashboard.layout,
         "LAYOUT": wo_bulk_essay_analysis.dashboard.layout.layout,
         "ASSETS": 'assets',
-        "TITLE": "AskGPT",
-        "DESCRIPTION": "The AskGPT is a robust educational tool that leverages AI to simultaneously analyze and provide feedback on large batches of essays, delivering comprehensive insights and constructive critiques for educators in diverse group settings.",
+        "TITLE": "Classroom AI Feedback Assistant",
+        "DESCRIPTION": "The Classroom AI Feedback Assistant is a robust educational tool that leverages AI to simultaneously analyze and provide feedback on large batches of essays, delivering comprehensive insights and constructive critiques for educators in diverse group settings.",
         "SUBPATH": "bulk-essay-analysis",
         "CSS": [
             thirdparty_url("css/bootstrap.min.css"),

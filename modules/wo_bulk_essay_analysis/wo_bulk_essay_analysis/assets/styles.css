@@ -1,0 +1,6 @@
+.individual-student-feedback {
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: 0;
+  min-height: 250px;
+}

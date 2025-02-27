@@ -230,7 +230,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
                 id: { type: 'WOStudentTileExpand', index: student},
                 children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
                 class_name: 'position-absolute top-0 end-0 m-1',
-                color: 'light'
+                color: 'transparent'
               }
             )
           ],

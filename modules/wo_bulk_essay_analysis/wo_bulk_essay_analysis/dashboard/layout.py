@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from dash_renderjson import DashRenderjson
 import datetime
 import lo_dash_react_components as lodrc
+import random
 
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
 
@@ -24,10 +25,16 @@ query_input = f'{prefix}-query-input'
 
 panel_layout = f'{prefix}-panel-layout'
 
-_advanced_toggle = f'{prefix}-advanced-toggle'
-_advanced_collapse = f'{prefix}-advanced-collapse'
+_advanced = f'{prefix}-advanced'
+_advanced_toggle = f'{_advanced}-toggle'
+_advanced_collapse = f'{_advanced}-collapse'
+_advanced_width = f'{_advanced}-width'
+_advanced_height = f'{_advanced}-height'
+_advanced_hide_header = f'{_advanced}-hide-header'
 
-system_input = f'{prefix}-system-prompt-input'
+_system_input = f'{prefix}-system-prompt-input'
+_system_input_tooltip = f'{_system_input}-tooltip'
+
 # document source DOM ids
 doc_src = f'{prefix}-doc-src'
 doc_src_date = f'{prefix}-doc-src-date'
@@ -60,13 +67,41 @@ _loading_information = f'{_loading_prefix}-information-text'
 
 submit = f'{prefix}-submit-btn'
 submit_warning_message = f'{prefix}-submit-warning-msg'
+_student_data_wrapper = f'{prefix}-student-data'
 grid = f'{prefix}-essay-grid'
 
-# default prompts
-system_prompt = 'You are an assistant to a language arts teacher in a school setting. '\
-    'Your task is to help the teacher assess, understand, and provide feedback on student essays.'
+# Expanded student
+_expanded_student = f'{prefix}-expanded-student'
+_expanded_student_selected = f'{_expanded_student}-selected'
+_expanded_student_panel = f'{_expanded_student}-panel'
+_expanded_student_child = f'{_expanded_student}-child'
+_expanded_student_close = f'{_expanded_student}-close'
+expanded_student_component = html.Div([
+    html.Div([
+        html.H3('Individual Student', className='d-inline-block'),
+        dbc.Button(
+            html.I(className='fas fa-close'),
+            className='float-end', id=_expanded_student_close,
+            color='transparent'),
+    ]),
+    dbc.Input(id=_expanded_student_selected, class_name='d-none'),
+    html.Div(id=_expanded_student_child)
+], className='p-2')
 
-starting_prompt = 'Provide 3 bullet points summarizing the following text:\n{student_text}'
+# default prompts
+system_prompt = 'You are a helpful assistant for grade school teachers. Your task is to analyze '\
+    'student writing and provide clear, constructive, and age-appropriate feedback. '\
+    'Focus on key writing traits such as clarity, creativity, grammar, and organization. '\
+    'When summarizing, highlight the main ideas and key details. Always maintain a '\
+    'positive and encouraging tone to support student growth.'
+
+starting_prompt = [
+    'Provide 3 bullet points summarizing this text:\n{student_text}',
+    'List 3 strengths in this student\'s writing. Use bullet points and focus on creativity or clear ideas:\n{student_text}',
+    'Find 2-3 grammar or spelling errors in this text. For each, quote the sentence and suggest a fix:\n{student_text}',
+    'Identify 1) Main theme 2) Best sentence 3) One area to improve. Use numbered responses:\n{student_text}',
+    'Give one specific compliment and one gentle suggestion to improve this story:\n{student_text}'
+]
 
 
 def layout():
@@ -76,11 +111,7 @@ def layout():
     # advanced menu for system prompt
     advanced = [
         html.Div([
-            dbc.Label('System prompt'),
-            dbc.Textarea(id=system_input, value=system_prompt)
-        ]),
-        html.Div([
-            dbc.Label('Document Source'),
+            html.H4('Document Source'),
             dbc.RadioItems(options=[
                 {'label': 'Latest Document', 'value': 'latest' },
                 {'label': 'Specific Time', 'value': 'ts'},
@@ -88,7 +119,14 @@ def layout():
             dbc.InputGroup([
                 dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
                 dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
-            ])
+            ]),
+            html.H4('View Options'),
+            dbc.Label('Students per row'),
+            dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_advanced_width),
+            dbc.Label('Height of student tile'),
+            dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
+            dbc.Label('Student name headers'),
+            dbc.Switch(value=True, id=_advanced_hide_header, label='Show/Hide'),
         ])
     ]
 
@@ -122,7 +160,17 @@ def layout():
         # then remove the `class_name='d-none'` from this button.
         dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload), class_name='d-none'),
         dbc.CardBody([
-            dbc.Textarea(id=query_input, value=starting_prompt, class_name='h-100', style={'minHeight': '150px'}),
+            dbc.Label([
+                'System prompt',
+                html.I(className='fas fa-circle-question ms-1', id=_system_input_tooltip)
+            ]),
+            dbc.Tooltip(
+                "A system prompt guides the AI's responses. It sets the context for how the AI should analyze or summarize student text.",
+                target=_system_input_tooltip
+            ),
+            dbc.Textarea(id=_system_input, value=system_prompt, style={'minHeight': '120px'}),
+            dbc.Label('Query'),
+            dbc.Textarea(id=query_input, value=random.choice(starting_prompt), class_name='h-100', style={'minHeight': '150px'}),
             html.Div([
                 html.Span([
                     'Placeholders',
@@ -131,7 +179,7 @@ def layout():
                 html.Span([], id=tags),
             ], className='mt-1'),
             dbc.Tooltip(
-                'Click a placeholder to insert it into your prompt. Upon submission, it will be replaced with the corresponding value.',
+                'Click a placeholder to insert it into your query. Upon submission, it will be replaced with the corresponding value.',
                 target=placeholder_tooltip
             ),
             dcc.Store(id=tag_store, data={'student_text': ''}),
@@ -154,7 +202,7 @@ def layout():
 
     # overall container
     cont = dbc.Container([
-        html.H2('Writing Observer - AskGPT'),
+        html.H1('Writing Observer - Classroom AI Feedback Assistant'),
         dbc.InputGroup([
             dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
             dbc.Button([html.I(className='fas fa-cog me-1'), 'Advanced'], id=_advanced_toggle),
@@ -173,7 +221,15 @@ def layout():
         alert_component,
         html.H3('Student Text', className='mt-1'),
         loading_component,
-        dbc.Row(id=grid, class_name='g-4'),
+        lodrc.LOPanelLayout(
+            html.Div(id=grid, className='d-flex justify-content-between flex-wrap'),
+            panels=[
+                {'children': expanded_student_component,
+                 'width': '30%', 'id': _expanded_student_panel,
+                 'side': 'right', 'className': 'vh-100 overflow-auto'}
+            ],
+            id=_student_data_wrapper, shown=[]
+        ),
     ], fluid=True)
     return html.Div(cont)
 
@@ -205,7 +261,7 @@ clientside_callback(
     Input(doc_src_date, 'date'),
     Input(doc_src_timestamp, 'value'),
     State(query_input, 'value'),
-    State(system_input, 'value'),
+    State(_system_input, 'value'),
     State(tag_store, 'data'),
 )
 
@@ -223,7 +279,6 @@ clientside_callback(
 # add submitted query to history and clear input
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_input_history_on_query_submission'),
-    Output(query_input, 'value'),
     Output(history_store, 'data'),
     Input(submit, 'n_clicks'),
     State(query_input, 'value'),
@@ -263,7 +318,10 @@ clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='updateStudentGridOutput'),
     Output(grid, 'children'),
     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
-    Input(history_store, 'data')
+    Input(history_store, 'data'),
+    Input(_advanced_width, 'value'),
+    Input(_advanced_height, 'value'),
+    Input(_advanced_hide_header, 'value')
 )
 
 # append tag in curly braces to input
@@ -313,4 +371,45 @@ clientside_callback(
     Output(_loading_information, 'children'),
     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
     Input(history_store, 'data')
+)
+
+# Adjust student tile size
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='adjustTileSize'),
+    Output({'type': 'WOAIAssistStudentTile', 'index': ALL}, 'style', allow_duplicate=True),
+    Output({'type': 'WOAIAssistStudentTileText', 'index': ALL}, 'style', allow_duplicate=True),
+    Input(_advanced_width, 'value'),
+    Input(_advanced_height, 'value'),
+    State({'type': 'WOAIAssistStudentTile', 'index': ALL}, 'id'),
+    prevent_initial_call=True
+)
+
+# Expand a single student
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='selectStudentForExpansion'),
+    Output(_expanded_student_selected, 'value'),
+    Output(_student_data_wrapper, 'shown', allow_duplicate=True),
+    Input({'type': 'WOAIAssistStudentTileExpand', 'index': ALL}, 'n_clicks'),
+    State(_student_data_wrapper, 'shown'),
+    State({'type': 'WOAIAssistStudentTile', 'index': ALL}, 'id'),
+    prevent_initial_call=True
+)
+
+# Update expanded children based on selected student
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='expandSelectedStudent'),
+    Output(_expanded_student_child, 'children'),
+    Input(_expanded_student_selected, 'value'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
+    Input(_advanced_hide_header, 'value'),
+    Input(history_store, 'data'),
+)
+
+# Close expanded student
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='closeExpandedStudent'),
+    Output(_student_data_wrapper, 'shown', allow_duplicate=True),
+    Input(_expanded_student_close, 'n_clicks'),
+    State(_student_data_wrapper, 'shown'),
+    prevent_initial_call=True
 )

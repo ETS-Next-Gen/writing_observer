@@ -127,7 +127,9 @@ def layout():
             html.Div(id=_output, className='d-flex justify-content-between flex-wrap'),
             panels=[
                 {'children': options_component, 'width': '30%', 'id': _options_prefix, 'side': 'left' },
-                {'children': expanded_student_component, 'width': '30%', 'id': _expanded_student_panel, 'side': 'right' }
+                {'children': expanded_student_component,
+                 'width': '30%', 'id': _expanded_student_panel,
+                 'side': 'right', 'className': 'vh-100 overflow-auto'}
             ],
             id=_options_collapse, shown=[]
         ),

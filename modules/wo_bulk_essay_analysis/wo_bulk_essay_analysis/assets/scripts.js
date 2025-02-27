@@ -8,17 +8,12 @@ if (!window.dash_clientside) {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
-const createStudentCard = async function (s, prompt) {
+const createStudentCard = async function (s, prompt, width, height, showHeader) {
   // TODO this ought to come from the comm protocol
   const document = Object.keys(s.documents)[0];
   const student = s.documents[document];
   const promptHash = await hashObject({ prompt });
 
-  const header = {
-    namespace: 'dash_bootstrap_components',
-    type: 'CardHeader',
-    props: { children: student.profile.name.full_name }
-  };
   const studentText = {
     namespace: 'lo_dash_react_components',
     type: 'WOAnnotatedText',
@@ -58,39 +53,51 @@ const createStudentCard = async function (s, prompt) {
   };
   const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
   const feedbackOrError = 'error' in student ? errorMessage : feedback;
-  const body = {
-    namespace: 'lo_dash_react_components',
-    type: 'LOPanelLayout',
-    props: {
-      children: studentText,
-      panels: [{ children: feedbackOrError, id: 'feedback-text', width: '40%' }],
-      shown: ['feedback-text'],
-      className: 'overflow-auto p-1'
+  const studentTile = createDashComponent(
+    LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
+    {
+      showHeader,
+      studentInfo: formatStudentData(s, []),
+      // TODO the selectedDocument ought to remain the same upon updating the student object
+      // i.e. it should be pulled from the current client student state
+      selectedDocument: 'latest',
+      childComponent: studentText,
+      id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
+      currentOptionHash: promptHash,
+      style: {height: `${height}px`}
     }
-  };
-  const card = {
-    namespace: 'dash_bootstrap_components',
-    type: 'Card',
-    props: {
-      children: [header, body],
-      style: { maxHeight: '375px' }
+  );
+  const tileWrapper = createDashComponent(
+    DASH_HTML_COMPONENTS, 'Div',
+    {
+      className: 'position-relative mb-2',
+      children: [
+        studentTile,
+        createDashComponent(
+          DASH_BOOTSTRAP_COMPONENTS, 'Card',
+          { children: feedbackOrError, body: true }
+        ),
+        createDashComponent(
+          DASH_BOOTSTRAP_COMPONENTS, 'Button',
+          {
+            id: { type: 'WOAIAssistStudentTileExpand', index: student.user_id },
+            children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
+            class_name: 'position-absolute top-0 end-0 m-1',
+            color: 'transparent'
+          }
+        )
+      ],
+      id: { type: 'WOAIAssistStudentTile', index: student.user_id },
+      style: {width: `${(100 - width) / width}%`}
     }
-  };
-  return {
-    namespace: 'dash_bootstrap_components',
-    type: 'Col',
-    props: {
-      children: card,
-      id: student.user_id,
-      xs: 12,
-      lg: 6,
-      xxl: 4
-    }
-  };
+  )
+  return tileWrapper;
 };
 
 const checkForResponse = function (s, promptHash) {
+  // TODO BUG we need to check the selected document here
   const document = Object.keys(s.documents)[0];
+  // should probably be `s.documents[s.selected-document]`
   const student = s.documents[document];
   return promptHash === student.option_hash;
 };
@@ -195,9 +202,9 @@ window.dash_clientside.bulk_essay_feedback = {
    */
   update_input_history_on_query_submission: async function (clicks, query, history) {
     if (clicks > 0) {
-      return ['', history.concat(query)]
+      return history.concat(query)
     }
-    return [query, window.dash_clientside.no_update]
+    return window.dash_clientside.no_update
   },
 
   /**
@@ -221,7 +228,7 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * update student cards based on new data in storage
    */
-  updateStudentGridOutput: async function (wsStorageData, history) {
+  updateStudentGridOutput: async function (wsStorageData, history, width, height, showHeader) {
     if (!wsStorageData) {
       return 'No students';
     }
@@ -229,7 +236,7 @@ window.dash_clientside.bulk_essay_feedback = {
 
     let output = [];
     for (const student in wsStorageData) {
-      output = output.concat(await createStudentCard(wsStorageData[student], currPrompt));
+      output = output.concat(await createStudentCard(wsStorageData[student], currPrompt, width, height, showHeader));
     }
     return output;
   },
@@ -384,5 +391,112 @@ window.dash_clientside.bulk_essay_feedback = {
     const loadingProgress = returnedResponses / totalStudents + 0.1;
     const outputText = `Fetching responses from server. This will take a few minutes. (${returnedResponses}/${totalStudents} received)`;
     return [true, loadingProgress, outputText];
-  }
+  },
+
+  adjustTileSize: function (width, height, studentIds) {
+    const total = studentIds.length;
+    return [
+      Array(total).fill({width: `${(100 - width) / width}%`}),
+      Array(total).fill({height: `${height}px`}),
+    ];
+  },
+
+  selectStudentForExpansion: function (clicks, shownPanels, ids) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    let id = null;
+    if (triggeredItem?.type === 'WOAIAssistStudentTileExpand') {
+      id = triggeredItem?.index
+      if (clicks[ids.findIndex(item => item.index == id)]) {
+        shownPanels = shownPanels.concat('bulk-essay-analysis-expanded-student-panel');
+      }
+    } else {
+      return window.dash_clientside.no_update;
+    }
+    return [id, shownPanels];
+  },
+
+  expandSelectedStudent: async function (selectedStudent, wsData, showHeader, history) {
+    if (!selectedStudent | !(selectedStudent in wsData)) {
+      return window.dash_clientside.no_update;
+    }
+    const prompt = history.length > 0 ? history[history.length - 1] : '';
+    const s = wsData[selectedStudent];
+    const document = Object.keys(s.documents)[0];
+    const student = s.documents[document];
+    const promptHash = await hashObject({ prompt });
+
+    const studentText = {
+      namespace: 'lo_dash_react_components',
+      type: 'WOAnnotatedText',
+      props: { text: student.text, breakpoints: [], className: 'border-end' }
+    };
+    const errorMessage = {
+      namespace: 'dash_html_components',
+      type: 'Div',
+      props: {
+        children: 'An error occurred while processing the text.'
+      }
+    };
+    const feedbackMessage = {
+      namespace: 'dash_html_components',
+      type: 'Div',
+      props: {
+        children: student?.feedback ? student.feedback : '',
+        className: student?.feedback ? 'p-1 overflow-auto' : '',
+        style: { whiteSpace: 'pre-line' }
+      }
+    };
+    const feedbackLoading = {
+      namespace: 'dash_html_components',
+      type: 'Div',
+      props: {
+        children: [{
+          namespace: 'dash_bootstrap_components',
+          type: 'Spinner',
+          props: {}
+        }, {
+          namespace: 'dash_html_components',
+          type: 'Div',
+          props: { children: 'Waiting for a response.' }
+        }],
+        className: 'text-center'
+      }
+    };
+    const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
+    const feedbackOrError = 'error' in student ? errorMessage : feedback;
+    const studentTile = createDashComponent(
+      LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
+      {
+        showHeader,
+        studentInfo: formatStudentData(s, []),
+        // TODO the selectedDocument ought to remain the same upon updating the student object
+        // i.e. it should be pulled from the current client student state
+        selectedDocument: 'latest',
+        childComponent: studentText,
+        id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
+        currentOptionHash: promptHash,
+      }
+    );
+    const individualWrapper = createDashComponent(
+      DASH_HTML_COMPONENTS, 'Div',
+      {
+        className: '',
+        children: [
+          studentTile,
+          createDashComponent(
+            DASH_BOOTSTRAP_COMPONENTS, 'Card',
+            { children: feedbackOrError, body: true, className: 'individual-student-feedback' }
+          )
+        ]
+      }
+    )
+    return individualWrapper;
+  },
+
+  closeExpandedStudent: function (clicks, shown) {
+    if (!clicks) { return window.dash_clientside.no_update; }
+    shown = shown.filter(item => item !== 'bulk-essay-analysis-expanded-student-panel');
+    return shown
+  },
 };
