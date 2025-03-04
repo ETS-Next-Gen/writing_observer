@@ -40,19 +40,52 @@ doc_src = f'{prefix}-doc-src'
 doc_src_date = f'{prefix}-doc-src-date'
 doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
-# attachment upload DOM ids
-attachment_upload = f'{prefix}-attachment-upload'
-attachment_label = f'{prefix}-attachment-label'
-attachment_extracted_text = f'{prefix}-attachment-extracted-text'
-attachment_save = f'{prefix}-attachment-save'
-attachment_warning_message = f'{prefix}-attachment-warning-message'
-attachment_store = f'{prefix}-attachment-store'
-
 # placeholder DOM ids
-tags = f'{prefix}-tags'
-placeholder_tooltip = f'{prefix}-placeholder-tooltip'
-tag = f'{prefix}-tag'
-tag_store = f'{prefix}-tags-store'
+_tags = f'{prefix}-tags'
+placeholder_tooltip = f'{_tags}-placeholder-tooltip'
+tag = f'{_tags}-tag'
+_tag_edit = f'{tag}-edit'
+_tag_delete = f'{tag}-delete'
+tag_store = f'{_tags}-tags-store'
+_tag_add = f'{_tags}-add'
+_tag_replacement_id = f'{_tag_add}-replacement-id'
+_tag_add_modal = f'{_tag_add}-modal'
+_tag_add_open = f'{_tag_add}-open-btn'
+_tag_add_label = f'{_tag_add}-label'
+_tag_add_text = f'{_tag_add}-text'
+_tag_add_upload = f'{_tag_add}-upload'
+_tag_add_warning = f'{_tag_add}-warning'
+_tag_add_save = f'{_tag_add}-save'
+tag_modal = dbc.Modal([
+    dbc.ModalHeader('Add Placeholder'),
+    dbc.ModalBody([
+        dbc.Input(id=_tag_replacement_id, class_name='d-none'),
+        dbc.Label('Label'),
+        dbc.Input(
+            placeholder='Name your placeholder (e.g., "Narrative Grade 8 Rubric")',
+            id=_tag_add_label,
+            value=''
+        ),
+        dbc.Label('Contents'),
+        dbc.Textarea(
+            placeholder='Enter text here... Uploading a file replaces this content',
+            id=_tag_add_text,
+            style={'height': '300px'},
+            value=''
+        ),
+        dbc.Button(
+            dcc.Upload(
+                [html.I(className='fas fa-plus me-1'), 'Upload'],
+                accept='.txt,.docx,.md,.pdf',
+                id=_tag_add_upload
+            )
+        )
+    ]),
+    dbc.ModalFooter([
+        html.Small(id=_tag_add_warning, className='text-danger'),
+        dbc.Button('Save', class_name='ms-auto', id=_tag_add_save),
+    ])
+], id=_tag_add_modal, is_open=False)
 
 # prompt history DOM ids
 history_body = f'{prefix}-history-body'
@@ -137,28 +170,9 @@ def layout():
         dcc.Store(id=history_store, data=[])
     ], class_name='h-100')
 
-    # attachment information panel
-    attachment_panel = dbc.Card([
-        dbc.CardHeader('Upload'),
-        dbc.CardBody([
-            dbc.Label('What is this?'),
-            dbc.Input(placeholder='e.g. argumentative attachment', id=attachment_label, value=''),
-            dbc.Label('Extracted text from attachment'),
-            dbc.Textarea(value='', id=attachment_extracted_text, style={'height': '300px'})
-        ]),
-        dbc.CardFooter([
-            html.Small(id=attachment_warning_message, className='text-danger'),
-            dbc.Button('Save', id=attachment_save, color='primary', n_clicks=0, class_name='float-end')
-        ]),
-        dcc.Store(id=attachment_store, data='')
-    ], class_name='h-100')
-
     # query creator panel
     input_panel = dbc.Card([
         dbc.CardHeader('Prompt Input'),
-        # TODO figure out the proper way to create new tags/upload docs
-        # then remove the `class_name='d-none'` from this button.
-        dbc.Button(dcc.Upload([html.I(className='fas fa-plus me-1'), 'Upload'], accept='.pdf', id=attachment_upload), class_name='d-none'),
         dbc.CardBody([
             dbc.Label([
                 'System prompt',
@@ -176,12 +190,14 @@ def layout():
                     'Placeholders',
                     html.I(className='fas fa-circle-question ms-1', id=placeholder_tooltip)
                 ], className='me-1'),
-                html.Span([], id=tags),
+                html.Span([], id=_tags),
+                dbc.Button([html.I(className='fas fa-add me-1'), 'Add'], id=_tag_add_open, class_name='ms-1')
             ], className='mt-1'),
             dbc.Tooltip(
                 'Click a placeholder to insert it into your query. Upon submission, it will be replaced with the corresponding value.',
                 target=placeholder_tooltip
             ),
+            tag_modal,
             dcc.Store(id=tag_store, data={'student_text': ''}),
         ]),
         dbc.CardFooter([
@@ -213,7 +229,6 @@ def layout():
             input_panel,
             panels=[
                 {'children': history_favorite_panel, 'width': '30%', 'id': 'history-favorite'},
-                {'children': attachment_panel, 'width': '40%', 'id': 'attachment'},
             ],
             shown=['history-favorite'],
             id=panel_layout
@@ -273,7 +288,7 @@ clientside_callback(
     Output(submit_warning_message, 'children'),
     Input(query_input, 'value'),
     Input(_loading_collapse, 'is_open'),
-    State(tag_store, 'data')
+    Input(tag_store, 'data')
 )
 
 # add submitted query to history and clear input
@@ -293,16 +308,27 @@ clientside_callback(
     Input(history_store, 'data')
 )
 
+# Toggle if the add placeholder is open or not
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='openTagAddModal'),
+    Output(_tag_add_modal, 'is_open'),
+    Output(_tag_replacement_id, 'value'),
+    Output(_tag_add_label, 'value'),
+    Output(_tag_add_text, 'value'),
+    Input(_tag_add_open, 'n_clicks'),
+    Input({'type': _tag_edit, 'index': ALL}, 'n_clicks'),
+    State(tag_store, 'data'),
+    State({'type': _tag_edit, 'index': ALL}, 'id'),
+)
+
 # show attachment panel upon uploading document and populate fields
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='open_and_populate_attachment_panel'),
-    Output(attachment_extracted_text, 'value'),
-    Output(attachment_label, 'value'),
-    Output(panel_layout, 'shown'),
-    Input(attachment_upload, 'contents'),
-    Input(attachment_upload, 'filename'),
-    Input(attachment_upload, 'last_modified'),
-    State(panel_layout, 'shown')
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='handleFileUploadToTextField'),
+    Output(_tag_add_text, 'value', allow_duplicate=True),
+    Input(_tag_add_upload, 'contents'),
+    Input(_tag_add_upload, 'filename'),
+    Input(_tag_add_upload, 'last_modified'),
+    prevent_initial_call=True
 )
 
 clientside_callback(
@@ -336,30 +362,42 @@ clientside_callback(
 
 # enable/disable the save attachment button if tag is already in use/blank
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disable_attachment_save_button'),
-    Output(attachment_save, 'disabled'),
-    Output(attachment_warning_message, 'children'),
-    Input(attachment_label, 'value'),
-    State({'type': tag, 'index': ALL}, 'value')
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disableAttachmentSaveButton'),
+    Output(_tag_add_save, 'disabled'),
+    Output(_tag_add_warning, 'children'),
+    Input(_tag_add_label, 'value'),
+    Input(_tag_add_text, 'value'),
+    State(tag_store, 'data'),
+    State(_tag_replacement_id, 'value')
 )
 
 # populate word bank of tags
 clientside_callback(
     ClientsideFunction(namespace='bulk_essay_feedback', function_name='update_tag_buttons'),
-    Output(tags, 'children'),
+    Output(_tags, 'children'),
     Input(tag_store, 'data')
 )
 
-# save attachment to tag storage
+# save placeholder to storage
 clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='save_attachment'),
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='savePlaceholder'),
     Output(tag_store, 'data'),
-    Output(panel_layout, 'shown', allow_duplicate=True),
-    Input(attachment_save, 'n_clicks'),
-    State(attachment_label, 'value'),
-    State(attachment_extracted_text, 'value'),
+    Output(_tag_add_modal, 'is_open', allow_duplicate=True),
+    Input(_tag_add_save, 'n_clicks'),
+    State(_tag_add_label, 'value'),
+    State(_tag_add_text, 'value'),
+    State(_tag_replacement_id, 'value'),
     State(tag_store, 'data'),
-    State(panel_layout, 'shown'),
+    prevent_initial_call=True
+)
+
+# remove placeholder from storage
+clientside_callback(
+    ClientsideFunction(namespace='bulk_essay_feedback', function_name='removePlaceholder'),
+    Output(tag_store, 'data', allow_duplicate=True),
+    Input({'type': _tag_delete, 'index': ALL}, 'submit_n_clicks'),
+    State(tag_store, 'data'),
+    State({'type': _tag_delete, 'index': ALL}, 'id'),
     prevent_initial_call=True
 )
 

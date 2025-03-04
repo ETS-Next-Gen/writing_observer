@@ -249,25 +249,25 @@ window.dash_clientside.bulk_essay_feedback = {
    * - default attachment name (based on filename)
    * - whether we show the attachment upload panel
   */
-  open_and_populate_attachment_panel: async function (contents, filename, timestamp, shown) {
+  handleFileUploadToTextField: async function (contents, filename, timestamp) {
     if (filename === undefined) {
-      return ['', '', shown];
+      return '';
     }
     let data = ''
     if (filename.endsWith('.pdf')) {
       data = await extractPDF(contents);
     }
     // TODO add support for docx-like files
-    return [data, filename.slice(0, filename.lastIndexOf('.')), shown.concat('attachment')];
+    return data;
   },
 
   /**
    * append tag in curly braces to input
   */
   add_tag_to_input: function (clicks, curr, store) {
-    const trig = window.dash_clientside.callback_context.triggered[0]
-    const trigProp = trig.prop_id
-    const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')))
+    const trig = window.dash_clientside.callback_context.triggered[0];
+    const trigProp = trig.prop_id;
+    const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')));
     if (trig.value > 0) {
       return curr.concat(` {${trigJSON.index}}`)
     }
@@ -307,13 +307,32 @@ window.dash_clientside.bulk_essay_feedback = {
    * - save button disbaled status
    * - helper text for why we are disabled
    */
-  disable_attachment_save_button: function (label, tags) {
-    if (label.length === 0) {
-      return [true, 'Please add a unique label to your attachment']
-    } else if (tags.includes(label)) {
-      return [true, `Label ${label} is already in use.`]
+  disableAttachmentSaveButton: function (label, content, currentTagStore, replacementId) {
+    const tags = Object.keys(currentTagStore);
+    if (label.length === 0 & content.length === 0) {
+      return [true, ''];
+    } else if (label.length === 0) {
+      return [true, 'Add a label for your content'];
+    } else if (content.length === 0) {
+      return [true, 'Add content for your label'];
+    } else if ((!replacementId | replacementId !== label) & tags.includes(label)) {
+      return [true, `Label ${label} is already in use.`];
     }
-    return [false, '']
+    return [false, ''];
+  },
+
+  openTagAddModal: function (clicks, editClicks, currentTagStore, ids) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    if (triggeredItem === 'bulk-essay-analysis-tags-add-open-btn') {
+      return [true, null, '', '']
+    }
+    const id = triggeredItem.index;
+    const index = ids.findIndex(item => item.index == id);
+    if (editClicks[index]) {
+      return [true, id, id, currentTagStore[id]];
+    }
+    return window.dash_clientside.no_update;
   },
 
   /**
@@ -322,18 +341,48 @@ window.dash_clientside.bulk_essay_feedback = {
   update_tag_buttons: function (tagStore) {
     const tagLabels = Object.keys(tagStore);
     const tags = tagLabels.map((val) => {
-      const button = {
-        namespace: 'dash_bootstrap_components',
-        type: 'Button',
-        props: {
+      const isStudentText = val === 'student_text';
+      const button = createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'Button',
+        {
           children: val,
-          id: { type: 'bulk-essay-analysis-tag', index: val },
+          id: { type: 'bulk-essay-analysis-tags-tag', index: val },
           n_clicks: 0,
-          size: 'sm',
-          color: 'secondary'
+          color: isStudentText ? 'warning' : 'secondary'
         }
-      };
-      return button;
+      );
+      if (isStudentText) { return button; }
+      const editButton = createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'Button',
+        {
+          children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-edit'}),
+          color: 'secondary',
+          id: { type: 'bulk-essay-analysis-tags-tag-edit', index: val },
+          n_clicks: 0
+        }
+      );
+      const deleteButton = createDashComponent(
+        DASH_CORE_COMPONENTS, 'ConfirmDialogProvider',
+        {
+          children: createDashComponent(
+            DASH_BOOTSTRAP_COMPONENTS, 'Button',
+            {
+              children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-trash'}),
+              color: 'secondary'
+            }
+          ),
+          id: { type: 'bulk-essay-analysis-tags-tag-delete', index: val },
+          message: `Are you sure you want to delete the \`${val}\` placeholder?`
+        }
+      );
+      const buttonGroup = createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'ButtonGroup',
+        {
+          children: [button, editButton, deleteButton],
+          class_name: 'placeholder ms-1'
+        }
+      )
+      return buttonGroup;
     });
     return tags;
   },
@@ -341,13 +390,29 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * Save attachment to tag storage
    */
-  save_attachment: function (clicks, label, text, tagStore, shown) {
+  savePlaceholder: function (clicks, label, text, replacementId, tagStore) {
     if (clicks > 0) {
-      const newStore = tagStore
-      newStore[label] = text
-      return [newStore, shown.filter(item => item !== 'attachment')]
+      const newStore = tagStore;
+      if (!!replacementId & replacementId !== label) {
+        delete newStore[replacementId];
+      }
+      newStore[label] = text;
+      return [newStore, false];
     }
-    return tagStore
+    return window.dash_clientside.no_update;
+  },
+
+  removePlaceholder: function (clicks, tagStore, ids) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    const id = triggeredItem.index;
+    const index = ids.findIndex(item => item.index == id);
+    if (clicks[index]) {
+      const newStore = tagStore;
+      delete newStore[id];
+      return newStore;
+    }
+    return window.dash_clientside.no_update;
   },
 
   /**

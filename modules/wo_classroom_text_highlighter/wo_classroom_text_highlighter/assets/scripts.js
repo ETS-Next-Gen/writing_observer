@@ -8,6 +8,7 @@ if (!window.dash_clientside) {
 }
 
 const DASH_HTML_COMPONENTS = 'dash_html_components';
+const DASH_CORE_COMPONENTS = 'dash_core_components';
 const DASH_BOOTSTRAP_COMPONENTS = 'dash_bootstrap_components';
 const LO_DASH_REACT_COMPONENTS = 'lo_dash_react_components';
 
