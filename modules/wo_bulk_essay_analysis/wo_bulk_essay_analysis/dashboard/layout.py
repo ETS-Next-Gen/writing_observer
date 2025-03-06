@@ -76,7 +76,7 @@ tag_modal = dbc.Modal([
         dbc.Button(
             dcc.Upload(
                 [html.I(className='fas fa-plus me-1'), 'Upload'],
-                accept='.txt,.docx,.md,.pdf',
+                accept='.txt,.md,.pdf,.docx',
                 id=_tag_add_upload
             )
         )
@@ -191,7 +191,7 @@ def layout():
                     html.I(className='fas fa-circle-question ms-1', id=placeholder_tooltip)
                 ], className='me-1'),
                 html.Span([], id=_tags),
-                dbc.Button([html.I(className='fas fa-add me-1'), 'Add'], id=_tag_add_open, class_name='ms-1')
+                dbc.Button([html.I(className='fas fa-add me-1'), 'Add'], id=_tag_add_open, class_name='ms-1 mb-1')
             ], className='mt-1'),
             dbc.Tooltip(
                 'Click a placeholder to insert it into your query. Upon submission, it will be replaced with the corresponding value.',

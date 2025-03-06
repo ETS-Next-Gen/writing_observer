@@ -135,6 +135,20 @@ const extractPDF = async function (base64String) {
   return allText
 };
 
+const extractTXT = async function (base64String) {
+  return atob(charactersAfterChar(base64String, ','));
+};
+
+const extractMD = async function (base64String) {
+  return atob(charactersAfterChar(base64String, ','));
+};
+
+const extractDOCX = async function (base64String) {
+  const arrayBuffer = Uint8Array.from(atob(charactersAfterChar(base64String, ',')), c => c.charCodeAt(0)).buffer;
+  const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+  return result.value; // The raw text
+};
+
 window.dash_clientside.bulk_essay_feedback = {
   /**
    * Sends data to server via websocket
@@ -254,10 +268,21 @@ window.dash_clientside.bulk_essay_feedback = {
       return '';
     }
     let data = ''
-    if (filename.endsWith('.pdf')) {
-      data = await extractPDF(contents);
+    try {
+      if (filename.endsWith('.pdf')) {
+        data = await extractPDF(contents);
+      } else if (filename.endsWith('.txt')) {
+        data = await extractTXT(contents);
+      } else if (filename.endsWith('.docx')) {
+        data = await extractDOCX(contents);
+      } else if (filename.endsWith('.md')) {
+        data = await extractMD(contents);
+      } else {
+        console.error('Unsupported file type');
+      }
+    } catch (error) {
+      console.error('Error extracting text from file:', error);
     }
-    // TODO add support for docx-like files
     return data;
   },
 
@@ -348,17 +373,16 @@ window.dash_clientside.bulk_essay_feedback = {
           children: val,
           id: { type: 'bulk-essay-analysis-tags-tag', index: val },
           n_clicks: 0,
-          color: isStudentText ? 'warning' : 'secondary'
+          color: isStudentText ? 'warning' : 'info'
         }
       );
-      if (isStudentText) { return button; }
       const editButton = createDashComponent(
         DASH_BOOTSTRAP_COMPONENTS, 'Button',
         {
           children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-edit'}),
-          color: 'secondary',
           id: { type: 'bulk-essay-analysis-tags-tag-edit', index: val },
-          n_clicks: 0
+          n_clicks: 0,
+          color: 'info'
         }
       );
       const deleteButton = createDashComponent(
@@ -368,18 +392,19 @@ window.dash_clientside.bulk_essay_feedback = {
             DASH_BOOTSTRAP_COMPONENTS, 'Button',
             {
               children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-trash'}),
-              color: 'secondary'
+              color: 'info',
             }
           ),
           id: { type: 'bulk-essay-analysis-tags-tag-delete', index: val },
           message: `Are you sure you want to delete the \`${val}\` placeholder?`
         }
       );
+      const buttons = isStudentText ? [button] : [button, editButton, deleteButton]
       const buttonGroup = createDashComponent(
         DASH_BOOTSTRAP_COMPONENTS, 'ButtonGroup',
         {
-          children: [button, editButton, deleteButton],
-          class_name: 'placeholder ms-1'
+          children: buttons,
+          class_name: `${isStudentText ? '' : 'prompt-variable-tag'} ms-1 mb-1`,
         }
       )
       return buttonGroup;

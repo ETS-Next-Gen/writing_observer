@@ -5,11 +5,11 @@
   min-height: 250px;
 }
 
-.placeholder button:last-child {
+.prompt-variable-tag button:last-child {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
 
-.placeholder>div:last-child {
+.prompt-variable-tag>div:last-child {
   display: inline;
 }

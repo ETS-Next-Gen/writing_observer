@@ -22,7 +22,8 @@ DASH_PAGES = [
         ],
         "SCRIPTS": [
             thirdparty_url('pdf.js'),
-            thirdparty_url('pdf.worker.js')
+            thirdparty_url('pdf.worker.js'),
+            thirdparty_url('mammoth.js')
         ]
     }
 ]
@@ -62,6 +63,13 @@ THIRD_PARTY = {
         'hash': {
             '3.9.179': '0fc109e44fb5af718c31f1a15e1479850ef259efa42dcdd2cdd975387df3b'
             '3ebb7dad9946bd3d00bdcd29527dc753fde4b950b2a7a052bd8f66ee643bb736767'
+        }
+    },
+    'mammoth.js': {
+        'url': 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.9.0/mammoth.browser.min.js',
+        'hash': {
+            '1.9.0': '7e77162c6d0103528615896ba72fcca385ab2f64699cd06d744a6d740c16179'
+            '322e02e2d45adf1c4d8720f6c8ac7c54e19c6a061eb0814f2abb4b80738d8766a'
         }
     },
     "css/bootstrap.min.css": d.BOOTSTRAP_MIN_CSS,
