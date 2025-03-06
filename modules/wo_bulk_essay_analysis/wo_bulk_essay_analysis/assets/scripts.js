@@ -8,17 +8,12 @@ if (!window.dash_clientside) {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
-const createStudentCard = async function (s, prompt) {
+const createStudentCard = async function (s, prompt, width, height, showHeader) {
   // TODO this ought to come from the comm protocol
   const document = Object.keys(s.documents)[0];
   const student = s.documents[document];
   const promptHash = await hashObject({ prompt });
 
-  const header = {
-    namespace: 'dash_bootstrap_components',
-    type: 'CardHeader',
-    props: { children: student.profile.name.full_name }
-  };
   const studentText = {
     namespace: 'lo_dash_react_components',
     type: 'WOAnnotatedText',
@@ -58,39 +53,51 @@ const createStudentCard = async function (s, prompt) {
   };
   const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
   const feedbackOrError = 'error' in student ? errorMessage : feedback;
-  const body = {
-    namespace: 'lo_dash_react_components',
-    type: 'LOPanelLayout',
-    props: {
-      children: studentText,
-      panels: [{ children: feedbackOrError, id: 'feedback-text', width: '40%' }],
-      shown: ['feedback-text'],
-      className: 'overflow-auto p-1'
+  const studentTile = createDashComponent(
+    LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
+    {
+      showHeader,
+      studentInfo: formatStudentData(s, []),
+      // TODO the selectedDocument ought to remain the same upon updating the student object
+      // i.e. it should be pulled from the current client student state
+      selectedDocument: 'latest',
+      childComponent: studentText,
+      id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
+      currentOptionHash: promptHash,
+      style: {height: `${height}px`}
     }
-  };
-  const card = {
-    namespace: 'dash_bootstrap_components',
-    type: 'Card',
-    props: {
-      children: [header, body],
-      style: { maxHeight: '375px' }
+  );
+  const tileWrapper = createDashComponent(
+    DASH_HTML_COMPONENTS, 'Div',
+    {
+      className: 'position-relative mb-2',
+      children: [
+        studentTile,
+        createDashComponent(
+          DASH_BOOTSTRAP_COMPONENTS, 'Card',
+          { children: feedbackOrError, body: true }
+        ),
+        createDashComponent(
+          DASH_BOOTSTRAP_COMPONENTS, 'Button',
+          {
+            id: { type: 'WOAIAssistStudentTileExpand', index: student.user_id },
+            children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
+            class_name: 'position-absolute top-0 end-0 m-1',
+            color: 'transparent'
+          }
+        )
+      ],
+      id: { type: 'WOAIAssistStudentTile', index: student.user_id },
+      style: {width: `${(100 - width) / width}%`}
     }
-  };
-  return {
-    namespace: 'dash_bootstrap_components',
-    type: 'Col',
-    props: {
-      children: card,
-      id: student.user_id,
-      xs: 12,
-      lg: 6,
-      xxl: 4
-    }
-  };
+  )
+  return tileWrapper;
 };
 
 const checkForResponse = function (s, promptHash) {
+  // TODO BUG we need to check the selected document here
   const document = Object.keys(s.documents)[0];
+  // should probably be `s.documents[s.selected-document]`
   const student = s.documents[document];
   return promptHash === student.option_hash;
 };
@@ -126,6 +133,20 @@ const extractPDF = async function (base64String) {
   const allText = allTexts.join('\n')
 
   return allText
+};
+
+const extractTXT = async function (base64String) {
+  return atob(charactersAfterChar(base64String, ','));
+};
+
+const extractMD = async function (base64String) {
+  return atob(charactersAfterChar(base64String, ','));
+};
+
+const extractDOCX = async function (base64String) {
+  const arrayBuffer = Uint8Array.from(atob(charactersAfterChar(base64String, ',')), c => c.charCodeAt(0)).buffer;
+  const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+  return result.value; // The raw text
 };
 
 window.dash_clientside.bulk_essay_feedback = {
@@ -195,9 +216,9 @@ window.dash_clientside.bulk_essay_feedback = {
    */
   update_input_history_on_query_submission: async function (clicks, query, history) {
     if (clicks > 0) {
-      return ['', history.concat(query)]
+      return history.concat(query)
     }
-    return [query, window.dash_clientside.no_update]
+    return window.dash_clientside.no_update
   },
 
   /**
@@ -221,7 +242,7 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * update student cards based on new data in storage
    */
-  updateStudentGridOutput: async function (wsStorageData, history) {
+  updateStudentGridOutput: async function (wsStorageData, history, width, height, showHeader) {
     if (!wsStorageData) {
       return 'No students';
     }
@@ -229,7 +250,7 @@ window.dash_clientside.bulk_essay_feedback = {
 
     let output = [];
     for (const student in wsStorageData) {
-      output = output.concat(await createStudentCard(wsStorageData[student], currPrompt));
+      output = output.concat(await createStudentCard(wsStorageData[student], currPrompt, width, height, showHeader));
     }
     return output;
   },
@@ -242,25 +263,36 @@ window.dash_clientside.bulk_essay_feedback = {
    * - default attachment name (based on filename)
    * - whether we show the attachment upload panel
   */
-  open_and_populate_attachment_panel: async function (contents, filename, timestamp, shown) {
+  handleFileUploadToTextField: async function (contents, filename, timestamp) {
     if (filename === undefined) {
-      return ['', '', shown];
+      return '';
     }
     let data = ''
-    if (filename.endsWith('.pdf')) {
-      data = await extractPDF(contents);
+    try {
+      if (filename.endsWith('.pdf')) {
+        data = await extractPDF(contents);
+      } else if (filename.endsWith('.txt')) {
+        data = await extractTXT(contents);
+      } else if (filename.endsWith('.docx')) {
+        data = await extractDOCX(contents);
+      } else if (filename.endsWith('.md')) {
+        data = await extractMD(contents);
+      } else {
+        console.error('Unsupported file type');
+      }
+    } catch (error) {
+      console.error('Error extracting text from file:', error);
     }
-    // TODO add support for docx-like files
-    return [data, filename.slice(0, filename.lastIndexOf('.')), shown.concat('attachment')];
+    return data;
   },
 
   /**
    * append tag in curly braces to input
   */
   add_tag_to_input: function (clicks, curr, store) {
-    const trig = window.dash_clientside.callback_context.triggered[0]
-    const trigProp = trig.prop_id
-    const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')))
+    const trig = window.dash_clientside.callback_context.triggered[0];
+    const trigProp = trig.prop_id;
+    const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')));
     if (trig.value > 0) {
       return curr.concat(` {${trigJSON.index}}`)
     }
@@ -300,13 +332,32 @@ window.dash_clientside.bulk_essay_feedback = {
    * - save button disbaled status
    * - helper text for why we are disabled
    */
-  disable_attachment_save_button: function (label, tags) {
-    if (label.length === 0) {
-      return [true, 'Please add a unique label to your attachment']
-    } else if (tags.includes(label)) {
-      return [true, `Label ${label} is already in use.`]
+  disableAttachmentSaveButton: function (label, content, currentTagStore, replacementId) {
+    const tags = Object.keys(currentTagStore);
+    if (label.length === 0 & content.length === 0) {
+      return [true, ''];
+    } else if (label.length === 0) {
+      return [true, 'Add a label for your content'];
+    } else if (content.length === 0) {
+      return [true, 'Add content for your label'];
+    } else if ((!replacementId | replacementId !== label) & tags.includes(label)) {
+      return [true, `Label ${label} is already in use.`];
     }
-    return [false, '']
+    return [false, ''];
+  },
+
+  openTagAddModal: function (clicks, editClicks, currentTagStore, ids) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    if (triggeredItem === 'bulk-essay-analysis-tags-add-open-btn') {
+      return [true, null, '', '']
+    }
+    const id = triggeredItem.index;
+    const index = ids.findIndex(item => item.index == id);
+    if (editClicks[index]) {
+      return [true, id, id, currentTagStore[id]];
+    }
+    return window.dash_clientside.no_update;
   },
 
   /**
@@ -315,18 +366,48 @@ window.dash_clientside.bulk_essay_feedback = {
   update_tag_buttons: function (tagStore) {
     const tagLabels = Object.keys(tagStore);
     const tags = tagLabels.map((val) => {
-      const button = {
-        namespace: 'dash_bootstrap_components',
-        type: 'Button',
-        props: {
+      const isStudentText = val === 'student_text';
+      const button = createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'Button',
+        {
           children: val,
-          id: { type: 'bulk-essay-analysis-tag', index: val },
+          id: { type: 'bulk-essay-analysis-tags-tag', index: val },
           n_clicks: 0,
-          size: 'sm',
-          color: 'secondary'
+          color: isStudentText ? 'warning' : 'info'
         }
-      };
-      return button;
+      );
+      const editButton = createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'Button',
+        {
+          children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-edit'}),
+          id: { type: 'bulk-essay-analysis-tags-tag-edit', index: val },
+          n_clicks: 0,
+          color: 'info'
+        }
+      );
+      const deleteButton = createDashComponent(
+        DASH_CORE_COMPONENTS, 'ConfirmDialogProvider',
+        {
+          children: createDashComponent(
+            DASH_BOOTSTRAP_COMPONENTS, 'Button',
+            {
+              children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-trash'}),
+              color: 'info',
+            }
+          ),
+          id: { type: 'bulk-essay-analysis-tags-tag-delete', index: val },
+          message: `Are you sure you want to delete the \`${val}\` placeholder?`
+        }
+      );
+      const buttons = isStudentText ? [button] : [button, editButton, deleteButton]
+      const buttonGroup = createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'ButtonGroup',
+        {
+          children: buttons,
+          class_name: `${isStudentText ? '' : 'prompt-variable-tag'} ms-1 mb-1`,
+        }
+      )
+      return buttonGroup;
     });
     return tags;
   },
@@ -334,13 +415,29 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * Save attachment to tag storage
    */
-  save_attachment: function (clicks, label, text, tagStore, shown) {
+  savePlaceholder: function (clicks, label, text, replacementId, tagStore) {
     if (clicks > 0) {
-      const newStore = tagStore
-      newStore[label] = text
-      return [newStore, shown.filter(item => item !== 'attachment')]
+      const newStore = tagStore;
+      if (!!replacementId & replacementId !== label) {
+        delete newStore[replacementId];
+      }
+      newStore[label] = text;
+      return [newStore, false];
     }
-    return tagStore
+    return window.dash_clientside.no_update;
+  },
+
+  removePlaceholder: function (clicks, tagStore, ids) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    const id = triggeredItem.index;
+    const index = ids.findIndex(item => item.index == id);
+    if (clicks[index]) {
+      const newStore = tagStore;
+      delete newStore[id];
+      return newStore;
+    }
+    return window.dash_clientside.no_update;
   },
 
   /**
@@ -384,5 +481,112 @@ window.dash_clientside.bulk_essay_feedback = {
     const loadingProgress = returnedResponses / totalStudents + 0.1;
     const outputText = `Fetching responses from server. This will take a few minutes. (${returnedResponses}/${totalStudents} received)`;
     return [true, loadingProgress, outputText];
-  }
+  },
+
+  adjustTileSize: function (width, height, studentIds) {
+    const total = studentIds.length;
+    return [
+      Array(total).fill({width: `${(100 - width) / width}%`}),
+      Array(total).fill({height: `${height}px`}),
+    ];
+  },
+
+  selectStudentForExpansion: function (clicks, shownPanels, ids) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    let id = null;
+    if (triggeredItem?.type === 'WOAIAssistStudentTileExpand') {
+      id = triggeredItem?.index
+      if (clicks[ids.findIndex(item => item.index == id)]) {
+        shownPanels = shownPanels.concat('bulk-essay-analysis-expanded-student-panel');
+      }
+    } else {
+      return window.dash_clientside.no_update;
+    }
+    return [id, shownPanels];
+  },
+
+  expandSelectedStudent: async function (selectedStudent, wsData, showHeader, history) {
+    if (!selectedStudent | !(selectedStudent in wsData)) {
+      return window.dash_clientside.no_update;
+    }
+    const prompt = history.length > 0 ? history[history.length - 1] : '';
+    const s = wsData[selectedStudent];
+    const document = Object.keys(s.documents)[0];
+    const student = s.documents[document];
+    const promptHash = await hashObject({ prompt });
+
+    const studentText = {
+      namespace: 'lo_dash_react_components',
+      type: 'WOAnnotatedText',
+      props: { text: student.text, breakpoints: [], className: 'border-end' }
+    };
+    const errorMessage = {
+      namespace: 'dash_html_components',
+      type: 'Div',
+      props: {
+        children: 'An error occurred while processing the text.'
+      }
+    };
+    const feedbackMessage = {
+      namespace: 'dash_html_components',
+      type: 'Div',
+      props: {
+        children: student?.feedback ? student.feedback : '',
+        className: student?.feedback ? 'p-1 overflow-auto' : '',
+        style: { whiteSpace: 'pre-line' }
+      }
+    };
+    const feedbackLoading = {
+      namespace: 'dash_html_components',
+      type: 'Div',
+      props: {
+        children: [{
+          namespace: 'dash_bootstrap_components',
+          type: 'Spinner',
+          props: {}
+        }, {
+          namespace: 'dash_html_components',
+          type: 'Div',
+          props: { children: 'Waiting for a response.' }
+        }],
+        className: 'text-center'
+      }
+    };
+    const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
+    const feedbackOrError = 'error' in student ? errorMessage : feedback;
+    const studentTile = createDashComponent(
+      LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
+      {
+        showHeader,
+        studentInfo: formatStudentData(s, []),
+        // TODO the selectedDocument ought to remain the same upon updating the student object
+        // i.e. it should be pulled from the current client student state
+        selectedDocument: 'latest',
+        childComponent: studentText,
+        id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
+        currentOptionHash: promptHash,
+      }
+    );
+    const individualWrapper = createDashComponent(
+      DASH_HTML_COMPONENTS, 'Div',
+      {
+        className: '',
+        children: [
+          studentTile,
+          createDashComponent(
+            DASH_BOOTSTRAP_COMPONENTS, 'Card',
+            { children: feedbackOrError, body: true, className: 'individual-student-feedback' }
+          )
+        ]
+      }
+    )
+    return individualWrapper;
+  },
+
+  closeExpandedStudent: function (clicks, shown) {
+    if (!clicks) { return window.dash_clientside.no_update; }
+    shown = shown.filter(item => item !== 'bulk-essay-analysis-expanded-student-panel');
+    return shown
+  },
 };
