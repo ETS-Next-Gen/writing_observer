@@ -27,8 +27,8 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
     }
   };
   const feedbackMessage = {
-    namespace: 'dash_html_components',
-    type: 'Div',
+    namespace: DASH_CORE_COMPONENTS,
+    type: 'Markdown',
     props: {
       children: student?.feedback ? student.feedback : '',
       className: student?.feedback ? 'p-1 overflow-auto' : '',
@@ -529,8 +529,8 @@ window.dash_clientside.bulk_essay_feedback = {
       }
     };
     const feedbackMessage = {
-      namespace: 'dash_html_components',
-      type: 'Div',
+      namespace: DASH_CORE_COMPONENTS,
+      type: 'Markdown',
       props: {
         children: student?.feedback ? student.feedback : '',
         className: student?.feedback ? 'p-1 overflow-auto' : '',

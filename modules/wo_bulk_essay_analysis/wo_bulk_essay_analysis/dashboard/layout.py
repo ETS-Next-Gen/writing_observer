@@ -201,7 +201,7 @@ def layout():
             dcc.Store(id=tag_store, data={'student_text': ''}),
         ]),
         dbc.CardFooter([
-            html.Small(id=submit_warning_message, className='text-danger'),
+            html.Small(id=submit_warning_message, className='text-warning'),
             dbc.Button('Submit', color='primary', id=submit, n_clicks=0, class_name='float-end')
         ])
     ])
