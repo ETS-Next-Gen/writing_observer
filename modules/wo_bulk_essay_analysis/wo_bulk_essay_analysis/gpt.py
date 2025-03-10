@@ -1,4 +1,5 @@
 import learning_observer.communication_protocol.integration
+import learning_observer.cache
 import learning_observer.prestartup
 import learning_observer.settings
 

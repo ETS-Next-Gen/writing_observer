@@ -14,7 +14,7 @@
     "watch-css": "sass src/lib:lo_dash_react_components/css --watch",
     "start-all": "npm-run-all --parallel watch-css react-start webpack-start dash-start",
     "clean-build:python": "rm -rf dist/ && rm -rf build/",
-    "build:python": "npm run clean-build:python && python setup.py sdist bdist_wheel"
+    "build:python": "npm run clean-build:python && npm run build && python setup.py sdist bdist_wheel"
   },
   "author": "Piotr Mitros <pmitros@ets.org>",
   "license": "AGPL-3.0",
