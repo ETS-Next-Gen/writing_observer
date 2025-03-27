@@ -26,6 +26,7 @@ query_input = f'{prefix}-query-input'
 panel_layout = f'{prefix}-panel-layout'
 
 _advanced = f'{prefix}-advanced'
+_advanced_doc_src = f'{_advanced}-document-source'
 _advanced_toggle = f'{_advanced}-toggle'
 _advanced_collapse = f'{_advanced}-collapse'
 _advanced_width = f'{_advanced}-width'
@@ -34,11 +35,6 @@ _advanced_hide_header = f'{_advanced}-hide-header'
 
 _system_input = f'{prefix}-system-prompt-input'
 _system_input_tooltip = f'{_system_input}-tooltip'
-
-# document source DOM ids
-doc_src = f'{prefix}-doc-src'
-doc_src_date = f'{prefix}-doc-src-date'
-doc_src_timestamp = f'{prefix}-doc-src-timestamp'
 
 # placeholder DOM ids
 _tags = f'{prefix}-tags'
@@ -144,22 +140,18 @@ def layout():
     # advanced menu for system prompt
     advanced = [
         html.Div([
-            html.H4('Document Source'),
-            dbc.RadioItems(options=[
-                {'label': 'Latest Document', 'value': 'latest' },
-                {'label': 'Specific Time', 'value': 'ts'},
-            ], value='latest', id=doc_src),
-            dbc.InputGroup([
-                dcc.DatePickerSingle(id=doc_src_date, date=datetime.date.today()),
-                dbc.Input(type='time', id=doc_src_timestamp, value=datetime.datetime.now().strftime("%H:%M"))
+            lodrc.LODocumentSourceSelectorAIO(aio_id=_advanced_doc_src),
+            dbc.Card([
+                dbc.CardHeader('View Options'),
+                dbc.CardBody([
+                    dbc.Label('Students per row'),
+                    dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_advanced_width),
+                    dbc.Label('Height of student tile'),
+                    dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
+                    dbc.Label('Student name headers'),
+                    dbc.Switch(value=True, id=_advanced_hide_header, label='Show/Hide'),
+                ])
             ]),
-            html.H4('View Options'),
-            dbc.Label('Students per row'),
-            dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_advanced_width),
-            dbc.Label('Height of student tile'),
-            dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
-            dbc.Label('Student name headers'),
-            dbc.Switch(value=True, id=_advanced_hide_header, label='Show/Hide'),
         ])
     ]
 
@@ -201,7 +193,7 @@ def layout():
             dcc.Store(id=tag_store, data={'student_text': ''}),
         ]),
         dbc.CardFooter([
-            html.Small(id=submit_warning_message, className='text-warning'),
+            html.Small(id=submit_warning_message, className='text-secondary'),
             dbc.Button('Submit', color='primary', id=submit, n_clicks=0, class_name='float-end')
         ])
     ])
@@ -249,14 +241,6 @@ def layout():
     return html.Div(cont)
 
 
-# disbale document date/time options
-clientside_callback(
-    ClientsideFunction(namespace='bulk_essay_feedback', function_name='disable_doc_src_datetime'),
-    Output(doc_src_date, 'disabled'),
-    Output(doc_src_timestamp, 'disabled'),
-    Input(doc_src, 'value')
-)
-
 # Toggle if the advanced menu collapse is open or not
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='toggleAdvanced'),
@@ -272,9 +256,7 @@ clientside_callback(
     Input(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
     Input('_pages_location', 'hash'),
     Input(submit, 'n_clicks'),
-    Input(doc_src, 'value'),
-    Input(doc_src_date, 'date'),
-    Input(doc_src_timestamp, 'value'),
+    Input(lodrc.LODocumentSourceSelectorAIO.ids.kwargs_store(_advanced_doc_src), 'data'),
     State(query_input, 'value'),
     State(_system_input, 'value'),
     State(tag_store, 'data'),

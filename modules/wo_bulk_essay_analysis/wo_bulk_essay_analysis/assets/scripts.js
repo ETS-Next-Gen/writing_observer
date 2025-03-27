@@ -9,9 +9,9 @@ if (!window.dash_clientside) {
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
 const createStudentCard = async function (s, prompt, width, height, showHeader) {
-  // TODO this ought to come from the comm protocol
-  const document = Object.keys(s.documents)[0];
-  const student = s.documents[document];
+
+  const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
+  const student = s.documents?.[selectedDocument] ?? {};
   const promptHash = await hashObject({ prompt });
 
   const studentText = {
@@ -53,18 +53,17 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
   };
   const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
   const feedbackOrError = 'error' in student ? errorMessage : feedback;
+  const userId = student?.user_id || '0';
   const studentTile = createDashComponent(
     LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
     {
       showHeader,
       studentInfo: formatStudentData(s, []),
-      // TODO the selectedDocument ought to remain the same upon updating the student object
-      // i.e. it should be pulled from the current client student state
-      selectedDocument: 'latest',
+      selectedDocument,
       childComponent: studentText,
-      id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
+      id: { type: 'WOAIAssistStudentTileText', index: userId },
       currentOptionHash: promptHash,
-      style: {height: `${height}px`}
+      style: { height: `${height}px` }
     }
   );
   const tileWrapper = createDashComponent(
@@ -80,14 +79,14 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
         createDashComponent(
           DASH_BOOTSTRAP_COMPONENTS, 'Button',
           {
-            id: { type: 'WOAIAssistStudentTileExpand', index: student.user_id },
+            id: { type: 'WOAIAssistStudentTileExpand', index: userId },
             children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
             class_name: 'position-absolute top-0 end-0 m-1',
             color: 'transparent'
           }
         )
       ],
-      id: { type: 'WOAIAssistStudentTile', index: student.user_id },
+      id: { type: 'WOAIAssistStudentTile', index: userId },
       style: {width: `${(100 - width) / width}%`}
     }
   )
@@ -95,10 +94,9 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
 };
 
 const checkForResponse = function (s, promptHash) {
-  // TODO BUG we need to check the selected document here
-  const document = Object.keys(s.documents)[0];
-  // should probably be `s.documents[s.selected-document]`
-  const student = s.documents[document];
+  if (!('documents' in s)) { return false; }
+  const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
+  const student = s.documents[selectedDocument];
   return promptHash === student.option_hash;
 };
 
@@ -153,7 +151,7 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * Sends data to server via websocket
    */
-  send_to_loconnection: async function (state, hash, clicks, docSrc, docDate, docTime, query, systemPrompt, tags) {
+  send_to_loconnection: async function (state, hash, clicks, docKwargs, query, systemPrompt, tags) {
     if (state === undefined) {
       return window.dash_clientside.no_update;
     }
@@ -164,11 +162,11 @@ window.dash_clientside.bulk_essay_feedback = {
 
       decoded.gpt_prompt = '';
       decoded.message_id = '';
-      decoded.doc_source = docSrc;
-      decoded.requested_timestamp = new Date(`${docDate}T${docTime}`).getTime().toString();
+      decoded.doc_source = docKwargs.src;
+      decoded.doc_source_kwargs = docKwargs.kwargs;
       // TODO what is a reasonable time to wait inbetween subsequent calls for
       // the same arguments
-      decoded.rerun_dag_delay = 120;
+      decoded.rerun_dag_delay = 30;
 
       const trig = window.dash_clientside.callback_context.triggered[0];
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
@@ -182,8 +180,8 @@ window.dash_clientside.bulk_essay_feedback = {
 
       const message = {
         wo: {
-          execution_dag: 'wo_bulk_essay_analysis',
-          target_exports: ['gpt_bulk'],
+          execution_dag: 'writing_observer',
+          target_exports: ['gpt_bulk', 'document_list', 'document_sources'],
           kwargs: decoded
         }
       };
@@ -249,8 +247,8 @@ window.dash_clientside.bulk_essay_feedback = {
     const currPrompt = history.length > 0 ? history[history.length - 1] : '';
 
     let output = [];
-    for (const student in wsStorageData) {
-      output = output.concat(await createStudentCard(wsStorageData[student], currPrompt, width, height, showHeader));
+    for (const student in wsStorageData.students) {
+      output = output.concat(await createStudentCard(wsStorageData.students[student], currPrompt, width, height, showHeader));
     }
     return output;
   },
@@ -461,13 +459,6 @@ window.dash_clientside.bulk_essay_feedback = {
     return [text, true, error];
   },
 
-  disable_doc_src_datetime: function (value) {
-    if (value === 'ts') {
-      return [false, false];
-    }
-    return [true, true];
-  },
-
   updateLoadingInformation: async function (wsStorageData, history) {
     const noLoading = [false, 0, ''];
     if (!wsStorageData) {
@@ -475,8 +466,8 @@ window.dash_clientside.bulk_essay_feedback = {
     }
     const currentPrompt = history.length > 0 ? history[history.length - 1] : '';
     const promptHash = await hashObject({ prompt: currentPrompt });
-    const returnedResponses = Object.values(wsStorageData).filter(student => checkForResponse(student, promptHash)).length;
-    const totalStudents = Object.keys(wsStorageData).length;
+    const returnedResponses = Object.values(wsStorageData.students).filter(student => checkForResponse(student, promptHash)).length;
+    const totalStudents = Object.keys(wsStorageData.students).length;
     if (totalStudents === returnedResponses) { return noLoading; }
     const loadingProgress = returnedResponses / totalStudents + 0.1;
     const outputText = `Fetching responses from server. This will take a few minutes. (${returnedResponses}/${totalStudents} received)`;
@@ -507,11 +498,13 @@ window.dash_clientside.bulk_essay_feedback = {
   },
 
   expandSelectedStudent: async function (selectedStudent, wsData, showHeader, history) {
-    if (!selectedStudent | !(selectedStudent in wsData)) {
+    console.log('wsData', wsData);
+    if (!selectedStudent | !(selectedStudent in wsData.students)) {
       return window.dash_clientside.no_update;
     }
     const prompt = history.length > 0 ? history[history.length - 1] : '';
-    const s = wsData[selectedStudent];
+    const s = wsData.students[selectedStudent];
+    const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
     const document = Object.keys(s.documents)[0];
     const student = s.documents[document];
     const promptHash = await hashObject({ prompt });
@@ -562,7 +555,7 @@ window.dash_clientside.bulk_essay_feedback = {
         studentInfo: formatStudentData(s, []),
         // TODO the selectedDocument ought to remain the same upon updating the student object
         // i.e. it should be pulled from the current client student state
-        selectedDocument: 'latest',
+        selectedDocument,
         childComponent: studentText,
         id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
         currentOptionHash: promptHash,

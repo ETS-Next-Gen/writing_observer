@@ -36,6 +36,7 @@ _options_collapse = f'{_prefix}-options-collapse'
 _options_close = f'{_prefix}-options-close'
 # TODO abstract these into a more generic options component
 _options_prefix = f'{_prefix}-options'
+_options_doc_src = f'{_options_prefix}-document-source'
 _options_width = f'{_options_prefix}-width'
 _options_height = f'{_options_prefix}-height'
 _options_hide_header = f'{_options_prefix}-hide-names'
@@ -49,13 +50,18 @@ options_component = html.Div([
             className='float-end', id=_options_close,
             color='transparent'),
     ]),
-    html.H4('View Options'),
-    dbc.Label('Students per row'),
-    dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
-    dbc.Label('Height of student tile'),
-    dcc.Slider(min=100, max=800, marks=None, value=500, id=_options_height),
-    dbc.Label('Student name headers'),
-    dbc.Switch(value=True, id=_options_hide_header, label='Show/Hide'),
+    lodrc.LODocumentSourceSelectorAIO(aio_id=_options_doc_src),
+    dbc.Card([
+        dbc.CardHeader('View Options'),
+        dbc.CardBody([
+            dbc.Label('Students per row'),
+            dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
+            dbc.Label('Height of student tile'),
+            dcc.Slider(min=100, max=800, marks=None, value=500, id=_options_height),
+            dbc.Label('Student name headers'),
+            dbc.Switch(value=True, id=_options_hide_header, label='Show/Hide'),
+        ])
+    ]),
     html.H4('Highlight Options'),
     wo_classroom_text_highlighter.preset_component.create_layout(),
     lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS, className='table table-striped align-middle')
@@ -145,6 +151,7 @@ clientside_callback(
     Output(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'send'),
     Input(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
     Input('_pages_location', 'hash'),
+    Input(lodrc.LODocumentSourceSelectorAIO.ids.kwargs_store(_options_doc_src), 'data'),
     Input(_options_text_information, 'options')
 )
 

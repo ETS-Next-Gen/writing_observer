@@ -20,15 +20,16 @@ def select_source(sources, source):
 
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.fetch_doc_at_timestamp')
-async def fetch_doc_at_timestamp(overall_timestamps, requested_timestamp=None):
+async def fetch_doc_at_timestamp(overall_timestamps, kwargs=None):
     '''
     Iterate over a list of students and determine their latest document
-    in reference to the `requested_timestamp`.
+    in reference to the `kwargs.requested_timestamp`.
 
     `requested_timestamp` should be a string of ms since unix epoch
     '''
-    # output = []
-    # TODO this should be an async gen
+    if kwargs is None:
+        kwargs = {}
+    requested_timestamp = kwargs.get('requested_timestamp', None)
     async for student in overall_timestamps:
         timestamps = student.get('timestamps', {})
         student['doc_id'] = ''

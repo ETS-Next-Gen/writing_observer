@@ -62,45 +62,43 @@ function simpleHash (str) {
 // from the student and populates it under latest. We shouldn't hardcode
 // anything like latest here and instead pull it from the communication protocol
 function formatStudentData (student, selectedHighlights) {
-  // TODO this ought to come from the comm protocol
-  const document = Object.keys(student.documents)[0];
-
-  // TODO make sure the comm protocol is providing the doc id
-  const highlightBreakpoints = selectedHighlights.reduce((acc, option) => {
-    const offsets = student.documents[document][option.id]?.offsets || [];
-    if (offsets) {
-      const modifiedOffsets = offsets.map(offset => {
-        return {
-          id: '',
-          tooltip: option.label,
-          start: offset[0],
-          offset: offset[1],
-          style: { backgroundColor: option.types.highlight.color }
-        };
-      });
-      acc = acc.concat(modifiedOffsets);
-    }
-    return acc;
-  }, []);
-  // const availableDocuments = Object.keys(student.docs).map(id => ({
-  //   id,
-  //   title: student.docs[id].title || id
-  // }));
-  // availableDocuments.push({ id: 'latest', title: 'Latest' });
-  const availableDocuments = [{ id: 'latest', title: 'Latest' }]
-  // TODO currently we only populate the latest data of the student documents
-  // this is currently the muddiest part of the data flow and ought to be
-  // cleaned up.
-  return {
-    profile: student.documents[document].profile,
-    availableDocuments,
-    documents: {
-      latest: {
-        text: student.documents[document].text,
-        breakpoints: highlightBreakpoints,
-        optionHash: student.documents[document].option_hash
+  let profile = {};
+  let documents = {};
+  for (let document in student.documents || []) {
+    // TODO this ought to come from the comm protocol
+    const breakpoints = selectedHighlights.reduce((acc, option) => {
+      const offsets = student.documents[document][option.id]?.offsets || [];
+      if (offsets) {
+        const modifiedOffsets = offsets.map(offset => {
+          return {
+            id: '',
+            tooltip: option.label,
+            start: offset[0],
+            offset: offset[1],
+            style: { backgroundColor: option.types.highlight.color }
+          };
+        });
+        acc = acc.concat(modifiedOffsets);
       }
-    }
+      return acc;
+    }, []);
+    const text = student.documents[document].text;
+    const optionHash = student.documents[document].option_hash;
+    profile = student.documents[document].profile;
+    documents[document] = {text, optionHash, breakpoints}
+  }
+  let availableDocuments = [];
+  if ('availableDocuments' in student) {
+    availableDocuments = Object.keys(student.availableDocuments).map(id => ({
+      id,
+      title: student.availableDocuments[id].title || id,
+      last_access: student.availableDocuments[id].last_access || null
+    }));
+  }
+  return {
+    profile,
+    availableDocuments,
+    documents
   };
 }
 
@@ -115,7 +113,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    * @param {string} urlHash query string from hash for determining course id
    * @returns stringified json object that is sent to the communication protocl
    */
-  sendToLOConnection: async function (wsReadyState, urlHash, fullOptions) {
+  sendToLOConnection: async function (wsReadyState, urlHash, docKwargs, fullOptions) {
     if (wsReadyState === undefined) {
       return window.dash_clientside.no_update;
     }
@@ -128,11 +126,12 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       const nlpOptions = determineSelectedNLPOptionsList(fullOptions);
       decodedParams.nlp_options = nlpOptions;
       decodedParams.option_hash = optionsHash;
+      decodedParams.doc_source = docKwargs.src;
+      decodedParams.doc_source_kwargs = docKwargs.kwargs;
       const outgoingMessage = {
         wo_classroom_text_highlighter_query: {
           execution_dag: 'writing_observer',
-          // TODO add `doc_list` here when available
-          target_exports: ['docs_with_nlp_annotations'],
+          target_exports: ['docs_with_nlp_annotations', 'document_sources', 'document_list'],
           kwargs: decodedParams
         }
       };
@@ -156,7 +155,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     if (shown.includes(optionPrefix)) {
       shown = shown.filter(item => item !== optionPrefix);
     } else {
-        shown = shown.concat(optionPrefix);
+      shown = shown.concat(optionPrefix);
     }
     return shown;
   },
@@ -164,7 +163,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
   closeOptions: function (clicks, shown) {
     if (!clicks) { return window.dash_clientside.no_update; }
     shown = shown.filter(item => item !== 'wo-classroom-text-highlighter-options');
-    return shown
+    return shown;
   },
 
   adjustTileSize: function (width, height, studentIds) {
@@ -190,7 +189,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    */
   populateOutput: async function (wsStorageData, options, width, height, showHeader) {
     // console.log('wsStorageData', wsStorageData);
-    if (!wsStorageData) {
+    if (!wsStorageData?.students) {
       return 'No students';
     }
     let output = [];
@@ -203,16 +202,17 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     const selectedMetrics = options.filter(option => option.types?.metric?.value);
 
     const optionHash = await hashObject(options);
-
-    for (const student in wsStorageData) {
+    const students = wsStorageData.students;
+    for (const student in students) {
+      const selectedDocument = students[student].doc_id || Object.keys(students[student].documents || {})[0] || '';
       const studentTile = createDashComponent(
         LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
         {
           showHeader,
-          studentInfo: formatStudentData(wsStorageData[student], selectedHighlights),
+          studentInfo: formatStudentData(students[student], selectedHighlights),
           // TODO the selectedDocument ought to remain the same upon updating the student object
           // i.e. it should be pulled from the current client student state
-          selectedDocument: 'latest',
+          selectedDocument,
           childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
           id: { type: 'WOStudentTextTile', index: student },
           currentOptionHash: optionHash,
@@ -272,12 +272,13 @@ window.dash_clientside.wo_classroom_text_highlighter = {
 
   updateLoadingInformation: async function (wsStorageData, nlpOptions) {
     const noLoading = [false, 0, ''];
-    if (!wsStorageData) {
+    if (!wsStorageData?.students) {
       return noLoading;
     }
+    const students = wsStorageData.students;
     const promptHash = await hashObject(nlpOptions);
-    const returnedResponses = Object.values(wsStorageData).filter(student => checkForResponse(student, promptHash)).length;
-    const totalStudents = Object.keys(wsStorageData).length;
+    const returnedResponses = Object.values(students).filter(student => checkForResponse(student, promptHash)).length;
+    const totalStudents = Object.keys(students).length;
     if (totalStudents === returnedResponses) { return noLoading; }
     const loadingProgress = returnedResponses / totalStudents + 0.1;
     const outputText = `Fetching responses from server. This will take a few minutes. (${returnedResponses}/${totalStudents} received)`;
@@ -293,14 +294,14 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       if (!currentChild) { return window.dash_clientside.no_update; }
       id = currentChild?.props.id.index;
     } else if (triggeredItem?.type === 'WOStudentTileExpand') {
-      id = triggeredItem?.index
+      id = triggeredItem?.index;
       shownPanels = shownPanels.concat('wo-classroom-text-highlighter-expanded-student-panel');
     } else {
       return window.dash_clientside.no_update;
     }
-    index = ids.findIndex(item => item.index === id);
-    child = children[index][0]
-    return [child, shownPanels]
+    const index = ids.findIndex(item => item.index === id);
+    child = children[index][0];
+    return [child, shownPanels];
   },
 
   closeExpandedStudent: function (clicks, shown) {

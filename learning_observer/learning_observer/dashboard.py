@@ -560,10 +560,15 @@ def _find_student_or_resource(d):
         provenance = d['provenance']
         output = []
         if 'STUDENT' in provenance:
+            output.append('students')
             output.append(provenance['STUDENT']['user_id'])
         if 'RESOURCE' in provenance:
-            output.append('documents')
-            output.append(provenance['RESOURCE']['doc_id'])
+            if 'doc_id' in provenance['RESOURCE']:
+                output.append('documents')
+                output.append(provenance['RESOURCE']['doc_id'])
+            if 'assignment_id' in provenance['RESOURCE']:
+                output.append('assignments')
+                output.append(provenance['RESOURCE']['assignment_id'])
         if output:
             return output
         return _find_student_or_resource(provenance)
@@ -629,6 +634,7 @@ async def websocket_dashboard_handler(request):
         await _drive_generator(generator, dag_query['kwargs'])
 
         # Handle rescheduling the execution of the DAG for fresh data
+        # TODO add some way to specific specific endpoint delays
         dag_delay = dag_query['kwargs'].get('rerun_dag_delay', 10)
         if dag_delay < 0:
             # if dag_delay is negative, we skip repeated execution

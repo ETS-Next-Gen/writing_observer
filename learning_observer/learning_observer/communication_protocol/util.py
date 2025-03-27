@@ -2,7 +2,6 @@
 This file provides utility functions specific to the
 communication protocol.
 '''
-import inspect
 
 import learning_observer.communication_protocol.query as q
 import learning_observer.communication_protocol.exception
