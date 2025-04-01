@@ -58,14 +58,10 @@ function simpleHash (str) {
 
 // TODO some of this will move to the communication protocol, but for now
 // it lives here
-// Currently the system only handles grabbing the first document available
-// from the student and populates it under latest. We shouldn't hardcode
-// anything like latest here and instead pull it from the communication protocol
 function formatStudentData (student, selectedHighlights) {
   let profile = {};
-  let documents = {};
-  for (let document in student.documents || []) {
-    // TODO this ought to come from the comm protocol
+  const documents = {};
+  for (const document in student.documents || []) {
     const breakpoints = selectedHighlights.reduce((acc, option) => {
       const offsets = student.documents[document][option.id]?.offsets || [];
       if (offsets) {
@@ -85,7 +81,7 @@ function formatStudentData (student, selectedHighlights) {
     const text = student.documents[document].text;
     const optionHash = student.documents[document].option_hash;
     profile = student.documents[document].profile;
-    documents[document] = {text, optionHash, breakpoints}
+    documents[document] = { text, optionHash, breakpoints };
   }
   let availableDocuments = [];
   if ('availableDocuments' in student) {
@@ -151,7 +147,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     if (!clicks) {
       return window.dash_clientside.no_update;
     }
-    const optionPrefix = 'wo-classroom-text-highlighter-options'
+    const optionPrefix = 'wo-classroom-text-highlighter-options';
     if (shown.includes(optionPrefix)) {
       shown = shown.filter(item => item !== optionPrefix);
     } else {
@@ -228,17 +224,17 @@ window.dash_clientside.wo_classroom_text_highlighter = {
             createDashComponent(
               DASH_BOOTSTRAP_COMPONENTS, 'Button',
               {
-                id: { type: 'WOStudentTileExpand', index: student},
-                children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
+                id: { type: 'WOStudentTileExpand', index: student },
+                children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-expand' }),
                 class_name: 'position-absolute top-0 end-0 m-1',
                 color: 'transparent'
               }
             )
           ],
-          id: { type: 'WOStudentTile', index: student},
+          id: { type: 'WOStudentTile', index: student },
           style: styleStudentTile(width, height)
         }
-      )
+      );
       output = output.concat(tileWrapper);
     }
     return output;
@@ -307,31 +303,31 @@ window.dash_clientside.wo_classroom_text_highlighter = {
   closeExpandedStudent: function (clicks, shown) {
     if (!clicks) { return window.dash_clientside.no_update; }
     shown = shown.filter(item => item !== 'wo-classroom-text-highlighter-expanded-student-panel');
-    return shown
+    return shown;
   },
 
   updateLegend: function (options) {
     const selectedHighlights = options.filter(option => option.types?.highlight?.value);
     if (selectedHighlights.length === 0) {
-      return ['No options selected. Click on the `Highlight Options` to select them.', 0]
+      return ['No options selected. Click on the `Highlight Options` to select them.', 0];
     }
     let output = selectedHighlights.map(highlight => {
-      const color = highlight.types.highlight.color
+      const color = highlight.types.highlight.color;
       const legendItem = createDashComponent(
         DASH_HTML_COMPONENTS, 'Div',
         {
           children: [
             createDashComponent(
               DASH_HTML_COMPONENTS, 'Span',
-              { style: { width: '0.875rem', height: '0.875rem', backgroundColor: color, display: 'inline-block', marginRight: '0.5rem' }}
+              { style: { width: '0.875rem', height: '0.875rem', backgroundColor: color, display: 'inline-block', marginRight: '0.5rem' } }
             ),
             highlight.label
           ]
         }
-      )
-      return legendItem
+      );
+      return legendItem;
     });
-    output = output.concat('Note: words in the student text may have multiple highlights. Hover over a word for the full list of which options apply')
+    output = output.concat('Note: words in the student text may have multiple highlights. Hover over a word for the full list of which options apply');
     return [output, selectedHighlights.length];
   }
 };
