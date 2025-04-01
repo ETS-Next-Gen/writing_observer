@@ -8,8 +8,8 @@ from learning_observer.log_event import debug_log
 cache_backend = None
 
 
-def create_key_from_args(*args, **kwargs):
-    key_dict = {'args': args, 'kwargs': kwargs}
+def create_key_from_args(func, *args, **kwargs):
+    key_dict = {'func': str(func), 'args': args, 'kwargs': kwargs}
     key_str = json.dumps(key_dict, sort_keys=True)
     return key_str
 
@@ -37,7 +37,7 @@ def async_memoization():
                 return await func(*args, **kwargs)
 
             # process item if the cache is present
-            key = create_key_from_args(args, kwargs)
+            key = create_key_from_args(func, args, kwargs)
             if key in await cache_backend.keys():
                 return await cache_backend[key]
             result = await func(*args, **kwargs)

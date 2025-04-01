@@ -240,6 +240,8 @@ def register_auth_webapp_views(app):
         debug_log("Running with Google authentication")
         app.add_routes([
             aiohttp.web.get(
+                # TODO only allow the available sign-in options found in pmss
+                # '/auth/login/{provider:google|canvas|schoology}',
                 '/auth/login/{provider:google}',
                 handler=learning_observer.auth.social_handler),
         ])

@@ -414,7 +414,7 @@ async def latest_data(runtime, student_data, options=None):
 
 
 @learning_observer.communication_protocol.integration.publish_function('google.fetch_assignment_docs')
-async def fetch_assignment_docs(runtime, course_id, assignment_id):
+async def fetch_assignment_docs(runtime, course_id, kwargs=None):
     '''
     Invoke the Google API to retrieve a list of students, where each student possesses a
     collection of documents associated with the specified assignment.
@@ -422,4 +422,24 @@ async def fetch_assignment_docs(runtime, course_id, assignment_id):
     I wasn't sure where to put this code, so I just tossed it here for now.
     This entire file needs a bit of reworking, what's a little more?
     '''
-    return await learning_observer.google.assigned_docs(runtime, courseId=course_id, courseWorkId=assignment_id)
+    if kwargs is None:
+        kwargs = {}
+    assignment_id = kwargs.get('assignment')
+    output = []
+    if assignment_id:
+        output = await learning_observer.google.assigned_docs(runtime, courseId=course_id, courseWorkId=assignment_id)
+    async for student in learning_observer.util.ensure_async_generator(output):
+        s = {}
+        s['doc_id'] = student['documents'][0]['id']
+        # HACK a piece above the source selector in the communication protocol
+        # expects all items returned to have the same provenance. This mirrors
+        # the provenance that will be returned by the other sources.
+        # TODO modify the source selector to handle the provenance
+        provenance = {
+            'provenance': {'STUDENT': {
+                'value': {'user_id': student['user_id']},
+                'user_id': student['user_id']
+            }}
+        }
+        s['provenance'] = provenance
+        yield s

@@ -12,6 +12,7 @@ from ._imports_ import __all__
 
 from .LOConnectionStatusAIO import LOConnectionStatusAIO
 from .LOConnectionAIO import LOConnectionAIO
+from .LODocumentSourceSelectorAIO import LODocumentSourceSelectorAIO
 from .ProfileSidebarAIO import ProfileSidebarAIO
 
 if not hasattr(_dash, '__plotly_dash') and not hasattr(_dash, 'development'):

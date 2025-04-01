@@ -381,6 +381,19 @@ def clean_course_list(google_json):
     return courses
 
 
+@register_cleaner('course_work', 'assignments')
+def clean_course_work(google_json):
+    '''
+    Google's course work is one object deeper than we'd like, and update_time
+    sort order is nicer. This will clean it up a bit
+    '''
+    assignments = google_json.get('courseWork', [])
+    assignments.sort(
+        key=lambda x: x.get('update_time', 0)
+    )
+    return assignments
+
+
 # Google Docs
 def _force_text_length(text, length):
     '''

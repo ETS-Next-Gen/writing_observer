@@ -6,15 +6,15 @@ import wo_bulk_essay_analysis.gpt
 import wo_bulk_essay_analysis.dashboard.layout
 
 
-NAME = "Writing Observer - AskGPT"
+NAME = "Writing Observer - Classroom AI Feedback Assistant"
 
 DASH_PAGES = [
     {
         "MODULE": wo_bulk_essay_analysis.dashboard.layout,
         "LAYOUT": wo_bulk_essay_analysis.dashboard.layout.layout,
         "ASSETS": 'assets',
-        "TITLE": "AskGPT",
-        "DESCRIPTION": "The AskGPT is a robust educational tool that leverages AI to simultaneously analyze and provide feedback on large batches of essays, delivering comprehensive insights and constructive critiques for educators in diverse group settings.",
+        "TITLE": "Classroom AI Feedback Assistant",
+        "DESCRIPTION": "The Classroom AI Feedback Assistant is a robust educational tool that leverages AI to simultaneously analyze and provide feedback on large batches of essays, delivering comprehensive insights and constructive critiques for educators in diverse group settings.",
         "SUBPATH": "bulk-essay-analysis",
         "CSS": [
             thirdparty_url("css/bootstrap.min.css"),
@@ -22,34 +22,15 @@ DASH_PAGES = [
         ],
         "SCRIPTS": [
             thirdparty_url('pdf.js'),
-            thirdparty_url('pdf.worker.js')
+            thirdparty_url('pdf.worker.js'),
+            thirdparty_url('mammoth.js')
         ]
     }
 ]
 
-gpt_bulk_essay = q.call('wo_bulk_essay_analysis.gpt_essay_prompt')
-
-EXECUTION_DAG = {
-    'execution_dag': {
-        'gpt_map': q.map(
-            gpt_bulk_essay,
-            values=q.variable('writing_observer.docs'),
-            value_path='text',
-            func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})},
-            parallel=True
-        ),
-        'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('writing_observer.roster'), RIGHT_ON='user_id')
-    },
-    'exports': {
-        'gpt_bulk': {
-            'returns': 'gpt_bulk',
-            'parameters': ['course_id', 'gpt_prompt', 'system_prompt'],
-            'output': ''
-        }
-    }
-}
 
 THIRD_PARTY = {
+    # PDF parser for reading in files clientside
     'pdf.js': {
         'url': 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js',
         'hash': {
@@ -62,6 +43,14 @@ THIRD_PARTY = {
         'hash': {
             '3.9.179': '0fc109e44fb5af718c31f1a15e1479850ef259efa42dcdd2cdd975387df3b'
             '3ebb7dad9946bd3d00bdcd29527dc753fde4b950b2a7a052bd8f66ee643bb736767'
+        }
+    },
+    # Docx parser for reading in files clientside
+    'mammoth.js': {
+        'url': 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.9.0/mammoth.browser.min.js',
+        'hash': {
+            '1.9.0': '7e77162c6d0103528615896ba72fcca385ab2f64699cd06d744a6d740c16179'
+            '322e02e2d45adf1c4d8720f6c8ac7c54e19c6a061eb0814f2abb4b80738d8766a'
         }
     },
     "css/bootstrap.min.css": d.BOOTSTRAP_MIN_CSS,

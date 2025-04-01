@@ -93,6 +93,9 @@ async def call_dispatch(functions, function_name, args, kwargs):
       ...
     learning_observer.communication_protocol.exception.DAGExecutionException: ('Function double did not execute properly during call.', 'call_dispatch', {'function_name': 'double', 'args': [None], 'kwargs': {}, 'error': 'Input cannot be None'}, ...)
     """
+    # TODO add in provenance to the call
+    # this probably requires switching to an async generator instead of regular return
+    provenance = {'function_name': function_name, 'args': args, 'kwargs': kwargs}
     try:
         function = functions[function_name]
         result = function(*args, **kwargs)
@@ -528,6 +531,7 @@ async def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCE
     We create a list of fields needed for the `make_key()` function as well as the provenance
     associated with each. These are zipped together and returned to the user.
     """
+    # TODO do something if `func` is not found
     func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
     fields_and_provenances = None
     if STUDENTS is not None and RESOURCES is None:
@@ -703,7 +707,6 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         # We've already done this one.
         if node_name in visited:
             return nodes[node_name]
-
         # Execute all the child nodes
         await walk_dict(nodes[node_name])
 

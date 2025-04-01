@@ -446,9 +446,9 @@ async def memoize_courseroster_runtime(runtime, course_id):
     individual nodes are handled: static, dynamic (current), or memoized.
     '''
     @learning_observer.cache.async_memoization()
-    async def memoization_layer(c):
+    async def course_roster_memoization_layer(c):
         return await courseroster_runtime(runtime, c)
-    return await memoization_layer(course_id)
+    return await course_roster_memoization_layer(course_id)
 
 
 async def courseroster(request, course_id):
