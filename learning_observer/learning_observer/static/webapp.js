@@ -32,7 +32,6 @@ function ajax(config)
 }
 
 function initializeBurgerMenu() {
-	console.log('initializing burger menu');
     document.querySelectorAll('.navbar-burger').forEach(burger => {
         burger.addEventListener('click', () => {
             const target = burger.dataset.target;
