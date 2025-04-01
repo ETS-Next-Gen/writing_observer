@@ -13,6 +13,8 @@ def select_source(sources, source):
     within the protocol, we could make it so the system only runs
     the requested source node.
     TODO make this a dispatch type within the protocol
+    TODO add provenance at this layer. Each source might have a different
+    provenance structure. This should create one to use.
     '''
     if source not in sources:
         raise KeyError(f'Source, `{source}`, not found in available sources: {sources.keys()}')

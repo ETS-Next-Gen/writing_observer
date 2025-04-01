@@ -206,8 +206,6 @@ window.dash_clientside.wo_classroom_text_highlighter = {
         {
           showHeader,
           studentInfo: formatStudentData(students[student], selectedHighlights),
-          // TODO the selectedDocument ought to remain the same upon updating the student object
-          // i.e. it should be pulled from the current client student state
           selectedDocument,
           childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
           id: { type: 'WOStudentTextTile', index: student },

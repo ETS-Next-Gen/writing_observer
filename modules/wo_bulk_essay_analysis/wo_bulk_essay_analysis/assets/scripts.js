@@ -567,8 +567,6 @@ window.dash_clientside.bulk_essay_feedback = {
       {
         showHeader,
         studentInfo: formatStudentData(s, []),
-        // TODO the selectedDocument ought to remain the same upon updating the student object
-        // i.e. it should be pulled from the current client student state
         selectedDocument,
         childComponent: studentText,
         id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
