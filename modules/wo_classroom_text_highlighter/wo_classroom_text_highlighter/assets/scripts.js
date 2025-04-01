@@ -8,6 +8,7 @@ if (!window.dash_clientside) {
 }
 
 const DASH_HTML_COMPONENTS = 'dash_html_components';
+const DASH_BOOTSTRAP_COMPONENTS = 'dash_bootstrap_components';
 const LO_DASH_REACT_COMPONENTS = 'lo_dash_react_components';
 
 // TODO this ought to move to a more common place
@@ -139,11 +140,30 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     return window.dash_clientside.no_update;
   },
 
-  toggleOptions: function (clicks, isOpen) {
+  // toggleOptions: function (clicks, isOpen) {
+  //   if (!clicks) {
+  //     return window.dash_clientside.no_update;
+  //   }
+  //   return !isOpen;
+  // },
+
+  toggleOptions: function (clicks, shown) {
     if (!clicks) {
       return window.dash_clientside.no_update;
     }
-    return !isOpen;
+    const optionPrefix = 'wo-classroom-text-highlighter-options'
+    if (shown.includes(optionPrefix)) {
+      shown = shown.filter(item => item !== optionPrefix);
+    } else {
+        shown = shown.concat(optionPrefix);
+    }
+    return shown;
+  },
+
+  closeOptions: function (clicks, shown) {
+    if (!clicks) { return window.dash_clientside.no_update; }
+    shown = shown.filter(item => item !== 'wo-classroom-text-highlighter-options');
+    return shown
   },
 
   adjustTileSize: function (width, height, studentIds) {
@@ -168,7 +188,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    * @returns Dash object to be displayed on page
    */
   populateOutput: async function (wsStorageData, options, width, height, showHeader) {
-    console.log('wsStorageData', wsStorageData);
+    // console.log('wsStorageData', wsStorageData);
     if (!wsStorageData) {
       return 'No students';
     }
@@ -188,7 +208,6 @@ window.dash_clientside.wo_classroom_text_highlighter = {
         LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
         {
           showHeader,
-          style: styleStudentTile(width, height),
           studentInfo: formatStudentData(wsStorageData[student], selectedHighlights),
           // TODO the selectedDocument ought to remain the same upon updating the student object
           // i.e. it should be pulled from the current client student state
@@ -196,10 +215,30 @@ window.dash_clientside.wo_classroom_text_highlighter = {
           childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
           id: { type: 'WOStudentTextTile', index: student },
           currentOptionHash: optionHash,
-          className: 'mb-2'
+          className: 'h-100'
         }
       );
-      output = output.concat(studentTile);
+      const tileWrapper = createDashComponent(
+        DASH_HTML_COMPONENTS, 'Div',
+        {
+          className: 'position-relative mb-2',
+          children: [
+            studentTile,
+            createDashComponent(
+              DASH_BOOTSTRAP_COMPONENTS, 'Button',
+              {
+                id: { type: 'WOStudentTileExpand', index: student},
+                children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
+                class_name: 'position-absolute top-0 end-0 m-1',
+                color: 'light'
+              }
+            )
+          ],
+          id: { type: 'WOStudentTile', index: student},
+          style: styleStudentTile(width, height)
+        }
+      )
+      output = output.concat(tileWrapper);
     }
     return output;
   },
@@ -228,5 +267,69 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     const itemsClicked = clicks.some(item => item !== undefined);
     if (!preset | !itemsClicked) { return window.dash_clientside.no_update; }
     return data[preset];
+  },
+
+  updateLoadingInformation: async function (wsStorageData, nlpOptions) {
+    const noLoading = [false, 0, ''];
+    if (!wsStorageData) {
+      return noLoading;
+    }
+    const promptHash = await hashObject(nlpOptions);
+    const returnedResponses = Object.values(wsStorageData).filter(student => checkForResponse(student, promptHash)).length;
+    const totalStudents = Object.keys(wsStorageData).length;
+    if (totalStudents === returnedResponses) { return noLoading; }
+    const loadingProgress = returnedResponses / totalStudents + 0.1;
+    const outputText = `Fetching responses from server. This will take a few minutes. (${returnedResponses}/${totalStudents} received)`;
+    return [true, loadingProgress, outputText];
+  },
+
+  expandCurrentStudent: function (clicks, children, ids, shownPanels, currentChild) {
+    const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
+    if (!triggeredItem) { return window.dash_clientside.no_update; }
+    let child = '';
+    let id = null;
+    if (triggeredItem?.type === 'WOStudentTile') {
+      if (!currentChild) { return window.dash_clientside.no_update; }
+      id = currentChild?.props.id.index;
+    } else if (triggeredItem?.type === 'WOStudentTileExpand') {
+      id = triggeredItem?.index
+      shownPanels = shownPanels.concat('wo-classroom-text-highlighter-expanded-student-panel');
+    } else {
+      return window.dash_clientside.no_update;
+    }
+    index = ids.findIndex(item => item.index === id);
+    child = children[index][0]
+    return [child, shownPanels]
+  },
+
+  closeExpandedStudent: function (clicks, shown) {
+    if (!clicks) { return window.dash_clientside.no_update; }
+    shown = shown.filter(item => item !== 'wo-classroom-text-highlighter-expanded-student-panel');
+    return shown
+  },
+
+  updateLegend: function (options) {
+    const selectedHighlights = options.filter(option => option.types?.highlight?.value);
+    if (selectedHighlights.length === 0) {
+      return ['No options selected. Click on the `Highlight Options` to select them.', 0]
+    }
+    let output = selectedHighlights.map(highlight => {
+      const color = highlight.types.highlight.color
+      const legendItem = createDashComponent(
+        DASH_HTML_COMPONENTS, 'Div',
+        {
+          children: [
+            createDashComponent(
+              DASH_HTML_COMPONENTS, 'Span',
+              { style: { width: '0.875rem', height: '0.875rem', backgroundColor: color, display: 'inline-block', marginRight: '0.5rem' }}
+            ),
+            highlight.label
+          ]
+        }
+      )
+      return legendItem
+    });
+    output = output.concat('Note: words in the student text may have multiple highlights. Hover over a word for the full list of which options apply')
+    return [output, selectedHighlights.length];
   }
 };

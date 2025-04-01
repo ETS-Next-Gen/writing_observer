@@ -58,7 +58,7 @@ const thunkStorage = {
  * `storage.sync.get`/`chrome.sync.get` API.
  */
 function getWithCallback (getItem) {
-  function get (items, callback) {
+  function get (items, callback = () => {}) {
     if (typeof items === 'string') {
       items = [items];
     }
@@ -77,7 +77,7 @@ function getWithCallback (getItem) {
  * `storage.sync.set`/`chrome.sync.set` API.
  */
 function setWithCallback (setItem) {
-  function set (items, callback) {
+  function set (items, callback = () => {}) {
     for (const item in items) {
       setItem(item, items[item]);
     }
