@@ -428,10 +428,13 @@ async def fetch_assignment_docs(runtime, course_id, kwargs=None):
     output = []
     if assignment_id:
         output = await learning_observer.google.assigned_docs(runtime, courseId=course_id, courseWorkId=assignment_id)
-    # TODO format to return doc_id, we might wnat to return a list - how do we handle it?
     async for student in learning_observer.util.ensure_async_generator(output):
         s = {}
         s['doc_id'] = student['documents'][0]['id']
+        # HACK a piece above the source selector in the communication protocol
+        # expects all items returned to have the same provenance. This mirrors
+        # the provenance that will be returned by the other sources.
+        # TODO modify the source selector to handle the provenance
         provenance = {
             'provenance': {'STUDENT': {
                 'value': {'user_id': student['user_id']},

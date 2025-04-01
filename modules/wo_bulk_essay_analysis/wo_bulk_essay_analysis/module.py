@@ -30,6 +30,7 @@ DASH_PAGES = [
 
 
 THIRD_PARTY = {
+    # PDF parser for reading in files clientside
     'pdf.js': {
         'url': 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js',
         'hash': {
@@ -44,6 +45,7 @@ THIRD_PARTY = {
             '3ebb7dad9946bd3d00bdcd29527dc753fde4b950b2a7a052bd8f66ee643bb736767'
         }
     },
+    # Docx parser for reading in files clientside
     'mammoth.js': {
         'url': 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.9.0/mammoth.browser.min.js',
         'hash': {

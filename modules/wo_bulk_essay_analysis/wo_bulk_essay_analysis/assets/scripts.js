@@ -9,7 +9,6 @@ if (!window.dash_clientside) {
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
 const createStudentCard = async function (s, prompt, width, height, showHeader) {
-
   const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
   const student = s.documents?.[selectedDocument] ?? {};
   const promptHash = await hashObject({ prompt });
@@ -80,19 +79,25 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
           DASH_BOOTSTRAP_COMPONENTS, 'Button',
           {
             id: { type: 'WOAIAssistStudentTileExpand', index: userId },
-            children: createDashComponent(DASH_HTML_COMPONENTS, 'I', {className: 'fas fa-expand'}),
+            children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-expand' }),
             class_name: 'position-absolute top-0 end-0 m-1',
             color: 'transparent'
           }
         )
       ],
       id: { type: 'WOAIAssistStudentTile', index: userId },
-      style: {width: `${(100 - width) / width}%`}
+      style: { width: `${(100 - width) / width}%` }
     }
-  )
+  );
   return tileWrapper;
 };
 
+/**
+ * Check for if we should trigger loading on a student or not.
+ * @param {*} s student
+ * @param {*} promptHash current hash of prompts
+ * @returns true if student's selected document's hash is the same as promptHash
+ */
 const checkForResponse = function (s, promptHash) {
   if (!('documents' in s)) { return false; }
   const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
@@ -108,29 +113,30 @@ const charactersAfterChar = function (str, char) {
   return str.slice(commaIndex + 1).trim();
 };
 
+// Helper functions for extracting text from files
 const extractPDF = async function (base64String) {
-  const pdfData = atob(charactersAfterChar(base64String, ','))
+  const pdfData = atob(charactersAfterChar(base64String, ','));
 
   // Use PDF.js to load and parse the PDF
-  const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise
+  const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
 
-  const totalPages = pdf.numPages
-  const allTextPromises = []
+  const totalPages = pdf.numPages;
+  const allTextPromises = [];
 
   for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
     const pageTextPromise = pdf.getPage(pageNumber).then(function (page) {
-      return page.getTextContent()
+      return page.getTextContent();
     }).then(function (textContent) {
-      return textContent.items.map(item => item.str).join(' ')
-    })
+      return textContent.items.map(item => item.str).join(' ');
+    });
 
-    allTextPromises.push(pageTextPromise)
+    allTextPromises.push(pageTextPromise);
   }
 
-  const allTexts = await Promise.all(allTextPromises)
-  const allText = allTexts.join('\n')
+  const allTexts = await Promise.all(allTextPromises);
+  const allText = allTexts.join('\n');
 
-  return allText
+  return allText;
 };
 
 const extractTXT = async function (base64String) {
@@ -143,8 +149,15 @@ const extractMD = async function (base64String) {
 
 const extractDOCX = async function (base64String) {
   const arrayBuffer = Uint8Array.from(atob(charactersAfterChar(base64String, ',')), c => c.charCodeAt(0)).buffer;
-  const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+  const result = await mammoth.extractRawText({ arrayBuffer });
   return result.value; // The raw text
+};
+
+const fileTextExtractors = {
+  pdf: extractPDF,
+  txt: extractTXT,
+  md: extractMD,
+  docx: extractDOCX
 };
 
 window.dash_clientside.bulk_essay_feedback = {
@@ -214,9 +227,9 @@ window.dash_clientside.bulk_essay_feedback = {
    */
   update_input_history_on_query_submission: async function (clicks, query, history) {
     if (clicks > 0) {
-      return history.concat(query)
+      return history.concat(query);
     }
-    return window.dash_clientside.no_update
+    return window.dash_clientside.no_update;
   },
 
   /**
@@ -254,27 +267,17 @@ window.dash_clientside.bulk_essay_feedback = {
   },
 
   /**
-   * show attachment panel upon uploading document and populate fields
-   *
-   * updates the following
-   * - extracted text from uploaded file
-   * - default attachment name (based on filename)
-   * - whether we show the attachment upload panel
+   * Uploads file content as str
   */
   handleFileUploadToTextField: async function (contents, filename, timestamp) {
     if (filename === undefined) {
       return '';
     }
-    let data = ''
+    let data = '';
     try {
-      if (filename.endsWith('.pdf')) {
-        data = await extractPDF(contents);
-      } else if (filename.endsWith('.txt')) {
-        data = await extractTXT(contents);
-      } else if (filename.endsWith('.docx')) {
-        data = await extractDOCX(contents);
-      } else if (filename.endsWith('.md')) {
-        data = await extractMD(contents);
+      const filetype = charactersAfterChar(filename, '.');
+      if (filetype in fileTextExtractors) {
+        data = await fileTextExtractors[filetype](contents);
       } else {
         console.error('Unsupported file type');
       }
@@ -292,9 +295,9 @@ window.dash_clientside.bulk_essay_feedback = {
     const trigProp = trig.prop_id;
     const trigJSON = JSON.parse(trigProp.slice(0, trigProp.lastIndexOf('.')));
     if (trig.value > 0) {
-      return curr.concat(` {${trigJSON.index}}`)
+      return curr.concat(` {${trigJSON.index}}`);
     }
-    return window.dash_clientside.no_update
+    return window.dash_clientside.no_update;
   },
 
   /**
@@ -344,14 +347,18 @@ window.dash_clientside.bulk_essay_feedback = {
     return [false, ''];
   },
 
+  /**
+   * Opens the tag modal when users want to add a new one or edit an
+   * existing tag.
+   */
   openTagAddModal: function (clicks, editClicks, currentTagStore, ids) {
     const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
     if (!triggeredItem) { return window.dash_clientside.no_update; }
     if (triggeredItem === 'bulk-essay-analysis-tags-add-open-btn') {
-      return [true, null, '', '']
+      return [true, null, '', ''];
     }
     const id = triggeredItem.index;
-    const index = ids.findIndex(item => item.index == id);
+    const index = ids.findIndex(item => item.index === id);
     if (editClicks[index]) {
       return [true, id, id, currentTagStore[id]];
     }
@@ -377,7 +384,7 @@ window.dash_clientside.bulk_essay_feedback = {
       const editButton = createDashComponent(
         DASH_BOOTSTRAP_COMPONENTS, 'Button',
         {
-          children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-edit'}),
+          children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-edit' }),
           id: { type: 'bulk-essay-analysis-tags-tag-edit', index: val },
           n_clicks: 0,
           color: 'info'
@@ -389,29 +396,29 @@ window.dash_clientside.bulk_essay_feedback = {
           children: createDashComponent(
             DASH_BOOTSTRAP_COMPONENTS, 'Button',
             {
-              children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-trash'}),
-              color: 'info',
+              children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-trash' }),
+              color: 'info'
             }
           ),
           id: { type: 'bulk-essay-analysis-tags-tag-delete', index: val },
           message: `Are you sure you want to delete the \`${val}\` placeholder?`
         }
       );
-      const buttons = isStudentText ? [button] : [button, editButton, deleteButton]
+      const buttons = isStudentText ? [button] : [button, editButton, deleteButton];
       const buttonGroup = createDashComponent(
         DASH_BOOTSTRAP_COMPONENTS, 'ButtonGroup',
         {
           children: buttons,
-          class_name: `${isStudentText ? '' : 'prompt-variable-tag'} ms-1 mb-1`,
+          class_name: `${isStudentText ? '' : 'prompt-variable-tag'} ms-1 mb-1`
         }
-      )
+      );
       return buttonGroup;
     });
     return tags;
   },
 
   /**
-   * Save attachment to tag storage
+   * Save placeholder to browser storage and close edit placeholder modal
    */
   savePlaceholder: function (clicks, label, text, replacementId, tagStore) {
     if (clicks > 0) {
@@ -425,11 +432,14 @@ window.dash_clientside.bulk_essay_feedback = {
     return window.dash_clientside.no_update;
   },
 
+  /**
+   * Remove placeholder from store on confirm dialogue yes
+   */
   removePlaceholder: function (clicks, tagStore, ids) {
     const triggeredItem = window.dash_clientside.callback_context?.triggered_id ?? null;
     if (!triggeredItem) { return window.dash_clientside.no_update; }
     const id = triggeredItem.index;
-    const index = ids.findIndex(item => item.index == id);
+    const index = ids.findIndex(item => item.index === id);
     if (clicks[index]) {
       const newStore = tagStore;
       delete newStore[id];
@@ -459,6 +469,10 @@ window.dash_clientside.bulk_essay_feedback = {
     return [text, true, error];
   },
 
+  /**
+   * Iterate over students and figure out if any of them have not loaded
+   * yet. We hash the last history item to compare to.
+   */
   updateLoadingInformation: async function (wsStorageData, history) {
     const noLoading = [false, 0, ''];
     if (!wsStorageData) {
@@ -477,8 +491,8 @@ window.dash_clientside.bulk_essay_feedback = {
   adjustTileSize: function (width, height, studentIds) {
     const total = studentIds.length;
     return [
-      Array(total).fill({width: `${(100 - width) / width}%`}),
-      Array(total).fill({height: `${height}px`}),
+      Array(total).fill({ width: `${(100 - width) / width}%` }),
+      Array(total).fill({ height: `${height}px` })
     ];
   },
 
@@ -487,8 +501,8 @@ window.dash_clientside.bulk_essay_feedback = {
     if (!triggeredItem) { return window.dash_clientside.no_update; }
     let id = null;
     if (triggeredItem?.type === 'WOAIAssistStudentTileExpand') {
-      id = triggeredItem?.index
-      if (clicks[ids.findIndex(item => item.index == id)]) {
+      id = triggeredItem?.index;
+      if (clicks[ids.findIndex(item => item.index === id)]) {
         shownPanels = shownPanels.concat('bulk-essay-analysis-expanded-student-panel');
       }
     } else {
@@ -558,7 +572,7 @@ window.dash_clientside.bulk_essay_feedback = {
         selectedDocument,
         childComponent: studentText,
         id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
-        currentOptionHash: promptHash,
+        currentOptionHash: promptHash
       }
     );
     const individualWrapper = createDashComponent(
@@ -573,13 +587,13 @@ window.dash_clientside.bulk_essay_feedback = {
           )
         ]
       }
-    )
+    );
     return individualWrapper;
   },
 
   closeExpandedStudent: function (clicks, shown) {
     if (!clicks) { return window.dash_clientside.no_update; }
     shown = shown.filter(item => item !== 'bulk-essay-analysis-expanded-student-panel');
-    return shown
-  },
+    return shown;
+  }
 };

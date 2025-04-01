@@ -38,3 +38,5 @@ package-lock.json
 learning_observer/learning_observer/static_data/google/
 learning_observer/learning_observer/static_data/admins.yaml
 .ipynb_checkpoints/
+.eggs/
+.next/
