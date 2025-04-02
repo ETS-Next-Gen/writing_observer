@@ -1,5 +1,3 @@
-import copy
-import learning_observer.settings
 import writing_observer.nlp_indicators
 import writing_observer.languagetool_features
 
