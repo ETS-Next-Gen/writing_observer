@@ -152,7 +152,7 @@ clientside_callback(
     Input(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
     Input('_pages_location', 'hash'),
     Input(lodrc.LODocumentSourceSelectorAIO.ids.kwargs_store(_options_doc_src), 'data'),
-    Input(_options_text_information, 'options')
+    Input(_options_text_information, 'value')
 )
 
 # Build the UI based on what we've received from the
@@ -161,10 +161,11 @@ clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='populateOutput'),
     Output(_output, 'children'),
     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
-    Input(_options_text_information, 'options'),
+    Input(_options_text_information, 'value'),
     Input(_options_width, 'value'),
     Input(_options_height, 'value'),
     Input(_options_hide_header, 'value'),
+    State(_options_text_information, 'options'),
 )
 
 # Toggle if the options collapse is open or not
@@ -206,7 +207,7 @@ clientside_callback(
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='updateCurrentOptionHash'),
     Output({'type': 'WOStudentTextTile', 'index': ALL}, 'currentOptionHash'),
-    Input(_options_text_information, 'options'),
+    Input(_options_text_information, 'value'),
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
 )
 
@@ -248,14 +249,14 @@ clientside_callback(
     Output(wo_classroom_text_highlighter.preset_component._store, 'data'),
     Input(wo_classroom_text_highlighter.preset_component._add_button, 'n_clicks'),
     State(wo_classroom_text_highlighter.preset_component._add_input, 'value'),
-    State(_options_text_information, 'options'),
+    State(_options_text_information, 'value'),
     State(wo_classroom_text_highlighter.preset_component._store, 'data')
 )
 
 # Apply clicked preset
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='applyPreset'),
-    Output(_options_text_information, 'options'),
+    Output(_options_text_information, 'value'),
     Input({'type': wo_classroom_text_highlighter.preset_component._set_item, 'index': ALL}, 'n_clicks'),
     State(wo_classroom_text_highlighter.preset_component._store, 'data'),
     prevent_initial_call=True
@@ -268,7 +269,7 @@ clientside_callback(
     Output(_loading_progress, 'value'),
     Output(_loading_information, 'children'),
     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
-    Input(_options_text_information, 'options')
+    Input(_options_text_information, 'value')
 )
 
 # Update legend
@@ -276,5 +277,6 @@ clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='updateLegend'),
     Output(_legend_children, 'children'),
     Output(_options_toggle_count, 'children'),
-    Input(_options_text_information, 'options')
+    Input(_options_text_information, 'value'),
+    State(_options_text_information, 'options')
 )

@@ -17,11 +17,12 @@ function createDashComponent (namespace, type, props) {
   return { namespace, type, props };
 }
 
-function determineSelectedNLPOptionsList (options) {
-  return options.filter(option =>
-    (option.types?.highlight?.value === true) ||
-    (option.types?.metric?.value === true)
-  ).map(option => option.id);
+function determineSelectedNLPOptionsList (optionsObj) {
+  if (optionsObj === undefined | optionsObj === null) { return []; }
+  return Object.keys(optionsObj).filter(id =>
+    optionsObj[id].highlight?.value === true ||
+    optionsObj[id].metric?.value === true
+  );
 }
 
 // TODO this ought to move to a more common place like liblo.js
@@ -71,7 +72,7 @@ function formatStudentData (student, selectedHighlights) {
             tooltip: option.label,
             start: offset[0],
             offset: offset[1],
-            style: { backgroundColor: option.types.highlight.color }
+            style: { backgroundColor: option.highlight.color }
           };
         });
         acc = acc.concat(modifiedOffsets);
@@ -109,7 +110,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    * @param {string} urlHash query string from hash for determining course id
    * @returns stringified json object that is sent to the communication protocl
    */
-  sendToLOConnection: async function (wsReadyState, urlHash, docKwargs, fullOptions) {
+  sendToLOConnection: async function (wsReadyState, urlHash, docKwargs, nlpValue) {
     if (wsReadyState === undefined) {
       return window.dash_clientside.no_update;
     }
@@ -118,8 +119,8 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       const decodedParams = decode_string_dict(urlHash.slice(1));
       if (!decodedParams.course_id) { return window.dash_clientside.no_update; }
 
-      const optionsHash = await hashObject(fullOptions);
-      const nlpOptions = determineSelectedNLPOptionsList(fullOptions);
+      const optionsHash = await hashObject(nlpValue);
+      const nlpOptions = determineSelectedNLPOptionsList(nlpValue);
       decodedParams.nlp_options = nlpOptions;
       decodedParams.option_hash = optionsHash;
       decodedParams.doc_source = docKwargs.src;
@@ -172,8 +173,8 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     return Array(total).fill(show ? 'd-none' : '');
   },
 
-  updateCurrentOptionHash: async function (options, ids) {
-    const optionHash = await hashObject(options);
+  updateCurrentOptionHash: async function (value, ids) {
+    const optionHash = await hashObject(value);
     const total = ids.length;
     return Array(total).fill(optionHash);
   },
@@ -183,21 +184,33 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    * @param {*} wsStorageData information stored in the websocket store
    * @returns Dash object to be displayed on page
    */
-  populateOutput: async function (wsStorageData, options, width, height, showHeader) {
+  populateOutput: async function (wsStorageData, value, width, height, showHeader, options) {
     // console.log('wsStorageData', wsStorageData);
     if (!wsStorageData?.students) {
       return 'No students';
     }
     let output = [];
 
-    const selectedHighlights = options.filter(option => option.types?.highlight?.value);
+    const selectedHighlights = options.reduce(function(filtered, option) {
+      if (value?.[option.id]?.highlight?.value) {
+        const selected = {...option, ...value[option.id]};
+        filtered.push(selected);
+      }
+      return filtered;
+    }, []);
     // TODO do something with the selected metrics/progress bars/etc.
     // currently due to a HACK with how we pass data to the `childComponent`
     // we are only able to have a single child and we expect it to be the
     // `WOAnnotatedText` component.
-    const selectedMetrics = options.filter(option => option.types?.metric?.value);
+    const selectedMetrics = options.reduce(function(filtered, option) {
+      if (value?.[option.id]?.metric?.value) {
+        const selected = {...option, ...value[option.id]};
+        filtered.push(selected);
+      }
+      return filtered;
+    }, []);
 
-    const optionHash = await hashObject(options);
+    const optionHash = await hashObject(value);
     const students = wsStorageData.students;
     for (const student in students) {
       const selectedDocument = students[student].doc_id || Object.keys(students[student].documents || {})[0] || '';
@@ -264,13 +277,13 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     return data[preset];
   },
 
-  updateLoadingInformation: async function (wsStorageData, nlpOptions) {
+  updateLoadingInformation: async function (wsStorageData, nlpValue) {
     const noLoading = [false, 0, ''];
     if (!wsStorageData?.students) {
       return noLoading;
     }
     const students = wsStorageData.students;
-    const promptHash = await hashObject(nlpOptions);
+    const promptHash = await hashObject(nlpValue);
     const returnedResponses = Object.values(students).filter(student => checkForResponse(student, promptHash)).length;
     const totalStudents = Object.keys(students).length;
     if (totalStudents === returnedResponses) { return noLoading; }
@@ -304,13 +317,19 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     return shown;
   },
 
-  updateLegend: function (options) {
-    const selectedHighlights = options.filter(option => option.types?.highlight?.value);
+  updateLegend: function (value, options) {
+    const selectedHighlights = options.reduce(function(filtered, option) {
+      if (value?.[option.id]?.highlight?.value) {
+        const selected = {...option, ...value[option.id]};
+        filtered.push(selected);
+      }
+      return filtered;
+    }, []);
     if (selectedHighlights.length === 0) {
       return ['No options selected. Click on the `Highlight Options` to select them.', 0];
     }
     let output = selectedHighlights.map(highlight => {
-      const color = highlight.types.highlight.color;
+      const color = highlight.highlight.color;
       const legendItem = createDashComponent(
         DASH_HTML_COMPONENTS, 'Div',
         {

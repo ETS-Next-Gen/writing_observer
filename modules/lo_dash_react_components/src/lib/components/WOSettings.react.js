@@ -44,17 +44,24 @@ export default class WOSettings extends Component {
   }
 
   handleRowEvent (event, key, type, colorPicker = false) {
-    const { setProps, options } = this.props;
-    const oldOptions = structuredClone(options);
-    const current = oldOptions.find(option => option.id === key);
+    const { setProps, value } = this.props;
+    const currentValue = structuredClone(value);
+    if (!(key in currentValue)) {
+      currentValue[key] = {};
+    }
     if (colorPicker) {
-      current.types[type].color = event.target.value;
+      currentValue[key][type].color = event.target.value;
     } else {
       const { checked } = event.target;
-      current.types[type].value = checked;
-      current.types[type].color = current.types[type].color || generateNewHighlightColor();
+      if (!(type in currentValue[key])) {
+        currentValue[key][type] = {};
+      }
+      currentValue[key][type].value = checked;
+      if (type === 'highlight') {
+        currentValue[key][type].color = currentValue[key][type].color || generateNewHighlightColor();
+      }
     }
-    setProps({ options: oldOptions });
+    setProps({ value: currentValue });
   }
 
   toggleCollapse (id) {
@@ -68,6 +75,7 @@ export default class WOSettings extends Component {
 
   renderRow (row, allRows) {
     const { collapsed } = this.state;
+    const { value } = this.props;
     const hasChildren = allRows.some(option => option.parent === row.id);
     const isCollapsed = collapsed[row.id] || false;
 
@@ -75,17 +83,20 @@ export default class WOSettings extends Component {
       ? (<>
         <input
           type="checkbox"
-          checked={row.types.highlight.value || false}
+          checked={value[row.id]?.highlight.value || false}
           onChange={(e) => this.handleRowEvent(e, row.id, 'highlight')}
         />
-        {row.types.highlight.value
+        {value[row.id]?.highlight.value
           ? (<input
             type="color"
-            value={row.types.highlight.color || '#121212'}
+            value={value[row.id]?.highlight.color || '#121212'}
             onChange={(e) => this.handleRowEvent(e, row.id, 'highlight', true)}
           />)
           : null}
       </>)
+      : null;
+    const metricCell = (row.types && 'metric' in row.types)
+      ? <input type='checkbox' checked={value[row.id]?.metric.value || false} onChange={(e) => this.handleRowEvent(e, row.id, 'metric')} />
       : null;
 
     return (
@@ -111,6 +122,7 @@ export default class WOSettings extends Component {
             )}
           </td>
           <td>{highlightCell}</td>
+          <td>{metricCell}</td>
         </tr>
         {/* Render children rows if not collapsed */}
         {!isCollapsed &&
@@ -135,6 +147,7 @@ export default class WOSettings extends Component {
           <tr>
             <th>Name</th>
             <th>Highlight</th>
+            <th>Metric</th>
           </tr>
         </thead>
         <tbody>
@@ -150,7 +163,8 @@ export default class WOSettings extends Component {
 WOSettings.defaultProps = {
   id: '',
   className: '',
-  options: {}
+  options: [],
+  value: {}
 };
 
 WOSettings.propTypes = {
@@ -181,6 +195,11 @@ WOSettings.propTypes = {
       PropTypes.object,
       PropTypes.undefined
     ])
-  }))
+  })),
+
+  /**
+   * Dictionary of selected items
+   */
+  value: PropTypes.object
 
 };
