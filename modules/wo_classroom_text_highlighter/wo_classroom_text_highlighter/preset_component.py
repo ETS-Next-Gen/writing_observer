@@ -28,8 +28,9 @@ def create_layout():
         add_preset,
         html.Div(id=_tray),
         # TODO we ought to store the presets on the server instead of browser storage
+        # TODO we need to migrate the old options to new ones
         dcc.Store(id=_store, data=wo_classroom_text_highlighter.options.PRESETS, storage_type='local')
-    ])
+    ], id=_prefix)
 
 
 # disabled add preset when name already exists

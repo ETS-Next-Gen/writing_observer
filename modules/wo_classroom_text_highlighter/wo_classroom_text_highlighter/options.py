@@ -1,18 +1,15 @@
-import copy
 import writing_observer.nlp_indicators
+import writing_observer.languagetool_features
 
 parents = []
 
 OPTIONS = [
-    {'id': indicator['id'], 'types': {'highlight': {}, 'metric': {}}, 'label': indicator['name'], 'parent': ''}
+    {'id': indicator['id'], 'types': ['highlight'], 'label': indicator['name'], 'parent': indicator['category']}
     for indicator in writing_observer.nlp_indicators.INDICATOR_JSONS
 ]
-
-# TODO currently each preset is the full list of options with specific
-# values being set to true/including a color. We ought to just store
-# the true values and their respective colors.
-# Though if we keep the entire list in the preset, we can choose colors
-# for non-true values before they are selected.
+for category, label in writing_observer.nlp_indicators.INDICATOR_CATEGORIES.items():
+    OPTIONS.append({'id': category, 'label': label, 'parent': 'text_information'})
+OPTIONS.append({'id': 'text_information', 'label': 'Text Information', 'parent': ''})
 
 # Set of colors to use for highlighting with presets
 HIGHLIGHTING_COLORS = [
@@ -55,13 +52,10 @@ def add_preset_to_presets(key, value):
     from the `PRESETS_TO_CREATE` object.
     '''
     color_index = 0
-    preset = copy.deepcopy(OPTIONS)
-    for option in preset:
-        if option['id'] in value:
-            option['types']['highlight']['value'] = True
-            option['types']['highlight']['color'] = HIGHLIGHTING_COLORS[color_index]
-            color_index += 1
-
+    preset = {}
+    for option in value:
+        preset[option] = {'highlight': {'value': True, 'color': HIGHLIGHTING_COLORS[color_index]}}
+        color_index += 1
     PRESETS[key] = preset
 
 
