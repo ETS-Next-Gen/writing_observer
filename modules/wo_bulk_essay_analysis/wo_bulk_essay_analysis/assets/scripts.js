@@ -211,18 +211,6 @@ window.dash_clientside.bulk_essay_feedback = {
   },
 
   /**
-   * parse message from websocket to the data and error store
-   */
-  receive_ws_message: function (message) {
-    const data = JSON.parse(message.data).wo.gpt_bulk || [];
-    if (data.error !== undefined) {
-      console.error('Error received from server', data.error);
-      return [[], data.error];
-    }
-    return [data, false];
-  },
-
-  /**
    * adds submitted query to history and clear input
    */
   update_input_history_on_query_submission: async function (clicks, query, history) {
@@ -512,8 +500,7 @@ window.dash_clientside.bulk_essay_feedback = {
   },
 
   expandSelectedStudent: async function (selectedStudent, wsData, showHeader, history) {
-    console.log('wsData', wsData);
-    if (!selectedStudent | !(selectedStudent in wsData.students)) {
+    if (!selectedStudent | !(selectedStudent in (wsData.students || {}))) {
       return window.dash_clientside.no_update;
     }
     const prompt = history.length > 0 ? history[history.length - 1] : '';

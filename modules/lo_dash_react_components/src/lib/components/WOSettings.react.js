@@ -79,7 +79,7 @@ export default class WOSettings extends Component {
     const hasChildren = allRows.some(option => option.parent === row.id);
     const isCollapsed = collapsed[row.id] || false;
 
-    const highlightCell = row.types && 'highlight' in row.types
+    const highlightCell = row.types && row.types.includes('highlight')
       ? (<>
         <input
           type="checkbox"
@@ -95,7 +95,7 @@ export default class WOSettings extends Component {
           : null}
       </>)
       : null;
-    const metricCell = (row.types && 'metric' in row.types)
+    const metricCell = (row.types && row.types.includes('metric'))
       ? <input type='checkbox' checked={value[row.id]?.metric.value || false} onChange={(e) => this.handleRowEvent(e, row.id, 'metric')} />
       : null;
 
