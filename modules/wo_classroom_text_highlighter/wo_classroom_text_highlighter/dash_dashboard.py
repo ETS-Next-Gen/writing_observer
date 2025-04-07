@@ -64,7 +64,12 @@ options_component = html.Div([
     ]),
     html.H4('Highlight Options'),
     wo_classroom_text_highlighter.preset_component.create_layout(),
-    lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS, className='table table-striped align-middle')
+    lodrc.WOSettings(
+        id=_options_text_information,
+        options=wo_classroom_text_highlighter.options.OPTIONS,
+        value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
+        className='table table-striped align-middle'
+    )
 ], className='p-2')
 
 # Legend
@@ -103,7 +108,7 @@ input_group = dbc.InputGroup([
     dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
     dbc.Button([
         html.I(className='fas fa-cog me-1'),
-        'Highlight Options (',
+        'Options (',
         html.Span('0', id=_options_toggle_count),
         ')'
     ], id=_options_toggle),
@@ -196,7 +201,7 @@ clientside_callback(
 # Handle showing or hiding the student tile header
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='showHideHeader'),
-    Output({'type': 'WOStudentTextTile', 'index': ALL}, 'showHeader'),
+    Output({'type': 'WOStudentTextTile', 'index': ALL}, 'showName'),
     Input(_options_hide_header, 'value'),
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
 )

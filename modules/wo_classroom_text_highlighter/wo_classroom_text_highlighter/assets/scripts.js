@@ -57,50 +57,60 @@ function simpleHash (str) {
   return hash.toString(16);
 }
 
-// TODO some of this will move to the communication protocol, but for now
-// it lives here
-function formatStudentData (student, selectedHighlights) {
-  let profile = {};
-  const documents = {};
-  for (const document in student.documents || []) {
-    const breakpoints = selectedHighlights.reduce((acc, option) => {
-      const offsets = student.documents[document][option.id]?.offsets || [];
-      if (offsets) {
-        const modifiedOffsets = offsets.map(offset => {
-          return {
-            id: '',
-            tooltip: option.label,
-            start: offset[0],
-            offset: offset[1],
-            style: { backgroundColor: option.highlight.color }
-          };
-        });
-        acc = acc.concat(modifiedOffsets);
-      }
-      return acc;
-    }, []);
-    const text = student.documents[document].text;
-    const optionHash = student.documents[document].option_hash;
-    profile = student.documents[document].profile;
-    documents[document] = { text, optionHash, breakpoints };
-  }
-  let availableDocuments = [];
-  if ('availableDocuments' in student) {
-    availableDocuments = Object.keys(student.availableDocuments).map(id => ({
-      id,
-      title: student.availableDocuments[id].title || id,
-      last_access: student.availableDocuments[id].last_access || null
-    }));
-  }
-  return {
-    profile,
-    availableDocuments,
-    documents
-  };
+function formatStudentData (document, selectedHighlights) {
+  const breakpoints = selectedHighlights.reduce((acc, option) => {
+    const offsets = document[option.id]?.offsets || [];
+    if (offsets) {
+      const modifiedOffsets = offsets.map(offset => {
+        return {
+          id: '',
+          tooltip: option.label,
+          start: offset[0],
+          offset: offset[1],
+          style: { backgroundColor: option.highlight.color }
+        };
+      });
+      acc = acc.concat(modifiedOffsets);
+    }
+    return acc;
+  }, []);
+  const text = document.text;
+  return { text, breakpoints };
 }
 
 function styleStudentTile (width, height) {
   return { width: `${(100 - width) / width}%`, height: `${height}px` };
+}
+
+function fetchSelectedItemsFromOptions (value, options, type) {
+  return options.reduce(function(filtered, option) {
+    if (value?.[option.id]?.[type]?.value) {
+      const selected = {...option, ...value[option.id]};
+      filtered.push(selected);
+    }
+    return filtered;
+  }, []);
+}
+
+function createProcessTags (document, metrics) {
+  const children = metrics.map(metric => {
+    switch (metric.id) {
+      case 'time_on_task':
+        return createDashComponent(
+          DASH_BOOTSTRAP_COMPONENTS, 'Badge',
+          { children: `${rendertime2(document[metric.id])} on task`, className: 'me-1' }
+        );
+      case 'status':
+        const color = document[metric.id] === 'active' ? 'success' : 'warning';
+        return createDashComponent(
+          DASH_BOOTSTRAP_COMPONENTS, 'Badge',
+          { children: document[metric.id], color }
+        );
+      default:
+        break
+    }
+  });
+  return createDashComponent(DASH_HTML_COMPONENTS, 'Div', { children })
 }
 
 window.dash_clientside.wo_classroom_text_highlighter = {
@@ -128,7 +138,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       const outgoingMessage = {
         wo_classroom_text_highlighter_query: {
           execution_dag: 'writing_observer',
-          target_exports: ['docs_with_nlp_annotations', 'document_sources', 'document_list'],
+          target_exports: ['docs_with_nlp_annotations', 'document_sources', 'document_list', 'time_on_task', 'activity'],
           kwargs: decodedParams
         }
       };
@@ -184,63 +194,59 @@ window.dash_clientside.wo_classroom_text_highlighter = {
    * @param {*} wsStorageData information stored in the websocket store
    * @returns Dash object to be displayed on page
    */
-  populateOutput: async function (wsStorageData, value, width, height, showHeader, options) {
+  populateOutput: async function (wsStorageData, value, width, height, showName, options) {
     // console.log('wsStorageData', wsStorageData);
     if (!wsStorageData?.students) {
       return 'No students';
     }
     let output = [];
 
-    const selectedHighlights = options.reduce(function(filtered, option) {
-      if (value?.[option.id]?.highlight?.value) {
-        const selected = {...option, ...value[option.id]};
-        filtered.push(selected);
-      }
-      return filtered;
-    }, []);
-    // TODO do something with the selected metrics/progress bars/etc.
-    // currently due to a HACK with how we pass data to the `childComponent`
-    // we are only able to have a single child and we expect it to be the
-    // `WOAnnotatedText` component.
-    const selectedMetrics = options.reduce(function(filtered, option) {
-      if (value?.[option.id]?.metric?.value) {
-        const selected = {...option, ...value[option.id]};
-        filtered.push(selected);
-      }
-      return filtered;
-    }, []);
+    const selectedHighlights = fetchSelectedItemsFromOptions(value, options, 'highlight');
+    const selectedMetrics = fetchSelectedItemsFromOptions(value, options, 'metric');
 
     const optionHash = await hashObject(value);
     const students = wsStorageData.students;
     for (const student in students) {
       const selectedDocument = students[student].doc_id || Object.keys(students[student].documents || {})[0] || '';
+      const studentTileChild = createDashComponent(
+        DASH_HTML_COMPONENTS, 'Div',
+        {
+          children: [
+            createProcessTags({ ...students[student].documents[selectedDocument] }, selectedMetrics),
+            createDashComponent(
+              LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText',
+              formatStudentData({ ...students[student].documents[selectedDocument] }, selectedHighlights)
+            )
+          ]
+        }
+      );
       const studentTile = createDashComponent(
         LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
         {
-          showHeader,
-          studentInfo: formatStudentData(students[student], selectedHighlights),
+          showName,
+          profile: students[student].documents[selectedDocument]?.profile || {},
           selectedDocument,
-          childComponent: createDashComponent(LO_DASH_REACT_COMPONENTS, 'WOAnnotatedText', {}),
+          childComponent: studentTileChild,
           id: { type: 'WOStudentTextTile', index: student },
+          currentStudentHash: students[student].documents[selectedDocument]?.option_hash,
           currentOptionHash: optionHash,
-          className: 'h-100'
+          className: 'h-100',
+          additionalButtons: createDashComponent(
+            DASH_BOOTSTRAP_COMPONENTS, 'Button',
+            {
+              id: { type: 'WOStudentTileExpand', index: student },
+              children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-expand' }),
+              color: 'transparent'
+            }
+          )
         }
       );
       const tileWrapper = createDashComponent(
         DASH_HTML_COMPONENTS, 'Div',
         {
-          className: 'position-relative mb-2',
+          className: 'mb-2',
           children: [
             studentTile,
-            createDashComponent(
-              DASH_BOOTSTRAP_COMPONENTS, 'Button',
-              {
-                id: { type: 'WOStudentTileExpand', index: student },
-                children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-expand' }),
-                class_name: 'position-absolute top-0 end-0 m-1',
-                color: 'transparent'
-              }
-            )
           ],
           id: { type: 'WOStudentTile', index: student },
           style: styleStudentTile(width, height)
@@ -318,15 +324,12 @@ window.dash_clientside.wo_classroom_text_highlighter = {
   },
 
   updateLegend: function (value, options) {
-    const selectedHighlights = options.reduce(function(filtered, option) {
-      if (value?.[option.id]?.highlight?.value) {
-        const selected = {...option, ...value[option.id]};
-        filtered.push(selected);
-      }
-      return filtered;
-    }, []);
+    const selectedHighlights = fetchSelectedItemsFromOptions(value, options, 'highlight');
+    const selectedMetrics = fetchSelectedItemsFromOptions(value, options, 'metric');
+    const total = selectedHighlights.length + selectedMetrics.length;
+
     if (selectedHighlights.length === 0) {
-      return ['No options selected. Click on the `Highlight Options` to select them.', 0];
+      return ['No options selected. Click on the `Highlight Options` to select them.', total];
     }
     let output = selectedHighlights.map(highlight => {
       const color = highlight.highlight.color;
@@ -345,6 +348,6 @@ window.dash_clientside.wo_classroom_text_highlighter = {
       return legendItem;
     });
     output = output.concat('Note: words in the student text may have multiple highlights. Hover over a word for the full list of which options apply');
-    return [output, selectedHighlights.length];
+    return [output, total];
   }
 };

@@ -101,9 +101,8 @@ EXECUTION_DAG = {
         'nlp_sep_proc': q.select(q.keys('writing_observer.nlp_components', STUDENTS=q.variable('roster'), STUDENTS_path='user_id', RESOURCES=q.variable("doc_ids"), RESOURCES_path='doc_id'), fields='All'),
         'nlp_combined': q.join(LEFT=q.variable(nlp_source), LEFT_ON='provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         # error dashboard activity map nodes
-        'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_sources"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts'}),
+        'time_on_task': q.select(q.keys('writing_observer.time_on_task', STUDENTS=q.variable("roster"), STUDENTS_path='user_id', RESOURCES=q.variable("doc_sources"), RESOURCES_path='doc_id'), fields={'saved_ts': 'last_ts', 'total_time_on_task': 'time_on_task'}),
         'activity_map': q.map(determine_activity, q.variable('time_on_task'), value_path='last_ts'),
-        'activity_combined': q.join(LEFT=q.variable('activity_map'), LEFT_ON='provenance.value.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
         # single student language tool nodes
         'single_student_latest_doc': q.select(q.keys('writing_observer.last_document', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id'), fields={'document_id': 'doc_id'}),
         'single_timestamped_docs': q.select(q.keys('writing_observer.document_access_timestamps', STUDENTS=q.parameter("student_id", required=True), STUDENTS_path='user_id'), fields={'timestamps': 'timestamps'}),
@@ -189,7 +188,12 @@ EXECUTION_DAG = {
             "output": ""
         },
         "activity": {
-            "returns": "activity_combined",
+            "returns": "activity_map",
+            "parameters": ["course_id"],
+            "output": ""
+        },
+        "time_on_task": {
+            "returns": "time_on_task",
             "parameters": ["course_id"],
             "output": ""
         },

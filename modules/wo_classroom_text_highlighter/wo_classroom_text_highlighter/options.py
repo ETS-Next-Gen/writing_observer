@@ -1,15 +1,23 @@
 import writing_observer.nlp_indicators
 import writing_observer.languagetool_features
 
-parents = []
-
-OPTIONS = [
+PROCESS_OPTIONS = [
+    {'id': 'process_information', 'label': 'Process Information', 'parent': ''},
+    {'id': 'time_on_task', 'label': 'Time on Task', 'types': ['metric'], 'parent': 'process_information'},
+    {'id': 'status', 'label': 'Status', 'types': ['metric'], 'parent': 'process_information'}
+]
+OPTIONS = PROCESS_OPTIONS + [
     {'id': indicator['id'], 'types': ['highlight'], 'label': indicator['name'], 'parent': indicator['category']}
     for indicator in writing_observer.nlp_indicators.INDICATOR_JSONS
 ]
 for category, label in writing_observer.nlp_indicators.INDICATOR_CATEGORIES.items():
     OPTIONS.append({'id': category, 'label': label, 'parent': 'text_information'})
 OPTIONS.append({'id': 'text_information', 'label': 'Text Information', 'parent': ''})
+
+DEFAULT_VALUE = {
+    'time_on_task': {'metric': {'value': True}},
+    'status': {'metric': {'value': True}}
+}
 
 # Set of colors to use for highlighting with presets
 HIGHLIGHTING_COLORS = [
