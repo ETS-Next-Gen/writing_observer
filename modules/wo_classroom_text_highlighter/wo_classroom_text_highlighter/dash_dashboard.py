@@ -55,7 +55,7 @@ options_component = html.Div([
         dbc.CardHeader('View Options'),
         dbc.CardBody([
             dbc.Label('Students per row'),
-            dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
+            dbc.Input(type='number', min=1, max=10, value=2, step=1, id=_options_width),
             dbc.Label('Height of student tile'),
             dcc.Slider(min=100, max=800, marks=None, value=500, id=_options_height),
             dbc.Label('Student profile'),

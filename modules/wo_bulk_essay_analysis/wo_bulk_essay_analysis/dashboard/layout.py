@@ -154,7 +154,7 @@ def layout():
             dbc.CardHeader('View Options'),
             dbc.CardBody([
                 dbc.Label('Students per row'),
-                dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_advanced_width),
+                dbc.Input(type='number', min=1, max=10, value=2, step=1, id=_advanced_width),
                 dbc.Label('Height of student tile'),
                 dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
                 dbc.Label('Student profile'),
