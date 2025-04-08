@@ -157,17 +157,19 @@ def layout():
                 dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_advanced_width),
                 dbc.Label('Height of student tile'),
                 dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
-                dbc.Label('Student name headers'),
+                dbc.Label('Student profile'),
                 dbc.Switch(value=True, id=_advanced_hide_header, label='Show/Hide'),
             ])
         ]),
-        html.H4('Highlight Options'),
-        lodrc.WOSettings(
-            id=_advanced_text_information,
-            options=wo_classroom_text_highlighter.options.PROCESS_OPTIONS,
-            value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
-            className='table table-striped align-middle'
-        )
+        dbc.Card([
+            dbc.CardHeader('Information Options'),
+            dbc.CardBody(lodrc.WOSettings(
+                id=_advanced_text_information,
+                options=wo_classroom_text_highlighter.options.PROCESS_OPTIONS,
+                value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
+                className='table table-striped align-middle'
+            ))
+        ])
     ])
 
     # history panel

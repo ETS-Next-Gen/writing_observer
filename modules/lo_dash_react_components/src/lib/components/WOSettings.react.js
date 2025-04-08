@@ -36,7 +36,9 @@ export default class WOSettings extends Component {
   constructor (props) {
     super(props);
     this.state = {
-      collapsed: {} // Tracks which rows are collapsed
+      collapsed: {},
+      showHighlight: props.options.some(option => option.types && option.types.includes('highlight')),
+      showMetric: props.options.some(option => option.types && option.types.includes('metric'))
     };
     this.handleRowEvent = this.handleRowEvent.bind(this);
     this.renderRow = this.renderRow.bind(this);
@@ -74,7 +76,7 @@ export default class WOSettings extends Component {
   }
 
   renderRow (row, allRows) {
-    const { collapsed } = this.state;
+    const { collapsed, showHighlight, showMetric } = this.state;
     const { value } = this.props;
     const hasChildren = allRows.some(option => option.parent === row.id);
     const isCollapsed = collapsed[row.id] || false;
@@ -85,6 +87,7 @@ export default class WOSettings extends Component {
           type="checkbox"
           checked={value[row.id]?.highlight.value || false}
           onChange={(e) => this.handleRowEvent(e, row.id, 'highlight')}
+          className='me-1'
         />
         {value[row.id]?.highlight.value
           ? (<input
@@ -121,8 +124,8 @@ export default class WOSettings extends Component {
               </button>
             )}
           </td>
-          <td>{highlightCell}</td>
-          <td>{metricCell}</td>
+          {showHighlight && <td className='align-middle text-center'>{highlightCell}</td>}
+          {showMetric && <td className='align-middle text-center'>{metricCell}</td>}
         </tr>
         {/* Render children rows if not collapsed */}
         {!isCollapsed &&
@@ -135,6 +138,7 @@ export default class WOSettings extends Component {
 
   render () {
     const { id, className, options } = this.props;
+    const { showHighlight, showMetric } = this.state;
     const rows = sortOptionsIntoTree(options);
 
     return (
@@ -146,8 +150,8 @@ export default class WOSettings extends Component {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Highlight</th>
-            <th>Metric</th>
+            {showHighlight && <th className='text-center'>Highlight</th>}
+            {showMetric && <th className='text-center'>Metric</th>}
           </tr>
         </thead>
         <tbody>

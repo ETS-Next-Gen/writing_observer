@@ -110,7 +110,7 @@ function createProcessTags (document, metrics) {
         break
     }
   });
-  return createDashComponent(DASH_HTML_COMPONENTS, 'Div', { children })
+  return createDashComponent(DASH_HTML_COMPONENTS, 'Div', { children, className: 'sticky-top' })
 }
 
 window.dash_clientside.wo_classroom_text_highlighter = {
@@ -329,7 +329,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     const total = selectedHighlights.length + selectedMetrics.length;
 
     if (selectedHighlights.length === 0) {
-      return ['No options selected. Click on the `Highlight Options` to select them.', total];
+      return ['No options selected. Click on the `Options` to select them.', total];
     }
     let output = selectedHighlights.map(highlight => {
       const color = highlight.highlight.color;

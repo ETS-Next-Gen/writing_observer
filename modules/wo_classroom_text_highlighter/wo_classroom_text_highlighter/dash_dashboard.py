@@ -58,18 +58,22 @@ options_component = html.Div([
             dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
             dbc.Label('Height of student tile'),
             dcc.Slider(min=100, max=800, marks=None, value=500, id=_options_height),
-            dbc.Label('Student name headers'),
+            dbc.Label('Student profile'),
             dbc.Switch(value=True, id=_options_hide_header, label='Show/Hide'),
         ])
     ]),
-    html.H4('Highlight Options'),
-    wo_classroom_text_highlighter.preset_component.create_layout(),
-    lodrc.WOSettings(
-        id=_options_text_information,
-        options=wo_classroom_text_highlighter.options.OPTIONS,
-        value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
-        className='table table-striped align-middle'
-    )
+    dbc.Card([
+        dbc.CardHeader('Information Options'),
+        dbc.CardBody([
+            wo_classroom_text_highlighter.preset_component.create_layout(),
+            lodrc.WOSettings(
+                id=_options_text_information,
+                options=wo_classroom_text_highlighter.options.OPTIONS,
+                value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
+                className='table table-striped align-middle'
+            )
+        ])
+    ])
 ], className='p-2')
 
 # Legend
@@ -116,7 +120,6 @@ input_group = dbc.InputGroup([
         'Legend',
         id=_legend_button, color='primary'),
     dbc.Popover(
-        'No options selected. Click on the `Highlight Options` to select them.',
         id=_legend_children, target=_legend_button,
         trigger='click', body=True, placement='bottom'),
     lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
