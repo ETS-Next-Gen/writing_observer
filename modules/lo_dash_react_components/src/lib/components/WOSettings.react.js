@@ -124,8 +124,8 @@ export default class WOSettings extends Component {
               </button>
             )}
           </td>
-          {showHighlight && <td className='align-middle text-center'>{highlightCell}</td>}
-          {showMetric && <td className='align-middle text-center'>{metricCell}</td>}
+          {showHighlight && <td className='text-center'>{highlightCell}</td>}
+          {showMetric && <td className='text-center'>{metricCell}</td>}
         </tr>
         {/* Render children rows if not collapsed */}
         {!isCollapsed &&
