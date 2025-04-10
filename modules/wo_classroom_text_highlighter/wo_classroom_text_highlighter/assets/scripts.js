@@ -112,6 +112,7 @@ function createProcessTags (document, metrics) {
   });
   return createDashComponent(DASH_HTML_COMPONENTS, 'Div', { children, className: 'sticky-top' })
 }
+const ClassroomTextHighlightLoadingQueries = ['docs_with_nlp_annotations', 'time_on_task', 'activity'];
 
 window.dash_clientside.wo_classroom_text_highlighter = {
   /**
@@ -228,7 +229,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
           selectedDocument,
           childComponent: studentTileChild,
           id: { type: 'WOStudentTextTile', index: student },
-          currentStudentHash: students[student].documents[selectedDocument]?.option_hash,
+          currentStudentHash: students[student].documents[selectedDocument]?.option_hash_docs_with_nlp_annotations,
           currentOptionHash: optionHash,
           className: 'h-100',
           additionalButtons: createDashComponent(
@@ -290,7 +291,7 @@ window.dash_clientside.wo_classroom_text_highlighter = {
     }
     const students = wsStorageData.students;
     const promptHash = await hashObject(nlpValue);
-    const returnedResponses = Object.values(students).filter(student => checkForResponse(student, promptHash)).length;
+    const returnedResponses = Object.values(students).filter(student => checkForResponse(student, promptHash, ClassroomTextHighlightLoadingQueries)).length;
     const totalStudents = Object.keys(students).length;
     if (totalStudents === returnedResponses) { return noLoading; }
     const loadingProgress = returnedResponses / totalStudents + 0.1;
