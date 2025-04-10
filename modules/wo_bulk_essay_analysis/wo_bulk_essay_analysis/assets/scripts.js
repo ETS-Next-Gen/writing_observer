@@ -109,7 +109,6 @@ const createStudentCard = async function (s, prompt, width, height, showName, se
  * @returns true if student's selected document's hash is the same as promptHash
  */
 const checkForResponse = function (s, promptHash, options) {
-  console.log('checkForResponse', s, promptHash);
   if (!('documents' in s)) { return false; }
   const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
   const student = s.documents[selectedDocument];
