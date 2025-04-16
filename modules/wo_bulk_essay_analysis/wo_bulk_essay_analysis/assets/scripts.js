@@ -191,7 +191,7 @@ window.dash_clientside.bulk_essay_feedback = {
       decoded.doc_source_kwargs = docKwargs.kwargs;
       // TODO what is a reasonable time to wait inbetween subsequent calls for
       // the same arguments
-      decoded.rerun_dag_delay = 30;
+      decoded.rerun_dag_delay = 120;
 
       const trig = window.dash_clientside.callback_context.triggered[0];
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
