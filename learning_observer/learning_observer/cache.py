@@ -9,7 +9,7 @@ cache_backend = None
 
 
 def create_key_from_args(func, *args, **kwargs):
-    key_dict = {'func': str(func), 'args': args, 'kwargs': kwargs}
+    key_dict = {'func': str(func.__name__), 'args': args, 'kwargs': kwargs}
     key_str = json.dumps(key_dict, sort_keys=True)
     return key_str
 
