@@ -250,7 +250,7 @@ def layout():
                 {'children': advanced, 'width': '30%', 'id': _advanced_collapse, 'side': 'left' },
                 {'children': expanded_student_component,
                  'width': '30%', 'id': _expanded_student_panel,
-                 'side': 'right', 'className': 'vh-100 overflow-auto'}
+                 'side': 'right'}
             ],
             id=_student_data_wrapper, shown=[]
         ),

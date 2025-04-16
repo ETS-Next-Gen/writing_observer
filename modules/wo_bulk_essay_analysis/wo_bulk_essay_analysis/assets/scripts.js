@@ -564,7 +564,7 @@ window.dash_clientside.bulk_essay_feedback = {
       type: 'Markdown',
       props: {
         children: student?.feedback ? student.feedback : '',
-        className: student?.feedback ? 'p-1 overflow-auto' : '',
+        className: student?.feedback ? 'p-1' : '',
         style: { whiteSpace: 'pre-line' }
       }
     };
@@ -595,7 +595,7 @@ window.dash_clientside.bulk_essay_feedback = {
         childComponent: studentTileChild,
         id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
         currentOptionHash: promptHash,
-        currentStudentHash: student.option_hash_gpt_bulk,
+        currentStudentHash: student.option_hash_gpt_bulk
       }
     );
     const individualWrapper = createDashComponent(
@@ -606,7 +606,7 @@ window.dash_clientside.bulk_essay_feedback = {
           studentTile,
           createDashComponent(
             DASH_BOOTSTRAP_COMPONENTS, 'Card',
-            { children: feedbackOrError, body: true, className: 'individual-student-feedback' }
+            { children: feedbackOrError, body: true }
           )
         ]
       }

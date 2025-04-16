@@ -143,7 +143,7 @@ def layout():
                 {'children': options_component, 'width': '30%', 'id': _options_prefix, 'side': 'left' },
                 {'children': expanded_student_component,
                  'width': '30%', 'id': _expanded_student_panel,
-                 'side': 'right', 'className': 'vh-100 overflow-auto'}
+                 'side': 'right'}
             ],
             id=_options_collapse, shown=[]
         ),
