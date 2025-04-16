@@ -12,17 +12,19 @@ API only provides a single completion so the response looks like
 APIs so the code can be abstracted to the parent class.
 '''
 import aiohttp
+import asyncio
 import json
 import loremipsum
 import os
+import random
 
-import learning_observer.communication_protocol.integration
 from learning_observer.log_event import debug_log
 import learning_observer.prestartup
 import learning_observer.settings
 
 gpt_responder = None
 SYSTEM_PROMPT_DEFAULT = 'You are a helper agent, please help fulfill user requests.'
+LLM_SEMAPHOR = {}
 
 
 class GPTAPI:
@@ -111,6 +113,10 @@ class OllamaGPT(GPTAPI):
                       'ollama run <desired_model>\n```')
             self.ollama_host = 'http://localhost:11434'
 
+        global LLM_SEMAPHOR
+        if 'ollama' not in LLM_SEMAPHOR:
+            LLM_SEMAPHOR['ollama'] = asyncio.Semaphore(os.getenv('OLLAMA_NUM_PARALLEL', 1))
+
     async def chat_completion(self, prompt, system_prompt):
         '''Ollama only returns a single item compared to GPT returning a list
         '''
@@ -120,15 +126,16 @@ class OllamaGPT(GPTAPI):
             {'role': 'user', 'content': prompt}
         ]
         content = {'model': self.model, 'messages': messages, 'stream': False}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=content) as resp:
-                json_resp = await resp.json(content_type=None)
-                if resp.status == 200:
-                    return json_resp['message']['content']
-                error = 'Error occured while making Ollama request'
-                if 'error' in json_resp:
-                    error += f"\n{json_resp['error']['message']}"
-                raise GPTRequestErorr(error)
+        async with LLM_SEMAPHOR['ollama']:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=content) as resp:
+                    json_resp = await resp.json(content_type=None)
+                    if resp.status == 200:
+                        return json_resp['message']['content']
+                    error = 'Error occured while making Ollama request'
+                    if 'error' in json_resp:
+                        error += f"\n{json_resp['error']['message']}"
+                    raise GPTRequestErorr(error)
 
 
 class StubGPT(GPTAPI):
@@ -137,8 +144,14 @@ class StubGPT(GPTAPI):
     def __init__(self, **kwargs):
         super().__init__()
 
+        global LLM_SEMAPHOR
+        if 'stub' not in LLM_SEMAPHOR:
+            LLM_SEMAPHOR['stub'] = asyncio.Semaphore(2)
+
     async def chat_completion(self, prompt, system_prompt):
-        return "\n".join(loremipsum.get_paragraphs(1))
+        async with LLM_SEMAPHOR['stub']:
+            await asyncio.sleep(random.randint(5, 15))
+            return "\n".join(loremipsum.get_paragraphs(1))
 
 
 GPT_RESPONDERS = {
