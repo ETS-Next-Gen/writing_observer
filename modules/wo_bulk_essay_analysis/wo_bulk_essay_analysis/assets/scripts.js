@@ -494,7 +494,6 @@ window.dash_clientside.bulk_essay_feedback = {
     const currentPrompt = history.length > 0 ? history[history.length - 1] : '';
     const promptHash = await hashObject({ prompt: currentPrompt });
     const returnedResponses = Object.values(wsStorageData.students).filter(student => checkForResponse(student, promptHash, AIAssistantLoadingQueries)).length;
-    console.log('returnedResponses', returnedResponses);
     const totalStudents = Object.keys(wsStorageData.students).length;
     if (totalStudents === returnedResponses) { return noLoading; }
     const loadingProgress = returnedResponses / totalStudents + 0.1;
@@ -516,8 +515,12 @@ window.dash_clientside.bulk_essay_feedback = {
     let id = null;
     if (triggeredItem?.type === 'WOAIAssistStudentTileExpand') {
       id = triggeredItem?.index;
-      if (clicks[ids.findIndex(item => item.index === id)]) {
+      const index = ids.findIndex(item => item.index === id);
+      if (clicks[index]) {
         shownPanels = shownPanels.concat('bulk-essay-analysis-expanded-student-panel');
+      } else {
+        // No clicks occurred so we should keep the ID as it was
+        id = window.dash_clientside.no_update;
       }
     } else {
       return window.dash_clientside.no_update;
