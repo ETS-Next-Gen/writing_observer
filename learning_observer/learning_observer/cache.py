@@ -37,7 +37,8 @@ def async_memoization():
                 return await func(*args, **kwargs)
 
             # process item if the cache is present
-            key = create_key_from_args(func, args, kwargs)
+            kwargs_no_runtime = {k: v for k, v in kwargs.items() if k != 'runtime'}
+            key = create_key_from_args(func, args, kwargs_no_runtime)
             if key in await cache_backend.keys():
                 return await cache_backend[key]
             result = await func(*args, **kwargs)

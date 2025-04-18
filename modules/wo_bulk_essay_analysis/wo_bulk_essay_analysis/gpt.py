@@ -1,7 +1,6 @@
 import learning_observer.communication_protocol.integration
 import learning_observer.cache
-import learning_observer.prestartup
-import learning_observer.settings
+import learning_observer.rate_limiting
 
 import lo_gpt.gpt
 
@@ -10,7 +9,7 @@ rubric_template = """{task}\n\n[Rubric]\n{rubric}"""
 
 
 @learning_observer.communication_protocol.integration.publish_function('wo_bulk_essay_analysis.gpt_essay_prompt')
-async def process_student_essay(text, prompt, system_prompt, tags):
+async def process_student_essay(text, prompt, system_prompt, tags, runtime):
     '''
     This method processes text with a prompt through GPT.
 
@@ -19,6 +18,7 @@ async def process_student_essay(text, prompt, system_prompt, tags):
     copy_tags = tags.copy()
 
     @learning_observer.cache.async_memoization()
+    @learning_observer.rate_limiting.rate_limited('LLM')
     async def gpt(gpt_prompt):
         completion = await lo_gpt.gpt.gpt_responder.chat_completion(gpt_prompt, system_prompt)
         return completion
@@ -41,7 +41,7 @@ async def process_student_essay(text, prompt, system_prompt, tags):
 
         output = {
             'text': text,
-            'feedback': await gpt(formatted_prompt),
+            'feedback': await gpt(formatted_prompt, runtime=runtime),
             'prompt': prompt
         }
     return output

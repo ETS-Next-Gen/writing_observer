@@ -151,7 +151,12 @@ EXECUTION_DAG = {
             gpt_bulk_essay,
             values=q.variable('docs'),
             value_path='text',
-            func_kwargs={'prompt': q.parameter('gpt_prompt'), 'system_prompt': q.parameter('system_prompt'), 'tags': q.parameter('tags', required=False, default={})},
+            func_kwargs={
+                'prompt': q.parameter('gpt_prompt'),
+                'system_prompt': q.parameter('system_prompt'),
+                'tags': q.parameter('tags', required=False, default={}),
+                'runtime': q.parameter('runtime')
+            },
             parallel=True
         ),
         'gpt_bulk': q.join(LEFT=q.variable('gpt_map'), LEFT_ON='provenance.provenance.provenance.STUDENT.value.user_id', RIGHT=q.variable('roster'), RIGHT_ON='user_id'),
