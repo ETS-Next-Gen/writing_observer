@@ -15,32 +15,37 @@ RL_LOCK = asyncio.Lock()
 
 
 def create_rate_limiter(service_name):
-    '''Factory function for rate limiters with closure over service name'''
-    async def check_rate_limit(user_id):
-        '''Reusable rate limiter with service-specific settings'''
+    '''Creates a rate limiter for a specific service.
+    '''
+    async def check_rate_limit(id):
+        '''Check if id has hit the rate limit.
+
+        Uses sliding window to track recent requests. Returns
+        whether the current request should be allowed based on
+        the configured limits.
+        '''
         # TODO fetch from pmss/define appropriate window
-        max_requests = 2
+        max_requests_per_window = 2
         window_seconds = 60
 
         async with RL_LOCK:
             now = time.time()
 
-            # Initialize user/service tracking
-            key = f'rate_limit:{service_name}:{user_id}'
-            if key not in RATE_LIMITERS:
-                RATE_LIMITERS[key] = collections.deque()
+            # Initialize id/service tracking
+            limiter_key = f'rate_limit:{service_name}:{id}'
+            if limiter_key not in RATE_LIMITERS:
+                RATE_LIMITERS[limiter_key] = collections.deque()
 
             # Expire old requests
-            timestamps = RATE_LIMITERS[key]
-            while timestamps and (now - timestamps[0]) > window_seconds:
-                timestamps.popleft()
+            prior_requests_timestamps = RATE_LIMITERS[limiter_key]
+            while prior_requests_timestamps and (now - prior_requests_timestamps[0]) > window_seconds:
+                prior_requests_timestamps.popleft()
 
-            if len(timestamps) >= max_requests:
+            if len(prior_requests_timestamps) >= max_requests_per_window:
                 return False
 
-            timestamps.append(now)
+            prior_requests_timestamps.append(now)
             return True
-
     return check_rate_limit
 
 
@@ -55,13 +60,13 @@ def rate_limited(service_name):
 
             runtime = kwargs['runtime']
 
-            check_limit = create_rate_limiter(service_name)
+            check_rate_limit = create_rate_limiter(service_name)
 
             # Check rate limits before execution
             request = runtime.get_request()
             user = await learning_observer.auth.get_active_user(request)
             user_id = user[learning_observer.constants.USER_ID]
-            if not await check_limit(user_id):
+            if not await check_rate_limit(user_id):
                 raise PermissionError(f'Rate limit exceeded for {service_name} service')
             
             function_signature = inspect.signature(func)
