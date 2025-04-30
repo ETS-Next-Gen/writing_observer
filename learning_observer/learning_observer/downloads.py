@@ -88,9 +88,12 @@ BOOTSTRAP_MIN_CSS = {
         "5.3.1": "d099dac0135309466dc6208aaa973584843a3efbb40b2c96eb7c179f5f20f"
         "80def35bbc1a7a0b08c9d5bdbed6b8e780ba7d013d18e4019e04fd82a19c076a1f8",
         "5.3.3": "54b69b378be9029cb841bce9f33e111148231ce38ae389601c10ee1fec93b"
-        "bfb84839e84911e9e32e9e026a182e7225fd8531dc8344ba94ef4b467852e7162d5"
+        "bfb84839e84911e9e32e9e026a182e7225fd8531dc8344ba94ef4b467852e7162d5",
+        "5.3.5": "3c9aa2c118ba4cbb2f54b2ca87528c453503ab5545983b6f5d10c6f04abd9"
+        "d4feb003c80c59a092857808e439642ab45e38369980288e7afb5a11e0e7946270e"
     },
     "tested_versions": [
+        'https://cdn.jsdelivr.net/npm/bootswatch@5.3.5/dist/minty/bootstrap.min.css',
         'https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/minty/bootstrap.min.css',
         "https://cdn.jsdelivr.net/npm/bootswatch@5.3.1/dist/minty/bootstrap.min.css",
         'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
@@ -102,9 +105,12 @@ FONTAWESOME_CSS = {
         "6.1.1": "535a5f3e40bc8ddf475b56c1a39a5406052b524413dea331c4e683ca99e39"
         "6dbbc11fdce1f8355730a73c52ac6a1062de1938406c6af8e4361fd346106acb6b0",
         "6.3.0": "1496214e7421773324f4b332127ea77bec822fc6739292ebb19c6abcc22a5"
-        "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7"
+        "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7",
+        "6.7.2": "1bd8a997cca7c7abb44f3335a338feb34e69694c3cf4f2cae11ef12ed73f4"
+        "f120dc15e680835f88dd71df199fb6596bea05cb569b0fb0822e8fd3ec58c6e0833"
     },
     "tested_versions": [
+        "https://use.fontawesome.com/releases/v6.7.2/css/all.css",
         "https://use.fontawesome.com/releases/v6.3.0/css/all.css",
         "https://use.fontawesome.com/releases/v6.1.1/css/all.css"
     ]
