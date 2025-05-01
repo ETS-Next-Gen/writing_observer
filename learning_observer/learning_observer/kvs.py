@@ -191,6 +191,14 @@ class _RedisKVS(_KVS):
         await self.connect()
         return await learning_observer.redis_connection.delete(key)
 
+    async def multiget(self, keys):
+        '''
+        Fetch multiple items from the KVS via `mget`
+        '''
+        await self.connect()
+        items = await learning_observer.redis_connection.mget(keys)
+        return [json.loads(item) if item is not None else None for item in items]
+
 
 class EphemeralRedisKVS(_RedisKVS):
     '''
