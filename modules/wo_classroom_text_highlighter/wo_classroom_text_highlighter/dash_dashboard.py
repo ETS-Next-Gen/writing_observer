@@ -55,16 +55,25 @@ options_component = html.Div([
         dbc.CardHeader('View Options'),
         dbc.CardBody([
             dbc.Label('Students per row'),
-            dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_options_width),
+            dbc.Input(type='number', min=1, max=10, value=2, step=1, id=_options_width),
             dbc.Label('Height of student tile'),
             dcc.Slider(min=100, max=800, marks=None, value=500, id=_options_height),
-            dbc.Label('Student name headers'),
+            dbc.Label('Student profile'),
             dbc.Switch(value=True, id=_options_hide_header, label='Show/Hide'),
         ])
     ]),
-    html.H4('Highlight Options'),
-    wo_classroom_text_highlighter.preset_component.create_layout(),
-    lodrc.WOSettings(id=_options_text_information, options=wo_classroom_text_highlighter.options.OPTIONS, className='table table-striped align-middle')
+    dbc.Card([
+        dbc.CardHeader('Information Options'),
+        dbc.CardBody([
+            wo_classroom_text_highlighter.preset_component.create_layout(),
+            lodrc.WOSettings(
+                id=_options_text_information,
+                options=wo_classroom_text_highlighter.options.OPTIONS,
+                value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
+                className='table table-striped align-middle'
+            )
+        ])
+    ])
 ], className='p-2')
 
 # Legend
@@ -103,7 +112,7 @@ input_group = dbc.InputGroup([
     dbc.InputGroupText(lodrc.LOConnectionAIO(aio_id=_websocket)),
     dbc.Button([
         html.I(className='fas fa-cog me-1'),
-        'Highlight Options (',
+        'Options (',
         html.Span('0', id=_options_toggle_count),
         ')'
     ], id=_options_toggle),
@@ -111,7 +120,6 @@ input_group = dbc.InputGroup([
         'Legend',
         id=_legend_button, color='primary'),
     dbc.Popover(
-        'No options selected. Click on the `Highlight Options` to select them.',
         id=_legend_children, target=_legend_button,
         trigger='click', body=True, placement='bottom'),
     lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
@@ -135,7 +143,7 @@ def layout():
                 {'children': options_component, 'width': '30%', 'id': _options_prefix, 'side': 'left' },
                 {'children': expanded_student_component,
                  'width': '30%', 'id': _expanded_student_panel,
-                 'side': 'right', 'className': 'vh-100 overflow-auto'}
+                 'side': 'right'}
             ],
             id=_options_collapse, shown=[]
         ),
@@ -196,7 +204,7 @@ clientside_callback(
 # Handle showing or hiding the student tile header
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='showHideHeader'),
-    Output({'type': 'WOStudentTextTile', 'index': ALL}, 'showHeader'),
+    Output({'type': 'WOStudentTextTile', 'index': ALL}, 'showName'),
     Input(_options_hide_header, 'value'),
     State({'type': 'WOStudentTextTile', 'index': ALL}, 'id'),
 )

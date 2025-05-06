@@ -4,11 +4,12 @@ student essays with LLMs.
 '''
 import dash_bootstrap_components as dbc
 from dash_renderjson import DashRenderjson
-import datetime
 import lo_dash_react_components as lodrc
 import random
 
 from dash import html, dcc, clientside_callback, ClientsideFunction, Output, Input, State, ALL
+
+import wo_classroom_text_highlighter.options
 
 # TODO pull this flag from settings
 DEBUG_FLAG = True
@@ -29,9 +30,11 @@ _advanced = f'{prefix}-advanced'
 _advanced_doc_src = f'{_advanced}-document-source'
 _advanced_toggle = f'{_advanced}-toggle'
 _advanced_collapse = f'{_advanced}-collapse'
+_advanced_close = f'{_advanced}-close'
 _advanced_width = f'{_advanced}-width'
 _advanced_height = f'{_advanced}-height'
 _advanced_hide_header = f'{_advanced}-hide-header'
+_advanced_text_information = f'{_advanced}-text-information'
 
 _system_input = f'{prefix}-system-prompt-input'
 _system_input_tooltip = f'{_system_input}-tooltip'
@@ -138,22 +141,36 @@ def layout():
     Generic layout function to create dashboard
     '''
     # advanced menu for system prompt
-    advanced = [
+    advanced = html.Div([
         html.Div([
-            lodrc.LODocumentSourceSelectorAIO(aio_id=_advanced_doc_src),
-            dbc.Card([
-                dbc.CardHeader('View Options'),
-                dbc.CardBody([
-                    dbc.Label('Students per row'),
-                    dbc.Input(type='number', min=1, max=10, value=3, step=1, id=_advanced_width),
-                    dbc.Label('Height of student tile'),
-                    dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
-                    dbc.Label('Student name headers'),
-                    dbc.Switch(value=True, id=_advanced_hide_header, label='Show/Hide'),
-                ])
-            ]),
+            html.H3('Settings', className='d-inline-block'),
+            dbc.Button(
+                html.I(className='fas fa-close'),
+                className='float-end', id=_advanced_close,
+                color='transparent'),
+        ]),
+        lodrc.LODocumentSourceSelectorAIO(aio_id=_advanced_doc_src),
+        dbc.Card([
+            dbc.CardHeader('View Options'),
+            dbc.CardBody([
+                dbc.Label('Students per row'),
+                dbc.Input(type='number', min=1, max=10, value=2, step=1, id=_advanced_width),
+                dbc.Label('Height of student tile'),
+                dcc.Slider(min=100, max=800, marks=None, value=350, id=_advanced_height),
+                dbc.Label('Student profile'),
+                dbc.Switch(value=True, id=_advanced_hide_header, label='Show/Hide'),
+            ])
+        ]),
+        dbc.Card([
+            dbc.CardHeader('Information Options'),
+            dbc.CardBody(lodrc.WOSettings(
+                id=_advanced_text_information,
+                options=wo_classroom_text_highlighter.options.PROCESS_OPTIONS,
+                value=wo_classroom_text_highlighter.options.DEFAULT_VALUE,
+                className='table table-striped align-middle'
+            ))
         ])
-    ]
+    ])
 
     # history panel
     history_favorite_panel = dbc.Card([
@@ -216,7 +233,6 @@ def layout():
             dbc.Button([html.I(className='fas fa-cog me-1'), 'Advanced'], id=_advanced_toggle),
             lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
         ], class_name='mb-1'),
-        dbc.Collapse(advanced, id=_advanced_collapse, class_name='mb-1'),
         lodrc.LOPanelLayout(
             input_panel,
             panels=[
@@ -231,9 +247,10 @@ def layout():
         lodrc.LOPanelLayout(
             html.Div(id=grid, className='d-flex justify-content-between flex-wrap'),
             panels=[
+                {'children': advanced, 'width': '30%', 'id': _advanced_collapse, 'side': 'left' },
                 {'children': expanded_student_component,
                  'width': '30%', 'id': _expanded_student_panel,
-                 'side': 'right', 'className': 'vh-100 overflow-auto'}
+                 'side': 'right'}
             ],
             id=_student_data_wrapper, shown=[]
         ),
@@ -244,9 +261,18 @@ def layout():
 # Toggle if the advanced menu collapse is open or not
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='toggleAdvanced'),
-    Output(_advanced_collapse, 'is_open'),
+    Output(_student_data_wrapper, 'shown', allow_duplicate=True),
     Input(_advanced_toggle, 'n_clicks'),
-    State(_advanced_collapse, 'is_open')
+    State(_student_data_wrapper, 'shown'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    ClientsideFunction(namespace=_namespace, function_name='closeAdvanced'),
+    Output(_student_data_wrapper, 'shown', allow_duplicate=True),
+    Input(_advanced_close, 'n_clicks'),
+    State(_student_data_wrapper, 'shown'),
+    prevent_initial_call=True
 )
 
 # send request on websocket
@@ -329,7 +355,9 @@ clientside_callback(
     Input(history_store, 'data'),
     Input(_advanced_width, 'value'),
     Input(_advanced_height, 'value'),
-    Input(_advanced_hide_header, 'value')
+    Input(_advanced_hide_header, 'value'),
+    Input(_advanced_text_information, 'value'),
+    State(_advanced_text_information, 'options')
 )
 
 # append tag in curly braces to input
@@ -423,6 +451,8 @@ clientside_callback(
     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
     Input(_advanced_hide_header, 'value'),
     Input(history_store, 'data'),
+    Input(_advanced_text_information, 'value'),
+    State(_advanced_text_information, 'options')
 )
 
 # Close expanded student

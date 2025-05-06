@@ -10,6 +10,7 @@ import wo_classroom_text_highlighter.options
 _prefix = 'option-preset'
 _store = f'{_prefix}-store'
 _add_input = f'{_prefix}-add-input'
+_add_help = f'{_prefix}-add-help'
 _add_button = f'{_prefix}-add-button'
 _tray = f'{_prefix}-tray'
 _set_item = f'{_prefix}-set-item'
@@ -19,6 +20,11 @@ _remove_item = f'{_prefix}-remove-item'
 def create_layout():
     add_preset = dbc.InputGroup([
         dbc.Input(id=_add_input, placeholder='Preset name', type='text', value=''),
+        dbc.InputGroupText(html.I(className='fas fa-circle-question'), id=_add_help),
+        dbc.Tooltip(
+            'Save the current selected information as a preset for quick use in the future.',
+            target=_add_help
+        ),
         dbc.Button([
             html.I(className='fas fa-plus me-1'),
             'Preset'

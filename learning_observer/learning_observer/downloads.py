@@ -88,9 +88,12 @@ BOOTSTRAP_MIN_CSS = {
         "5.3.1": "d099dac0135309466dc6208aaa973584843a3efbb40b2c96eb7c179f5f20f"
         "80def35bbc1a7a0b08c9d5bdbed6b8e780ba7d013d18e4019e04fd82a19c076a1f8",
         "5.3.3": "54b69b378be9029cb841bce9f33e111148231ce38ae389601c10ee1fec93b"
-        "bfb84839e84911e9e32e9e026a182e7225fd8531dc8344ba94ef4b467852e7162d5"
+        "bfb84839e84911e9e32e9e026a182e7225fd8531dc8344ba94ef4b467852e7162d5",
+        "5.3.5": "3c9aa2c118ba4cbb2f54b2ca87528c453503ab5545983b6f5d10c6f04abd9"
+        "d4feb003c80c59a092857808e439642ab45e38369980288e7afb5a11e0e7946270e"
     },
     "tested_versions": [
+        'https://cdn.jsdelivr.net/npm/bootswatch@5.3.5/dist/minty/bootstrap.min.css',
         'https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/minty/bootstrap.min.css',
         "https://cdn.jsdelivr.net/npm/bootswatch@5.3.1/dist/minty/bootstrap.min.css",
         'https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/minty/bootstrap.min.css',
@@ -102,9 +105,12 @@ FONTAWESOME_CSS = {
         "6.1.1": "535a5f3e40bc8ddf475b56c1a39a5406052b524413dea331c4e683ca99e39"
         "6dbbc11fdce1f8355730a73c52ac6a1062de1938406c6af8e4361fd346106acb6b0",
         "6.3.0": "1496214e7421773324f4b332127ea77bec822fc6739292ebb19c6abcc22a5"
-        "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7"
+        "6248e0634b4e0ca0c2fcac14dc10b8d01fa17febaa35f46731201d1ffd0ab482dd7",
+        "6.7.2": "1bd8a997cca7c7abb44f3335a338feb34e69694c3cf4f2cae11ef12ed73f4"
+        "f120dc15e680835f88dd71df199fb6596bea05cb569b0fb0822e8fd3ec58c6e0833"
     },
     "tested_versions": [
+        "https://use.fontawesome.com/releases/v6.7.2/css/all.css",
         "https://use.fontawesome.com/releases/v6.3.0/css/all.css",
         "https://use.fontawesome.com/releases/v6.1.1/css/all.css"
     ]
@@ -115,7 +121,9 @@ FONTAWESOME_WOFF2 = {
         "6.1.1": "6d3fe769cc40a5790ea2e09fb775f1bd3b130d2fdae1dd552f69559e7ca4c"
         "a047862f795da0024737e59e3bcc7446f6eec1bab173758aef0b97ba89d722ffbde",
         "6.3.0": "d50c68cd4b3312f50deb66ac8ab5c37b2d4161f4e00ea077"
-        "326ae76769dac650dd19e65dee8d698ba2f86a69537f38cf4010ff45227211cee8b382d9b567257a"
+        "326ae76769dac650dd19e65dee8d698ba2f86a69537f38cf4010ff45227211cee8b382d9b567257a",
+        "6.7.2": "140ad609f15616dff39a7ed2efa080283bb28e13e6fe00987a39774887aa2"
+        "a8279f48c36816753e7522474580ee49b937e9d549674b7382f73548f159a206036"
     }
 }
 FONTAWESOME_TTF = {
@@ -124,7 +132,9 @@ FONTAWESOME_TTF = {
         "6.1.1": "0fdd341671021d04304186c197001cf2e888d3028baaf9a5dec0f0e496959"
         "666e8a2e34aae8e79904f8e9b4c0ccae40249897cce5f5ae58d12cc1b3985e588d6",
         "6.3.0": "5a2c2b010a2496e4ed832ede8620f3bbfa9374778f3d63e4"
-        "5a4aab041e174dafd9fffd3229b8b36f259cf2ef46ae7bf5cb041e280f2939884652788fc1e8ce58"
+        "5a4aab041e174dafd9fffd3229b8b36f259cf2ef46ae7bf5cb041e280f2939884652788fc1e8ce58",
+        "6.7.2": "8a0a8fc8fcf0b676588bfe28f8b1d154a16af951d31f3a527a9661189c4c2"
+        "317b2d5b3b95a3e7c4a77377988fb6852e6d5dae6df48ad07957a62ae22fd2ac0bb"
     }
 }
 

@@ -73,9 +73,16 @@ async def keys():
 
 async def get(key):
     '''
-    Get a key. We should eventually do multi-gets. Returns a future.
+    Get a key. Returns a future.
     '''
     return await (await connection()).get(key)
+
+
+async def mget(keys):
+    '''
+    Get mutliple keys. Returns a future.
+    '''
+    return await (await connection()).mget(keys)
 
 
 async def set(key, value, expiry=None):

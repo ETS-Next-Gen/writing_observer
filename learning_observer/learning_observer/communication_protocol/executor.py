@@ -414,31 +414,44 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
     if fields is None or fields == learning_observer.communication_protocol.query.SelectFields.Missing:
         fields_to_keep = {}
 
+    # Collect all keys from the async generator
+    keys_list = []
     async for k in ensure_async_generator(keys):
         if isinstance(k, dict) and 'key' in k:
-            # output from query added to response later
-            query_response_element = {
-                'provenance': {
-                    'key': k['key'],
-                    'provenance': k['provenance']
-                }
-            }
+            keys_list.append(k)
         else:
             raise DAGExecutionException(
                 f'Key not formatted correctly for select: {k}',
                 inspect.currentframe().f_code.co_name,
                 {'keys': keys, 'fields': fields}
             )
-        resulting_value = await learning_observer.kvs.KVS()[k['key']]
+
+    # Batch fetch all values from KVS
+    kvs = learning_observer.kvs.KVS()
+    kvs_keys = [k['key'] for k in keys_list]
+    resulting_values = await kvs.multiget(kvs_keys)
+
+    # Process each key and its corresponding value
+    for k, resulting_value in zip(keys_list, resulting_values):
+        query_response_element = {
+            'provenance': {
+                'key': k['key'],
+                'provenance': k['provenance']
+            }
+        }
+
+        # Use default value if KVS returned None
         if resulting_value is None:
-            # the reducer has not run yet, so we return the default value from the module
-            resulting_value = k['default']
+            resulting_value = k.get('default', None)
 
-        # keep all current fields except for provenance (already prepared)
+        # Determine fields to keep based on the current resulting_value if fields is All
         if fields == learning_observer.communication_protocol.query.SelectFields.All:
-            fields_to_keep = {k: k for k in resulting_value.keys() if k != 'provenance'}
+            current_fields_to_keep = {key: key for key in resulting_value.keys() if key != 'provenance'}
+        else:
+            current_fields_to_keep = fields_to_keep
 
-        for f in fields_to_keep:
+        # Populate the query response element with the specified fields
+        for f in current_fields_to_keep:
             try:
                 value = get_nested_dict_value(resulting_value, f)
             except KeyError as e:
@@ -447,8 +460,8 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
                     inspect.currentframe().f_code.co_name,
                     {'target': resulting_value, 'key': f, 'exception': e}
                 ).to_dict()
-            # add necessary outputs to query response
-            query_response_element[fields_to_keep[f]] = value
+            query_response_element[current_fields_to_keep[f]] = value
+
         yield query_response_element
 
 

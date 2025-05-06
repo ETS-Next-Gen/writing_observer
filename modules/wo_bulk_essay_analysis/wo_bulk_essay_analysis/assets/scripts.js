@@ -8,7 +8,7 @@ if (!window.dash_clientside) {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/3rd_party/pdf.worker.min.js';
 
-const createStudentCard = async function (s, prompt, width, height, showHeader) {
+const createStudentCard = async function (s, prompt, width, height, showName, selectedMetrics) {
   const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
   const student = s.documents?.[selectedDocument] ?? {};
   const promptHash = await hashObject({ prompt });
@@ -16,8 +16,17 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
   const studentText = {
     namespace: 'lo_dash_react_components',
     type: 'WOAnnotatedText',
-    props: { text: student.text, breakpoints: [], className: 'border-end' }
+    props: { text: student.text, breakpoints: [] }
   };
+  const studentTileChild = createDashComponent(
+    DASH_HTML_COMPONENTS, 'Div',
+    {
+      children: [
+        createProcessTags({ ...student }, selectedMetrics),
+        studentText
+      ]
+    }
+  );
   const errorMessage = {
     namespace: 'dash_html_components',
     type: 'Div',
@@ -50,19 +59,29 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
       className: 'text-center'
     }
   };
-  const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
+  const feedback = promptHash === student.option_hash_gpt_bulk ? feedbackMessage : feedbackLoading;
   const feedbackOrError = 'error' in student ? errorMessage : feedback;
-  const userId = student?.user_id || '0';
+  const userId = student?.user_id;
+  if (!userId) { return {}; }
   const studentTile = createDashComponent(
     LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
     {
-      showHeader,
-      studentInfo: formatStudentData(s, []),
+      showName,
+      profile: student?.profile || {},
       selectedDocument,
-      childComponent: studentText,
+      childComponent: studentTileChild,
       id: { type: 'WOAIAssistStudentTileText', index: userId },
       currentOptionHash: promptHash,
-      style: { height: `${height}px` }
+      currentStudentHash: student.option_hash_gpt_bulk,
+      style: { height: `${height}px` },
+      additionalButtons: createDashComponent(
+        DASH_BOOTSTRAP_COMPONENTS, 'Button',
+        {
+          id: { type: 'WOAIAssistStudentTileExpand', index: userId },
+          children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-expand' }),
+          color: 'transparent'
+        }
+      )
     }
   );
   const tileWrapper = createDashComponent(
@@ -75,15 +94,6 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
           DASH_BOOTSTRAP_COMPONENTS, 'Card',
           { children: feedbackOrError, body: true }
         ),
-        createDashComponent(
-          DASH_BOOTSTRAP_COMPONENTS, 'Button',
-          {
-            id: { type: 'WOAIAssistStudentTileExpand', index: userId },
-            children: createDashComponent(DASH_HTML_COMPONENTS, 'I', { className: 'fas fa-expand' }),
-            class_name: 'position-absolute top-0 end-0 m-1',
-            color: 'transparent'
-          }
-        )
       ],
       id: { type: 'WOAIAssistStudentTile', index: userId },
       style: { width: `${(100 - width) / width}%` }
@@ -98,11 +108,11 @@ const createStudentCard = async function (s, prompt, width, height, showHeader) 
  * @param {*} promptHash current hash of prompts
  * @returns true if student's selected document's hash is the same as promptHash
  */
-const checkForResponse = function (s, promptHash) {
+const checkForResponse = function (s, promptHash, options) {
   if (!('documents' in s)) { return false; }
   const selectedDocument = s.doc_id || Object.keys(s.documents || {})[0] || '';
   const student = s.documents[selectedDocument];
-  return promptHash === student.option_hash;
+  return options.every(option => promptHash === student[`option_hash_${option}`]);
 };
 
 const charactersAfterChar = function (str, char) {
@@ -160,6 +170,8 @@ const fileTextExtractors = {
   docx: extractDOCX
 };
 
+const AIAssistantLoadingQueries = ['gpt_bulk', 'time_on_task', 'activity'];
+
 window.dash_clientside.bulk_essay_feedback = {
   /**
    * Sends data to server via websocket
@@ -179,7 +191,7 @@ window.dash_clientside.bulk_essay_feedback = {
       decoded.doc_source_kwargs = docKwargs.kwargs;
       // TODO what is a reasonable time to wait inbetween subsequent calls for
       // the same arguments
-      decoded.rerun_dag_delay = 30;
+      decoded.rerun_dag_delay = 120;
 
       const trig = window.dash_clientside.callback_context.triggered[0];
       if (trig.prop_id.includes('bulk-essay-analysis-submit-btn')) {
@@ -194,7 +206,7 @@ window.dash_clientside.bulk_essay_feedback = {
       const message = {
         wo: {
           execution_dag: 'writing_observer',
-          target_exports: ['gpt_bulk', 'document_list', 'document_sources'],
+          target_exports: ['gpt_bulk', 'document_list', 'document_sources', 'time_on_task', 'activity'],
           kwargs: decoded
         }
       };
@@ -203,11 +215,23 @@ window.dash_clientside.bulk_essay_feedback = {
     return window.dash_clientside.no_update;
   },
 
-  toggleAdvanced: function (clicks, isOpen) {
+  toggleAdvanced: function (clicks, shown) {
     if (!clicks) {
       return window.dash_clientside.no_update;
     }
-    return !isOpen;
+    const optionPrefix = 'bulk-essay-analysis-advanced-collapse';
+    if (shown.includes(optionPrefix)) {
+      shown = shown.filter(item => item !== optionPrefix);
+    } else {
+      shown = shown.concat(optionPrefix);
+    }
+    return shown;
+  },
+
+  closeAdvanced: function (clicks, shown) {
+    if (!clicks) { return window.dash_clientside.no_update; }
+    shown = shown.filter(item => item !== 'bulk-essay-analysis-advanced-collapse');
+    return shown;
   },
 
   /**
@@ -241,15 +265,16 @@ window.dash_clientside.bulk_essay_feedback = {
   /**
    * update student cards based on new data in storage
    */
-  updateStudentGridOutput: async function (wsStorageData, history, width, height, showHeader) {
+  updateStudentGridOutput: async function (wsStorageData, history, width, height, showName, value, options) {
     if (!wsStorageData) {
       return 'No students';
     }
     const currPrompt = history.length > 0 ? history[history.length - 1] : '';
+    const selectedMetrics = fetchSelectedItemsFromOptions(value, options, 'metric');
 
     let output = [];
     for (const student in wsStorageData.students) {
-      output = output.concat(await createStudentCard(wsStorageData.students[student], currPrompt, width, height, showHeader));
+      output = output.concat(await createStudentCard(wsStorageData.students[student], currPrompt, width, height, showName, selectedMetrics));
     }
     return output;
   },
@@ -468,7 +493,7 @@ window.dash_clientside.bulk_essay_feedback = {
     }
     const currentPrompt = history.length > 0 ? history[history.length - 1] : '';
     const promptHash = await hashObject({ prompt: currentPrompt });
-    const returnedResponses = Object.values(wsStorageData.students).filter(student => checkForResponse(student, promptHash)).length;
+    const returnedResponses = Object.values(wsStorageData.students).filter(student => checkForResponse(student, promptHash, AIAssistantLoadingQueries)).length;
     const totalStudents = Object.keys(wsStorageData.students).length;
     if (totalStudents === returnedResponses) { return noLoading; }
     const loadingProgress = returnedResponses / totalStudents + 0.1;
@@ -490,8 +515,12 @@ window.dash_clientside.bulk_essay_feedback = {
     let id = null;
     if (triggeredItem?.type === 'WOAIAssistStudentTileExpand') {
       id = triggeredItem?.index;
-      if (clicks[ids.findIndex(item => item.index === id)]) {
+      const index = ids.findIndex(item => item.index === id);
+      if (clicks[index]) {
         shownPanels = shownPanels.concat('bulk-essay-analysis-expanded-student-panel');
+      } else {
+        // No clicks occurred so we should keep the ID as it was
+        id = window.dash_clientside.no_update;
       }
     } else {
       return window.dash_clientside.no_update;
@@ -499,7 +528,7 @@ window.dash_clientside.bulk_essay_feedback = {
     return [id, shownPanels];
   },
 
-  expandSelectedStudent: async function (selectedStudent, wsData, showHeader, history) {
+  expandSelectedStudent: async function (selectedStudent, wsData, showName, history, value, options) {
     if (!selectedStudent | !(selectedStudent in (wsData.students || {}))) {
       return window.dash_clientside.no_update;
     }
@@ -509,12 +538,23 @@ window.dash_clientside.bulk_essay_feedback = {
     const document = Object.keys(s.documents)[0];
     const student = s.documents[document];
     const promptHash = await hashObject({ prompt });
+    const selectedMetrics = fetchSelectedItemsFromOptions(value, options, 'metric');
 
+    // TODO some of this can easily be abstracted
     const studentText = {
       namespace: 'lo_dash_react_components',
       type: 'WOAnnotatedText',
-      props: { text: student.text, breakpoints: [], className: 'border-end' }
+      props: { text: student.text, breakpoints: [] }
     };
+    const studentTileChild = createDashComponent(
+      DASH_HTML_COMPONENTS, 'Div',
+      {
+        children: [
+          createProcessTags({ ...student }, selectedMetrics),
+          studentText
+        ]
+      }
+    );
     const errorMessage = {
       namespace: 'dash_html_components',
       type: 'Div',
@@ -527,7 +567,7 @@ window.dash_clientside.bulk_essay_feedback = {
       type: 'Markdown',
       props: {
         children: student?.feedback ? student.feedback : '',
-        className: student?.feedback ? 'p-1 overflow-auto' : '',
+        className: student?.feedback ? 'p-1' : '',
         style: { whiteSpace: 'pre-line' }
       }
     };
@@ -547,17 +587,18 @@ window.dash_clientside.bulk_essay_feedback = {
         className: 'text-center'
       }
     };
-    const feedback = promptHash === student.option_hash ? feedbackMessage : feedbackLoading;
+    const feedback = promptHash === student.option_hash_gpt_bulk ? feedbackMessage : feedbackLoading;
     const feedbackOrError = 'error' in student ? errorMessage : feedback;
     const studentTile = createDashComponent(
       LO_DASH_REACT_COMPONENTS, 'WOStudentTextTile',
       {
-        showHeader,
-        studentInfo: formatStudentData(s, []),
+        showName,
+        profile: student?.profile || {},
         selectedDocument,
-        childComponent: studentText,
+        childComponent: studentTileChild,
         id: { type: 'WOAIAssistStudentTileText', index: student.user_id },
-        currentOptionHash: promptHash
+        currentOptionHash: promptHash,
+        currentStudentHash: student.option_hash_gpt_bulk
       }
     );
     const individualWrapper = createDashComponent(
@@ -568,7 +609,7 @@ window.dash_clientside.bulk_essay_feedback = {
           studentTile,
           createDashComponent(
             DASH_BOOTSTRAP_COMPONENTS, 'Card',
-            { children: feedbackOrError, body: true, className: 'individual-student-feedback' }
+            { children: feedbackOrError, body: true }
           )
         ]
       }
