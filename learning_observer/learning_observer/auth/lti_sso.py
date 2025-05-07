@@ -144,7 +144,7 @@ async def generate_client_assertion(provider):
 # ======================
 
 
-async def handle_authorize(request):
+async def lti_handle_authorize(request):
     """Initiate OIDC login flow for the provider."""
     provider = request.match_info.get('provider')
     config = _providers.get(provider)
@@ -173,7 +173,7 @@ async def handle_authorize(request):
     return web.HTTPFound(location=auth_url)
 
 
-async def handle_launch(request):
+async def lti_handle_launch(request):
     """Handle OIDC launch response from provider."""
     provider = request.match_info.get('provider')
     config = _providers.get(provider)

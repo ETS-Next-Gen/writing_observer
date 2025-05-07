@@ -257,10 +257,10 @@ def register_auth_webapp_views(app):
             #     handler=learning_observer.auth.lti_sso.jwks_handler),
             aiohttp.web.get(
                 '/lti/login',
-                handler=learning_observer.auth.lti_sso.handle_authorize),
+                handler=learning_observer.auth.lti_handle_authorize),
             aiohttp.web.post(
                 '/lti/launch',
-                handler=learning_observer.auth.lti_sso.handle_launch)
+                handler=learning_observer.auth.lti_handle_launch)
         ])
 
     if 'password_file' in settings.settings['auth']:
