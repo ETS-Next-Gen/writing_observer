@@ -189,7 +189,7 @@ async def _store_teacher_info_for_background_process(id, request):
         doc = await learning_observer.google.doctext(runtime, documentId=doc_id)
         if 'text' not in doc:
             skipped_docs.add(doc_id)
-            debu_log("** SocialSSO Text not found: {} {}".format(student, doc_id))
+            debug_log("** SocialSSO Text not found: {} {}".format(student, doc_id))
             return
         await kvs.set(doc_key, doc)
         debug_log("** SocialSSO Text stored: {} {}".format(student, doc_id))

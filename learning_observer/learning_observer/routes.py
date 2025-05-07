@@ -17,6 +17,7 @@ import aiohttp_wsgi
 import learning_observer.admin as admin
 import learning_observer.auth
 import learning_observer.auth.http_basic
+# import learning_observer.auth.lti_sso
 import learning_observer.client_config
 import learning_observer.filesystem_state
 import learning_observer.impersonate
@@ -244,6 +245,22 @@ def register_auth_webapp_views(app):
                 # '/auth/login/{provider:google|canvas|schoology}',
                 '/auth/login/{provider:google}',
                 handler=learning_observer.auth.social_handler),
+        ])
+
+    # TODO eventually check settings for this before registering these routes
+    # TODO determine if this is the best spot for registering these routes
+    if True:
+        debug_log("Running with LTI")
+        app.add_routes([
+            # aiohttp.web.get(
+            #     '/.well-known/jwks.json',
+            #     handler=learning_observer.auth.lti_sso.jwks_handler),
+            aiohttp.web.get(
+                '/lti/login',
+                handler=learning_observer.auth.lti_sso.handle_authorize),
+            aiohttp.web.post(
+                '/lti/launch',
+                handler=learning_observer.auth.lti_sso.handle_launch)
         ])
 
     if 'password_file' in settings.settings['auth']:
