@@ -10,7 +10,7 @@ import aiohttp
 from aiohttp import web
 from time import time
 from urllib.parse import urlencode
-from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
+from jwt.exceptions import JWTException
 
 import learning_observer.auth.utils
 
@@ -111,7 +111,7 @@ async def verify_jwt(provider, token):
             audience=config['client_id'],
             issuer=config['issuer']
         )
-    except (ExpiredSignatureError, DecodeError, InvalidTokenError) as e:
+    except JWTException as e:
         raise web.HTTPUnauthorized(text=f"JWT validation failed: {str(e)}")
 
 
