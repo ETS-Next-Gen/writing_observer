@@ -263,7 +263,8 @@ async def _exchange_client_assertion_for_access_token(config, client_assertion):
             token_data = await resp.json()
             access_token = token_data.get('access_token')
             if not access_token:
-                return web.HTTPBadRequest(text='No access token in response')  
+                return web.HTTPBadRequest(text='No access token in response')
+    return access_token
 
 
 # TODO: Implement token refresh mechanism
