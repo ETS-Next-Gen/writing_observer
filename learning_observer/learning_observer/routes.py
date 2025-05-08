@@ -255,7 +255,7 @@ def register_auth_webapp_views(app):
             # aiohttp.web.get(
             #     '/.well-known/jwks.json',
             #     handler=learning_observer.auth.lti_sso.jwks_handler),
-            aiohttp.web.get(
+            aiohttp.web.post(
                 '/lti/login',
                 handler=learning_observer.auth.lti_handle_authorize),
             aiohttp.web.post(
