@@ -50,7 +50,7 @@ def init_lti_sso():
     for config in provider_configs:
         provider_name = config['name']
         _providers[provider_name] = config
-        
+
     # TODO: Load private keys at startup and keep in memory
     # TODO: Validate all provider configurations
     # TODO: Set up periodic JWKS cache refresh
@@ -173,7 +173,7 @@ async def lti_handle_authorize(request):
     session['lti_state'] = params['state']
     session['lti_nonce'] = params['nonce']
 
-    auth_url = f'{config['auth_url']}?{urlencode(params)}'
+    auth_url = f'{config["auth_url"]}?{urlencode(params)}'
     return web.HTTPFound(location=auth_url)
 
 
