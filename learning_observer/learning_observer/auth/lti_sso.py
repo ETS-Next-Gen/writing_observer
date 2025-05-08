@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from jwt.exceptions import JWTException
 
 import learning_observer.auth.utils
+import learning_observer.prestartup
 
 # TODO: Add proper logging configuration
 # TODO: Implement persistent configuration storage
@@ -28,6 +29,7 @@ _jwks_cache = {}
 
 
 # TODO add startup decorator and remove default CONFIGS
+@learning_observer.prestartup.register_init_function
 async def init_lti_sso(app, provider_configs):
     """
     Initialize LTI SSO providers during application startup.
@@ -177,7 +179,7 @@ async def lti_handle_authorize(request):
 
 async def lti_handle_launch(request):
     """Handle OIDC launch response from provider."""
-    provider = request.match_info.get('provider')
+    provider = 'canvas'
     print('launch provider', provider)
     config = _providers.get(provider)
     print('launch config', config)
