@@ -147,7 +147,9 @@ async def generate_client_assertion(provider):
 async def lti_handle_authorize(request):
     """Initiate OIDC login flow for the provider."""
     provider = request.match_info.get('provider')
+    print('auth provider', provider)
     config = _providers.get(provider)
+    print('auth config', config)
     if not config:
         return web.HTTPBadRequest(text="Invalid provider")
 
@@ -176,7 +178,9 @@ async def lti_handle_authorize(request):
 async def lti_handle_launch(request):
     """Handle OIDC launch response from provider."""
     provider = request.match_info.get('provider')
+    print('launch provider', provider)
     config = _providers.get(provider)
+    print('launch config', config)
     if not config:
         return web.HTTPBadRequest(text="Invalid provider")
 
