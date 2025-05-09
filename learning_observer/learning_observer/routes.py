@@ -249,6 +249,7 @@ def register_auth_webapp_views(app):
 
     # TODO eventually check settings for this before registering these routes
     # TODO determine if this is the best spot for registering these routes
+    # TODO build provider syntax based on available providers
     if True:
         debug_log("Running with LTI")
         app.add_routes([
@@ -256,10 +257,10 @@ def register_auth_webapp_views(app):
             #     '/.well-known/jwks.json',
             #     handler=learning_observer.auth.lti_sso.jwks_handler),
             aiohttp.web.post(
-                '/lti/login',
+                '/lti/login/{provider:canvas}',
                 handler=learning_observer.auth.lti_handle_authorize),
             aiohttp.web.post(
-                '/lti/launch',
+                '/lti/launch/{provider:canvas}',
                 handler=learning_observer.auth.lti_handle_launch)
         ])
 

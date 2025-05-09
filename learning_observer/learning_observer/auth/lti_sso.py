@@ -1,7 +1,6 @@
 # lti_sso.py
 '''
 Generic LTI 1.3 Single Sign-On handler for multiple providers.
-Uses functional programming approach with aiohttp.
 '''
 
 import uuid
@@ -17,7 +16,6 @@ import learning_observer.auth.utils
 import learning_observer.constants as constants
 import learning_observer.prestartup
 
-# TODO: Add proper logging configuration
 # TODO: Implement persistent configuration storage
 # TODO: Add rate limiting for JWKS requests
 # TODO: Implement CSRF protection for state parameter
@@ -26,8 +24,8 @@ import learning_observer.prestartup
 # Configuration Setup
 # ======================
 
-_providers = {}
-_jwks_cache = {}
+PROVIDERS = {}
+JWKS_CACHE = {}
 
 
 @learning_observer.prestartup.register_startup_check
@@ -42,120 +40,125 @@ def init_lti_sso():
         'jwks_url': 'https://canvas.instructure.com/api/lti/security/jwks',
         'token_url': 'https://canvas.instructure.com/login/oauth2/token',
         'client_id': 'YOUR_CLIENT_ID',
-        'redirect_uri': 'https://yourdomain.com/lti/canvas/launch',
+        'redirect_uri': 'https://yourdomain.com/lti/launch/canvas',
         'private_key_path': './keys/canvas/private.pem'
     }
     '''
+    # TODO read the provider configs from settings somehow
     provider_configs = []
     for config in provider_configs:
         provider_name = config['name']
-        _providers[provider_name] = config
-
-    # TODO: Load private keys at startup and keep in memory
-    # TODO: Validate all provider configurations
-    # TODO: Set up periodic JWKS cache refresh
+        PROVIDERS[provider_name] = config
 
 
 # ======================
-# Core Functionality
+# JWKS Utilities
 # ======================
 
 
-async def get_jwks(provider):
-    '''Get cached JWKS for a provider with async request support.'''
-    if provider not in _jwks_cache:
-        config = _providers.get(provider)
-        if not config:
-            raise web.HTTPBadRequest(text='Invalid provider')
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(config['jwks_url']) as response:
-                _jwks_cache[provider] = await response.json()
-
-    return _jwks_cache[provider]
+async def fetch_jwks(config: dict) -> dict:
+    '''Fetch JWKS from provider's endpoint'''
+    async with aiohttp.ClientSession() as session:
+        async with session.get(config['jwks_url']) as response:
+            return await response.json()
 
 
-def get_public_key(provider, kid):
-    '''Extract public key from JWKS for a specific kid.'''
-    jwks = _jwks_cache.get(provider, {})
-    for key in jwks.get('keys', []):
-        if key.get('kid') == kid:
-            return jwt.algorithms.RSAAlgorithm.from_jwk(key)
+async def get_jwks(provider: str) -> dict:
+    '''Get cached JWKS or fetch fresh if not available'''
+    if provider not in JWKS_CACHE:
+        config = get_provider_config(provider)
+        JWKS_CACHE[provider] = await fetch_jwks(config)
+    return JWKS_CACHE[provider]
+
+
+def find_jwk(jwks: dict, kid: str) -> dict:
+    '''Find JWK by key ID'''
+    return next((k for k in jwks.get('keys', []) if k.get('kid') == kid), None)
+
+
+def get_public_key(provider: str, kid: str):
+    '''Get RSA public key from JWKS'''
+    jwks = JWKS_CACHE.get(provider, {})
+    if jwk := find_jwk(jwks, kid):
+        return jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     return None
 
 
-async def verify_jwt(provider, token):
-    '''Verify JWT using provider-specific configuration.'''
-    config = _providers.get(provider)
-    if not config:
-        raise ValueError('Unknown provider')
-
-    try:
-        # Get unverified headers first to find kid
-        unverified_headers = jwt.get_unverified_header(token)
-        unverified_claims = jwt.decode(token, options={'verify_signature': False})
-        kid = unverified_headers.get('kid')
-        iss = unverified_claims.get('iss')
-        aud = unverified_claims.get('aud')
-
-        # Fetch JWKS if not in cache
-        if provider not in _jwks_cache:
-            await get_jwks(provider)
-
-        public_key = get_public_key(provider, kid)
-        if not public_key:
-            raise jwt.exceptions.InvalidTokenError('Invalid key ID')
-
-        return jwt.decode(
-            token,
-            public_key,
-            algorithms=['RS256'],
-            audience=aud,
-            issuer=iss
-        )
-    except jwt.exceptions.PyJWTError as e:
-        raise web.HTTPUnauthorized(text=f'JWT validation failed: {str(e)}')
-
-
-async def generate_client_assertion(provider):
-    '''Generate JWT client assertion for token exchange.'''
-    config = _providers.get(provider)
-    if not config:
-        raise web.HTTPBadRequest(text='Invalid provider')
-
-    try:
-        with open(config['private_key_path'], 'r') as f:
-            private_key = f.read()
-            
-        payload = {
-            'iss': config['client_id'],
-            'sub': config['client_id'],
-            'aud': config['token_url'],
-            'iat': int(time()),
-            'exp': int(time()) + 300,
-            'jti': str(uuid.uuid4())
-        }
-        return jwt.encode(payload, private_key, algorithm='RS256')
-    except Exception as e:
-        raise web.HTTPInternalServerError(
-            text=f'Assertion generation failed: {str(e)}')
-
-
 # ======================
-# Request Handlers
+# JWT Validation
 # ======================
 
 
-async def lti_handle_authorize(request):
-    '''Initiate OIDC login flow for the provider.'''
-    provider = request.match_info.get('provider')
-    config = _providers.get(provider)
-    if not config:
-        return web.HTTPBadRequest(text='Invalid provider')
+def get_unverified_claims(token: str) -> tuple[dict, dict]:
+    '''Extract unverified headers and claims from JWT'''
+    return (
+        jwt.get_unverified_header(token),
+        jwt.decode(token, options={'verify_signature': False})
+    )
 
-    data = await request.post()
 
-    params = {
+async def validate_jwt(provider: str, token: str) -> dict:
+    '''Validate JWT signature and claims'''
+    headers, claims = get_unverified_claims(token)
+
+    await get_jwks(provider)  # Ensure JWKS are cached
+    if not (public_key := get_public_key(provider, headers.get('kid'))):
+        raise jwt.exceptions.InvalidTokenError('Invalid key ID')
+
+    return jwt.decode(
+        token,
+        public_key,
+        algorithms=['RS256'],
+        audience=claims.get('aud'),
+        issuer=claims.get('iss')
+    )
+
+
+# ======================
+# Client Assertion
+# ======================
+
+
+def read_private_key(path: str) -> str:
+    '''Read PEM-formatted private key from file'''
+    with open(path, 'r') as f:
+        return f.read()
+
+
+def create_assertion_payload(client_id: str, token_url: str) -> dict:
+    '''Create JWT payload for client assertion'''
+    now = int(time())
+    return {
+        'iss': client_id,
+        'sub': client_id,
+        'aud': token_url,
+        'iat': now,
+        'exp': now + 300,
+        'jti': str(uuid.uuid4())
+    }
+
+
+def generate_assertion(config: dict) -> str:
+    '''Generate signed client assertion JWT'''
+    private_key = read_private_key(config['private_key_path'])
+    payload = create_assertion_payload(config['client_id'], config['token_url'])
+    return jwt.encode(payload, private_key, algorithm='RS256')
+
+
+# ======================
+# OIDC Handlers
+# ======================
+
+
+def validate_oidc_state(session: dict, state: str) -> None:
+    '''Validate OIDC state parameter matches session'''
+    if session.get('lti_state') != state:
+        raise web.HTTPBadRequest(text='Invalid state parameter')
+
+
+def create_oidc_params(config: dict, data: dict) -> dict:
+    '''Generate OIDC authorization request parameters'''
+    return {
         'scope': 'openid',
         'response_type': 'id_token',
         'response_mode': 'form_post',
@@ -168,70 +171,105 @@ async def lti_handle_authorize(request):
         'lti_message_hint': data.get('lti_message_hint', '')
     }
 
-    # Store nonce and state in session
-    session = await aiohttp_session.get_session()
-    session['lti_state'] = params['state']
-    session['lti_nonce'] = params['nonce']
 
-    auth_url = f'{config["auth_url"]}?{urlencode(params)}'
-    return web.HTTPFound(location=auth_url)
-
-
-async def lti_handle_launch(request):
-    '''Handle OIDC launch response from provider.'''
-    provider = 'canvas'
-    config = _providers.get(provider)
-    if not config:
-        return web.HTTPBadRequest(text='Invalid provider')
-
+async def handle_oidc_authorize(request: web.Request) -> web.Response:
+    '''Initiate OIDC authorization flow'''
+    provider = request.match_info['provider']
+    config = get_provider_config(provider)
     data = await request.post()
-    id_token = data.get('id_token')
-    state = data.get('state')
 
-    # Validate state
+    params = create_oidc_params(config, data)
     session = await aiohttp_session.get_session(request)
-    if session.get('lti_state') != state:
-        return web.HTTPBadRequest(text='Invalid state parameter')
+    session.update({
+        'lti_state': params['state'],
+        'lti_nonce': params['nonce']
+    })
+
+    return web.HTTPFound(
+        location=f"{config['auth_url']}?{urlencode(params)}"
+    )
+
+
+# ======================
+# Launch Handler
+# ======================
+
+
+def create_user(claims: dict) -> dict:
+    '''Create user session data from LTI claims'''
+    roles = claims.get('https://purl.imsglobal.org/spec/lti/claim/roles', [])
+    is_instructor = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor' in roles
+    return {
+        constants.USER_ID: claims['sub'],
+        'email': claims.get('email'),
+        'name': claims.get('given_name'),
+        'family_name': claims.get('family_name', ''),
+        'picture': claims.get('picture', ''),
+        'role': learning_observer.auth.ROLES.TEACHER if is_instructor else learning_observer.auth.ROLES.STUDENT,
+        'authorized': is_instructor
+        # TODO figure out backto. With google sso, we had a state we could store things in
+        # 'back_to': request.query.get('state')
+    }
+
+
+async def exchange_for_token(config: dict, assertion: str) -> str:
+    '''Exchange client assertion for access token'''
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            url=config['token_url'],
+            data={
+                'grant_type': 'client_credentials',
+                'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                'client_assertion': assertion,
+                'scope': ' '.join([
+                    # Can retrieve user data associated with the context the tool is installed in
+                    'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
+                    # TODO not sure which of these we want for assignments
+                    # Can view assignment data in the gradebook associated with the tool
+                    'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly',
+                    # Can create and update submission results for assignments associated with the tool
+                    'https://purl.imsglobal.org/spec/lti-ags/scope/score',
+                ])
+            }
+        ) as response:
+            if response.status != 200:
+                raise web.HTTPBadRequest(text=await response.text())
+            return (await response.json())['access_token']
+
+
+async def handle_oidc_launch(request: web.Request) -> web.Response:
+    '''Process OIDC launch response'''
+    provider = request.match_info['provider']
+    config = get_provider_config(provider)
+    data = await request.post()
 
     try:
-        # Verify JWT and extract claims
-        claims = await verify_jwt(provider, id_token)
+        # Validate OIDC response
+        session = await aiohttp_session.get_session(request)
+        validate_oidc_state(session, data.get('state'))
 
-        # Validate nonce
-        if claims.get('nonce') != session.get('lti_nonce'):
-            return web.HTTPBadRequest(text='Invalid nonce')
+        # Verify and decode JWT
+        claims = await validate_jwt(provider, data.get('id_token'))
+        if claims['nonce'] != session.get('lti_nonce'):
+            raise web.HTTPBadRequest(text='Invalid nonce')
 
-        # Store LTI claims in session
-        roles = claims.get('https://purl.imsglobal.org/spec/lti/claim/roles', [])
-        instructor_check = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor' in roles
-        user = {
-            constants.USER_ID: claims.get('sub'),
-            'email': claims.get('email', ''),
-            'name': claims.get('name', ''),
-            'role': learning_observer.auth.ROLES.TEACHER if instructor_check else learning_observer.auth.ROLES.STUDENT,
-            'authorized': instructor_check
-            # TODO figure out backto. With google sso, we had a state we could store things in
-            # 'back_to': request.query.get('state')
-        }
+        # Create user session
+        user_info = create_user(claims)
+        await learning_observer.auth.utils.update_session_user_info(request, user_info)
 
-        if user[constants.USER_ID] is None:
-            return web.HTTPBadRequest(text='No user id found')
+        # Exchange for access token
+        assertion = generate_assertion(config)
+        access_token = await exchange_for_token(config, assertion)
 
-        await learning_observer.auth.utils.update_session_user_info(request, user)
-
-        # Generate and exchange access token for future API calls
-        client_assertion = await generate_client_assertion(provider)
-        access_token = await _exchange_client_assertion_for_access_token(config, client_assertion)
-        headers = {'Authorization': 'Bearer ' + access_token}
+        # Store auth headers
+        headers = {'Authorization': f'Bearer {access_token}'}
         session[constants.AUTH_HEADERS] = headers
         request[constants.AUTH_HEADERS] = headers
-        print(session)
+
         return web.HTTPFound(location='/')
 
-    except web.HTTPException as e:
-        return e
-    except Exception as e:
-        return web.HTTPInternalServerError(text=str(e))
+    except (jwt.PyJWTError, KeyError) as e:
+        raise web.HTTPUnauthorized(text=f'Authentication failed: {e}')
 
 
 # ======================
@@ -239,34 +277,10 @@ async def lti_handle_launch(request):
 # ======================
 
 
-async def _exchange_client_assertion_for_access_token(config, client_assertion):
-    token_url = config.get('token_endpoint')
-    if not token_url:
-        return web.HTTPInternalServerError(text='Missing token endpoint in provider config')
-
-    # Request access token using client assertion
-    async with aiohttp.ClientSession() as client_session:
-        post_data = {
-            'grant_type': 'client_credentials',
-            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-            'client_assertion': client_assertion,
-            'scope': ' '.join([
-                'https://purl.imsglobal.org/spec/lti-ags/scope/score',
-                'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly'
-            ])
-        }
-        async with client_session.post(token_url, data=post_data) as resp:
-            if resp.status != 200:
-                text = await resp.text()
-                return web.HTTPBadRequest(text=f'Token request failed: {text}')
-
-            token_data = await resp.json()
-            access_token = token_data.get('access_token')
-            if not access_token:
-                return web.HTTPBadRequest(text='No access token in response')
-    return access_token
-
+def get_provider_config(provider: str) -> dict:
+    '''Get provider configuration with validation'''
+    if config := PROVIDERS.get(provider):
+        return config
+    raise web.HTTPBadRequest(text=f'Invalid provider: {provider}')
 
 # TODO: Implement token refresh mechanism
-# TODO: Add error handler templates
-# TODO: Implement NRPS and AGS service integrations
