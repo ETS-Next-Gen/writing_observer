@@ -173,7 +173,11 @@ def create_oidc_params(config: dict, data: dict) -> dict:
 
 
 async def handle_oidc_authorize(request: web.Request) -> web.Response:
-    '''Initiate OIDC authorization flow'''
+    '''Initiate OIDC authorization flow.
+    Process information and send it back to the LMS requesting it.
+
+    This function is registered to route `/lti/login/{provider}`
+    '''
     provider = request.match_info['provider']
     config = get_provider_config(provider)
     data = await request.post()
@@ -238,7 +242,14 @@ async def exchange_for_token(config: dict, assertion: str) -> str:
 
 
 async def handle_oidc_launch(request: web.Request) -> web.Response:
-    '''Process OIDC launch response'''
+    '''Process OIDC launch response
+    After the LMS server confirms our identity, it sends information
+    about the user to this endpoint. We exchange that information for
+    an API token and store it in the user's session. This token is
+    used later for getting the roster/assignments/etc.
+
+    This function is registered to route `/lti/launch/{provider}`
+    '''
     provider = request.match_info['provider']
     config = get_provider_config(provider)
     data = await request.post()
