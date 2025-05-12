@@ -71,6 +71,7 @@ import pmss
 
 import learning_observer.auth as auth
 import learning_observer.cache
+import learning_observer.canvas
 import learning_observer.constants as constants
 import learning_observer.google
 import learning_observer.kvs
@@ -414,6 +415,9 @@ async def courselist(request):
     if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
         runtime = learning_observer.runtime.Runtime(request)
         return await learning_observer.google.courses(runtime)
+    if settings.pmss_settings.source(types=['roster_data']) in ["canvas_api"]:
+        runtime = learning_observer.runtime.Runtime(request)
+        return await learning_observer.canvas.courses(runtime)
 
     # Legacy code
     course_list = await ajax(

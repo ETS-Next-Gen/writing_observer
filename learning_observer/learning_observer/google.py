@@ -1,49 +1,32 @@
 '''
-We will gradually move all of the Google-specific code into here.
+Google-specific API module for Learning Observer.
 
-Our design goals:
-- Easily call into Google APIs (Classroom, Drive, Docs, etc.)
-- Be able to preprocess the data into standard formats
+This module provides access to various Google APIs (Classroom, Drive, Docs, etc.)
+using the generic API infrastructure.
 
-On a high level, for each Google request, we plan to have a 4x4 grid:
-- Web request and function call
-- Cleaned versus raw data
-
-The Google APIs are well-designed (if poorly-documented, and with occasional
-bugs), but usually return more data than we need, so we have cleaner functions.
-
-For a given call, we might have several cleaners. For example, for a Google Doc,
-Google returns a massive JSON object containing everything. For most purposes,
-we don't need all of that, and it's more convenient to work with a plain
-text representation, and for downstream code to not need to understand this
-JSON. However, for some algorithms, we might need additonal data of different
-sorts. It's still more convenient to hand this back in something simplified for
-analysis.
+The module provides:
+- Raw data access to Google APIs
+- Cleaned data from Google APIs in standardized formats
+- Both web API routes and in-process function calls
 '''
 
-import collections
 import itertools
 import json
-import recordclass
-import string
 import re
-
-import aiohttp
-import aiohttp.web
-import aiohttp_session
 
 import learning_observer.constants as constants
 import learning_observer.settings as settings
-import learning_observer.log_event
-import learning_observer.util
 import learning_observer.auth
-import learning_observer.runtime
 import learning_observer.prestartup
+import learning_observer.kvs
+import learning_observer.util
 
+from learning_observer.external_apis import Endpoint, initialize_and_register_routes, register_cleaner_factory
 
+# Cache for Google API responses
 cache = None
 
-
+# Google field name mapping
 GOOGLE_FIELDS = [
     'alternateLink', 'calculationType', 'calendarId', 'courseGroupEmail',
     'courseId', 'courseState', 'creationTime', 'descriptionHeading',
@@ -53,44 +36,12 @@ GOOGLE_FIELDS = [
     'userId'
 ]
 
-# On in-take, we want to convert Google's CamelCase to LO's snake_case. This
-# dictionary contains the conversions.
+# Convert Google's CamelCase to LO's snake_case
 camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
 GOOGLE_TO_SNAKE = {field: camel_to_snake.sub('_', field).lower() for field in GOOGLE_FIELDS}
 
-
-# These took a while to find, but many are documented here:
-# https://developers.google.com/drive/api/v3/reference/
-# This list might change. Many of these contain additional (optional) parameters
-# which we might add later. This is here for debugging, mostly. We'll stabilize
-# APIs later.
-class Endpoint(recordclass.make_dataclass("Endpoint", ["name", "remote_url", "doc", "cleaners"], defaults=["", None])):
-    def arguments(self):
-        return extract_parameters_from_format_string(self.remote_url)
-
-    def _local_url(self):
-        parameters = "}/{".join(self.arguments())
-        base_url = f"/google/{self.name}"
-        if len(parameters) == 0:
-            return base_url
-        else:
-            return base_url + "/{" + parameters + "}"
-
-    def _add_cleaner(self, name, cleaner):
-        if self.cleaners is None:
-            self.cleaners = dict()
-        self.cleaners[name] = cleaner
-        if 'local_url' not in cleaner:
-            cleaner['local_url'] = self._local_url + "/" + name
-
-    def _cleaners(self):
-        if self.cleaners is None:
-            return []
-        else:
-            return self.cleaners
-
-
-ENDPOINTS = list(map(lambda x: Endpoint(*x), [
+# API endpoint definitions
+ENDPOINTS = list(map(lambda x: Endpoint(*x, api_name='google'), [
     ("document", "https://docs.googleapis.com/v1/documents/{documentId}"),
     ("course_list", "https://classroom.googleapis.com/v1/courses"),
     ("course_roster", "https://classroom.googleapis.com/v1/courses/{courseId}/students"),
@@ -104,71 +55,8 @@ ENDPOINTS = list(map(lambda x: Endpoint(*x), [
     ("drive_revisions", "https://www.googleapis.com/drive/v3/files/{documentId}/revisions")
 ]))
 
-
-def extract_parameters_from_format_string(format_string):
-    '''
-    Extracts parameters from a format string. E.g.
-
-    >>> ("hello {hi} my {bye}")]
-    ['hi', 'bye']
-    '''
-    # The parse returns a lot of context, which we discard. In particular, the
-    # last item is often about the suffix after the last parameter and may be
-    # `None`
-    return [f[1] for f in string.Formatter().parse(format_string) if f[1] is not None]
-
-
-async def raw_google_ajax(runtime, target_url, **kwargs):
-    '''
-    Make an AJAX call to Google, managing auth + auth.
-
-    * runtime is a Runtime class containing request information.
-    * default_url is typically grabbed from ENDPOINTS
-    * ... and we pass the named parameters
-    '''
-    request = runtime.get_request()
-    url = target_url.format(**kwargs)
-    user = await learning_observer.auth.get_active_user(request)
-    if constants.AUTH_HEADERS not in request or user is None:
-        raise aiohttp.web.HTTPUnauthorized(text="Please log in")  # TODO: Consistent way to flag this
-
-    cache_key = "raw_google/" + learning_observer.auth.encode_id('session', user[constants.USER_ID]) + '/' + learning_observer.util.url_pathname(url)
-    if settings.feature_flag('use_google_ajax') is not None:
-        value = await cache[cache_key]
-        if value is not None:
-            return learning_observer.util.translate_json_keys(
-                json.loads(value),
-                GOOGLE_TO_SNAKE
-            )
-    async with aiohttp.ClientSession(loop=request.app.loop) as client:
-        async with client.get(url, headers=request[constants.AUTH_HEADERS]) as resp:
-            response = await resp.json()
-            learning_observer.log_event.log_ajax(target_url, response, request)
-            if settings.feature_flag('use_google_ajax') is not None:
-                await cache.set(cache_key, json.dumps(response, indent=2))
-            return learning_observer.util.translate_json_keys(
-                response,
-                GOOGLE_TO_SNAKE
-            )
-
-
-def raw_access_partial(remote_url, name=None):
-    '''
-    This is a helper which allows us to create a function which calls specific
-    Google APIs.
-
-    To test this, try:
-
-        print(await raw_document(request, documentId="some_google_doc_id"))
-    '''
-    async def caller(request, **kwargs):
-        '''
-        Make an AJAX request to Google
-        '''
-        return await raw_google_ajax(request, remote_url, **kwargs)
-    setattr(caller, "__qualname__", name)
-
-    return caller
+# Create a register_cleaner function specific to Google ENDPOINTS
+register_cleaner = register_cleaner_factory(ENDPOINTS)
 
 
 @learning_observer.prestartup.register_startup_check
@@ -192,157 +80,33 @@ def connect_to_google_cache():
                     '```\ngoogle_cache:\n  type: filesystem\n  path: ./learning_observer/static_data/google\n'\
                     '  subdirs: true\n```\nOR\n'\
                     '```\ngoogle_cache:\n  type: redis_ephemeral\n  expiry: 600\n```'
-                raise learning_observer.prestartup.StartupCheck("Google KVS: " + error_text) 
+                raise learning_observer.prestartup.StartupCheck("Google KVS: " + error_text)
 
 
-def initialize_and_register_routes(app):
+def initialize_and_register_google_routes(app):
     '''
-    This is a big 'ol function which might be broken into smaller ones at some
-    point. We:
-
-    - Created debug routes to pass through AJAX requests to Google
-    - Created production APIs to have access to cleaned versions of said data
-    - Create local function calls to call from other pieces of code
-      within process
-
-    We probably don't need all of this in production, but a lot of this is
-    very important for debugging. Having APIs is more useful than it looks, since
-    making use of Google APIs requires a lot of infrastructure (registering
-    apps, auth/auth, etc.) which we already have in place on dev / debug servers.
+    Initialize Google API routes and register them with the app.
+    This function sets up all the raw and cleaner functions for Google APIs.
     '''
-    # For now, all of this is behind one big feature flag. In the future,
-    # we'll want seperate ones for the debugging tools and the production
-    # staff
     if not settings.feature_flag('google_routes'):
         return
 
-    # Provide documentation on what we're doing
-    app.add_routes([
-        aiohttp.web.get("/google", api_docs_handler)
-    ])
+    # Create the API routes and get back the functions
+    global_functions = initialize_and_register_routes(
+        app=app,
+        endpoints=ENDPOINTS,
+        api_name='google',
+        key_translator=GOOGLE_TO_SNAKE,
+        cache=cache,
+        cache_key_prefix='raw_google',
+        feature_flag_name='google_routes'
+    )
 
-    def make_ajax_raw_handler(remote_url):
-        '''
-        This creates a handler to forward Google requests to the client. It's used
-        for debugging right now. We should think through APIs before relying on this.
-        '''
-        async def ajax_passthrough(request):
-            '''
-            And the actual handler....
-            '''
-            runtime = learning_observer.runtime.Runtime(request)
-            response = await raw_google_ajax(
-                runtime,
-                remote_url,
-                **request.match_info
-            )
-
-            return aiohttp.web.json_response(response)
-        return ajax_passthrough
-
-    def make_cleaner_handler(raw_function, cleaner_function, name=None):
-        async def cleaner_handler(request):
-            '''
-            '''
-            response = cleaner_function(
-                await raw_function(request, **request.match_info)
-            )
-            if isinstance(response, dict) or isinstance(response, list):
-                return aiohttp.web.json_response(
-                    response
-                )
-            elif isinstance(response, str):
-                return aiohttp.web.Response(
-                    text=response
-                )
-            else:
-                raise AttributeError(f"Invalid response type: {type(response)}")
-        if name is not None:
-            setattr(cleaner_handler, "__qualname__", name + "_handler")
-
-        return cleaner_handler
-
-    def make_cleaner_function(raw_function, cleaner_function, name=None):
-        async def cleaner_local(request, **kwargs):
-            google_response = await raw_function(request, **kwargs)
-            clean = cleaner_function(google_response)
-            return clean
-        if name is not None:
-            setattr(cleaner_local, "__qualname__", name)
-        return cleaner_local
-
-    for e in ENDPOINTS:
-        function_name = f"raw_{e.name}"
-        raw_function = raw_access_partial(remote_url=e.remote_url, name=e.name)
-        globals()[function_name] = raw_function
-        cleaners = e._cleaners()
-        for c in cleaners:
-            app.add_routes([
-                aiohttp.web.get(
-                    cleaners[c]['local_url'],
-                    make_cleaner_handler(
-                        raw_function,
-                        cleaners[c]['function'],
-                        name=cleaners[c]['name']
-                    )
-                )
-            ])
-            globals()[cleaners[c]['name']] = make_cleaner_function(
-                raw_function,
-                cleaners[c]['function'],
-                name=cleaners[c]['name']
-            )
-        app.add_routes([
-            aiohttp.web.get(
-                e._local_url(),
-                make_ajax_raw_handler(e.remote_url)
-            )
-        ])
+    # Add the functions to the module's global namespace
+    globals().update(global_functions)
 
 
-def api_docs_handler(request):
-    '''
-    Return a list of available endpoints.
-
-    Eventually, we should also document available function calls
-    '''
-    response = "URL Endpoints:\n\n"
-    for endpoint in ENDPOINTS:
-        response += f"{endpoint._local_url()}\n"
-        cleaners = endpoint._cleaners()
-        for c in cleaners:
-            response += f"   {cleaners[c]['local_url']}\n"
-    response += "\n\n Globals:"
-    if False:
-        response += str(globals())
-    return aiohttp.web.Response(text=response)
-
-
-def register_cleaner(data_source, cleaner_name):
-    '''
-    This will register a cleaner function, for export both as a web service
-    and as a local function call.
-    '''
-    def decorator(f):
-        found = False
-        for endpoint in ENDPOINTS:
-            if endpoint.name == data_source:
-                found = True
-                endpoint._add_cleaner(
-                    cleaner_name,
-                    {
-                        'function': f,
-                        'local_url': f'{endpoint._local_url()}/{cleaner_name}',
-                        'name': cleaner_name
-                    }
-                )
-
-        if not found:
-            raise AttributeError(f"Data source {data_source} invalid; not found in endpoints.")
-        return f
-
-    return decorator
-
+# ===== CLEANERS =====
 
 # Rosters
 @register_cleaner("course_roster", "roster")

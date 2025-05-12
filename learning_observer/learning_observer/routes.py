@@ -17,7 +17,7 @@ import aiohttp_wsgi
 import learning_observer.admin as admin
 import learning_observer.auth
 import learning_observer.auth.http_basic
-# import learning_observer.auth.lti_sso
+import learning_observer.canvas
 import learning_observer.client_config
 import learning_observer.filesystem_state
 import learning_observer.impersonate
@@ -67,7 +67,8 @@ def add_routes(app):
     register_static_routes(app)
     register_incoming_event_views(app)
     register_debug_routes(app)
-    learning_observer.google.initialize_and_register_routes(app)
+    learning_observer.google.initialize_and_register_google_routes(app)
+    learning_observer.canvas.initialize_and_register_canvas_routes(app)
 
     app.add_routes([
         aiohttp.web.get(
@@ -255,10 +256,10 @@ def register_auth_webapp_views(app):
         app.add_routes([
             aiohttp.web.post(
                 '/lti/login/{provider:canvas}',
-                handler=learning_observer.auth.lti_handle_authorize),
+                handler=learning_observer.auth.handle_oidc_authorize),
             aiohttp.web.post(
                 '/lti/launch/{provider:canvas}',
-                handler=learning_observer.auth.lti_handle_launch)
+                handler=learning_observer.auth.handle_oidc_launch)
         ])
 
     if 'password_file' in settings.settings['auth']:
