@@ -87,7 +87,7 @@ import learning_observer.communication_protocol.integration
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-pmss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'], transform=None)
+pmss.parser('roster_source', parent='string', choices=['google_api', 'canvas_api', 'all', 'test', 'filesystem'], transform=None)
 pmss.register_field(
     name='source',
     type='roster_source',
@@ -98,6 +98,12 @@ pmss.register_field(
                 '`google_api`: fetch from Google API',
     required=True
 )
+
+# TODO initialize this appropriately
+ADDITIONAL_MODULES = {
+    'google_api': learning_observer.google,
+    'canvas_api': learning_observer.canvas
+}
 
 
 def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
@@ -361,11 +367,15 @@ def init():
         )
     elif roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
+    # TODO both canvas and google don't use the ajax function when the query is made
     elif roster_source in ["google_api"]:
         ajax = google_ajax
+    elif roster_source in ["canvas_api"]:
+        pass
     elif roster_source in ["all"]:
         ajax = all_ajax
     else:
+        # TODO update any documentation to include canvas_api
         raise learning_observer.prestartup.StartupCheck(
             "Settings file `roster_data` element should have `source` field\n"
             "set to either:\n"
@@ -407,17 +417,26 @@ def init():
     return ajax
 
 
+async def run_additional_module_func(request, function_name, kwargs=None):
+    if not kwargs:
+        kwargs = {}
+    source = settings.pmss_settings.source(types=['roster_data'])
+    if source in ADDITIONAL_MODULES:
+        runtime = learning_observer.runtime.Runtime(request)
+        course_call = getattr(ADDITIONAL_MODULES[source], function_name, None)
+        if callable(course_call):
+            return await course_call(runtime, **kwargs)
+    return None
+
+
 async def courselist(request):
     '''
     List all of the courses a teacher manages: Helper
     '''
-    # New code
-    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
-        runtime = learning_observer.runtime.Runtime(request)
-        return await learning_observer.google.courses(runtime)
-    if settings.pmss_settings.source(types=['roster_data']) in ["canvas_api"]:
-        runtime = learning_observer.runtime.Runtime(request)
-        return await learning_observer.canvas.courses(runtime)
+    course_list = await run_additional_module_func(request, 'courses')
+    if course_list:
+        return course_list
+    # TODO if course_list is falsey, the following code may fail if there if ajax is not defined.
 
     # Legacy code
     course_list = await ajax(
@@ -459,9 +478,10 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
-    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
-        runtime = learning_observer.runtime.Runtime(request)
-        return await learning_observer.google.roster(runtime, courseId=course_id)
+    roster = await run_additional_module_func(request, 'roster', kwargs={'courseId': course_id})
+    if roster:
+        return roster
+    # TODO if course_list is falsey, the following code may fail if there if ajax is not defined.
 
     roster = await ajax(
         request,

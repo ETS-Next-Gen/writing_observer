@@ -1,3 +1,5 @@
+import re
+
 import learning_observer.constants as constants
 import learning_observer.settings as settings
 
@@ -29,6 +31,12 @@ def initialize_and_register_canvas_routes(app):
     globals().update(global_functions)
 
 
+def _extract_course_id_from_url(url):
+    if match := re.search(r'/courses/(\d+)/names_and_role', url):
+        return match.group(1)
+    return None
+
+
 @register_cleaner("course_list", "courses")
 def clean_course_list(canvas_json):
     '''
@@ -36,9 +44,47 @@ def clean_course_list(canvas_json):
     course by course level. This cleaner wraps the current
     course in a list.
     '''
-    # TODO we need to clean this code up
-    cleaned = [canvas_json]
+    context = canvas_json.get('context', {})
+    if not (id := _extract_course_id_from_url(canvas_json.get('id', ''))):
+        raise ValueError('Canvas json did not provide a parsable id')
+    course = {
+        'id': id,
+        'name': context.get('label'),
+        'title': context.get('title'),
+        'lti_id': context.get('id')
+    }
+    cleaned = [course]
     return cleaned
+
+
+def _process_canvas_user_for_system(member):
+    # Skip if no canvas id
+    canvas_id = member.get('user_id')
+    if not canvas_id: return None
+
+    # Skip non students
+    is_student = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Learner' in member.get('roles', [])
+    if not is_student: return None
+
+    # Create user for our system
+    # TODO map email to google id and use instead of this local id
+    local_id = f'canvas-{canvas_id}'
+    member[constants.USER_ID] = local_id
+    user = {
+        'profile': {
+            'name': {
+                'given_name': member.get('given_name'),
+                'family_name': member.get('family_name'),
+                'full_name': member.get('name')
+            },
+            'email': member.get('email'),
+            'photo_url': member.get('picture')
+        },
+        constants.USER_ID: local_id,
+        # TODO is this needed? Other rosters include it
+        # 'course_id': course_id
+    }
+    return user
 
 
 @register_cleaner("course_roster", "roster")
@@ -54,18 +100,13 @@ def clean_course_roster(canvas_json):
         key=lambda x: x.get('name', 'ZZ'),
     )
     # Process each student record
-    for member in members:
-        # Map Canvas user ID to internal user ID format
-        canvas_id = member.get('user_id')
-        if canvas_id:
-            local_id = f"canvas-{canvas_id}"
-            member[constants.USER_ID] = local_id
+    users = []
+    for m in members:
+        user = _process_canvas_user_for_system(m)
+        if user is not None:
+            users.append(user)
 
-            # Add external ID reference
-            if 'email' not in member:
-                member['email'] = ''
-
-    return members
+    return users
 
 
 @register_cleaner("course_lineitems", "assignments") 

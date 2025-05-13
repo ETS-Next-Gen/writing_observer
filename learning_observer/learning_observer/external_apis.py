@@ -275,7 +275,6 @@ def register_cleaner_factory(endpoints):
             for endpoint in endpoints:
                 if endpoint.name == data_source:
                     found = True
-                    print('adding endpoint', endpoint)
                     endpoint._add_cleaner(
                         cleaner_name,
                         {
