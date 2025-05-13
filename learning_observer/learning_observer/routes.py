@@ -255,10 +255,10 @@ def register_auth_webapp_views(app):
         debug_log("Running with LTI authentication")
         app.add_routes([
             aiohttp.web.post(
-                '/lti/login/{provider:canvas}',
+                '/lti/{provider:canvas}/login',
                 handler=learning_observer.auth.handle_oidc_authorize),
             aiohttp.web.post(
-                '/lti/launch/{provider:canvas}',
+                '/lti/{provider:canvas}/launch',
                 handler=learning_observer.auth.handle_oidc_launch)
         ])
 
