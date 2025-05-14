@@ -1,15 +1,30 @@
-# lti_sso.py
 '''
 Generic LTI 1.3 Single Sign-On handler for multiple providers.
+
+Implements LTI 1.3's OpenID Connect (OIDC) authentication handshake.
+OIDC establishes a secure SSO channel between Learning Management
+Systems (LMS) and our tool. This allows the LMS to install our
+application under specific contexts (courses).
+
+The workflow is split across 2 functions
+
+`handle_oidc_authorize`
+1. The LMS sends request for OIDC parameters to this endpoint
+2. We create parameters with metadata and send back
+
+`handle_oidc_launch`
+3. If authorized, the LMS sends back encrypted data to this endpoint
+4. We decrypt, to get information about the user
+5. We verify ourselves against the LMS to generate an auth token
+6. User and auth information is stored in the session
 '''
 
-import uuid
-import jwt
-import jwt.exceptions
 import aiohttp
 import aiohttp_session
+import jwt
+import time
+import uuid
 from aiohttp import web
-from time import time
 from urllib.parse import urlencode
 
 import learning_observer.auth.utils
@@ -40,7 +55,7 @@ def init_lti_sso():
         'jwks_url': 'https://canvas.instructure.com/api/lti/security/jwks',
         'token_url': 'https://canvas.instructure.com/login/oauth2/token',
         'client_id': 'YOUR_CLIENT_ID',
-        'redirect_uri': 'https://yourdomain.com/lti/launch/canvas',
+        'redirect_uri': 'https://yourdomain.com/lti/canvas/launch',
         'private_key_path': './keys/canvas/private.pem'
     }
     '''
@@ -51,46 +66,53 @@ def init_lti_sso():
         PROVIDERS[provider_name] = config
 
 
-# ======================
-# JWKS Utilities
-# ======================
+# ===============================
+# JWKS/JWT Validation Utilities
+# ===============================
+# The JSON Web Key Sets (JWKS) is used for verifying
+# JSON Web Tokens (JWT) that were issued and signed.
 
-
-async def fetch_jwks(config: dict) -> dict:
-    '''Fetch JWKS from provider's endpoint'''
-    async with aiohttp.ClientSession() as session:
-        async with session.get(config['jwks_url']) as response:
-            return await response.json()
+# Validates LTI launch JWTs by:
+# 1. Fetching the provider's JWKS (get_jwks),
+# 2. Identifying the correct key via the token's unverified header (find_jwk),
+# 3. Converting the JWK to an RSA public key (get_public_key), and
+# 4. Verifying the token's signature/claims (validate_jwt). Handles key rotation
+# via dynamic JWKS updates and enforces LTI 1.3 security requirements including
+# expiration, issuer validation, and message integrity checks.
 
 
 async def get_jwks(provider: str) -> dict:
-    '''Get cached JWKS or fetch fresh if not available'''
+    '''Get the specified JWKS
+    This fetches and caches JWKS from an external service.
+    '''
     if provider not in JWKS_CACHE:
+        # TODO just grab the jwks_url from settings directly
         config = get_provider_config(provider)
-        JWKS_CACHE[provider] = await fetch_jwks(config)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(config['jwks_url']) as response:
+                JWKS_CACHE[provider] = await response.json()
     return JWKS_CACHE[provider]
 
 
 def find_jwk(jwks: dict, kid: str) -> dict:
-    '''Find JWK by key ID'''
+    '''Extracts JWK by key ID'''
     return next((k for k in jwks.get('keys', []) if k.get('kid') == kid), None)
 
 
 def get_public_key(provider: str, kid: str):
-    '''Get RSA public key from JWKS'''
+    '''Get RSA public key from our JWKS to verify token signature
+    '''
     jwks = JWKS_CACHE.get(provider, {})
     if jwk := find_jwk(jwks, kid):
         return jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     return None
 
 
-# ======================
-# JWT Validation
-# ======================
-
-
 def get_unverified_claims(token: str) -> tuple[dict, dict]:
-    '''Extract unverified headers and claims from JWT'''
+    '''Extract unverified headers and claims from JWT
+    We need to extract some information from the token so
+    we can know the `kid`, `aud`, and `iss`.
+    '''
     return (
         jwt.get_unverified_header(token),
         jwt.decode(token, options={'verify_signature': False})
@@ -98,7 +120,10 @@ def get_unverified_claims(token: str) -> tuple[dict, dict]:
 
 
 async def validate_jwt(provider: str, token: str) -> dict:
-    '''Validate JWT signature and claims'''
+    '''Decode JWT token
+    This uses the provider's public key to decode the token
+    provided by the LMS to our launch endpoint.
+    '''
     headers, claims = get_unverified_claims(token)
 
     await get_jwks(provider)  # Ensure JWKS are cached
@@ -117,44 +142,49 @@ async def validate_jwt(provider: str, token: str) -> dict:
 # ======================
 # Client Assertion
 # ======================
+# Generates OAuth 2.0 client assertion JWTs for secure authentication with LTI
+# platforms. Uses RSA-SHA256 to sign claims containing client identity (iss/sub),
+# token endpoint (aud), timestamp controls (iat/exp), and unique JTI.
 
 
 def read_private_key(path: str) -> str:
     '''Read PEM-formatted private key from file'''
-    with open(path, 'r') as f:
-        return f.read()
-
-
-def create_assertion_payload(client_id: str, token_url: str) -> dict:
-    '''Create JWT payload for client assertion'''
-    now = int(time())
-    return {
-        'iss': client_id,
-        'sub': client_id,
-        'aud': token_url,
-        'iat': now,
-        'exp': now + 300,
-        'jti': str(uuid.uuid4())
-    }
+    return open(path, 'r').read()
 
 
 def generate_assertion(config: dict) -> str:
     '''Generate signed client assertion JWT'''
+    # TODO instead of config just call into settings here
+    # how will we handle user info? Is this where the runtime is used?
+
     private_key = read_private_key(config['private_key_path'])
-    payload = create_assertion_payload(config['client_id'], config['token_url'])
+    now = time.time()
+
+    # Note the client is both the issuer and subject since
+    # it is proving its own identity
+    payload = {
+        'iss': config['client_id'], # issuer
+        'sub': config['client_id'], # subject
+        'aud': config['token_url'], # audience
+        'iat': now,                 # JWT issued at
+        'exp': now + 300,           # JWT expiration
+        'jti': str(uuid.uuid4())    # JWT ID
+    }
     return jwt.encode(payload, private_key, algorithm='RS256')
 
 
 # ======================
-# OIDC Handlers
+# OIDC Authorization Flow
 # ======================
+# Implements LTI 1.3's OpenID Connect (OIDC) authentication handshake.
+# OIDC establishes a secure SSO channel between Learning Management
+# Systems (LMS) and our tool.
 
-
-def validate_oidc_state(session: dict, state: str) -> None:
-    '''Validate OIDC state parameter matches session'''
-    if session.get('lti_state') != state:
-        raise web.HTTPBadRequest(text='Invalid state parameter')
-
+# ======================
+# OIDC Login Handler
+# ======================
+# Process the request from the LMS for OIDC parameters. Then
+# send the parameters back to the LMS.
 
 def create_oidc_params(config: dict, data: dict) -> dict:
     '''Generate OIDC authorization request parameters'''
@@ -163,10 +193,13 @@ def create_oidc_params(config: dict, data: dict) -> dict:
         'response_type': 'id_token',
         'response_mode': 'form_post',
         'prompt': 'none',
+        # TODO instead of config just pull from settings
         'client_id': config['client_id'],
         'redirect_uri': config['redirect_uri'],
+        # help confirm state with future responses
         'nonce': str(uuid.uuid4()),
         'state': str(uuid.uuid4()),
+        # hints provided by LMS
         'login_hint': data.get('login_hint', ''),
         'lti_message_hint': data.get('lti_message_hint', '')
     }
@@ -174,11 +207,13 @@ def create_oidc_params(config: dict, data: dict) -> dict:
 
 async def handle_oidc_authorize(request: web.Request) -> web.Response:
     '''Initiate OIDC authorization flow.
-    Process information and send it back to the LMS requesting it.
+    Create OIDC request parameters and send them to the
+    LMS to verify.
 
-    This function is registered to route `/lti/login/{provider}`
+    This function is registered to route `/lti/{provider}/login`
     '''
     provider = request.match_info['provider']
+    # TODO read direct from settings instead of config
     config = get_provider_config(provider)
     data = await request.post()
 
@@ -195,12 +230,22 @@ async def handle_oidc_authorize(request: web.Request) -> web.Response:
 
 
 # ======================
-# Launch Handler
+# OIDC Launch Handler
 # ======================
+# Process request from LMS after they've verified who we are.
+# We store the user and their auth token in the session.
+
+
+def validate_oidc_state(session: dict, state: str) -> None:
+    '''Validate OIDC state parameter matches session'''
+    if session.get('lti_state') != state:
+        raise web.HTTPBadRequest(text='Invalid state parameter')
 
 
 def create_user(claims: dict) -> dict:
-    '''Create user session data from LTI claims'''
+    '''Create user session data from LTI claims
+    The created user is consistent with the rest of LO.
+    '''
     roles = claims.get('https://purl.imsglobal.org/spec/lti/claim/roles', [])
     is_instructor = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor' in roles
     return {
@@ -248,9 +293,10 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
     an API token and store it in the user's session. This token is
     used later for getting the roster/assignments/etc.
 
-    This function is registered to route `/lti/launch/{provider}`
+    This function is registered to route `/lti/{provider}/launch`
     '''
     provider = request.match_info['provider']
+    # TODO remove this config
     config = get_provider_config(provider)
     data = await request.post()
 
@@ -293,5 +339,3 @@ def get_provider_config(provider: str) -> dict:
     if config := PROVIDERS.get(provider):
         return config
     raise web.HTTPBadRequest(text=f'Invalid provider: {provider}')
-
-# TODO: Implement token refresh mechanism

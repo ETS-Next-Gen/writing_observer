@@ -16,7 +16,7 @@ loremipsum @ git+https://github.com/testlabauto/loremipsum.git@b7bd71a6651207ef8
 ipython
 ipykernel
 jsonschema
-jwt
+pyjwt
 lxml    # pubsub
 names
 notebook
