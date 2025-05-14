@@ -22,6 +22,7 @@ The workflow is split across 2 functions
 import aiohttp
 import aiohttp_session
 import jwt
+import pmss
 import time
 import uuid
 from aiohttp import web
@@ -29,42 +30,35 @@ from urllib.parse import urlencode
 
 import learning_observer.auth.utils
 import learning_observer.constants as constants
-import learning_observer.prestartup
+import learning_observer.settings
+
+'''
+Items in settings should look like
+{
+    'auth_uri': 'https://canvas.instructure.com/api/lti/authorize_redirect',
+    'jwks_uri': 'https://canvas.instructure.com/api/lti/security/jwks',
+    'token_uri': 'https://canvas.instructure.com/login/oauth2/token',
+    'client_id': 'YOUR_CLIENT_ID',
+    'redirect_uri': 'https://yourdomain.com/lti/canvas/launch',
+    'private_key_path': './keys/canvas/private.pem'
+}
+'''
+pmss.register_field(
+    name='redirect_uri',
+    type=pmss.pmsstypes.TYPES.string,
+    description='Where to redirect a user after successful OAuth login',
+    required=True
+)
+pmss.register_field(
+    name='private_key_path',
+    type=pmss.pmsstypes.TYPES.string,
+    description='Path to where private key is stored',
+    required=True
+)
 
 # TODO: Implement persistent configuration storage
 # TODO: Add rate limiting for JWKS requests
 # TODO: Implement CSRF protection for state parameter
-
-# ======================
-# Configuration Setup
-# ======================
-
-PROVIDERS = {}
-JWKS_CACHE = {}
-
-
-@learning_observer.prestartup.register_startup_check
-def init_lti_sso():
-    '''
-    Initialize LTI SSO providers during application startup.
-
-    Example config:
-    {
-        'name': 'canvas',
-        'auth_url': 'https://canvas.instructure.com/api/lti/authorize_redirect',
-        'jwks_url': 'https://canvas.instructure.com/api/lti/security/jwks',
-        'token_url': 'https://canvas.instructure.com/login/oauth2/token',
-        'client_id': 'YOUR_CLIENT_ID',
-        'redirect_uri': 'https://yourdomain.com/lti/canvas/launch',
-        'private_key_path': './keys/canvas/private.pem'
-    }
-    '''
-    # TODO read the provider configs from settings somehow
-    provider_configs = []
-    for config in provider_configs:
-        provider_name = config['name']
-        PROVIDERS[provider_name] = config
-
 
 # ===============================
 # JWKS/JWT Validation Utilities
@@ -80,16 +74,18 @@ def init_lti_sso():
 # via dynamic JWKS updates and enforces LTI 1.3 security requirements including
 # expiration, issuer validation, and message integrity checks.
 
+JWKS_CACHE = {}
+
 
 async def get_jwks(provider: str) -> dict:
     '''Get the specified JWKS
     This fetches and caches JWKS from an external service.
     '''
+    jwks_uri = learning_observer.settings.pmss_settings.jwks_uri(types=['auth', 'lti', provider])
+
     if provider not in JWKS_CACHE:
-        # TODO just grab the jwks_url from settings directly
-        config = get_provider_config(provider)
         async with aiohttp.ClientSession() as session:
-            async with session.get(config['jwks_url']) as response:
+            async with session.get(jwks_uri) as response:
                 JWKS_CACHE[provider] = await response.json()
     return JWKS_CACHE[provider]
 
@@ -152,23 +148,24 @@ def read_private_key(path: str) -> str:
     return open(path, 'r').read()
 
 
-def generate_assertion(config: dict) -> str:
+def generate_assertion(provider) -> str:
     '''Generate signed client assertion JWT'''
-    # TODO instead of config just call into settings here
-    # how will we handle user info? Is this where the runtime is used?
+    private_key_path = learning_observer.settings.pmss_settings.private_key_path(types=['auth', 'lti', provider])
+    private_key = read_private_key(private_key_path)
 
-    private_key = read_private_key(config['private_key_path'])
     now = time.time()
+    client_id = learning_observer.settings.pmss_settings.client_id(types=['auth', 'lti', provider])
+    token_uri = learning_observer.settings.pmss_settings.token_uri(types=['auth', 'lti', provider])
 
     # Note the client is both the issuer and subject since
     # it is proving its own identity
     payload = {
-        'iss': config['client_id'], # issuer
-        'sub': config['client_id'], # subject
-        'aud': config['token_url'], # audience
-        'iat': now,                 # JWT issued at
-        'exp': now + 300,           # JWT expiration
-        'jti': str(uuid.uuid4())    # JWT ID
+        'iss': client_id,   # issuer
+        'sub': client_id,   # subject
+        'aud': token_uri,   # audience
+        'iat': now,         # JWT issued at
+        'exp': now + 300,   # JWT expiration
+        'jti': str(uuid.uuid4()) # JWT ID
     }
     return jwt.encode(payload, private_key, algorithm='RS256')
 
@@ -186,16 +183,16 @@ def generate_assertion(config: dict) -> str:
 # Process the request from the LMS for OIDC parameters. Then
 # send the parameters back to the LMS.
 
-def create_oidc_params(config: dict, data: dict) -> dict:
+
+def create_oidc_params(provider, data: dict) -> dict:
     '''Generate OIDC authorization request parameters'''
     return {
         'scope': 'openid',
         'response_type': 'id_token',
         'response_mode': 'form_post',
         'prompt': 'none',
-        # TODO instead of config just pull from settings
-        'client_id': config['client_id'],
-        'redirect_uri': config['redirect_uri'],
+        'client_id': learning_observer.settings.pmss_settings.client_id(types=['auth', 'lti', provider]),
+        'redirect_uri': learning_observer.settings.pmss_settings.redirect_uri(types=['auth', 'lti', provider]),
         # help confirm state with future responses
         'nonce': str(uuid.uuid4()),
         'state': str(uuid.uuid4()),
@@ -213,19 +210,17 @@ async def handle_oidc_authorize(request: web.Request) -> web.Response:
     This function is registered to route `/lti/{provider}/login`
     '''
     provider = request.match_info['provider']
-    # TODO read direct from settings instead of config
-    config = get_provider_config(provider)
     data = await request.post()
 
-    params = create_oidc_params(config, data)
+    params = create_oidc_params(provider, data)
     session = await aiohttp_session.get_session(request)
     session.update({
         'lti_state': params['state'],
         'lti_nonce': params['nonce']
     })
-
+    redirect_base_url = learning_observer.settings.pmss_settings.auth_uri(types=['auth', 'lti', provider])
     return web.HTTPFound(
-        location=f"{config['auth_url']}?{urlencode(params)}"
+        location=f"{redirect_base_url}?{urlencode(params)}"
     )
 
 
@@ -261,11 +256,11 @@ def create_user(claims: dict) -> dict:
     }
 
 
-async def exchange_for_token(config: dict, assertion: str) -> str:
+async def exchange_for_token(provider, assertion: str) -> str:
     '''Exchange client assertion for access token'''
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            url=config['token_url'],
+            url=learning_observer.settings.pmss_settings.token_uri(types=['auth', 'lti', provider]),
             data={
                 'grant_type': 'client_credentials',
                 'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
@@ -296,8 +291,6 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
     This function is registered to route `/lti/{provider}/launch`
     '''
     provider = request.match_info['provider']
-    # TODO remove this config
-    config = get_provider_config(provider)
     data = await request.post()
 
     try:
@@ -315,8 +308,8 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         await learning_observer.auth.utils.update_session_user_info(request, user_info)
 
         # Exchange for access token
-        assertion = generate_assertion(config)
-        access_token = await exchange_for_token(config, assertion)
+        assertion = generate_assertion(provider)
+        access_token = await exchange_for_token(provider, assertion)
 
         # Store auth headers
         headers = {'Authorization': f'Bearer {access_token}'}
@@ -327,15 +320,3 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
 
     except (jwt.PyJWTError, KeyError) as e:
         raise web.HTTPUnauthorized(text=f'Authentication failed: {e}')
-
-
-# ======================
-# Helper Functions
-# ======================
-
-
-def get_provider_config(provider: str) -> dict:
-    '''Get provider configuration with validation'''
-    if config := PROVIDERS.get(provider):
-        return config
-    raise web.HTTPBadRequest(text=f'Invalid provider: {provider}')
