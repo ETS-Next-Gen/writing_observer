@@ -32,6 +32,8 @@ import learning_observer.auth.utils
 import learning_observer.constants as constants
 import learning_observer.settings
 
+from learning_observer.log_event import debug_log
+
 '''
 Items in settings should look like
 {
@@ -319,4 +321,5 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         return web.HTTPFound(location='/')
 
     except (jwt.PyJWTError, KeyError) as e:
-        raise web.HTTPUnauthorized(text=f'Authentication failed: {e}')
+        debug_log(f'LTI Launch Authentication failed: {e}')
+        raise web.HTTPUnauthorized(text='Something went wrong.')
