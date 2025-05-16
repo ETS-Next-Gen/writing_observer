@@ -23,6 +23,7 @@ import aiohttp
 import aiohttp_session
 import jwt
 import pmss
+import re
 import time
 import uuid
 from aiohttp import web
@@ -75,6 +76,15 @@ pmss.register_field(
     description='Path to where private key is stored',
     required=True
 )
+
+
+# TODO this code is copied from lo/lo/integrations/canvas.py
+# it should abstracted properly
+def _extract_course_id_from_url(url):
+    if match := re.search(r'/courses/(\d+)/names_and_role', url):
+        return match.group(1)
+    return None
+
 
 # TODO: Implement persistent configuration storage
 # TODO: Add rate limiting for JWKS requests
@@ -210,6 +220,17 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         '''
         roles = claims.get('https://purl.imsglobal.org/spec/lti/claim/roles', [])
         is_instructor = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor' in roles
+
+        # Include the LTI Launch Context
+        # HACK each course has 2 IDs in Canvas' system.
+        # 1. `lti_context_id` - LTI compliant ID
+        # 2. `api_id` - ID to fetch resources
+        context = claims.get('https://purl.imsglobal.org/spec/lti/claim/context', {})
+        context['lti_context_id'] = context['id']
+        del context['id']
+        api_with_id = claims.get('https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice', {}).get('context_memberships_url')
+        context['api_id'] = _extract_course_id_from_url(api_with_id)
+
         return {
             constants.USER_ID: claims['sub'],
             'email': claims.get('email'),
@@ -217,7 +238,8 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             'family_name': claims.get('family_name', ''),
             'picture': claims.get('picture', ''),
             'role': learning_observer.auth.ROLES.TEACHER if is_instructor else learning_observer.auth.ROLES.STUDENT,
-            'authorized': is_instructor
+            'authorized': is_instructor,
+            'lti_context': context
             # TODO figure out backto. With google sso, we had a state we could store things in
             # 'back_to': request.query.get('state')
         }

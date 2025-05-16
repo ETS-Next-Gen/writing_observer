@@ -74,7 +74,7 @@ def setup_canvas_provider(provider):
                     'family_name': member.get('family_name'),
                     'full_name': member.get('name')
                 },
-                'email': member.get('email'),
+                'email_address': member.get('email'),
                 'photo_url': member.get('picture')
             },
             constants.USER_ID: local_id,

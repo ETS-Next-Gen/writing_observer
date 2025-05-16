@@ -417,13 +417,19 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     '''
     if not kwargs:
         kwargs = {}
-    # TODO there should be a fetch the provider that the user users
     roster_source = settings.pmss_settings.source(types=['roster_data'])
+
+    user = await auth.get_active_user(request)
+    # TODO get provider based on user
     # TODO we need the provider which is a little more specific than roster_data
     # for now lets just map the roster_source to either Google or Canvas
     provider = 'google' if 'google' in roster_source else None
     if not provider:
         provider = 'canvas' if 'canvas' in roster_source else None
+
+    # HACK the canvas LTI intregration expects a course ID to provided when calling roster
+    if provider == 'canvas' and function_name == 'roster':
+        kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
 
     if provider in learning_observer.integrations.INTEGRATIONS:
         runtime = learning_observer.runtime.Runtime(request)
