@@ -372,6 +372,7 @@ async def process_writings_with_caching(writing_data, options=None, mode=RUN_MOD
     async for writing in writing_data:
         text = writing.get('text', '')
         if len(text) == 0:
+            yield writing
             continue
 
         # Creating text hash and setting defaults
