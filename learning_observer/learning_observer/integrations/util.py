@@ -23,7 +23,6 @@ import aiohttp.web
 import learning_observer.constants as constants
 import learning_observer.settings as settings
 import learning_observer.log_event
-import learning_observer.util
 import learning_observer.auth
 import learning_observer.runtime
 
@@ -136,7 +135,7 @@ def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_pr
     return caller
 
 
-def initialize_and_register_routes(app, endpoints, api_name, key_translator=None, cache=None, cache_key_prefix=None, feature_flag_name=None):
+def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None, cache_key_prefix=None, feature_flag_name=None):
     '''
     Initialize API routes and handlers:
 
@@ -258,7 +257,7 @@ def initialize_and_register_routes(app, endpoints, api_name, key_translator=None
     return result_functions
 
 
-def register_cleaner_factory(endpoints):
+def make_cleaner_registrar(endpoints):
     '''
     Creates a register_cleaner function specific to a list of endpoints.
 

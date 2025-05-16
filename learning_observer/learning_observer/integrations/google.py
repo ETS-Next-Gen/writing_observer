@@ -15,13 +15,14 @@ import json
 import re
 
 import learning_observer.constants as constants
-import learning_observer.settings as settings
 import learning_observer.auth
-import learning_observer.prestartup
 import learning_observer.kvs
+import learning_observer.prestartup
+import learning_observer.settings as settings
 import learning_observer.util
 
-from learning_observer.external_apis import Endpoint, initialize_and_register_routes, register_cleaner_factory
+from . import util
+
 
 # Cache for Google API responses
 cache = None
@@ -41,7 +42,7 @@ camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
 GOOGLE_TO_SNAKE = {field: camel_to_snake.sub('_', field).lower() for field in GOOGLE_FIELDS}
 
 # API endpoint definitions
-ENDPOINTS = list(map(lambda x: Endpoint(*x, api_name='google'), [
+ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name='google'), [
     ("document", "https://docs.googleapis.com/v1/documents/{documentId}"),
     ("course_list", "https://classroom.googleapis.com/v1/courses"),
     ("course_roster", "https://classroom.googleapis.com/v1/courses/{courseId}/students"),
@@ -56,7 +57,7 @@ ENDPOINTS = list(map(lambda x: Endpoint(*x, api_name='google'), [
 ]))
 
 # Create a register_cleaner function specific to Google ENDPOINTS
-register_cleaner = register_cleaner_factory(ENDPOINTS)
+register_cleaner = util.make_cleaner_registrar(ENDPOINTS)
 
 
 @learning_observer.prestartup.register_startup_check
@@ -83,7 +84,7 @@ def connect_to_google_cache():
                 raise learning_observer.prestartup.StartupCheck("Google KVS: " + error_text)
 
 
-def initialize_and_register_google_routes(app):
+def register_endpoints(app):
     '''
     Initialize Google API routes and register them with the app.
     This function sets up all the raw and cleaner functions for Google APIs.
@@ -92,7 +93,7 @@ def initialize_and_register_google_routes(app):
         return
 
     # Create the API routes and get back the functions
-    global_functions = initialize_and_register_routes(
+    return util.register_endpoints(
         app=app,
         endpoints=ENDPOINTS,
         api_name='google',
@@ -101,9 +102,6 @@ def initialize_and_register_google_routes(app):
         cache_key_prefix='raw_google',
         feature_flag_name='google_routes'
     )
-
-    # Add the functions to the module's global namespace
-    globals().update(global_functions)
 
 
 # ===== CLEANERS =====

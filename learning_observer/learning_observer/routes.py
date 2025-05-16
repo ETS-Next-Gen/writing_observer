@@ -24,6 +24,7 @@ import learning_observer.impersonate
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
 import learning_observer.google
+import learning_observer.integrations
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
 
@@ -67,8 +68,7 @@ def add_routes(app):
     register_static_routes(app)
     register_incoming_event_views(app)
     register_debug_routes(app)
-    learning_observer.google.initialize_and_register_google_routes(app)
-    learning_observer.canvas.initialize_and_register_canvas_routes(app)
+    learning_observer.integrations.register_integrations(app)
 
     app.add_routes([
         aiohttp.web.get(
