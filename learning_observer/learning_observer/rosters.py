@@ -71,9 +71,8 @@ import pmss
 
 import learning_observer.auth as auth
 import learning_observer.cache
-import learning_observer.canvas
 import learning_observer.constants as constants
-import learning_observer.google
+import learning_observer.integrations
 import learning_observer.kvs
 import learning_observer.log_event as log_event
 from learning_observer.log_event import debug_log
@@ -98,12 +97,6 @@ pmss.register_field(
                 '`google_api`: fetch from Google API',
     required=True
 )
-
-# TODO initialize this appropriately
-ADDITIONAL_MODULES = {
-    'google_api': learning_observer.google,
-    'canvas_api': learning_observer.canvas
-}
 
 
 def clean_google_ajax_data(resp_json, key, sort_key, default=None, source=None):
@@ -418,14 +411,19 @@ def init():
 
 
 async def run_additional_module_func(request, function_name, kwargs=None):
+    '''This function calls the `function_name` for one of our integrated LMSs.
+    This is used to call the LMSs `.courses` and `.roster` functions.
+    Returns result of the function, `None` otherwise.
+    '''
     if not kwargs:
         kwargs = {}
-    source = settings.pmss_settings.source(types=['roster_data'])
-    if source in ADDITIONAL_MODULES:
+    roster_source = settings.pmss_settings.source(types=['roster_data'])
+    # TODO there should be a fetch the provider that the user users
+    if roster_source in learning_observer.integrations.INTEGRATIONS:
         runtime = learning_observer.runtime.Runtime(request)
-        course_call = getattr(ADDITIONAL_MODULES[source], function_name, None)
-        if callable(course_call):
-            return await course_call(runtime, **kwargs)
+        func = getattr(learning_observer.integrations.INTEGRATIONS[roster_source], function_name, None)
+        if callable(func):
+            return await func(runtime, **kwargs)
     return None
 
 
