@@ -46,6 +46,24 @@ Items in settings should look like
 }
 '''
 pmss.register_field(
+    name='auth_uri',
+    type=pmss.pmsstypes.TYPES.string,
+    description="Where to redirect the user's OIDC parameters",
+    required=True
+)
+pmss.register_field(
+    name='jwks_uri',
+    type=pmss.pmsstypes.TYPES.string,
+    description="The server's jwks endpoint",
+    required=True
+)
+pmss.register_field(
+    name='token_uri',
+    type=pmss.pmsstypes.TYPES.string,
+    description="Where to trade verified users for oauth tokens",
+    required=True
+)
+pmss.register_field(
     name='redirect_uri',
     type=pmss.pmsstypes.TYPES.string,
     description='Where to redirect a user after successful OAuth login',
@@ -142,6 +160,7 @@ async def handle_oidc_authorize(request: web.Request) -> web.Response:
             'response_mode': 'form_post',
             'prompt': 'none',
             'client_id': learning_observer.settings.pmss_settings.client_id(types=['auth', 'lti', provider]),
+            # TODO this could easily be built from server/lti/{provider}/launch
             'redirect_uri': learning_observer.settings.pmss_settings.redirect_uri(types=['auth', 'lti', provider]),
             # help confirm state with future responses
             'nonce': str(uuid.uuid4()),
