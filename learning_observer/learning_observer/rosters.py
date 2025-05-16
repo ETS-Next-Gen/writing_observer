@@ -417,11 +417,17 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     '''
     if not kwargs:
         kwargs = {}
-    roster_source = settings.pmss_settings.source(types=['roster_data'])
     # TODO there should be a fetch the provider that the user users
-    if roster_source in learning_observer.integrations.INTEGRATIONS:
+    roster_source = settings.pmss_settings.source(types=['roster_data'])
+    # TODO we need the provider which is a little more specific than roster_data
+    # for now lets just map the roster_source to either Google or Canvas
+    provider = 'google' if 'google' in roster_source else None
+    if not provider:
+        provider = 'canvas' if 'canvas' in roster_source else None
+
+    if provider in learning_observer.integrations.INTEGRATIONS:
         runtime = learning_observer.runtime.Runtime(request)
-        func = getattr(learning_observer.integrations.INTEGRATIONS[roster_source], function_name, None)
+        func = learning_observer.integrations.INTEGRATIONS[provider].get(function_name, None)
         if callable(func):
             return await func(runtime, **kwargs)
     return None

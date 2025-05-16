@@ -17,13 +17,11 @@ import aiohttp_wsgi
 import learning_observer.admin as admin
 import learning_observer.auth
 import learning_observer.auth.http_basic
-import learning_observer.canvas
 import learning_observer.client_config
 import learning_observer.filesystem_state
 import learning_observer.impersonate
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
-import learning_observer.google
 import learning_observer.integrations
 import learning_observer.rosters as rosters
 import learning_observer.module_loader

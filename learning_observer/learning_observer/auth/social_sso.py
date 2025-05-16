@@ -41,7 +41,6 @@ import learning_observer.auth.roles
 
 import learning_observer.constants as constants
 import learning_observer.exceptions
-import learning_observer.google
 import learning_observer.kvs
 import learning_observer.rosters
 import learning_observer.runtime
@@ -163,6 +162,7 @@ async def _store_teacher_info_for_background_process(id, request):
     TODO remove this function and references when new, better
     workflows are established.
     '''
+    import learning_observer.google
     debug_log("SocialSSO Storing teacher info: {} {}".format(id, request))
     kvs = learning_observer.kvs.KVS()
     runtime = learning_observer.runtime.Runtime(request)
