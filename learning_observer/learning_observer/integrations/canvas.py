@@ -1,5 +1,6 @@
 import re
 
+import learning_observer.kvs
 import learning_observer.constants as constants
 import learning_observer.settings as settings
 
@@ -11,8 +12,8 @@ def setup_canvas_provider(provider):
     base_url = ''
 
     ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name=provider), [
-        ('course_list', base_url + '/api/lti/courses/{courseId}/names_and_role'),
-        ('course_roster', base_url + '/api/lti/courses/{courseId}/names_and_role'),
+        ('course_list', base_url + '/api/lti/courses/{courseId}/names_and_roles'),
+        ('course_roster', base_url + '/api/lti/courses/{courseId}/names_and_roles'),
         ('course_lineitems', base_url + '/api/lti/courses/{courseId}/line_items'),
     ]))
 
@@ -54,7 +55,15 @@ def setup_canvas_provider(provider):
         cleaned = [course]
         return cleaned
 
-    def _process_canvas_user_for_system(member):
+    async def _lookup_gid_by_email(email):
+        kvs = learning_observer.kvs.KVS()
+        key = f'email-studentID-mapping:{email}'
+        id = await kvs[key]
+        if id:
+            return f'gid-{id}'
+        return None
+
+    async def _process_canvas_user_for_system(member):
         # Skip if no canvas id
         canvas_id = member.get('user_id')
         if not canvas_id: return None
@@ -64,8 +73,11 @@ def setup_canvas_provider(provider):
         if not is_student: return None
 
         # Create user for our system
-        # TODO map email to google id and use instead of this local id
-        local_id = f'canvas-{canvas_id}'
+        email = member.get('email')
+        local_id = await _lookup_gid_by_email(email)
+        if not local_id:
+            local_id = f'canvas-{canvas_id}'
+
         member[constants.USER_ID] = local_id
         user = {
             'profile': {
@@ -74,7 +86,7 @@ def setup_canvas_provider(provider):
                     'family_name': member.get('family_name'),
                     'full_name': member.get('name')
                 },
-                'email_address': member.get('email'),
+                'email_address': email,
                 'photo_url': member.get('picture')
             },
             constants.USER_ID: local_id,
@@ -84,7 +96,7 @@ def setup_canvas_provider(provider):
         return user
 
     @register_cleaner('course_roster', 'roster')
-    def clean_course_roster(canvas_json):
+    async def clean_course_roster(canvas_json):
         '''
         Retrieve and clean the roster for a Canvas course, alphabetically sorted
 
@@ -98,7 +110,7 @@ def setup_canvas_provider(provider):
         # Process each student record
         users = []
         for m in members:
-            user = _process_canvas_user_for_system(m)
+            user = await _process_canvas_user_for_system(m)
             if user is not None:
                 users.append(user)
 

@@ -12,7 +12,7 @@ On a high level, for each API request, we plan to have a 4x4 grid:
 For each specific API implementation, we'll have both raw data access and cleaner functions
 to transform that data into more convenient formats.
 '''
-
+import inspect
 import json
 import recordclass
 import string
@@ -196,6 +196,8 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
             response = cleaner_function(
                 await raw_function(runtime, **request.match_info)
             )
+            if inspect.isawaitable(response):
+                response = await response
             if isinstance(response, dict) or isinstance(response, list):
                 return aiohttp.web.json_response(response)
             elif isinstance(response, str):
@@ -211,6 +213,8 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
         async def cleaner_local(runtime, **kwargs):
             api_response = await raw_function(runtime, **kwargs)
             clean = cleaner_function(api_response)
+            if inspect.isawaitable(clean):
+                clean = await clean
             return clean
         if name is not None:
             setattr(cleaner_local, "__qualname__", name)
