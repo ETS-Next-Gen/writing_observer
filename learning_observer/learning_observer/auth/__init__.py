@@ -70,7 +70,7 @@ from learning_observer.auth.handlers import auth_middleware
 # Specific authentication schemes
 from learning_observer.auth.social_sso import social_handler
 from learning_observer.auth.password import password_auth
-from learning_observer.auth.lti_sso import handle_oidc_authorize, handle_oidc_launch
+from learning_observer.auth.lti_sso import handle_oidc_authorize, handle_oidc_launch, check_oidc_login
 
 # Code below does sanity checks on configuration
 #

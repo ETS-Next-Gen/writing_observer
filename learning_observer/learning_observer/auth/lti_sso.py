@@ -329,3 +329,7 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
     except (jwt.PyJWTError, KeyError) as e:
         debug_log(f'LTI Launch Authentication failed: {e}')
         raise web.HTTPUnauthorized(text='Something went wrong.')
+
+
+def check_oidc_login(request):
+    return aiohttp.web.HTTPFound('/')

@@ -257,7 +257,10 @@ def register_auth_webapp_views(app):
                 handler=learning_observer.auth.handle_oidc_authorize),
             aiohttp.web.post(
                 '/lti/{provider}/launch',
-                handler=learning_observer.auth.handle_oidc_launch)
+                handler=learning_observer.auth.handle_oidc_launch),
+            aiohttp.web.get(
+                '/auth/login/lti',
+                learning_observer.auth.check_oidc_login)
         ])
 
     if 'password_file' in settings.settings['auth']:
