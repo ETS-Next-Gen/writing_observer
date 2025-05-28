@@ -185,10 +185,8 @@ async def handle_oidc_authorize(request: web.Request) -> web.Response:
 
     params = create_oidc_params(provider, data)
     session = await aiohttp_session.get_session(request)
-    session.update({
-        'lti_state': params['state'],
-        'lti_nonce': params['nonce']
-    })
+    session['lti_state'] = params['state']
+    session['lti_nonce'] = params['nonce']
     redirect_base_url = learning_observer.settings.pmss_settings.auth_uri(types=['auth', 'lti', provider])
     return web.HTTPFound(
         location=f"{redirect_base_url}?{urlencode(params)}"
@@ -219,17 +217,24 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         '''The created user is consistent with the rest of LO.
         '''
         roles = claims.get('https://purl.imsglobal.org/spec/lti/claim/roles', [])
-        is_instructor = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor' in roles
+        instructor_roles = [
+            'http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator',
+            'http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor',
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor',
+            'http://purl.imsglobal.org/vocab/lis/v2/system/person#SysAdmin'
+        ]
+        is_instructor = any(r in roles for r in instructor_roles)
 
         # Include the LTI Launch Context
         # HACK each course has 2 IDs in Canvas' system.
         # 1. `lti_context_id` - LTI compliant ID
         # 2. `api_id` - ID to fetch resources
         context = claims.get('https://purl.imsglobal.org/spec/lti/claim/context', {})
-        context['lti_context_id'] = context['id']
-        del context['id']
         api_with_id = claims.get('https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice', {}).get('context_memberships_url')
-        context['api_id'] = _extract_course_id_from_url(api_with_id)
+        lti_context = {
+            'lti_context_id': context['id'],
+            'api_id': _extract_course_id_from_url(api_with_id)
+        }
 
         return {
             constants.USER_ID: claims['sub'],
@@ -239,7 +244,7 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             'picture': claims.get('picture', ''),
             'role': learning_observer.auth.ROLES.TEACHER if is_instructor else learning_observer.auth.ROLES.STUDENT,
             'authorized': is_instructor,
-            'lti_context': context
+            'lti_context': lti_context
             # TODO figure out backto. With google sso, we had a state we could store things in
             # 'back_to': request.query.get('state')
         }
@@ -331,5 +336,5 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         raise web.HTTPUnauthorized(text='Something went wrong.')
 
 
-def check_oidc_login(request):
-    return aiohttp.web.HTTPFound('/')
+async def check_oidc_login(request):
+    return web.HTTPFound('/')

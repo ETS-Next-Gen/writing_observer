@@ -60,6 +60,7 @@ so that class info uses the same format but that is scut work for another
 time.
 '''
 
+import inspect
 import json
 import os.path
 
@@ -431,11 +432,18 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     if provider == 'canvas' and function_name == 'roster':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
 
-    if provider in learning_observer.integrations.INTEGRATIONS:
-        runtime = learning_observer.runtime.Runtime(request)
-        func = learning_observer.integrations.INTEGRATIONS[provider].get(function_name, None)
-        if callable(func):
-            return await func(runtime, **kwargs)
+    if provider not in learning_observer.integrations.INTEGRATIONS:
+        debug_log(f'Provider `{provider}` not found in INTEGRATIONS. Available integrations: {learning_observer.integrations.INTEGRATIONS}')
+        return None
+
+    runtime = learning_observer.runtime.Runtime(request)
+    func = learning_observer.integrations.INTEGRATIONS[provider].get(function_name, None)
+
+    if callable(func):
+        result = func(runtime, **kwargs)
+        if inspect.isawaitable(result):
+            result = await result
+        return result
     return None
 
 
@@ -478,7 +486,9 @@ async def memoize_courseroster_runtime(runtime, course_id):
     In the future, we ought to be able to specify how the values from
     individual nodes are handled: static, dynamic (current), or memoized.
     '''
-    @learning_observer.cache.async_memoization()
+    # TODO the async memoization cache here is causing a ton of slowdown
+    # when trying to connect to a remote Redis instance.
+    # @learning_observer.cache.async_memoization()
     async def course_roster_memoization_layer(c):
         return await courseroster_runtime(runtime, c)
     return await course_roster_memoization_layer(course_id)

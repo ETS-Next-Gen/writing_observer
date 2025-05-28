@@ -1,3 +1,4 @@
+import pmss
 import re
 
 import learning_observer.kvs
@@ -6,10 +7,17 @@ import learning_observer.settings as settings
 
 from . import util
 
+pmss.register_field(
+    name='api_domain',
+    type=pmss.pmsstypes.TYPES.string,
+    description='Domain of the api calls',
+    required=True
+)
+
 
 def setup_canvas_provider(provider):
     # TODO pull the base url from settings based on provider
-    base_url = ''
+    base_url = settings.pmss_settings.api_domain(types=['auth', 'lti', provider])
 
     ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name=provider), [
         ('course_list', base_url + '/api/lti/courses/{courseId}/names_and_roles'),
