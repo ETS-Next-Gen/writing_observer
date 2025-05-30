@@ -255,6 +255,9 @@ def register_auth_webapp_views(app):
             aiohttp.web.post(
                 '/lti/{provider}/login',
                 handler=learning_observer.auth.handle_oidc_authorize),
+            aiohttp.web.get(
+                '/lti/{provider}/login',
+                handler=learning_observer.auth.handle_oidc_authorize),
             aiohttp.web.post(
                 '/lti/{provider}/launch',
                 handler=learning_observer.auth.handle_oidc_launch),
