@@ -87,10 +87,11 @@ import learning_observer.communication_protocol.integration
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-pmss.parser('roster_source', parent='string', choices=['google_api', 'canvas_api', 'all', 'test', 'filesystem'], transform=None)
+pmss.parser('roster_source', parent='string', choices=['google_api', 'canvas_api', 'schoology_api', 'all', 'test', 'filesystem'], transform=None)
 pmss.register_field(
     name='source',
     type='roster_source',
+    # TODO update this source information
     description='Source to use for student class rosters. This can be\n'\
                 '`all`: aggregate all available students into a single class\n'\
                 '`test`: use sample course and student files\n'\
@@ -364,7 +365,7 @@ def init():
     # TODO both canvas and google don't use the ajax function when the query is made
     elif roster_source in ["google_api"]:
         ajax = google_ajax
-    elif roster_source in ["canvas_api"]:
+    elif roster_source in ["canvas_api", 'schoology_api']:
         pass
     elif roster_source in ["all"]:
         ajax = all_ajax
@@ -424,12 +425,17 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     # TODO get provider based on user
     # TODO we need the provider which is a little more specific than roster_data
     # for now lets just map the roster_source to either Google or Canvas
+    print('rosters.py:run_additional_module_func:user', user)
+
+    # TODO make a determine provider function
     provider = 'google' if 'google' in roster_source else None
     if not provider:
         provider = 'canvas' if 'canvas' in roster_source else None
+    if not provider:
+        provider = 'schoology' if 'schoology' in roster_source else None
 
     # HACK the canvas LTI intregration expects a course ID to provided when calling roster
-    if provider == 'canvas' and function_name == 'roster':
+    if provider in ['canvas', 'schoology'] and function_name == 'roster':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
 
     if provider not in learning_observer.integrations.INTEGRATIONS:

@@ -181,7 +181,7 @@ async def handle_oidc_authorize(request: web.Request) -> web.Response:
         }
 
     provider = request.match_info['provider']
-    data = await request.post()
+    data = await request.post() if request.method == 'POST' else request.query
 
     params = create_oidc_params(provider, data)
     session = await aiohttp_session.get_session(request)
@@ -231,9 +231,11 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         # 2. `api_id` - ID to fetch resources
         context = claims.get('https://purl.imsglobal.org/spec/lti/claim/context', {})
         api_with_id = claims.get('https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice', {}).get('context_memberships_url')
+        extracted_course_id = _extract_course_id_from_url(api_with_id)
+        id = context['id']
         lti_context = {
-            'lti_context_id': context['id'],
-            'api_id': _extract_course_id_from_url(api_with_id)
+            'lti_context_id': id,
+            'api_id': extracted_course_id if extracted_course_id else id
         }
 
         return {

@@ -226,7 +226,7 @@ def initialized():
 AVAILABLE_FEATURE_FLAGS = [
     'uvloop', 'watchdog', 'auth_headers_page', 'merkle', 'save_google_ajax', 'use_google_ajax',
     'google_routes', 'save_clean_ajax', 'use_clean_ajax',
-    'canvas_routes'
+    'canvas_routes', 'schoology_routes'
 ]
 
 
