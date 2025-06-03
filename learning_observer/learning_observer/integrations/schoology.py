@@ -6,10 +6,10 @@ from . import util
 
 API = 'schoology'
 
-ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name=API), [
-    ('course_list', 'https://api.schoology.com/v1/users/{id}/sections'),
-    ('course_roster', 'https://api.schoology.com/v1/sections/{courseId}/enrollments'),
-    ('course_assignments', 'https://api.schoology.com/v1/sections/{courseId}/assignments'),
+ENDPOINTS = list(map(lambda x: util.Endpoint(**x, api_name=API), [
+    {'name': 'course_list', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/enrollments', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
+    {'name': 'course_roster', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/enrollments', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
+    {'name': 'course_assignments', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/assignments', 'headers': {'Accept': 'application/vnd.ims.lis.v2.lineitemcontainer+json'}},
 ]))
 
 register_cleaner = util.make_cleaner_registrar(ENDPOINTS)
@@ -36,8 +36,13 @@ def clean_course_list(schoology_json):
     course by course level. This cleaner wraps the current
     course in a list.
     '''
-    print('clean_course_list', schoology_json)
-    return
+    context = schoology_json.get('context', {})
+    course = {
+        'id': context.get('id'),
+        'name': context.get('label'),
+        'title': context.get('title'),
+    }
+    return [course]
 
 
 # TODO this already exists in a different place - it should live in only one place

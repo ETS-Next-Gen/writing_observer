@@ -87,7 +87,7 @@ import learning_observer.communication_protocol.integration
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-pmss.parser('roster_source', parent='string', choices=['google_api', 'canvas_api', 'schoology_api', 'all', 'test', 'filesystem'], transform=None)
+pmss.parser('roster_source', parent='string', choices=['google', 'canvas', 'schoology', 'all', 'test', 'filesystem'], transform=None)
 pmss.register_field(
     name='source',
     type='roster_source',
@@ -96,7 +96,7 @@ pmss.register_field(
                 '`all`: aggregate all available students into a single class\n'\
                 '`test`: use sample course and student files\n'\
                 '`filesystem`: read rosters defined on filesystem\n'\
-                '`google_api`: fetch from Google API',
+                '`google|schoology|...`: fetch from specific API',
     required=True
 )
 
@@ -351,16 +351,16 @@ def init():
     '''
     global ajax
     roster_source = settings.pmss_settings.source(types=['roster_data'])
-    if 'roster_data' not in settings.settings:
-        print(settings.settings)
-        raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster_data` element with a `source` element. No `roster_data` element found."
-        )
-    elif 'source' not in settings.settings['roster_data']:
-        raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
-        )
-    elif roster_source in ['test', 'filesystem']:
+    # if 'roster_data' not in settings.settings:
+    #     print(settings.settings)
+    #     raise learning_observer.prestartup.StartupCheck(
+    #         "Settings file needs a `roster_data` element with a `source` element. No `roster_data` element found."
+    #     )
+    # elif 'source' not in settings.settings['roster_data']:
+    #     raise learning_observer.prestartup.StartupCheck(
+    #         "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
+    #     )
+    if roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
     # TODO both canvas and google don't use the ajax function when the query is made
     elif roster_source in ["google_api"]:
@@ -419,37 +419,37 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     '''
     if not kwargs:
         kwargs = {}
-    roster_source = settings.pmss_settings.source(types=['roster_data'])
 
     user = await auth.get_active_user(request)
-    # TODO get provider based on user
-    # TODO we need the provider which is a little more specific than roster_data
-    # for now lets just map the roster_source to either Google or Canvas
-    print('rosters.py:run_additional_module_func:user', user)
 
-    # TODO make a determine provider function
-    provider = 'google' if 'google' in roster_source else None
-    if not provider:
-        provider = 'canvas' if 'canvas' in roster_source else None
-    if not provider:
-        provider = 'schoology' if 'schoology' in roster_source else None
+    user_email = user.get('email', '')
+    user_domain = None
+    if '@' in user_email:
+        user_domain = user_email.split('@')[1]
+    roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain})
 
-    # HACK the canvas LTI intregration expects a course ID to provided when calling roster
-    if provider in ['canvas', 'schoology'] and function_name == 'roster':
+    # HACK the Canvas and Schoology LTI intregration expects a course ID
+    # to be provided when calling roster
+    # TODO this canvas might not always be called canvas
+    if roster_source in ['canvas', 'schoology'] and function_name == 'roster':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
 
-    if provider not in learning_observer.integrations.INTEGRATIONS:
-        debug_log(f'Provider `{provider}` not found in INTEGRATIONS. Available integrations: {learning_observer.integrations.INTEGRATIONS}')
+    if roster_source not in learning_observer.integrations.INTEGRATIONS:
+        debug_log(f'Provider `{roster_source}` not found in INTEGRATIONS. Available integrations: {learning_observer.integrations.INTEGRATIONS.keys()}')
         return None
 
     runtime = learning_observer.runtime.Runtime(request)
-    func = learning_observer.integrations.INTEGRATIONS[provider].get(function_name, None)
+    func = learning_observer.integrations.INTEGRATIONS[roster_source].get(function_name, None)
+    if not func:
+        debug_log(f'Provider `{roster_source}` does not have function `{function_name}`.')
+        return None
 
     if callable(func):
         result = func(runtime, **kwargs)
         if inspect.isawaitable(result):
             result = await result
         return result
+    debug_log(f'No result from `{roster_source}.{function_name}`')
     return None
 
 
@@ -507,7 +507,7 @@ async def courseroster(request, course_id):
     roster = await run_additional_module_func(request, 'roster', kwargs={'courseId': course_id})
     if roster:
         return roster
-    # TODO if course_list is falsey, the following code may fail if there if ajax is not defined.
+    # TODO if roster is falsey, the following code may fail if there if ajax is not defined.
 
     roster = await ajax(
         request,

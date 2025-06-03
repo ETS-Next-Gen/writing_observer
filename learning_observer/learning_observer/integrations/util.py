@@ -25,9 +25,10 @@ import learning_observer.settings as settings
 import learning_observer.log_event
 import learning_observer.auth
 import learning_observer.runtime
+import learning_observer.util
 
 
-class Endpoint(recordclass.make_dataclass("Endpoint", ["name", "remote_url", "doc", "cleaners", "api_name"], defaults=["", None, None])):
+class Endpoint(recordclass.make_dataclass("Endpoint", ["name", "remote_url", "doc", "cleaners", "api_name", "headers"], defaults=["", None, None, None])):
     def arguments(self):
         return extract_parameters_from_format_string(self.remote_url)
 
@@ -66,7 +67,7 @@ def extract_parameters_from_format_string(format_string):
     return [f[1] for f in string.Formatter().parse(format_string) if f[1] is not None]
 
 
-async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cache_key_prefix=None, **kwargs):
+async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cache_key_prefix=None, headers=None, **kwargs):
     '''
     Make an AJAX call to an API, managing auth + auth.
 
@@ -84,7 +85,10 @@ async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cac
     if constants.AUTH_HEADERS not in request or user is None:
         raise aiohttp.web.HTTPUnauthorized(text="Please log in")
 
-    auth_headers = request[constants.AUTH_HEADERS]
+    if headers is None:
+        headers = {}
+    headers.update(request.get(constants.AUTH_HEADERS, {}))
+
     cache_available = cache is not None and cache_key_prefix is not None
 
     if cache_available:
@@ -98,7 +102,7 @@ async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cac
                 return response_data
 
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
-        async with client.get(url, headers=auth_headers) as resp:
+        async with client.get(url, headers=headers) as resp:
             response = await resp.json()
             learning_observer.log_event.log_ajax(target_url, response, request)
 
@@ -111,7 +115,7 @@ async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cac
             return response
 
 
-def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_prefix=None, name=None):
+def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_prefix=None, name=None, headers=None):
     '''
     This is a helper which allows us to create a function which calls specific
     API endpoints.
@@ -126,6 +130,7 @@ def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_pr
             key_translator, 
             cache, 
             cache_key_prefix,
+            headers,
             **kwargs
         )
 
