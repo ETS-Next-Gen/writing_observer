@@ -21,7 +21,7 @@
 import * as redux from 'redux';
 import { thunk } from 'redux-thunk';
 import { createStateSyncMiddleware, initMessageListener } from 'redux-state-sync';
-import debounce from 'lodash/debounce';
+import debounce from 'lodash/debounce.js';
 
 import * as util from './util.js';
 
@@ -338,6 +338,36 @@ function initializeStore () {
     }
   });
 }
+
+/*
+
+TODO: We would like to make this a bit more explicit with regards to reducers. Perhaps:
+
+export function reduxLogger({
+  subscribers = [],
+  initialState = null,
+  useDefaultReducers = true,           // Do we include the standard reducers from lo_assess?
+  extraEvents = []                     // Add these as the simple reducer given there-in
+  extraComponentReducers = [],         // If we want to do a more complex reduction, but still on a per-component basis
+  extraSystemReducers = [],            // If we want to do a more complex reduction, system-wide
+  replaceReducers = false
+} = {})
+
+But an alternative might be:
+
+export function reduxLogger({
+  subscribers = [],
+  initialState = null,
+  config = null
+})
+
+reduxLogger({config: lo_assess.defaultConfig})
+or
+reduxLogger({config: lo_assess.config(...)})
+
+The core thing we want to fix is the need to implicitly import reducers.js to have them registered, though.
+
+*/
 
 export function reduxLogger (subscribers, initialState = null) {
   if (subscribers != null) {

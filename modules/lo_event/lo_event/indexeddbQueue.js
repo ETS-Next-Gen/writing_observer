@@ -59,13 +59,20 @@ export class Queue {
     let request;
     if (typeof indexedDB === 'undefined') {
       debug.info('idbQueue: Importing indexedDB compatibility');
-
-      const sqlite3 = await import('sqlite3');
-      const indexeddbjs = await import('indexeddb-js');
-
-      const engine = new sqlite3.default.Database('queue.sqlite');
-      const scope = indexeddbjs.makeScope('sqlite3', engine);
-      request = scope.indexedDB.open(this.queueName);
+      // Uncomment this line for node compatibility.
+      //
+      // Note that this breaks Webpack. It statically tries to import sqlite3->bindings->fs, which breaks in browser.
+      //
+      // We will want to figure that out before leaving it in.
+      //
+      // If getting into this, look for:
+      // * resolve.fallback = {fs: false,  sqlite3: false}
+      // * "browser": { "fs": false,  "path": false }
+      // * Ways to impact static analysis and checks for window being undefined
+      // * Splitting entrypoints (e.g. client.js and server.js for the top-level)
+      //
+      // const { getPolyfilledIndexedDB } = await import('./nodeIndexedDBShim.js');
+      request = await getPolyfilledIndexedDB(this.queueName);
     } else {
       debug.info('idbQueue: Using browser consoleDB');
       request = indexedDB.open(this.queueName, 1);
