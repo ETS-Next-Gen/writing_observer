@@ -240,17 +240,15 @@ def register_auth_webapp_views(app):
         debug_log("Running with Google authentication")
         app.add_routes([
             aiohttp.web.get(
-                # TODO only allow the available sign-in options found in pmss
-                # '/auth/login/{provider:google|canvas|schoology}',
                 '/auth/login/{provider:google}',
                 handler=learning_observer.auth.social_handler),
         ])
 
-    # TODO check settings for LTI providers
-    # If they are available, then register these routes. Skip otherwise.
-    # TODO build provider syntax based on available providers
-    if True:
+    # TODO We ought to use pmss here, though at this time it is easier
+    # to check if a key exists this way
+    if 'lti' in settings.settings['auth']:
         debug_log("Running with LTI authentication")
+        # TODO build provider syntax based on available providers
         app.add_routes([
             aiohttp.web.post(
                 '/lti/{provider}/login',

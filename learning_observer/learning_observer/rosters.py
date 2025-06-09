@@ -92,12 +92,11 @@ pmss.parser('roster_source', parent='string', choices=['google', 'canvas', 'scho
 pmss.register_field(
     name='source',
     type='roster_source',
-    # TODO update this source information
     description='Source to use for student class rosters. This can be\n'\
                 '`all`: aggregate all available students into a single class\n'\
                 '`test`: use sample course and student files\n'\
                 '`filesystem`: read rosters defined on filesystem\n'\
-                '`google|schoology|...`: fetch from specific API',
+                '`google|schoology|canvas`: fetch from specific API',
     required=True
 )
 
@@ -352,18 +351,9 @@ def init():
     '''
     global ajax
     roster_source = settings.pmss_settings.source(types=['roster_data'])
-    # if 'roster_data' not in settings.settings:
-    #     print(settings.settings)
-    #     raise learning_observer.prestartup.StartupCheck(
-    #         "Settings file needs a `roster_data` element with a `source` element. No `roster_data` element found."
-    #     )
-    # elif 'source' not in settings.settings['roster_data']:
-    #     raise learning_observer.prestartup.StartupCheck(
-    #         "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
-    #     )
     if roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
-    # TODO both canvas and google don't use the ajax function when the query is made
+    # Google, Canvas, and Schoology all use integrations instead of ajax when called
     elif roster_source in ["google_api"]:
         ajax = google_ajax
     elif roster_source in ["canvas_api", 'schoology_api']:
@@ -371,12 +361,11 @@ def init():
     elif roster_source in ["all"]:
         ajax = all_ajax
     else:
-        # TODO update any documentation to include canvas_api
         raise learning_observer.prestartup.StartupCheck(
             "Settings file `roster_data` element should have `source` field\n"
             "set to either:\n"
             "  test        (retrieve from files courses.json and students.json)\n"
-            "  google_api  (retrieve roster data from Google)\n"
+            "  google_api | canvas_api | schoology_api  (retrieve roster data from an api)\n"
             "  filesystem  (retrieve roster data from file system hierarchy\n"
             "  all  (retrieve roster data as all students)"
         )
@@ -424,14 +413,15 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     user = await auth.get_active_user(request)
 
     user_domain = learning_observer.util.get_domain_from_email(user.get('email'))
-
-    # TODO add in check for lti_context, if available pass to attributes as well
+    # TODO we ough to include provider in the attributes (need to test provider)
+    provider = user.get('lti_context', {}).get('provider')
     roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain})
 
-    # HACK the Canvas and Schoology LTI intregration expects a course ID
-    # to be provided when calling roster
-    # TODO this canvas might not always be called canvas
-    if roster_source in ['canvas', 'schoology'] and function_name == 'roster':
+    # HACK/TODO since Canvas and Schoology are launched via an LTI,
+    # we need to pass a course to the courses - LTI applications are
+    # provided on a course-by-course basis, so fetching the courses
+    # just needs to provide the current course context.
+    if roster_source in ['canvas', 'schoology'] and function_name == 'corosterurses':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
 
     if roster_source not in learning_observer.integrations.INTEGRATIONS:
@@ -507,8 +497,9 @@ async def courseroster(request, course_id):
     roster = await run_additional_module_func(request, 'roster', kwargs={'courseId': course_id})
     if roster:
         return roster
-    # TODO if roster is falsey, the following code may fail if there if ajax is not defined.
 
+    if not ajax:
+        return []
     roster = await ajax(
         request,
         url=ROSTER_URL,

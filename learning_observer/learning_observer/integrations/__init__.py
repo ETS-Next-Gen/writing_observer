@@ -1,16 +1,29 @@
 import learning_observer.integrations.canvas
 import learning_observer.integrations.google
 import learning_observer.integrations.schoology
+import learning_observer.settings
 
 INTEGRATIONS = {}
 
 
 def register_integrations(app):
-    # TODO go through settings to determine which of these we want to enable on the system
-    # these keys correspond to roster source values
-    INTEGRATIONS['google'] = learning_observer.integrations.google.register_endpoints(app)
-    INTEGRATIONS['schoology'] = learning_observer.integrations.schoology.register_endpoints(app)
-    canvas_providers = ['ncsu-canvas']
+    '''`routes.py:add_routes` calls this function to add the
+    integrated services as routes on the system
+
+    This initializes INTEGRATIONS for other functions to reference
+    when making a call to course/rosters/assignments/etc.
+    '''
+    # TODO the setting checks should be calling into `pmss_settings` instead of `settings`
+    if 'google_oauth' in learning_observer.settings.settings['auth']:
+        INTEGRATIONS['google'] = learning_observer.integrations.google.register_endpoints(app)
+
+    if 'lti' not in learning_observer.settings.settings['auth']:
+        return
+
+    if 'schoology' in learning_observer.settings.settings['auth']['lti']:
+        INTEGRATIONS['schoology'] = learning_observer.integrations.schoology.register_endpoints(app)
+
+    canvas_providers = [k for k in learning_observer.settings.settings['auth']['lti'].keys() if 'canvas' in k]
     for provider in canvas_providers:
         provider_endpoint_registrar = learning_observer.integrations.canvas.setup_canvas_provider(provider)
         # TODO check that provider doesn't already exist and is trying to be overwritten

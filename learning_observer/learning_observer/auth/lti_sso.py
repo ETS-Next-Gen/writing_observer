@@ -213,7 +213,7 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             debug_log('LTI Launch invalid state')
             raise web.HTTPBadRequest(text='Something went wrong.')
 
-    def create_user_from_claims(claims: dict) -> dict:
+    def create_user_from_claims(claims: dict, provider: str) -> dict:
         '''The created user is consistent with the rest of LO.
         '''
         roles = claims.get('https://purl.imsglobal.org/spec/lti/claim/roles', [])
@@ -226,16 +226,17 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
         is_instructor = any(r in roles for r in instructor_roles)
 
         # Include the LTI Launch Context
-        # HACK each course has 2 IDs in Canvas' system.
-        # 1. `lti_context_id` - LTI compliant ID
-        # 2. `api_id` - ID to fetch resources
+        # HACK in Canvas, each course has 2 IDs:
+        # 1. LTI compliant ID - `lti_context_id`
+        # 2. ID used to make API calls - `api_id`
         context = claims.get('https://purl.imsglobal.org/spec/lti/claim/context', {})
         api_with_id = claims.get('https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice', {}).get('context_memberships_url')
         extracted_course_id = _extract_course_id_from_url(api_with_id)
         id = context['id']
         lti_context = {
             'lti_context_id': id,
-            'api_id': extracted_course_id if extracted_course_id else id
+            'api_id': extracted_course_id if extracted_course_id else id,
+            'provider': provider
         }
 
         return {
@@ -319,7 +320,7 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             raise web.HTTPBadRequest(text='Something went wrong.')
 
         # Create user session
-        user_info = create_user_from_claims(claims)
+        user_info = create_user_from_claims(claims, provider)
         await learning_observer.auth.utils.update_session_user_info(request, user_info)
 
         # Exchange for access token
