@@ -72,6 +72,7 @@ import pmss
 
 import learning_observer.auth as auth
 import learning_observer.cache
+import learning_observer.communication_protocol.integration
 import learning_observer.constants as constants
 import learning_observer.integrations
 import learning_observer.kvs
@@ -81,7 +82,7 @@ import learning_observer.paths as paths
 import learning_observer.prestartup
 import learning_observer.runtime
 import learning_observer.settings as settings
-import learning_observer.communication_protocol.integration
+import learning_observer.util
 
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
@@ -422,10 +423,9 @@ async def run_additional_module_func(request, function_name, kwargs=None):
 
     user = await auth.get_active_user(request)
 
-    user_email = user.get('email', '')
-    user_domain = None
-    if '@' in user_email:
-        user_domain = user_email.split('@')[1]
+    user_domain = learning_observer.util.get_domain_from_email(user.get('email'))
+
+    # TODO add in check for lti_context, if available pass to attributes as well
     roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain})
 
     # HACK the Canvas and Schoology LTI intregration expects a course ID
