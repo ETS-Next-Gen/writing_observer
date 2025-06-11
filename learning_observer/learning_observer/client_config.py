@@ -37,6 +37,7 @@ async def client_config_handler(request):
         "google_oauth": "google_oauth" in learning_observer.settings.settings['auth'],
         "password_auth": "password_file" in learning_observer.settings.settings['auth'],
         "http_basic_auth": learning_observer.auth.http_basic.http_auth_page_enabled(),
+        "lti_auth": "lti" in learning_observer.settings.settings['auth'],
         "theme": learning_observer.settings.settings['theme']
     }
 

@@ -60,6 +60,7 @@ so that class info uses the same format but that is scut work for another
 time.
 '''
 
+import inspect
 import json
 import os.path
 
@@ -71,8 +72,9 @@ import pmss
 
 import learning_observer.auth as auth
 import learning_observer.cache
+import learning_observer.communication_protocol.integration
 import learning_observer.constants as constants
-import learning_observer.google
+import learning_observer.integrations
 import learning_observer.kvs
 import learning_observer.log_event as log_event
 from learning_observer.log_event import debug_log
@@ -80,13 +82,13 @@ import learning_observer.paths as paths
 import learning_observer.prestartup
 import learning_observer.runtime
 import learning_observer.settings as settings
-import learning_observer.communication_protocol.integration
+import learning_observer.util
 
 
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-pmss.parser('roster_source', parent='string', choices=['google_api', 'all', 'test', 'filesystem'], transform=None)
+pmss.parser('roster_source', parent='string', choices=['google', 'canvas', 'schoology', 'all', 'test', 'filesystem'], transform=None)
 pmss.register_field(
     name='source',
     type='roster_source',
@@ -94,7 +96,7 @@ pmss.register_field(
                 '`all`: aggregate all available students into a single class\n'\
                 '`test`: use sample course and student files\n'\
                 '`filesystem`: read rosters defined on filesystem\n'\
-                '`google_api`: fetch from Google API',
+                '`google|schoology|canvas`: fetch from specific API',
     required=True
 )
 
@@ -349,19 +351,13 @@ def init():
     '''
     global ajax
     roster_source = settings.pmss_settings.source(types=['roster_data'])
-    if 'roster_data' not in settings.settings:
-        print(settings.settings)
-        raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster_data` element with a `source` element. No `roster_data` element found."
-        )
-    elif 'source' not in settings.settings['roster_data']:
-        raise learning_observer.prestartup.StartupCheck(
-            "Settings file needs a `roster_data` element with a `source` element. No `source` element found."
-        )
-    elif roster_source in ['test', 'filesystem']:
+    if roster_source in ['test', 'filesystem']:
         ajax = synthetic_ajax
+    # Google, Canvas, and Schoology all use integrations instead of ajax when called
     elif roster_source in ["google_api"]:
         ajax = google_ajax
+    elif roster_source in ["canvas_api", 'schoology_api']:
+        pass
     elif roster_source in ["all"]:
         ajax = all_ajax
     else:
@@ -369,7 +365,7 @@ def init():
             "Settings file `roster_data` element should have `source` field\n"
             "set to either:\n"
             "  test        (retrieve from files courses.json and students.json)\n"
-            "  google_api  (retrieve roster data from Google)\n"
+            "  google_api | canvas_api | schoology_api  (retrieve roster data from an api)\n"
             "  filesystem  (retrieve roster data from file system hierarchy\n"
             "  all  (retrieve roster data as all students)"
         )
@@ -406,14 +402,55 @@ def init():
     return ajax
 
 
+async def run_additional_module_func(request, function_name, kwargs=None):
+    '''This function calls the `function_name` for one of our integrated LMSs.
+    This is used to call the LMSs `.courses` and `.roster` functions.
+    Returns result of the function, `None` otherwise.
+    '''
+    if not kwargs:
+        kwargs = {}
+
+    user = await auth.get_active_user(request)
+
+    user_domain = learning_observer.util.get_domain_from_email(user.get('email'))
+    # TODO we ough to include provider in the attributes (need to test provider)
+    provider = user.get('lti_context', {}).get('provider')
+    roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain})
+
+    # HACK/TODO since Canvas and Schoology are launched via an LTI,
+    # we need to pass a course to the courses - LTI applications are
+    # provided on a course-by-course basis, so fetching the courses
+    # just needs to provide the current course context.
+    if roster_source in ['canvas', 'schoology'] and function_name == 'corosterurses':
+        kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
+
+    if roster_source not in learning_observer.integrations.INTEGRATIONS:
+        debug_log(f'Provider `{roster_source}` not found in INTEGRATIONS. Available integrations: {learning_observer.integrations.INTEGRATIONS.keys()}')
+        return None
+
+    runtime = learning_observer.runtime.Runtime(request)
+    func = learning_observer.integrations.INTEGRATIONS[roster_source].get(function_name, None)
+    if not func:
+        debug_log(f'Provider `{roster_source}` does not have function `{function_name}`.')
+        return None
+
+    if callable(func):
+        result = func(runtime, **kwargs)
+        if inspect.isawaitable(result):
+            result = await result
+        return result
+    debug_log(f'No result from `{roster_source}.{function_name}`')
+    return None
+
+
 async def courselist(request):
     '''
     List all of the courses a teacher manages: Helper
     '''
-    # New code
-    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
-        runtime = learning_observer.runtime.Runtime(request)
-        return await learning_observer.google.courses(runtime)
+    course_list = await run_additional_module_func(request, 'courses')
+    if course_list:
+        return course_list
+    # TODO if course_list is falsey, the following code may fail if there if ajax is not defined.
 
     # Legacy code
     course_list = await ajax(
@@ -445,7 +482,9 @@ async def memoize_courseroster_runtime(runtime, course_id):
     In the future, we ought to be able to specify how the values from
     individual nodes are handled: static, dynamic (current), or memoized.
     '''
-    @learning_observer.cache.async_memoization()
+    # TODO the async memoization cache here is causing a ton of slowdown
+    # when trying to connect to a remote Redis instance.
+    # @learning_observer.cache.async_memoization()
     async def course_roster_memoization_layer(c):
         return await courseroster_runtime(runtime, c)
     return await course_roster_memoization_layer(course_id)
@@ -455,10 +494,12 @@ async def courseroster(request, course_id):
     '''
     List all of the students in a course: Helper
     '''
-    if settings.pmss_settings.source(types=['roster_data']) in ["google_api"]:
-        runtime = learning_observer.runtime.Runtime(request)
-        return await learning_observer.google.roster(runtime, courseId=course_id)
+    roster = await run_additional_module_func(request, 'roster', kwargs={'courseId': course_id})
+    if roster:
+        return roster
 
+    if not ajax:
+        return []
     roster = await ajax(
         request,
         url=ROSTER_URL,

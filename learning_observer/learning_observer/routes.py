@@ -22,7 +22,7 @@ import learning_observer.filesystem_state
 import learning_observer.impersonate
 import learning_observer.incoming_student_event as incoming_student_event
 import learning_observer.dashboard
-import learning_observer.google
+import learning_observer.integrations
 import learning_observer.rosters as rosters
 import learning_observer.module_loader
 
@@ -66,7 +66,7 @@ def add_routes(app):
     register_static_routes(app)
     register_incoming_event_views(app)
     register_debug_routes(app)
-    learning_observer.google.initialize_and_register_routes(app)
+    learning_observer.integrations.register_integrations(app)
 
     app.add_routes([
         aiohttp.web.get(
@@ -240,10 +240,28 @@ def register_auth_webapp_views(app):
         debug_log("Running with Google authentication")
         app.add_routes([
             aiohttp.web.get(
-                # TODO only allow the available sign-in options found in pmss
-                # '/auth/login/{provider:google|canvas|schoology}',
                 '/auth/login/{provider:google}',
                 handler=learning_observer.auth.social_handler),
+        ])
+
+    # TODO We ought to use pmss here, though at this time it is easier
+    # to check if a key exists this way
+    if 'lti' in settings.settings['auth']:
+        debug_log("Running with LTI authentication")
+        # TODO build provider syntax based on available providers
+        app.add_routes([
+            aiohttp.web.post(
+                '/lti/{provider}/login',
+                handler=learning_observer.auth.handle_oidc_authorize),
+            aiohttp.web.get(
+                '/lti/{provider}/login',
+                handler=learning_observer.auth.handle_oidc_authorize),
+            aiohttp.web.post(
+                '/lti/{provider}/launch',
+                handler=learning_observer.auth.handle_oidc_launch),
+            aiohttp.web.get(
+                '/auth/login/lti',
+                learning_observer.auth.check_oidc_login)
         ])
 
     if 'password_file' in settings.settings['auth']:

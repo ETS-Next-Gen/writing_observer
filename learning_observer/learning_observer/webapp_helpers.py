@@ -66,9 +66,19 @@ def setup_session_storage(app):
     '''
     This is a helper function to setup session storage.
     '''
+    protocol = settings.pmss_settings.protocol()
+    cookie_params = {}
+    if protocol == 'https':
+        debug_log('Setting cookie parameters for HTTPS')
+        cookie_params = {
+            'domain': settings.pmss_settings.hostname(),
+            'secure': True,
+            'samesite': 'None'
+        }
     aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(
         learning_observer.auth.fernet_key(settings.pmss_settings.session_secret(types=['aio'])),
-        max_age=settings.pmss_settings.session_max_age(types=['aio'])))
+        max_age=settings.pmss_settings.session_max_age(types=['aio']),
+        **cookie_params))
 
 
 def find_open_port():
