@@ -115,7 +115,6 @@ requirejs(
 	function load_login_page() {
 	    d3.select(".main-page").html(mustache.render(login, config['theme']));
 	    d3.select(".lo-google-auth").classed("is-hidden", !config['google_oauth']);
-	    d3.select(".lo-lti-auth").classed("is-hidden", !config['lti_auth']);
 	    d3.select(".lo-http-auth").classed("is-hidden", !config['http_basic_auth']);
 	    d3.select(".lo-password-auth").classed("is-hidden", !config['password_auth']);
 		d3.select('.lo-google-auth p a').attr('href', function () {
