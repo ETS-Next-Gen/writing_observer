@@ -421,7 +421,7 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     # we need to pass a course to the courses - LTI applications are
     # provided on a course-by-course basis, so fetching the courses
     # just needs to provide the current course context.
-    if roster_source in ['canvas', 'schoology'] and function_name == 'corosterurses':
+    if roster_source in ['canvas', 'schoology'] and function_name == 'courses':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
 
     if roster_source not in learning_observer.integrations.INTEGRATIONS:
