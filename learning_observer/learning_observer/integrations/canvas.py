@@ -16,7 +16,6 @@ pmss.register_field(
 
 
 def setup_canvas_provider(provider):
-    # TODO pull the base url from settings based on provider
     base_url = settings.pmss_settings.api_domain(types=['auth', 'lti', provider])
 
     ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name=provider), [

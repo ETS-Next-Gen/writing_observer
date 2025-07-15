@@ -412,10 +412,10 @@ async def run_additional_module_func(request, function_name, kwargs=None):
 
     user = await auth.get_active_user(request)
 
+    # Grab roster source based on user
     user_domain = learning_observer.util.get_domain_from_email(user.get('email'))
-    # TODO we ough to include provider in the attributes (need to test provider)
     provider = user.get('lti_context', {}).get('provider')
-    roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain})
+    roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain, 'provider': provider})
 
     # HACK/TODO since Canvas and Schoology are launched via an LTI,
     # we need to pass a course to the courses - LTI applications are
@@ -423,6 +423,8 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     # just needs to provide the current course context.
     if roster_source in ['canvas', 'schoology'] and function_name == 'courses':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
+    if roster_source == 'schoology':
+        kwargs['clientId'] = settings.pmss_settings.client_id(types=['auth', 'lti', provider])
 
     if roster_source not in learning_observer.integrations.INTEGRATIONS:
         debug_log(f'Provider `{roster_source}` not found in INTEGRATIONS. Available integrations: {learning_observer.integrations.INTEGRATIONS.keys()}')

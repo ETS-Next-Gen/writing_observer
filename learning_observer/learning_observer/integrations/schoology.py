@@ -7,8 +7,8 @@ from . import util
 API = 'schoology'
 
 ENDPOINTS = list(map(lambda x: util.Endpoint(**x, api_name=API), [
-    {'name': 'course_list', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/enrollments', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
-    {'name': 'course_roster', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/enrollments', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
+    {'name': 'course_list', 'remote_url': 'https://lti-service.svc.schoology.com/lti-service/tool/{clientId}/services/names-roles/v2p0/membership/{courseId}', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
+    {'name': 'course_roster', 'remote_url': 'https://lti-service.svc.schoology.com/lti-service/tool/{clientId}/services/names-roles/v2p0/membership/{courseId}', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
     {'name': 'course_assignments', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/assignments', 'headers': {'Accept': 'application/vnd.ims.lis.v2.lineitemcontainer+json'}},
 ]))
 
