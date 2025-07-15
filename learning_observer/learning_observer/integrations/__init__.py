@@ -20,9 +20,12 @@ def register_integrations(app):
     if 'lti' not in learning_observer.settings.settings['auth']:
         return
 
-    if 'schoology' in learning_observer.settings.settings['auth']['lti']:
+    # TODO we ought to check for what type of provider each lti setting needs
+    # then only register the needed set of providers
+    if any('schoology' in k for k in learning_observer.settings.settings['auth']['lti']):
         INTEGRATIONS['schoology'] = learning_observer.integrations.schoology.register_endpoints(app)
 
+    # TODO we ought to fetch the following information with PMSS
     canvas_providers = [k for k in learning_observer.settings.settings['auth']['lti'].keys() if 'canvas' in k]
     for provider in canvas_providers:
         provider_endpoint_registrar = learning_observer.integrations.canvas.setup_canvas_provider(provider)
