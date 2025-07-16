@@ -1,3 +1,4 @@
+protocol: http
 config:
   run_mode: dev
 auth:

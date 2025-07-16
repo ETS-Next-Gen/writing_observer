@@ -67,9 +67,18 @@ NOTE: All future commands should be ran starting from the repository's root dire
 
 Make sure you are on a fresh virtual environment. In `virtualenvwrapper`:
 
+You can either run this
+
 ```bash
 mkvirtualenv lo_workshop
 workon lo_workshop
+```
+
+or run this to set up the virtual environment
+
+```bash
+python -m venv lo_workshop
+source lo_workshop/bin/activate
 ```
 
 Then run the install command:

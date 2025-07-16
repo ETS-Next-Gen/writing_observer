@@ -35,36 +35,17 @@ window.dash_clientside.{{ cookiecutter.project_slug }} = {
   },
 
   /**
-   * Process a message from LOConnection
-   * @param {object} incomingMessage object received from LOConnection
-   * @returns parsed data to local storage
-   */
-  receiveWSMessage: async function (incomingMessage) {
-    // TODO the naming here is broken serverside. Notice above we
-    //  called the target export `{{ cookiecutter.reducer }}_export`, i.e. the named
-    // export. Below, we need to call `{{ cookiecutter.project_slug }}_join_roster`, i.e. the name
-    // of the node. This ought to be cleaned up in the communication protocl.
-    const messageData = JSON.parse(incomingMessage.data).{{ cookiecutter.project_slug }}_query.{{ cookiecutter.reducer }}_join_roster || [];
-    if (messageData.error !== undefined) {
-      console.error('Error received from server', messageData.error);
-      return [];
-    }
-    return messageData;
-  },
-
-  /**
    * Build the student UI components based on the stored websocket data
    * @param {*} wsStorageData information stored in the websocket store
    * @returns Dash object to be displayed on page
    */
-  populateOutput: function(wsStorageData) {
-    if (!wsStorageData) {
+  populateOutput: function (wsStorageData) {
+    if (!wsStorageData?.students) {
       return 'No students';
     }
     let output = []
     // Iterate over students and create UI items for each
-    for (const student of wsStorageData) {
-
+    for (const [student, value] of Object.entries(wsStorageData.students)) {
       // We define Dash components in JS via a dictionary
       // of where the component lives, what it is, and any
       // parameters we want to pass along to it.
@@ -72,31 +53,27 @@ window.dash_clientside.{{ cookiecutter.project_slug }} = {
       // - `type`: the component to use
       // - `props`: any parameters the component expects
       // The following produces a LONameTag and Span wrapped in a Div
-      studentBadge = {
+      const studentBadge = {
         namespace: 'dash_html_components',
         type: 'Div',
         props: {
           children: [{
-            namespace: 'lo_dash_react_components',
-            props: {
-              profile: student.profile,
-              className: 'student-name-tag d-inline-block',
-              includeName: true,
-              id: `${student.user_id}-activity-img`
-            },
-            type: 'LONameTag'
-          },{
             namespace: 'dash_html_components',
             props: {
-              children: ` - ${student.count} events`,
+              children: student
             },
             type: 'Span'
-
+          }, {
+            namespace: 'dash_html_components',
+            props: {
+              children: ` - ${value.count} events`
+            },
+            type: 'Span'
           }]
         }
       }
-      output = output.concat(studentBadge)
+      output = output.concat(studentBadge);
     }
     return output;
   }
-}
+};
