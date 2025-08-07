@@ -22,6 +22,7 @@ import aiohttp.web
 
 import learning_observer.constants as constants
 import learning_observer.settings as settings
+import learning_observer.kvs
 import learning_observer.log_event
 import learning_observer.auth
 import learning_observer.runtime
@@ -235,7 +236,8 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
             key_translator=key_translator,
             cache=cache,
             cache_key_prefix=cache_key_prefix,
-            name=e.name
+            name=e.name,
+            headers=e.headers
         )
         result_functions[function_name] = raw_function
         cleaners = e._cleaners()
@@ -299,3 +301,12 @@ def make_cleaner_registrar(endpoints):
         return decorator
 
     return register_cleaner
+
+
+async def lookup_gids_by_emails(emails):
+    '''Fetch a set of google ids based on a list of emails
+    '''
+    kvs = learning_observer.kvs.KVS()
+    keys = [f'email-studentID-mapping:{email}' for email in emails]
+    ids = await kvs.multiget(keys)
+    return ids

@@ -88,7 +88,11 @@ import learning_observer.util
 COURSE_URL = 'https://classroom.googleapis.com/v1/courses'
 ROSTER_URL = 'https://classroom.googleapis.com/v1/courses/{courseid}/students'
 
-pmss.parser('roster_source', parent='string', choices=['google', 'canvas', 'schoology', 'all', 'test', 'filesystem'], transform=None)
+# TODO we need to treat canvas sources as individuals since they could
+# come from different servers. Whereas schoology always calls into the
+# same api endpoints.
+# i.e. the roster_source name for canvas is config dependent
+pmss.parser('roster_source', parent='string', choices=['google', 'x-canvas', 'schoology', 'all', 'test', 'filesystem'], transform=None)
 pmss.register_field(
     name='source',
     type='roster_source',
@@ -421,7 +425,8 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     # we need to pass a course to the courses - LTI applications are
     # provided on a course-by-course basis, so fetching the courses
     # just needs to provide the current course context.
-    if roster_source in ['canvas', 'schoology'] and function_name == 'courses':
+    # HACK/TODO there ought to be a better way to determine if schoology or canvas is present
+    if ('canvas' in roster_source or 'schoology' in roster_source) and function_name == 'courses':
         kwargs['courseId'] = user.get('lti_context', {}).get('api_id')
     if roster_source == 'schoology':
         kwargs['clientId'] = settings.pmss_settings.client_id(types=['auth', 'lti', provider])
@@ -450,7 +455,7 @@ async def courselist(request):
     List all of the courses a teacher manages: Helper
     '''
     course_list = await run_additional_module_func(request, 'courses')
-    if course_list:
+    if course_list is not None:
         return course_list
     # TODO if course_list is falsey, the following code may fail if there if ajax is not defined.
 
@@ -497,7 +502,7 @@ async def courseroster(request, course_id):
     List all of the students in a course: Helper
     '''
     roster = await run_additional_module_func(request, 'roster', kwargs={'courseId': course_id})
-    if roster:
+    if roster is not None:
         return roster
 
     if not ajax:
