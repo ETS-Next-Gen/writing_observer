@@ -280,7 +280,7 @@ def debug_log(*args):
 
     # Print to file. Only helpful for development.
     if LogDestination.FILE in DEBUG_LOG_DESTINATIONS:
-        with open(paths.logs("debug.log"), "a") as fp:
+        with open(paths.logs("debug.log"), "a", encoding='utf-8') as fp:
             fp.write(message.strip() + "\n")
 
     # Ideally, we'd like to be able to log these somewhere which won't cause cascading failures.
