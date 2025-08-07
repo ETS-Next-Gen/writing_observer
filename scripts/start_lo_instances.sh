@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # === Config ===
-NUM_SERVERS=${1:-2}                      # default: 2 servers
+NUM_SERVERS=${1:-1}     # default 1 server instance
 START_PORT=9001
 LOGFILE_DEST="/var/log/learning_observer"
 PIDFILE_DIR="$LOGFILE_DEST/pids"
@@ -24,10 +24,11 @@ source "$VIRTUALENV_PATH/bin/activate"
 
 for ((i=0; i<NUM_SERVERS; i++)); do
     PORT=$((START_PORT + i))
-    LOGFILE_NAME="$LOGFILE_DEST/${SCRIPT_NAME}_$PORT_$LOG_DATE.log"
-    PIDFILE_NAME="$PIDFILE_DIR/${SCRIPT_NAME}_$PORT.pid"
+    LOGFILE_NAME="$LOGFILE_DEST/${SCRIPT_NAME}_${LOG_DATE}_${PORT}.log"
+    PIDFILE_NAME="$PIDFILE_DIR/${SCRIPT_NAME}_${PORT}.pid"
 
-    echo "Starting server on port $PORT..."
+    echo "Starting server on port $PORT"
+    echo "  -> Log: $LOGFILE_NAME"
     nohup python $SCRIPT_NAME --port $PORT > "$LOGFILE_NAME" 2>&1 &
     PROCESS_ID=$!
     echo $PROCESS_ID > "$PIDFILE_NAME"
@@ -35,3 +36,4 @@ for ((i=0; i<NUM_SERVERS; i++)); do
 done
 
 echo "✅ All servers started."
+echo "Run `./scripts/stop_lo_instances.sh` to stop server processes."
