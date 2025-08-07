@@ -63,7 +63,7 @@ def configure_event_loop():
         debug_log("Running without uvloop")
 
 
-port = None
+port = getattr(args, 'port', None)
 runmode = None
 
 
