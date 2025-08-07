@@ -229,6 +229,18 @@ async def event_count(event, internal_state):
     return state, state
 
 
+@kvs_pipeline(scope=student_scope, null_state={})
+async def student_profile(event, internal_state):
+    '''Store profile information for a given id
+    '''
+    email = event['client'].get('chrome_identity', {}).get('email')
+    id = event['client'].get('auth', {}).get('safe_user_id')
+    if email != internal_state.get('email') or id != internal_state.get('user_id'):
+        state = {'email': email, 'google_id': id}
+        return state, state
+    return False, False
+
+
 @kvs_pipeline(scope=gdoc_scope, null_state={})
 async def nlp_components(event, internal_state):
     '''HACK the reducers need this method to query data
