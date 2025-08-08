@@ -32,8 +32,8 @@ for ((i=0; i<NUM_SERVERS; i++)); do
     nohup python $SCRIPT_NAME --port $PORT > "$LOGFILE_NAME" 2>&1 &
     PROCESS_ID=$!
     echo $PROCESS_ID > "$PIDFILE_NAME"
-    echo "  ↪ PID $PROCESS_ID logged to $PIDFILE_NAME"
+    echo "  -> PID $PROCESS_ID logged to $PIDFILE_NAME"
 done
 
 echo "✅ All servers started."
-echo "Run `./scripts/stop_lo_instances.sh` to stop server processes."
+echo "Run ./scripts/stop_lo_instances.sh to stop server processes."
