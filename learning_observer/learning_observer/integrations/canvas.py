@@ -16,7 +16,6 @@ pmss.register_field(
 
 
 def setup_canvas_provider(provider):
-    # TODO pull the base url from settings based on provider
     base_url = settings.pmss_settings.api_domain(types=['auth', 'lti', provider])
 
     ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name=provider), [
@@ -63,15 +62,7 @@ def setup_canvas_provider(provider):
         cleaned = [course]
         return cleaned
 
-    async def _lookup_gid_by_email(email):
-        kvs = learning_observer.kvs.KVS()
-        key = f'email-studentID-mapping:{email}'
-        id = await kvs[key]
-        if id:
-            return f'gid-{id}'
-        return None
-
-    async def _process_canvas_user_for_system(member):
+    def _process_canvas_user_for_system(member, google_id):
         # Skip if no canvas id
         canvas_id = member.get('user_id')
         if not canvas_id: return None
@@ -82,7 +73,7 @@ def setup_canvas_provider(provider):
 
         # Create user for our system
         email = member.get('email')
-        local_id = await _lookup_gid_by_email(email)
+        local_id = google_id
         if not local_id:
             local_id = f'canvas-{canvas_id}'
 
@@ -116,9 +107,11 @@ def setup_canvas_provider(provider):
             key=lambda x: x.get('name', 'ZZ'),
         )
         # Process each student record
+        emails = [m.get('email') for m in members]
+        google_ids = await util.lookup_gids_by_emails(emails)
         users = []
-        for m in members:
-            user = await _process_canvas_user_for_system(m)
+        for member, google_id in zip(members, google_ids):
+            user = _process_canvas_user_for_system(member, google_id)
             if user is not None:
                 users.append(user)
 

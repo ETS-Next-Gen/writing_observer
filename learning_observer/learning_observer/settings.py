@@ -91,6 +91,11 @@ def parse_and_validate_arguments():
         help='Launce the Learning Observer application. This can be used with `--ipython-console` and `--ipython-kernel`.',
         default=True, nargs='?', const=True, type=str_to_bool)
 
+    parser.add_argument(
+        '--port',
+        help='Which port to start the system on. Overrides any port listed in a configuration file.',
+        type=int)
+
     args = parser.parse_args()
 
     if not os.path.exists(args.config_file):

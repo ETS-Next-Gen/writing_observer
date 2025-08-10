@@ -90,7 +90,9 @@ BOOTSTRAP_MIN_CSS = {
         "5.3.3": "54b69b378be9029cb841bce9f33e111148231ce38ae389601c10ee1fec93b"
         "bfb84839e84911e9e32e9e026a182e7225fd8531dc8344ba94ef4b467852e7162d5",
         "5.3.5": "3c9aa2c118ba4cbb2f54b2ca87528c453503ab5545983b6f5d10c6f04abd9"
-        "d4feb003c80c59a092857808e439642ab45e38369980288e7afb5a11e0e7946270e"
+        "d4feb003c80c59a092857808e439642ab45e38369980288e7afb5a11e0e7946270e",
+        "5.3.6": "0d33ccd34e5244052264f2e30088c92bfd28efc2db229926932be93ba3cc4"
+        "8b5f8378e12cf030c50965d1aa62a4a1a8f74493293b320aa9ef0a6b98962ab83b8"
     },
     "tested_versions": [
         'https://cdn.jsdelivr.net/npm/bootswatch@5.3.5/dist/minty/bootstrap.min.css',

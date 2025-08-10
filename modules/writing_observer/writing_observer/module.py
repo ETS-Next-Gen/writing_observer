@@ -316,6 +316,11 @@ REDUCERS = [
         'function': writing_observer.writing_analysis.languagetool_process,
         'default': {'text': '', 'category_counts': {}, 'matches': [], 'subcategory_counts': {}, 'wordcounts': {}}
     },
+    {
+        'context': "org.mitros.writing_analytics",
+        'scope': writing_observer.writing_analysis.student_scope,
+        'function': writing_observer.writing_analysis.student_profile,
+    }
 ]
 
 

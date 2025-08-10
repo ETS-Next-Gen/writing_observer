@@ -7,8 +7,8 @@ from . import util
 API = 'schoology'
 
 ENDPOINTS = list(map(lambda x: util.Endpoint(**x, api_name=API), [
-    {'name': 'course_list', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/enrollments', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
-    {'name': 'course_roster', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/enrollments', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
+    {'name': 'course_list', 'remote_url': 'https://lti-service.svc.schoology.com/lti-service/tool/{clientId}/services/names-roles/v2p0/membership/{courseId}', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
+    {'name': 'course_roster', 'remote_url': 'https://lti-service.svc.schoology.com/lti-service/tool/{clientId}/services/names-roles/v2p0/membership/{courseId}', 'headers': {'Accept': 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json'}},
     {'name': 'course_assignments', 'remote_url': 'https://api.schoology.com/v1/sections/{courseId}/assignments', 'headers': {'Accept': 'application/vnd.ims.lis.v2.lineitemcontainer+json'}},
 ]))
 
@@ -45,28 +45,19 @@ def clean_course_list(schoology_json):
     return [course]
 
 
-# TODO this already exists in a different place - it should live in only one place
-async def _lookup_gid_by_email(email):
-    kvs = learning_observer.kvs.KVS()
-    key = f'email-studentID-mapping:{email}'
-    id = await kvs[key]
-    if id:
-        return f'gid-{id}'
-    return None
-
-
-async def _process_schoology_user_for_system(member):
+def _process_schoology_user_for_system(member, google_id):
     # Skip if no canvas id
     canvas_id = member.get('user_id')
     if not canvas_id: return None
 
     # Skip non students
     is_student = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Learner' in member.get('roles', [])
-    if not is_student: return None
+    if not is_student:
+        return None
 
     # Create user for our system
     email = member.get('email')
-    local_id = await _lookup_gid_by_email(email)
+    local_id = google_id
     if not local_id:
         local_id = f'canvas-{canvas_id}'
 
@@ -96,11 +87,17 @@ async def clean_course_roster(schoology_json):
     Conforms to LTI NRPS v2 response format
     https://www.imsglobal.org/spec/lti-nrps/v2p0
     '''
-    print('clean_course_roster', schoology_json)
-    return
-    # Process each student record
-    # for m in members:
-        # user = await _process_schoology_user_for_system(m)
+    members = schoology_json.get('members', [])
+    users = []
+
+    emails = [m.get('email') for m in members]
+    google_ids = await util.lookup_gids_by_emails(emails)
+
+    for member, google_id in zip(members, google_ids):
+        user = _process_schoology_user_for_system(member, google_id)
+        if user is not None:
+            users.append(user)
+    return users
 
 
 @register_cleaner('course_assignments', 'assignments') 
@@ -111,5 +108,5 @@ def clean_course_assignments(schoology_json):
     Conforms to LTI AGS response format
     https://www.imsglobal.org/spec/lti-ags/v2p0
     '''
-    print('clean_course_assignments', schoology_json)
-    return
+    # print('Schoology assignments TODO', schoology_json)
+    return []
