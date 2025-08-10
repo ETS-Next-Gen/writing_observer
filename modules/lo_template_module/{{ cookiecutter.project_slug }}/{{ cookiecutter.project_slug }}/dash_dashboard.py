@@ -23,33 +23,22 @@ from .my_layout import my_layout, my_data_layout
 _prefix = '{{ cookiecutter.project_hyphenated }}'
 _namespace = '{{ cookiecutter.project_slug }}'
 _websocket = f'{_prefix}-websocket'
-_websocket_storage = f'{_prefix}-websocket-store'
 _output = f'{_prefix}-output'
 
 def layout():
     '''
     Function to define the page's layout.
     '''
-    return my_layout(_websocket, _websocket_storage, _output)
+    return my_layout(_websocket, _output)
 
 # Send the initial state based on the url hash to LO.
 # If this is not included, nothing will be returned from
 # the communication protocol.
 clientside_callback(
     ClientsideFunction(namespace=_namespace, function_name='sendToLOConnection'),
-    Output(lodrc.LOConnectionStatusAIO.ids.websocket(_websocket), 'send'),
-    Input(lodrc.LOConnectionStatusAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
+    Output(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'send'),
+    Input(lodrc.LOConnectionAIO.ids.websocket(_websocket), 'state'),  # used for initial setup
     Input('_pages_location', 'hash')
-)
-
-# Handle receiving a message from the websocket.
-# This step will parse the message and update the
-# local storage accordingly.
-clientside_callback(
-    ClientsideFunction(namespace=_namespace, function_name='receiveWSMessage'),
-    Output(_websocket_storage, 'data'),
-    Input(lodrc.LOConnectionStatusAIO.ids.websocket(_websocket), 'message'),
-    prevent_initial_call=True
 )
 
 # Build the UI based on what we've received from the
@@ -59,13 +48,13 @@ clientside_callback(
 # clientside_callback(
 #     ClientsideFunction(namespace=_namespace, function_name='populateOutput'),
 #     Output(_output, 'children'),
-#     Input(_websocket_storage, 'data'),
+#     Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
 # )
 
 
 @callback(
     Output(_output, 'children'),
-    Input(_websocket_storage, 'data'),
+    Input(lodrc.LOConnectionAIO.ids.ws_store(_websocket), 'data'),
 )
 def populate_output(data):
     '''This method creates UI components for each student found
