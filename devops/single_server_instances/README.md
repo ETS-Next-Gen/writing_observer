@@ -34,3 +34,41 @@ Stop all instances:
 
 Logs are saved in `LOGFILE_DEST`, and PIDs are stored in `LOGFILE_DEST/pids`.
 You may need to change paths or permissions depending on your environment.
+
+## Nginx Settings
+
+The file `nginx.conf.example` provides a sample configration for Nginx when you start 4 instances of LO.
+First, these settings split the incoming events and all other traffic between 2 upstream servers.
+Each upstream server balances connections between 2 instances of Learning Observer.
+
+```text
+Incoming Request
+       │
+       ▼
++---------------+
+|    NGINX      |
++---------------+
+       │
+       ▼
+      Path starts
+    with "/wsapi/in/"?
+       ┌───────────────┐
+    Yes│               │No
+       ▼               ▼
++------------------+ +-----------------+
+| wsapi_in_backend | | general_backend |
+|                  | |                 |
++-------+----------+ +--------+--------+
+        │                  │
+   +----+----+        +----+----+   Balanced by least
+   | App 1   |        | App 3   |   connections `least_conn`
+   | :9001   |        | :9003   |
+   +---------+        +---------+
+   +----+----+        +----+----+
+   | App 2   |        | App 4   |
+   | :9002   |        | :9004   |
+   +---------+        +---------+
+```
+
+Note: these are settings to add to your nginx configuration.
+You will likely have other settings, such as ssl certificates.
