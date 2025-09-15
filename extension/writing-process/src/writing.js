@@ -10,6 +10,19 @@ import { googledocs_id_from_url, treeget } from './writing_common';
    General Utility Functions
 */
 
+// Notify the service worker that this content script is active. We also
+// provide a hook to let the service worker know when the script is about to
+// unload so it can perform any necessary cleanup (for example, shutting down
+// loggers when no tabs are active).
+if (chrome.runtime?.id !== undefined) {
+    chrome.runtime.sendMessage({ type: 'content_script_ready' });
+    window.addEventListener('beforeunload', () => {
+        if (chrome.runtime?.id !== undefined) {
+            chrome.runtime.sendMessage({ type: 'content_script_unloading' });
+        }
+    });
+}
+
 function log_error(error_string) {
     /*
        We should send errors to the server, but for now, we
