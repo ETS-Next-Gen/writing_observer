@@ -9,9 +9,7 @@ var RAW_DEBUG = false;
 /* This variable must be manually updated to specify the server that
  * the data will be sent to.  
 */
-// var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/";
-// var WEBSOCKET_SERVER_URL = "wss://gunnlag.csc.ncsu.edu/wsapi/in/";
-var WEBSOCKET_SERVER_URL = "ws://localhost:8888/wsapi/in/";
+var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/";
 
 import { googledocs_id_from_url } from './writing_common';
 
