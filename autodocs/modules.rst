@@ -1,11 +1,9 @@
-.. _modules:
-
 Modules
 -----------
+The module READMEs are collected automatically during the Sphinx build.
 
-.. include:: ../modules/lo_dash_react_components/README.md
-   :parser: myst_parser.sphinx_
-.. include:: ../modules/lo_event/README.md
-   :parser: myst_parser.sphinx_
-.. include:: ../modules/writing_observer/README.md
-   :parser: myst_parser.sphinx_
+.. toctree::
+   :maxdepth: 1
+   :glob:
+
+   module_readmes/*

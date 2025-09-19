@@ -12,14 +12,21 @@ per-student writing data, and aggegators to make dashboards. We've
 tested this in math and writing, but our focus is on writing process
 data.
 
-.. toctree::
-   :maxdepth: 2
+Our documentation is organized into four main categories, each serving a different purpose. You can explore them below:
 
-   development
-   system_design
-   modules
-   extension
-   api
+- :doc:`Tutorials <tutorials>` - Step-by-step guides to help you learn by doing.
+- :doc:`Concepts <concepts>` - Explanations of key ideas and background knowledge.
+- :doc:`How-To <how-to>` - Practical instructions to solve specific goals.
+- :doc:`Reference <reference>` - Detailed API/configuration information.
+
+.. toctree::
+   :hidden:
+   :maxdepth: 3
+
+   tutorials
+   concepts
+   how-to
+   reference
 
 Additional Information
 ----------------------
