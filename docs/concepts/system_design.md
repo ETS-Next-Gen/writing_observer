@@ -20,7 +20,7 @@ Our goal is to build a system which will:
 
 In other words:
 
-![](_images/block.png)
+![](../_images/block.png)
 
 Internally, the system takes a stream of events from each learner, and
 routes it to one or more analytics modules. Each of these modules
@@ -37,7 +37,7 @@ through instructors for such an aggregation, and only aggregate where
 data has changed, so that with large numbers of instructors, the
 system merely updates dashboards less quickly:
 
-![](_images/lo_block.png)
+![](../_images/lo_block.png)
 
 Although at present, reduce operations are per-student, and
 aggregations per-class, in the future, we envision:
@@ -51,6 +51,6 @@ aggregations per-class, in the future, we envision:
 
 Data will be stored in a git-like Merkle tree format: 
 
-![](_images/mmnd.png)
+![](../_images/mmnd.png)
 
 We'll document this in more detail later.
