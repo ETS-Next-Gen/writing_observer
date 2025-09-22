@@ -17,7 +17,8 @@
         "storage",
         "nativeMessaging",
         "scripting",
-        "activeTab"
+        "activeTab",
+        "tabs"
     ],
     "icons": {
 	    "48": "assets/lousy-fountain-pen-48.png"

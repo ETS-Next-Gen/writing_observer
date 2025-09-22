@@ -187,6 +187,14 @@ async def handle_incoming_client_event(metadata):
     # The adapter allows us to handle old event formats
     adapter = learning_observer.adapters.adapter.EventAdapter()
 
+    handler_log_closed = False
+
+    def close_handler_log():
+        nonlocal handler_log_closed
+        if not handler_log_closed:
+            log_event.close_logfile(filename)
+            handler_log_closed = True
+
     async def handler(request, client_event):
         '''
         This is the handler for incoming client events.
@@ -206,11 +214,16 @@ async def handle_incoming_client_event(metadata):
         log_event.log_event(
             json.dumps(event, sort_keys=True),
             filename, preencoded=True, timestamp=True)
+        if client_event.get("event") == "terminate":
+            debug_log("Terminate event received; closing handler log file")
+            close_handler_log()
+            return []
         await pipeline(event)
 
     # when the handler garbage collected (no more events are being passed through),
     # close the log file associated with this connection
-    weakref.finalize(handler, log_event.close_logfile, filename)
+    weakref.finalize(handler, close_handler_log)
+    handler.close = close_handler_log
 
     return handler
 
@@ -291,20 +304,32 @@ def event_decoder_and_logger(
     )
     COUNT += 1
 
+    decoder_log_closed = False
+
+    def close_decoder_logfile():
+        nonlocal decoder_log_closed
+        if not decoder_log_closed:
+            log_event.close_logfile(filename)
+            decoder_log_closed = True
+
     async def decode_and_log_event(events):
         '''
         Take an aiohttp web sockets message, log it, and return
         a clean event.
         '''
-        async for msg in events:
-            if isinstance(msg, dict):
-                json_event = msg
-            else:
-                json_event = json.loads(msg.data)
-            log_event.log_event(json_event, filename=filename)
-            yield json_event
-        # done processing events, can close logfile now
-        log_event.close_logfile(filename)
+        try:
+            async for msg in events:
+                if isinstance(msg, dict):
+                    json_event = msg
+                else:
+                    json_event = json.loads(msg.data)
+                log_event.log_event(json_event, filename=filename)
+                yield json_event
+        finally:
+            # done processing events, can close logfile now
+            close_decoder_logfile()
+
+    decode_and_log_event.close = close_decoder_logfile
     return decode_and_log_event
 
 
@@ -434,6 +459,21 @@ async def incoming_websocket_handler(request):
                 event.update(lock_fields)
                 yield event
 
+    async def handle_terminate_events(events):
+        '''Stop processing when a terminate event is received.'''
+        async for event in events:
+            if event.get('event') == 'terminate':
+                debug_log('Terminate event received; shutting down connection and cleaning up logs.')
+                handler_close = getattr(event_handler, 'close', None)
+                if callable(handler_close):
+                    handler_close()
+                decoder_close = getattr(decoder_and_logger, 'close', None)
+                if callable(decoder_close):
+                    decoder_close()
+                await ws.close()
+                return
+            yield event
+
     async def filter_blacklist_events(events):
         '''This function stops the event pipeline if sources
         should be blocked.
@@ -498,6 +538,7 @@ async def incoming_websocket_handler(request):
         events = process_message_from_ws()
         events = decoder_and_logger(events)
         events = decode_lock_fields(events)
+        events = handle_terminate_events(events)
         events = handle_auth_events(events)
         events = filter_blacklist_events(events)
         events = process_blob_storage_events(events)

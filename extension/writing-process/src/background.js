@@ -28,34 +28,54 @@ import { localStorageInfo, sessionStorageInfo } from 'lo_event/lo_event/metadata
 // } /* and other async logic */);
 // websocketLogger( callback );
 
+// Track which tabs currently have an active content script and the state of
+// our logger so that we only initialize logging when needed.
+const activeContentTabs = new Set();
+let loEventActive = false;
+let loggers = [];
+const manifestVersion = chrome.runtime.getManifest().version;
+
+
 // We are not sure if this should be done within `websocketLogger()`'s `init`
 // or one level up. 
-const loggers = [
-  consoleLogger(),
-  websocketLogger(WEBSOCKET_SERVER_URL)
-]
+function startLogger () {
+    if (loEventActive) return;
+    loggers = [
+        consoleLogger(),
+        websocketLogger(WEBSOCKET_SERVER_URL)
+    ];
+    loEvent.init(
+        'org.mitros.writing_analytics',
+        manifestVersion,
+        loggers,
+        {
+            debugLevel: loEventDebug.LEVEL.SIMPLE,
+            // TODO document what we have currently and what we want
+            metadata: [
+                browserInfo(),
+                chromeAuth(),
+                localStorageInfo(),
+                sessionStorageInfo(),
+            ]
+        }
+    );
+    loEvent.go();
+    loEventActive = true;
+    loEvent.logEvent('extension_loaded', {});
+    logFromServiceWorker('Extension loaded');
+}
 
-loEvent.init(
-    'org.mitros.writing_analytics',
-    '0.01',
-    loggers,
-    {
-        debugLevel: loEventDebug.LEVEL.SIMPLE,
-        metadata: [
-            browserInfo(),
-            chromeAuth(),
-            localStorageInfo(),
-            sessionStorageInfo(),
-        ]
-    }
-);
-loEvent.go();
+function stopLogger () {
+    if (!loEventActive) return;
+    loEvent.logEvent('terminate', {});
+    loEventActive = false;
+}
 
 // Function to serve as replacement for 
 // chrome.extension.getBackgroundPage().console.log(event); because it is not allowed in V3
 // It logs the event to the console for debugging.
 function logFromServiceWorker(event) {
-  console.log(event);
+    console.log(event);
 }
 
 function this_a_google_docs_save(request) {
@@ -69,7 +89,7 @@ function this_a_google_docs_save(request) {
        went from a conservative regexp to a liberal one. We should
        confirm this never catches extra requests, though.
     */
-    if(request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/save/i)) {
+    if (request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/save/i)) {
         return true;
     }
     return false;
@@ -85,7 +105,7 @@ function this_a_google_docs_bind(request) {
 
       https://stackoverflow.com/questions/6831916/is-it-possible-to-monitor-http-traffic-in-chrome-using-an-extension#6832018
     */
-    if(request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/bind/i)) {
+    if (request.url.match(/.*:\/\/docs\.google\.com\/document\/(.*)\/bind/i)) {
         return true;
     }
     return false;
@@ -106,10 +126,29 @@ chrome.storage.sync.get(['process_server'], function(result) {
 
 // Listen for the keystroke messages from the page script and forward to the server.
 chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-        //chrome.extension.getBackgroundPage().console.log("Got message");
-        //chrome.extension.getBackgroundPage().console.log(request);
-        //console.log(sender);
+    function (request, sender, sendResponse) {
+        // Lifecycle messages from content scripts manage the logger state
+        if (request?.type === 'content_script_ready') {
+            if (sender.tab?.id !== undefined) {
+                activeContentTabs.add(sender.tab.id);
+                if (!loEventActive) {
+                    startLogger();
+                }
+            }
+            return;
+        } else if (request?.type === 'content_script_unloading') {
+            if (sender.tab?.id !== undefined) {
+                activeContentTabs.delete(sender.tab.id);
+                if (activeContentTabs.size === 0) {
+                    stopLogger();
+                }
+            }
+            return;
+        }
+        // Forward analytics events only when the logger is active
+        if (!loEventActive) {
+            return;
+        }
         request['wa_source'] = 'client_page';
         loEvent.logEvent(request['event'], request);
     }
@@ -142,31 +181,35 @@ chrome.webRequest.onBeforeRequest.addListener(
       especially new pages. They do inject a lot of noise, though, and
       from there, being able to easily ignore these is nice.
      */
-    function(request) {
+    function (request) {
+        // No logger availaber
+        if (!loEventActive) {
+            return;
+        }
         //chrome.extension.getBackgroundPage().console.log("Web request url:"+request.url);
         var formdata = {};
         let event;
-        if(request.requestBody) {
+        if (request.requestBody) {
             formdata = request.requestBody.formData;
         }
-        if(!formdata) {
+        if (!formdata) {
             formdata = {};
         }
-        if(RAW_DEBUG) {
+        if (RAW_DEBUG) {
             loEvent.logEvent('raw_http_request', {
-                'url':  request.url,
+                'url': request.url,
                 'form_data': formdata
             });
         }
 
-        if(this_a_google_docs_save(request)){
+        if (this_a_google_docs_save(request)) {
             //chrome.extension.getBackgroundPage().console.log("Google Docs bundles "+request.url);
             try {
                 /* We should think through which time stamps we should log. These are all subtly
                   different: browser event versus request timestamp, as well as user time zone
                   versus GMT. */
                 event = {
-                    'doc_id':  googledocs_id_from_url(request.url),
+                    'doc_id': googledocs_id_from_url(request.url),
                     'url': request.url,
                     'bundles': JSON.parse(formdata.bundles),
                     'rev': formdata.rev,
@@ -174,12 +217,12 @@ chrome.webRequest.onBeforeRequest.addListener(
                 };
                 logFromServiceWorker(event);
                 loEvent.logEvent('google_docs_save', event);
-            } catch(err) {
+            } catch (err) {
                 /*
                   Oddball events, like text selections.
                 */
                 event = {
-                    'doc_id':  googledocs_id_from_url(request.url),
+                    'doc_id': googledocs_id_from_url(request.url),
                     'url': request.url,
                     'formdata': formdata,
                     'rev': formdata.rev,
@@ -187,10 +230,10 @@ chrome.webRequest.onBeforeRequest.addListener(
                 };
                 loEvent.logEvent('google_docs_save_extra', event);
             }
-        } else if(this_a_google_docs_bind(request)) {
+        } else if (this_a_google_docs_bind(request)) {
             logFromServiceWorker(request);
         } else {
-            logFromServiceWorker("Not a save or bind: "+request.url);
+            logFromServiceWorker("Not a save or bind: " + request.url);
         }
     },
     { urls: ["*://docs.google.com/*"] },
@@ -202,10 +245,10 @@ chrome.webRequest.onBeforeRequest.addListener(
 chrome.runtime.onInstalled.addListener(reinjectContentScripts);
 async function reinjectContentScripts() {
     for (const contentScript of chrome.runtime.getManifest().content_scripts) {
-        for (const tab of await chrome.tabs.query({url: contentScript.matches})) {
+        for (const tab of await chrome.tabs.query({ url: contentScript.matches })) {
             // re-inject content script
             await chrome.scripting.executeScript({
-                target: {tabId: tab.id, allFrames: true},
+                target: { tabId: tab.id, allFrames: true },
                 files: contentScript.js,
             }, function () {
                 if (!chrome.runtime.lastError) {
@@ -215,10 +258,3 @@ async function reinjectContentScripts() {
         }
     }
 }
-
-// Let the server know we've loaded.
-loEvent.logEvent("extension_loaded", {});
-
-// And let the console know we've loaded
-// chrome.extension.getBackgroundPage().console.log("Loaded"); remove
-logFromServiceWorker("Loaded");
