@@ -1,82 +1,136 @@
 # Writing Observer Extension
 
-This is an extension which collects data from the client.
+The Writing Observer browser extension collects rich event data while a writer works in Google Docs so that the Learning Observer platform can analyse the writing process. The extension code lives in [`extension/writing-process/`](../../extension/writing-process/) and is packaged with [Extension CLI](https://oss.mobilefirst.me/extension-cli/) and webpack.
 
-## Google Churn and Breakage
+## Project Layout
 
-Google regularly changes how they do things, breaking extensions like
-this one. We had major changes for the transition from
-[Manifest V2 to Manifest V3](https://developer.chrome.com/docs/extensions/mv3/mv2-sunset/). 
-Google was trying to cripple ad blockers, which made extensions like
-these much harder to write and maintain. This change, as is very
-Googly, was mandated by Google before Google properly documented Manifest V3.
+The directory contains a standard Extension CLI project:
 
-2. Google changed [rendering on the
-front-end](https://workspaceupdates.googleblog.com/2021/05/Google-Docs-Canvas-Based-Rendering-Update.html)
-such that our code to grab text is broken. On the whole, this is less
-harmful, since we never relied on this code path. We grabbed visible
-on-screen text to have ground truth data for debugging how we
-reconstruct documents. We can make due without that, but it'd be nice
-to fix at some point. In the design of the system, we did not count on
-this text to be stable (it's used for debugging). We primarily rely on
-document change events and the Google Docs API.
+- `src/` - extension source files. Webpack writes the bundled content scripts and background bundles back into this directory as `*.bundle.js` files.
+  - `writing.js` and `writing_common.js` run in the Google Docs page and capture keystrokes and context.
+  - `background.js` and `service_worker.js` coordinate logging, open the websocket connection to Learning Observer, and respond to browser lifecycle events.
+  - `pages/` stores the popup, options page, and other extension UI assets.
+- `assets/` - icons used by the published extension.
+- `webpack.config.js` - bundles the source code and excludes Node-specific dependencies required by the `lo-event` package.
+- `test/` - placeholder for unit tests executed by the Extension CLI test runner.
 
-## System Design
+## Prerequisites
 
-* `writing_common.js` has common utility functions
-* `writing.js` sits on each page, and listens for keystrokes. It also
-  collects other data, such as document title, or commenting activity.
-  Only the keystroke logging is well-tested. This is sent onto
-  `background.js`
-* `background.js` used to be once per browser, and maintain a
-  websocket connection to the server. It also listened for Google AJAX
-  events which contain document edits. This was changed with Manifest
-  V3 and still needs to be correctly documented.
+- Node.js and npm (the project was last updated with Node 18.x, though later LTS versions should also work).
+- Google Chrome for manual testing.
+- Access to the [`lo-event`](../../modules/lo_event/) package, which provides messaging utilities that the extension uses to communicate with Learning Observer services.
 
-The document edits are short snippets, which aggregate a small number
-of keystrokes (e.g. a couple hundred milliseconds or typically 1-2
-keystrokes). These are our primary source of data. The keystroke
-collection on each page is more precise (we have timestamps for each
-keystroke), and helpful for some typing speed estimations, but
-currently lacks a lot of context we would need to e.g. reconstruct
-documents.
+## Install Dependencies
 
-Each file has more in-depth documentation.
-
-## Setup information
-
-The extension is built as a node project. This structure helps us allow for testing and for the use of external node packages.
-
-### Dependencies
-
-For building the extension, we rely on a handful of build tools, like webpack to bundle the code together.
-
-The extension has a dependency on the LOEvent package, located at `/modules/lo_event`. The LOEvent package handles passing messages from Learning Observer data sources and the Learning Observer server.
-
-The LOEvent package has a handful of downstream dependencies that are used when it does not have access to a browser environment. These are used to mirror browser behavior in testing environments.
-
-When building the extension, we found that these were not always ignored when bundling the extension together. To ignore the dependencies on building the extension, we had to add them to the `externals` portion of the `webpack.config.js` on the extension itself.
-
-### Installation
-
-To get started, run the following:
+Install everything from inside the extension directory:
 
 ```bash
-cd extention/writing-process
+cd extension/writing-process
 npm install
 ```
 
-Since the LOEvent package is not published, you'll need to install it locally via the `npm link` command. If there are any issues with this, `npm pack`+`npm install` is more robust, but more cumbersome since it needs to be rerun whenever `lo_event` changes. See the LOEvent installation for more information about this process.
-
-### Bundling and Building
-
-After all the installation finishes, you can bundle and build the extension. Running the following command will first bundle the code and then build the extension.
+The `lo-event` dependency is declared as a `file:` package in `package.json`, so it is linked from the local repository when you install. If `npm install` cannot resolve it automatically, install it explicitly:
 
 ```bash
-npm build
+npm install ../../modules/lo_event
+# or link it for iterative development
+cd ../../modules/lo_event
+npm link
+cd -
+npm link lo-event
 ```
 
-Two items will be produced.
+## Everyday development tasks
 
-1. `dist/`: a directory where all the built files are copied to
-2. `release.zip`: a zip of the extension
+Most workflows are exposed through npm scripts. Run them from `extension/writing-process/`.
+
+### Bundle source files
+
+Use webpack to generate the bundled scripts that the extension loads at runtime.
+
+```bash
+npm run bundle         # one-off build of background.js, writing.js, etc.
+npm run bundle:watch   # continuously rebuild while editing
+```
+
+The bundles are written to `src/*.bundle.js`. Ensure these bundles exist before packaging the extension or running tests.
+
+### Run the extension in development
+
+Extension CLI can watch the project, rebuild on changes, and output an unpacked extension in `dist/`.
+
+```bash
+npm run ext:start          # Chrome/Chromium development build
+```
+
+Both commands keep watching the filesystem and rebuild when files change. Load the unpacked directory they produce (see [Loading the extension locally](#loading-the-extension-locally)).
+
+### Run automated tests
+
+```bash
+npm run ext:test   # run the Extension CLI test suite
+npm run coverage   # generate an lcov coverage report via nyc
+```
+
+The default tests under `test/` are minimal; extend them as new functionality is added.
+
+### Clean build artefacts and generate docs
+
+```bash
+npm run ext:clean  # remove dist/
+npm run ext:docs   # produce API docs in public/documentation/
+npm run ext:sync   # refresh Extension CLI config files
+```
+
+Use these scripts before packaging to ensure the release contains only fresh bundles.
+
+## Building for release
+
+`npm run build` is the primary release command. It removes any existing `dist/` directory, builds the webpack bundles, and then invokes `ext:build`.
+
+```bash
+npm run build
+```
+
+After the command completes you will have:
+
+1. `dist/` – the unpacked extension directory that can be loaded directly in Chromium-based browsers.
+2. `release.zip` – an archive suitable for uploading to the Chrome Web Store or distributing manually.
+
+You can also call the lower-level packaging commands when needed:
+
+```bash
+npm run ext:build          # Chrome release bundle only
+```
+
+## Loading the extension locally
+
+1. Run `npm run build` (or `npm run ext:start`) to populate the `dist/` directory.
+2. Navigate to `chrome://extensions/` in Chrome.
+3. Enable **Developer mode** and click **Load unpacked**.
+4. Select the `extension/writing-process/dist` directory.
+
+## Deploying updates
+
+- Upload the generated `release.zip` to the Chrome Web Store dashboard when publishing new versions.
+- Update the `version` field in `src/manifest.json` to match the release number before packaging.
+- If the Learning Observer websocket endpoint changes, update `WEBSOCKET_SERVER_URL` in `src/background.js` so that the extension sends analytics to the correct server.
+
+## System design overview
+
+The extension relies on two complementary streams of information:
+
+- **Content scripts (`writing.js`, `writing_common.js`)** run inside Google Docs. They capture keystrokes, document metadata, and lifecycle events, and send structured messages to the background service worker.
+- **Background/service worker (`service_worker.js`, `background.js`)** manages the analytics pipeline. It listens for messages from content scripts, observes Google Docs network requests (notably `save` and `bind` endpoints), and forwards data to Learning Observer via the `lo-event` logging framework. It activates only when a Google Docs tab has injected the content script to avoid unnecessary logging.
+
+This design protects against frequent changes in Google Docs. The network listener provides redundancy when Google modifies the document structure, while the keystroke data keeps precise typing information.
+
+## Maintaining compatibility with Google Docs
+
+Google occasionally introduces changes that can disrupt the extension, especially around Manifest V3 requirements and Google Docs rendering updates. To reduce churn:
+
+- Keep an eye on [Chrome extension updates](https://developer.chrome.com/docs/extensions/whatsnew/). Manifest-level changes (e.g. the MV2 &rarr; MV3 migration) often require updates to background scripts and permissions.
+- When Google Docs changes its network endpoints, temporarily enable `RAW_DEBUG` in `src/background.js` to capture raw traffic and help reverse-engineer new request formats.
+- Test the extension after major Google Docs updates to confirm that keystroke logging and document reconstruction still work as expected.
+
+For deeper architectural details, consult the inline documentation within each source file in `extension/writing-process/src/`.
