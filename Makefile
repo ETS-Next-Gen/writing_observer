@@ -57,14 +57,6 @@ install-dev:
 install-packages:
 	pip install -e learning_observer/[${PACKAGES}]
 
-	# Just a little bit of dependency hell...
-	# On Python3.11 with tensorflow, we get some odd errors
-	# regarding compatibility with `protobuf`. Some installation
-	# files are missing from the protobuf binary on pip.
-	# Using the `--no-binary` option includes all files.
-	pip uninstall -y protobuf
-	pip install --no-binary=protobuf protobuf==4.25
-
 # Testing commands
 test:
 	@if [ -z "$(PKG)" ]; then echo "No module specified, please try again with \"make test PKG=path/to/module\""; exit 1; fi

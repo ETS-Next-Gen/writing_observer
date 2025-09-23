@@ -421,6 +421,10 @@ async def run_additional_module_func(request, function_name, kwargs=None):
     provider = user.get('lti_context', {}).get('provider')
     roster_source = settings.pmss_settings.source(types=['roster_data'], attributes={'domain': user_domain, 'provider': provider})
 
+    # Do not try to run module functions for these roster sources
+    if roster_source in ['all', 'test', 'filesystem']:
+        return None
+
     # HACK/TODO since Canvas and Schoology are launched via an LTI,
     # we need to pass a course to the courses - LTI applications are
     # provided on a course-by-course basis, so fetching the courses

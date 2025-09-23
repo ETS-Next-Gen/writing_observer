@@ -7,5 +7,5 @@ Step-by-step guides to help you learn by doing.
    :maxdepth: 1
    :titlesonly:
 
-   docs/tutorials/workshop.md
    docs/tutorials/install.md
+   docs/tutorials/cookiecutter-module.md
