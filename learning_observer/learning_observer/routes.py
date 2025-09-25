@@ -201,9 +201,6 @@ def register_dashboard_api(app):
     '''
     app.add_routes([
         aiohttp.web.get(
-            '/wsapi/dashboard',
-            learning_observer.dashboard.websocket_dashboard_view),
-        aiohttp.web.get(
             '/wsapi/communication_protocol',
             learning_observer.dashboard.websocket_dashboard_handler
         ),
@@ -213,12 +210,6 @@ def register_dashboard_api(app):
         aiohttp.web.get(
             '/webapi/student_dashboards',
             ajax_handler_wrapper(learning_observer.module_loader.student_dashboards))
-    ])
-
-    app.add_routes([
-        aiohttp.web.get(
-            '/wsapi/generic_dashboard',
-            learning_observer.dashboard.generic_dashboard)
     ])
 
 
