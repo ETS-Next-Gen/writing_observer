@@ -87,6 +87,23 @@ instead of manually constructing requests. This keeps the protocol's
 flexibility while offering ergonomic entry points for UI
 components. (See: integration.py L49-L102)
 
+## WebSocket Endpoint
+
+Dashboards and other clients interact with the communication protocol
+through a dedicated WebSocket endpoint exposed at
+`/wsapi/communication_protocol`. The aiohttp application wires that path
+to `websocket_dashboard_handler`, making the protocol available to
+browser sessions and backend consumers alike. (See: learning_observer/routes.py L195-L213)
+
+When a client connects, the handler waits for a JSON payload describing
+one or more queries. Each entry typically includes the flattened
+`execution_dag`, a list of `target_exports` to stream, and optional
+`kwargs` that provide runtime parameters. Whenever the client submits a
+new payload, the server builds the requested DAG generators, executes
+them, and schedules reruns based on the provided settings. Responses are
+batched into arrays of `{op, path, value}` records so the client can
+efficiently apply partial updates to its local state. (See: learning_observer/dashboard.py L331-L411)
+
 ## Tooling and Debugging
 
 Two exploratory tools live alongside the protocol implementation:
