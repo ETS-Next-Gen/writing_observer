@@ -6,4 +6,4 @@ The module READMEs are collected automatically during the Sphinx build.
    :maxdepth: 1
    :glob:
 
-   module_readmes/*
+   module_readmes/*/README

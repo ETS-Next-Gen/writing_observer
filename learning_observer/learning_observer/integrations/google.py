@@ -207,9 +207,9 @@ def extract_text_from_google_doc_json(
     length = j['body']['content'][-1]['endIndex']
     elements = [a.get('paragraph', {}).get('elements', []) for a in j['body']['content']]
     flat = sum(elements, [])
-    text_chunks = [f['textRun']['content'] for f in flat]
+    text_chunks = [f.get('textRun', {}).get('content', '') for f in flat]
     if align:
-        lengths = [f['endIndex'] - f['startIndex'] for f in flat]
+        lengths = [f.get('endIndex', 0) - f.get('startIndex', 0) for f in flat]
         text_chunks = [_force_text_length(chunk, length) for chunk, length in zip(text_chunks, lengths)]
     text = ''.join(text_chunks)
 

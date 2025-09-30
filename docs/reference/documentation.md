@@ -8,36 +8,26 @@ On pushes or pull requests to the main branch, the documentation is auto-built a
 
 ## Including documentation
 
-Since documentation is built from the code, you need to follow specific steps to include new documentation elements.
+Since documentation is built from the code, every contribution should clearly state what component the documentation describes (for example a module, CLI tool, or feature page). After creating the content, make sure a reference to the source file lives in the appropriate subsection so that Sphinx can locate and render it.
 
 ### Markdown file
 
-To include a new markdown file in the documentation, follow these steps:
+To document a new page that lives in a standalone markdown file, follow these steps:
 
-1. Place your markdown file in the `docs/` directory. Any images should be placed in `docs/_images`.
-2. Add a reference to your markdown file in `autodocs/other_docs.rst`. The reference will look like this:
+1. Place the markdown file under the appropriate section in `docs/`. For example, how-to guides live in `docs/how-to/` and reference material belongs in `docs/reference/`. Any images should be placed in `docs/_images`.
+2. In the pull request description (and any related communication), specify which page the new file documents so reviewers understand the context.
+3. Update the corresponding section index (`autodocs/how-to.rst`, `autodocs/reference.rst`, etc.) to include your new page in its `.. toctree::`. Each index file keeps its toctree organized by the section's subsections, so add a line that points to the new markdown file (for example, `docs/how-to/new_guide.md`).
 
-```rst
-.. include:: ../docs/your_markdown_file.md
-   :parser: myst_parser.sphinx_
-```
-
-Replace `your_markdown_file.md` with the name of your markdown file.
+This ensures the page is discoverable from the rendered documentation and is built automatically by Sphinx.
 
 ### Module
 
-To include a newly added module in the documentation, follow these steps:
+To document a Python package or module, follow these steps:
 
-1. Add a reference to the module in `autodocs/modules.rst`. The reference will look like this:
+1. In your change description, call out the module the documentation targets so the reviewer can verify coverage.
+2. Add or update the module's `README.md` under `modules/<module_name>/README.md`. During the Sphinx build, `autodocs/conf.py` copies each module README into `autodocs/module_readmes/`, and `autodocs/modules.rst` automatically includes every file in that directory via a globbed toctree.
+3. Make sure the module's docstrings are accurate. The `autodoc2_packages` setting in `autodocs/conf.py` lists the packages whose code documentation is generated automatically, so keeping docstrings up to date ensures the API reference stays correct.
 
-```rst
-.. autosummary::
-   :recursive:
-   :toctree: generated/your_module_name
-
-   your_module_name
-```
-
-Replace `your_module_name` with the name of your module.
+Because the READMEs are gathered automatically, you only need to make sure the README exists alongside the module. The build will pick it up and render it in the Modules section.
 
 By following these steps, you can ensure that your new markdown files and modules are properly integrated into the documentation, which will then be automatically built and made available on Readthedocs.
