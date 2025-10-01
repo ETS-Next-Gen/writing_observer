@@ -4,6 +4,7 @@ Reference
 Detailed, structured information about APIs, configurations, and technical details. Consult these resources when you need definitive answers about how the system behaves or how to integrate with it:
 
 - :doc:`Code Quality Standards <docs/reference/code_quality>` - Understand our expectations for readability, style, and continuous improvement.
+- :doc:`System Settings <docs/reference/system_settings>` - Review what each system setting does and where it is used.
 - :doc:`Documentation Conventions <docs/reference/documentation>` - Learn how we structure docs, what tools we use, and how to contribute updates.
 - :doc:`Linting Rules <docs/reference/linting>` - Review the automated checks that keep the codebase healthy and how to run them locally.
 - :doc:`Testing Strategy <docs/reference/testing>` - Explore the testing layers we rely on and guidelines for writing reliable tests.
@@ -17,6 +18,7 @@ Detailed, structured information about APIs, configurations, and technical detai
    :titlesonly:
 
    docs/reference/code_quality.md
+   docs/reference/system_settings.md
    docs/reference/documentation.md
    docs/reference/linting.md
    docs/reference/testing.md

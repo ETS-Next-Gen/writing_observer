@@ -13,6 +13,8 @@ implementation details:
   architecture that implements the system design.
 - :doc:`Technologies <docs/concepts/technologies>` - surveys the primary tools
   and platforms we rely on to realize the architecture.
+- :doc:`System Settings <docs/concepts/system_settings>` - describes how the
+  system loads global and cascading settings.
 - :doc:`Events <docs/concepts/events>` - introduces the event model that drives
   data flowing through the system.
 - :doc:`Reducers <docs/concepts/reducers>` - details how incoming events are
@@ -35,6 +37,7 @@ implementation details:
    docs/concepts/system_design
    docs/concepts/architecture
    docs/concepts/technologies
+   docs/concepts/system_settings
    docs/concepts/events
    docs/concepts/reducers
    docs/concepts/communication_protocol

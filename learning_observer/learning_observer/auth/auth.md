@@ -1,1 +1,1 @@
-../../../docs/auth.md
+../../../docs/concepts/auth.md
