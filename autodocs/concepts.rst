@@ -21,6 +21,8 @@ implementation details:
   aggregated into the state our experiences depend on.
 - :doc:`Communication Protocol <docs/concepts/communication_protocol>` - discusses how
   the system queries data from reducers for dashboards.
+- :doc:`Student Identity Mapping <docs/concepts/student_identity_mapping>` - explain
+  how learners information is mapped across integrations.
 - :doc:`Scaling <docs/concepts/scaling>` - covers strategies for growing the
   system once the fundamentals are in place.
 - :doc:`Auth <docs/concepts/auth>` - describes authentication considerations
@@ -41,6 +43,7 @@ implementation details:
    docs/concepts/events
    docs/concepts/reducers
    docs/concepts/communication_protocol
+   docs/concepts/student_identity_mapping
    docs/concepts/scaling
    docs/concepts/auth
    docs/concepts/privacy
