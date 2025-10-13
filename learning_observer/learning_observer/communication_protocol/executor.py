@@ -446,7 +446,7 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
 
         # Determine fields to keep based on the current resulting_value if fields is All
         if fields == learning_observer.communication_protocol.query.SelectFields.All:
-            current_fields_to_keep = {key: key for key in resulting_value.keys() if key != 'provenance'}
+            current_fields_to_keep = {key: key for key in resulting_value.keys() if key != 'provenance'} if resulting_value else {}
         else:
             current_fields_to_keep = fields_to_keep
 
@@ -666,10 +666,38 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
 
     See `learning_observer/communication_protocol/test_cases.py` for usage examples.
     """
-    target_nodes = [endpoint['exports'][key]['returns'] for key in target_exports]
-
+    exports = endpoint.get('exports', {})
+    nodes = endpoint.get('execution_dag', {})
     visited = set()
-    nodes = endpoint['execution_dag']
+
+    # --- Resolve targets and collect any obvious errors early ---
+    target_nodes = []
+    target_errors = {}  # maps target node name -> error dict
+
+    for key in target_exports:
+        if key not in exports:
+            # Unknown export requested
+            target_name = f'__missing_export__:{key}'
+            target_nodes.append(target_name)
+            target_errors[target_name] = DAGExecutionException(
+                f'Export `{key}` not found in endpoint.exports.',
+                inspect.currentframe().f_code.co_name,
+                {'requested_export': key, 'available_exports': list(exports.keys())}
+            ).to_dict()
+            continue
+
+        target_node = exports[key].get('returns')
+        if target_node not in nodes:
+            # Export exists, but its `returns` node is missing from the DAG
+            target_nodes.append(target_node)
+            target_errors[target_node] = DAGExecutionException(
+                f'Target DAG node `{target_node}` not found in execution_dag.',
+                inspect.currentframe().f_code.co_name,
+                {'target_node': target_node, 'available_nodes': list(nodes.keys())}
+            ).to_dict()
+            continue
+
+        target_nodes.append(target_node)
 
     async def dispatch_node(node):
         """
@@ -743,10 +771,17 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         visited.add(node_name)
         return nodes[node_name]
 
+    out = {}
+    for e in target_nodes:
+        if e in target_errors:
+            out[e] = _clean_json_via_generator(target_errors[e])
+        else:
+            out[e] = _clean_json_via_generator(await visit(e))
+    return out
+
     # Include execution history in output if operating in development settings
     if learning_observer.settings.RUN_MODE == learning_observer.settings.RUN_MODES.DEV:
         return {e: _clean_json_via_generator(await visit(e)) for e in target_nodes}
-
     # HACK currently `dashboard.py` relies on the provenance to tell users which
     # items need updating, such as John Doe's history essay. This ought to be
     # handled by the communication protocol during execution. Once that occurs,
