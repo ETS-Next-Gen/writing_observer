@@ -587,6 +587,53 @@ async def websocket_dashboard_handler(request):
     Returns:
         aiohttp web response.
     '''
+    active_user = await learning_observer.auth.get_active_user(request)
+    user_context = {
+        'user_id': (active_user or {}).get('user_id'),
+        'user_email': (active_user or {}).get('email'),
+        'user_role': (active_user or {}).get('role'),
+    }
+
+    def _log_protocol_event(event, **extra):
+        '''
+        Emit structured debug logs describing websocket activity.
+        '''
+        payload = {
+            'event': event,
+            'user_id': user_context.get('user_id'),
+            'user_email': user_context.get('user_email'),
+            'user_role': user_context.get('user_role'),
+            'remote': request.remote,
+            'forwarded_for': request.headers.get('X-Forwarded-For'),
+            'request_path': str(request.rel_url),
+        }
+        payload.update(extra)
+        try:
+            debug_log('communication_protocol_event', json.dumps(payload, sort_keys=True))
+        except TypeError:
+            # Fall back to logging the raw payload if serialization fails.
+            debug_log('communication_protocol_event', payload)
+
+    def _summarize_query(query):
+        '''
+        Provide a compact description of the query for log aggregation.
+        '''
+        summary = {}
+        for key, value in (query or {}).items():
+            if not isinstance(value, dict):
+                summary[key] = {'non_dict_value': repr(value)}
+                continue
+            execution_dag = value.get('execution_dag')
+            summary[key] = {
+                'target_exports': value.get('target_exports', []),
+                'execution_dag_type': type(execution_dag).__name__,
+                'execution_dag_name': execution_dag if isinstance(execution_dag, str) else None,
+                'kwargs': value.get('kwargs', {}),
+            }
+        return summary
+
+    _log_protocol_event('connection_opened')
+
     ws = aiohttp.web.WebSocketResponse(receive_timeout=0.3)
     await ws.prepare(request)
     client_query = None
@@ -661,11 +708,15 @@ async def websocket_dashboard_handler(request):
         try:
             received_params = await ws.receive_json()
             client_query = received_params
+            _log_protocol_event(
+                'query_received',
+                query_summary=_summarize_query(client_query),
+            )
             # TODO we should validate the client_query structure
         except (TypeError, ValueError):
             # these Errors may signal a close
             if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
-                debug_log("Socket closed!")
+                _log_protocol_event('connection_closed', reason='client_close_frame')
                 return aiohttp.web.Response()
         except asyncio.exceptions.TimeoutError:
             # this is the normal path of the code
@@ -674,7 +725,7 @@ async def websocket_dashboard_handler(request):
                 continue
 
         if ws.closed:
-            debug_log("Socket closed.")
+            _log_protocol_event('connection_closed', reason='websocket_closed_flag')
             return aiohttp.web.Response()
 
         if client_query != previous_client_query:
