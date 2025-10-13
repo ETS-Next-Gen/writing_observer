@@ -189,29 +189,86 @@ NextJS is web framework for building React-based web applications along with add
 
 Follow the [Getting Started Guide](https://nextjs.org/docs/app/getting-started) in the official NextJS documentation.
 
-### NextJS in the Learning Observer
+### Serving NextJS in the Learning Observer
 
-Before add a NextJS application can be built and added to the system, a few configurations changes need to be made. The built application will not access the server-side code. Any server-side API endpoints need to be implemented in Python. The code that calls these endpoints will need to be updated to point to the correct path.
+Before NextJS application can be built and added to the system, a few configuration changes need to be made. The built application will not access the server-side code. Any server-side API endpoints need to be implemented in Python. The code that calls these endpoints will need to be updated to point to the correct path.
 
-Additionally, we need to add a `basePath` to our `next.config.js` file. When building the application, this replaces prefixes all paths with the defined base path. This allows links to function appropriately while being served from Learning Observer.
+Additionally, we need to add a `basePath` to our `next.config.js` file. When building the application, this prefixes all paths with the defined base path. This allows links to function appropriately while being served from Learning Observer. Using a base path is especially important when multiple modules serve NextJS dashboards, because it prevents routing conflicts by ensuring that each module's assets are namespaced by the module name.
 
 ```js
 const nextConfig = {
   // ... the rest of your config
-  basePath: '/_next/moduleName/pathOfBuiltApplication'
+  basePath: '/_next/<module-name>/<built-app-name>',
+  output: 'export',
+}
 ```
 
-To add a NextJS project to a module, first the code needs to be built with `npm run build`. A directory named `out` will be created and the built application will be placed there. Copy this directoy to a module within Learning Observer.
+With this configuration:
 
-Next, add the path to the built application to the module's `module.py` file
+* Without a base path, multiple modules exporting dashboards to `/` will conflict with one another and with Learning Observer's own root path.
+* With a base path, each module is served from `/_next/<module-name>/<built-app-name>/`, which avoids those conflicts by including the module name in the URL path.
+* Avoid absolute paths inside the application (for example, `href="/students"`). Absolute paths ignore the configured `basePath`, which breaks routing when the dashboard is served from Learning Observer. Prefer relative links or the [`next/link`](https://nextjs.org/docs/pages/api-reference/components/link) component's `basePath`-aware helpers.
 
-```python
-# module.py
-# ...other definitions
-'''
-Next js dashboards
-'''
-NEXTJS_PAGES = [
-    {'path': 'pathOfBuiltApplication/'}
-]
+Use query parameters instead of dynamic path segments for any routing that needs to work after static export. For example, prefer `students/compare?id=123` instead of `/students/[id]/compare` so that the static export can generate the page.
+
+During development it can be helpful to mock the data that will normally arrive via the Learning Observer websocket. A simple placeholder object keeps the dashboard usable before the websocket connection is wired up:
+
+```js
+const data = {
+  students: {
+    martha: {
+      documents: {
+        history_essay: {
+          text: 'this is my history essay'
+        }
+      }
+    }
+  }
+};
+```
+
+To add a NextJS project to a module:
+
+1. Build the project with `npm run build`. The static export requires the `output: 'export'` setting shown above. A directory named `out` will be created and the built application will be placed there.
+2. Copy the contents of `out` to `modules/<module_name>/<built-app-name>/`.
+3. Add the path to the built application to the module's `module.py` file
+
+    ```python
+    # module.py
+    # ...other definitions
+    '''
+    Next js dashboards
+    '''
+    NEXTJS_PAGES = [
+        {'path': '<built-app-name>/'}
+    ]
+    ```
+
+4. Install the module in editable mode with `pip install -e modules/<module_name>`.
+5. Start Learning Observer with `make run` to serve the dashboard.
+
+### Connecting to the Communication Protocol
+
+When you are ready to connect to Learning Observer's Communication Protocol, install the `lo_event` module to gain access to the shared websocket utilities.
+
+Installing `lo_event` makes the `LOConnectionDataManager` React hook available to your NextJS project. The hook manages websocket connection state and incoming messages so that your components can focus on rendering data.
+
+Adding `lo_event` may surface build-time errors if your environment lacks Node polyfills. For example, some systems report `fs` being unavailable. You can instruct Webpack to ignore the `fs` module when bundling the client by extending `next.config.js`:
+
+```js
+const nextConfig = {
+  // ...existing config
+  webpack: (
+    config,
+    { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }
+  ) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false, // tells Webpack to ignore fs in client bundle
+    };
+    return config;
+  },
+};
+
+module.exports = nextConfig;
 ```

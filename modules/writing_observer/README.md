@@ -4,7 +4,7 @@
 
 The Writing Observer module wraps the NLP and feedback services that power Writing Observer features. It exposes a consistent interface for:
 
-* generating writing indicators from the Analytics for Writing Evaluation (AWE) stack
+* generating writing indicators from the Analytics for Writing Evaluation (AWE) stack, see [AWE Workbench](https://github.com/ETS-Next-Gen/AWE_Workbench)
 * surfacing grammar and usage issues through LanguageTool
 * forwarding communication protocol queries to GPT-based responders
 
