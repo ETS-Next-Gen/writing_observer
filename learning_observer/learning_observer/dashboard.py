@@ -9,6 +9,7 @@ place than we started.
 
 import asyncio
 import copy
+import datetime
 import inspect
 import json
 import aiohttp.client_exceptions
@@ -606,6 +607,7 @@ async def websocket_dashboard_handler(request):
             'remote': request.remote,
             'forwarded_for': request.headers.get('X-Forwarded-For'),
             'request_path': str(request.rel_url),
+            'timestamp': str(datetime.datetime.now()),
         }
         payload.update(extra)
         try:
