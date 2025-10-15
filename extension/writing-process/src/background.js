@@ -2,15 +2,7 @@
 Background script. This works across all of Google Chrome.
 */
 
-// Do not save debug requests. We flip this frequently. Perhaps this
-// should be a cookie or browser.storage?
-var RAW_DEBUG = false;
-
-/* This variable must be manually updated to specify the server that
- * the data will be sent to.  
-*/
-var WEBSOCKET_SERVER_URL = "wss://learning-observer.org/wsapi/in/";
-
+import { CONFIG } from "./service_worker_config.js";
 import { googledocs_id_from_url } from './writing_common';
 
 import * as loEvent from 'lo_event/lo_event/lo_event.js';
@@ -20,6 +12,8 @@ import { consoleLogger } from 'lo_event/lo_event/consoleLogger.js';
 import { browserInfo } from 'lo_event/lo_event/metadata/browserinfo.js';
 import { chromeAuth } from 'lo_event/lo_event/metadata/chromeauth.js';
 import { localStorageInfo, sessionStorageInfo } from 'lo_event/lo_event/metadata/storage.js';
+
+const { RAW_DEBUG, WEBSOCKET_SERVER_URL } = CONFIG;
 
 // We would like to support fetching the websocket server from storage
 
@@ -34,7 +28,6 @@ const activeContentTabs = new Set();
 let loEventActive = false;
 let loggers = [];
 const manifestVersion = chrome.runtime.getManifest().version;
-
 
 // We are not sure if this should be done within `websocketLogger()`'s `init`
 // or one level up. 
