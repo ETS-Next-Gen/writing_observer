@@ -157,6 +157,13 @@ window.dash_clientside.learning_observer_template = {
 }
 ```
 
+The websocket helper always reads its connection details from the page
+hash. Without a hash (or without a `course_id` entry in the decoded
+parameters) the client returns `no_update`, meaning the dashboard never
+sends a query to the communication protocol. When you add links to a
+dashboard, ensure they preserve whatever hash parameters the module
+expects—typically at least `course_id` and sometimes other filter values.
+
 To add a dashboard to a module, add the following to the module's `module.py` file
 
 ```python

@@ -12,6 +12,12 @@ per-student writing data, and aggegators to make dashboards. We've
 tested this in math and writing, but our focus is on writing process
 data.
 
+At a high level, Learning Observer operates as an application platform:
+the core :mod:`learning_observer` package boots the system, loads
+configured modules, and manages shared data services, while each module
+provides the specific dashboards, reducers, and other artifacts that
+users interact with.
+
 Our documentation is organized into four main categories, each serving a different purpose. You can explore them below:
 
 - :doc:`Tutorials <tutorials>` - Step-by-step guides to help you learn by doing.

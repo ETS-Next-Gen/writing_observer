@@ -2,11 +2,13 @@
 
 Use this tutorial to get the Learning Observer running on your machine. It walks you through the exact commands to run and the order to run them in, so you can follow along step by step.
 
+As you set things up, keep in mind that Learning Observer functions as an application platform: the core `learning_observer` package starts the services and loads modules, and each module contributes dashboards, reducers, or other features that run on top of that core.
+
 ## Before you begin
 
 Make sure your computer meets these requirements:
 
-1. **Operating system** – A Unix-style system works best. We regularly test on Ubuntu. macOS generally works as well. Windows users should install the project inside [Windows Subsystem for Linux (WSL)](workshop/wsl-install.md) before continuing.
+1. **Operating system** – A Unix-style system works best. We regularly test on Ubuntu. macOS generally works as well. Windows users should install the project inside [Windows Subsystem for Linux (WSL)](../workshop/wsl-install.md) before continuing.
 2. **Python** – Install Python 3.10 or 3.11 (any version newer than 3.9 is expected to work).
 3. **Package manager (recommended)** – Have a virtual environment tool ready. We prefer [`virtualenvwrapper`](https://pypi.org/project/virtualenvwrapper/), but you can use `python -m venv`, Conda, or another tool you like.
 4. **Optional tools** –
@@ -118,3 +120,6 @@ Once the server is running, open a browser and go to one of the following URLs:
 You should see the Learning Observer dashboard with a list of courses and analytics modules. Because the workshop configuration disables authentication, you can immediately click around and start experimenting.
 
 ## Next steps
+
+- Explore the [cookiecutter module tutorial](cookiecutter-module.md) to scaffold a package from the template.
+- Review [system settings concepts](../concepts/system_settings.md) before deploying beyond a simple setup.

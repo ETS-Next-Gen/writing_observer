@@ -17,6 +17,14 @@ per-student writing data, and aggegators to make dashboards. We've
 tested this in math and writing, but our focus is on writing process
 data.
 
+At a high level, Learning Observer functions as an application platform.
+The primary `learning_observer` module bootstraps the system: it loads
+configuration, connects to storage and messaging back ends, and brokers
+communication with data sources. Other modules plug into that
+infrastructure to define the specific reducers, dashboards, and other
+items that users interact with, letting teams experiment with new
+features without having to reimplement the platform core.
+
 It's not finished, but it's moving along quickly.
 
 ## Writing Observer
@@ -54,9 +62,9 @@ that the core approach and APIs are correct.
 
 ## Getting Started
 
-We have a short guide to [getting started](docs/workshop.md). Getting
-the base system working is pretty easy. The guide is pretty
-comprehensive (including how to develop your first module).
+We have a short guide to [installing the system](docs/tutorials/install.md).
+Getting the base system working is pretty easy. To create a new module
+for the system to use, check out our [cookiecutter module guide](docs/tutorials/cookiecutter-module.md).
 
 ### System requirements
 

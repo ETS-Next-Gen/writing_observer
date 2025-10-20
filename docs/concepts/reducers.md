@@ -82,4 +82,13 @@ REDUCERS = [
 ]
 ```
 
+The `context` value must match the `source` string attached to incoming
+events. When an event arrives on the websocket it advertises a `source`
+identifier (for example `org.mitros.writing_analytics`). The stream
+analytics loader uses that identifier to look up which reducers to
+execute. If the reducer `context` does not match the event `source`, the
+event will never reach your reducer. Double-check that any new event
+emitters (such as browser extensions or test scripts) populate the same
+`source` string that your module registers here.
+
 NOTE: the `default` defined in the `module.py` file is for handling defaults when queries are made, while the `null_state` defined in the reducer decorator is used for initializing state of a new incoming event stream (e.g. a new student started sending events).

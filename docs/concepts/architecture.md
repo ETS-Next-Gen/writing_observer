@@ -5,7 +5,7 @@ Piotr Mitros
 ## Introduction
 
 Like all such documents, this document should be taken with a grain of
-salt. It my be out-of-date, or not fully implemented. 
+salt. It my be out-of-date, or not fully implemented.
 
 ## Overview
 
@@ -18,6 +18,17 @@ salt. It my be out-of-date, or not fully implemented.
 4. Whenever an event is processed, consumers are notified via a pubsub.
 5. Consumers can aggregate these notifications, inspect the external state,
    and make a dashboard.
+
+## Application platform structure
+
+Learning Observer acts as the shared platform that hosts and coordinates
+modules. The core `learning_observer` package owns the boot process: it
+loads configuration, establishes connections to databases and pub/sub
+systems, and exposes the APIs modules use to register reducers,
+dashboards, and other artifacts. Individual modules focus on defining
+those artifacts, relying on the platform to handle data ingestion and
+communication so new functionality can be added without duplicating the
+runtime infrastructure.
 
 ### Technology choices
 
