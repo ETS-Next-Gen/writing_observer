@@ -767,6 +767,7 @@ async def websocket_dashboard_handler(request):
             update_path = ".".join(scope)
             if 'option_hash' in dag_kwargs and target is not None:
                 item[f'option_hash_{target}'] = dag_kwargs['option_hash']
+            # TODO this ought to be flag - we might want to see the provenance in some settings
             item_without_provenance = learning_observer.communication_protocol.executor.strip_provenance(item)
             update_payload = {'op': 'update', 'path': update_path, 'value': item_without_provenance}
             _log_protocol_event(
