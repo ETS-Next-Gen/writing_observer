@@ -15,6 +15,7 @@ import json
 import aiohttp.client_exceptions
 import jsonschema
 import numbers
+import os
 import pmss
 import queue
 import time
@@ -35,9 +36,10 @@ import learning_observer.auth
 import learning_observer.constants as constants
 import learning_observer.rosters as rosters
 
-from learning_observer.log_event import debug_log
+from learning_observer.log_event import debug_log, log_event, close_logfile
 
 import learning_observer.module_loader
+import learning_observer.communication_protocol.executor
 import learning_observer.communication_protocol.integration
 import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.schema
@@ -50,6 +52,13 @@ pmss.register_field(
                 '(directed acyclic graphs) or user created execution DAGs. '\
                 'This is useful for developing new system queries, but should not '\
                 'be used in production.',
+    default=False
+)
+
+pmss.register_field(
+    name='logging_enabled',
+    type=pmss.pmsstypes.TYPES.boolean,
+    description='Log dashboard sessions to .dashboard.log files',
     default=False
 )
 
@@ -562,18 +571,22 @@ def _find_student_or_resource(d):
         output = []
         if 'STUDENT' in provenance:
             output.append('students')
-            output.append(provenance['STUDENT']['user_id'])
+            output.append(str(provenance['STUDENT']['user_id']))
         if 'RESOURCE' in provenance:
             if 'doc_id' in provenance['RESOURCE']:
                 output.append('documents')
-                output.append(provenance['RESOURCE']['doc_id'])
+                output.append(str(provenance['RESOURCE']['doc_id']))
             if 'assignment_id' in provenance['RESOURCE']:
                 output.append('assignments')
-                output.append(provenance['RESOURCE']['assignment_id'])
+                output.append(str(provenance['RESOURCE']['assignment_id']))
         if output:
             return output
         return _find_student_or_resource(provenance)
     return []
+
+
+DASHBOARD_PROTOCOL_LOG_COUNTER = 0
+DASHBOARD_PROTOCOL_LOG_LOCK = asyncio.Lock()
 
 
 @learning_observer.auth.teacher
@@ -594,29 +607,83 @@ async def websocket_dashboard_handler(request):
         'user_email': (active_user or {}).get('email'),
         'user_role': (active_user or {}).get('role'),
     }
+    dashboard_protocol_logging_enabled = learning_observer.settings.pmss_settings.logging_enabled(types=['dashboard_settings'])
 
-    def _log_protocol_event(event, **extra):
-        '''
-        Emit structured debug logs describing websocket activity.
-        '''
-        payload = {
-            'event': event,
+    global DASHBOARD_PROTOCOL_LOG_COUNTER
+    async with DASHBOARD_PROTOCOL_LOG_LOCK:
+        current_counter = DASHBOARD_PROTOCOL_LOG_COUNTER
+        DASHBOARD_PROTOCOL_LOG_COUNTER += 1
+
+    # TODO this is similar to our incoming student event log file names
+    # this ought to be abstracted to a helper function
+    protocol_log_filename = "{timestamp}-{user:-<15}-{remote:-<15}-{counter:0>10}-{pid}.dashboard".format(
+        timestamp=datetime.datetime.utcnow().isoformat(),
+        user=(user_context.get('user_id') or 'UNKNOWN')[:15],
+        remote=(request.remote or '')[:15],
+        counter=current_counter,
+        pid=os.getpid(),
+    )
+
+    is_protocol_log_closed = False
+
+    def close_protocol_log():
+        if not dashboard_protocol_logging_enabled:
+            return
+        nonlocal is_protocol_log_closed
+        if not is_protocol_log_closed:
+            try:
+                close_logfile(protocol_log_filename)
+            finally:
+                is_protocol_log_closed = True
+
+    has_logged_connection_closure = False
+    lock_field_event = {
+        'event': 'lock_fields',
+        'fields': {
             'user_id': user_context.get('user_id'),
             'user_email': user_context.get('user_email'),
             'user_role': user_context.get('user_role'),
             'remote': request.remote,
-            'forwarded_for': request.headers.get('X-Forwarded-For'),
-            'request_path': str(request.rel_url),
+            'request_path': str(request.rel_url)
+        }
+    }
+    if dashboard_protocol_logging_enabled:
+        log_event(lock_field_event, filename=protocol_log_filename)
+
+    def _log_protocol_event(event, **extra):
+        '''
+        Emit structured logs describing websocket activity.
+        '''
+        if not dashboard_protocol_logging_enabled:
+            return
+        nonlocal has_logged_connection_closure  # ensure we mutate the outer flag
+        payload = {
+            'event': event,
             'timestamp': str(datetime.datetime.now()),
         }
         payload.update(extra)
         try:
-            debug_log('communication_protocol_event', json.dumps(payload, sort_keys=True))
+            log_event(payload, filename=protocol_log_filename)
         except TypeError:
             # Fall back to logging the raw payload if serialization fails.
-            debug_log('communication_protocol_event', payload)
+            log_event({
+                'event_type': 'communication_protocol_event',
+                'event': event,
+                'serialization_failed': True,
+                'payload_repr': repr(payload),
+            }, filename=protocol_log_filename)
+        if event == 'connection_closed':
+            has_logged_connection_closure = True
 
-    def _summarize_query(query):
+    def _close_connection_and_cleanup(reason: str):
+        """
+        Idempotently log connection closure and close the protocol log file.
+        """
+        if not has_logged_connection_closure:
+            _log_protocol_event('connection_closed', reason=reason)
+        close_protocol_log()
+
+    def _create_query_summary_for_logging(query):
         '''
         Provide a compact description of the query for log aggregation.
         '''
@@ -640,26 +707,26 @@ async def websocket_dashboard_handler(request):
     await ws.prepare(request)
     client_query = None
     previous_client_query = None
-    batch = []
-    lock = asyncio.Lock()
+    pending_updates = []
+    pending_updates_lock = asyncio.Lock()
     background_tasks = set()
 
-    async def _send_update(update):
+    async def _queue_update(update):
         '''Send an update to our batch
         '''
-        async with lock:
-            batch.append(update)
+        async with pending_updates_lock:
+            pending_updates.append(update)
 
-    async def _batch_send():
+    async def _send_pending_updates_to_client():
         '''If our batch has any items, send them to the client
         then wait before checking again.
         '''
         while True:
-            async with lock:
-                if batch:
+            async with pending_updates_lock:
+                if pending_updates:
                     try:
-                        await ws.send_json(batch)
-                        batch.clear()
+                        await ws.send_json(pending_updates)
+                        pending_updates.clear()
                     except aiohttp.web_ws.WebSocketError:
                         break
                     except aiohttp.client_exceptions.ClientConnectionResetError:
@@ -683,7 +750,7 @@ async def websocket_dashboard_handler(request):
         await _drive_generator(generator, dag_query['kwargs'], target=target)
 
         # Handle rescheduling the execution of the DAG for fresh data
-        # TODO add some way to specific specific endpoint delays
+        # TODO add some way to specify specific endpoint delays
         dag_delay = dag_query['kwargs'].get('rerun_dag_delay', 10)
         if dag_delay < 0:
             # if dag_delay is negative, we skip repeated execution
@@ -700,47 +767,100 @@ async def websocket_dashboard_handler(request):
             update_path = ".".join(scope)
             if 'option_hash' in dag_kwargs and target is not None:
                 item[f'option_hash_{target}'] = dag_kwargs['option_hash']
-            await _send_update({'op': 'update', 'path': update_path, 'value': item})
+            item_without_provenance = learning_observer.communication_protocol.executor.strip_provenance(item)
+            update_payload = {'op': 'update', 'path': update_path, 'value': item_without_provenance}
+            _log_protocol_event(
+                'update_enqueued',
+                payload=update_payload,
+                target_export=target
+            )
+            await _queue_update(update_payload)
 
-    send_batches_task = asyncio.create_task(_batch_send())
+    send_batches_task = asyncio.create_task(_send_pending_updates_to_client())
     background_tasks.add(send_batches_task)
     send_batches_task.add_done_callback(background_tasks.discard)
 
-    while True:
-        try:
-            received_params = await ws.receive_json()
-            client_query = received_params
-            _log_protocol_event(
-                'query_received',
-                query_summary=_summarize_query(client_query),
-            )
-            # TODO we should validate the client_query structure
-        except (TypeError, ValueError):
-            # these Errors may signal a close
-            if (await ws.receive()).type == aiohttp.WSMsgType.CLOSE:
-                _log_protocol_event('connection_closed', reason='client_close_frame')
-                return aiohttp.web.Response()
-        except asyncio.exceptions.TimeoutError:
-            # this is the normal path of the code
-            # if the client_query hasn't been set, keep waiting for it
-            if client_query is None:
+    try:
+        while True:
+            try:
+                received_params = await ws.receive_json()
+                client_query = received_params
+                _log_protocol_event(
+                    'query_received',
+                    query_summary=_create_query_summary_for_logging(client_query),
+                )
+                # TODO we should validate the client_query structure
+            except aiohttp.client_exceptions.WSMessageTypeError as e:
+                # Check if this was a close message
+                if ws.closed:
+                    _close_connection_and_cleanup('websocket_closed_with_message_error')
+                    break
+                # Log the unexpected message type and continue
+                _log_protocol_event('unexpected_message_type', error=str(e))
                 continue
+            except (TypeError, ValueError) as e:
+                _log_protocol_event(
+                    'json_parse_error', 
+                    error_type=type(e).__name__,
+                    error_message=str(e)
+                )
+                if ws.closed:
+                    _close_connection_and_cleanup('websocket_closed_during_json_parse')
+                    break
+                continue
+            except asyncio.exceptions.TimeoutError:
+                # this is the normal path of the code
+                # if the client_query hasn't been set, keep waiting for it
+                if client_query is None:
+                     continue
 
-        if ws.closed:
-            _log_protocol_event('connection_closed', reason='websocket_closed_flag')
-            return aiohttp.web.Response()
+            if ws.closed:
+                _close_connection_and_cleanup('websocket_closed_flag')
+                break
 
-        if client_query != previous_client_query:
-            previous_client_query = copy.deepcopy(client_query)
-            # HACK even though we can specificy multiple targets for a
-            # single DAG, this creates a new DAG for each. This eventually
-            # allows us to specify different parameters (such as the
-            # reschedule timeout).
-            for k, v in client_query.items():
-                for target in v.get('target_exports', []):
-                    execute_dag_task = asyncio.create_task(_execute_dag(v, target, client_query))
-                    background_tasks.add(execute_dag_task)
-                    execute_dag_task.add_done_callback(background_tasks.discard)
+            if client_query != previous_client_query:
+                previous_client_query = copy.deepcopy(client_query)
+                # HACK even though we can specify multiple targets for a
+                # single DAG, this creates a new DAG for each. This eventually
+                # allows us to specify different parameters (such as the
+                # reschedule timeout).
+                for k, v in client_query.items():
+                    for target in v.get('target_exports', []):
+                        execute_dag_task = asyncio.create_task(_execute_dag(v, target, client_query))
+                        background_tasks.add(execute_dag_task)
+                        execute_dag_task.add_done_callback(background_tasks.discard)
+
+    # Various ways we might encounter an exception
+    except asyncio.CancelledError:
+        _close_connection_and_cleanup('server_cancelled')
+    except (aiohttp.web_ws.WebSocketError, 
+            aiohttp.client_exceptions.ClientConnectionResetError,
+            ConnectionResetError) as e:
+        _log_protocol_event(
+            'connection_closed_gracefully', 
+            exception_type=type(e).__name__, 
+            detail=str(e))
+        _close_connection_and_cleanup('client_disconnected')
+    except Exception as e:
+        _log_protocol_event(
+            'handler_exception', 
+            exception_type=type(e).__name__, 
+            detail=repr(e))
+        _close_connection_and_cleanup('server_exception')
+    finally:
+        # Ensure all background tasks are stopped cleanly
+        for t in list(background_tasks):
+            t.cancel()
+        if background_tasks:
+            await asyncio.gather(*background_tasks, return_exceptions=True)
+        
+        # Close WebSocket gracefully if not already closed
+        if not ws.closed:
+            try:
+                await ws.close()
+            except Exception:
+                pass
+    return aiohttp.web.Response()
 
 
 # Obsolete code -- we should put this back in after our refactor. Allows us to use
