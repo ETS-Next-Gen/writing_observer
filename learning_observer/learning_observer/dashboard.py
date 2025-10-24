@@ -35,6 +35,7 @@ import learning_observer.paths as paths
 import learning_observer.auth
 import learning_observer.constants as constants
 import learning_observer.rosters as rosters
+import learning_observer.util
 
 from learning_observer.log_event import debug_log, log_event, close_logfile
 
@@ -607,7 +608,8 @@ async def websocket_dashboard_handler(request):
         'user_email': (active_user or {}).get('email'),
         'user_role': (active_user or {}).get('role'),
     }
-    dashboard_protocol_logging_enabled = learning_observer.settings.pmss_settings.logging_enabled(types=['dashboard_settings'])
+    user_domain = learning_observer.util.get_domain_from_email(user_context['user_email'])
+    dashboard_protocol_logging_enabled = learning_observer.settings.pmss_settings.logging_enabled(types=['dashboard_settings'], attributes={'domain': user_domain})
 
     global DASHBOARD_PROTOCOL_LOG_COUNTER
     async with DASHBOARD_PROTOCOL_LOG_LOCK:
