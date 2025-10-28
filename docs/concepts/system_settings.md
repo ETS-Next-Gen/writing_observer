@@ -99,6 +99,31 @@ stack.  That means a request handled for an instructor can pick up
 instructor-specific defaults while a system job, using the same accessor, still
 observes the site-wide configuration.
 
+### What context we pass today
+
+Every call into `pmss_settings` names the setting through the `types` list.  We
+build that list from the canonical namespace of the setting—`['server']` for the
+public port, `['redis_connection']` for Redis, `['modules', module_name]` for
+module flags, and so on.  Because the list mirrors the hierarchy defined in
+`creds.yaml`, we get deterministic lookups even when overlays layer additional
+rules on top.
+
+Selectors (the `attributes` argument) are rarer.  Only features that genuinely
+vary per request provide them today.  For example, roster resolution passes the
+requesting user's email domain and the LTI provider so the `roster_data`
+configuration can pick the correct backend, and the dashboard logging toggle
+adds the user's domain to honour tenant-specific overrides.  Most other settings
+still rely solely on the namespace lookup.
+
+### Where we want to go
+
+We want every lookup that depends on request context to assemble the same
+attribute payload in the same place.  Rather than sprinkling ad-hoc conditionals
+around the codebase, helpers should gather the domain, provider, role, or other
+selectors once and pass them through every relevant PMSS call.  This keeps the
+setting definitions declarative, makes it obvious which selectors operators can
+target in overlays, and avoids drift between different parts of the system.
+
 ## Extending the system settings surface
 
 Adding a new capability follows a consistent pattern:

@@ -41,6 +41,12 @@ runtime.
 | `aio.session_secret` | Secret used to encrypt and sign aiohttp session cookies. Generate a unique value per deployment. | required | [`learning_observer/learning_observer/webapp_helpers.py`](../../learning_observer/learning_observer/webapp_helpers.py) |
 | `aio.session_max_age` | Session lifetime in seconds. | required | [`learning_observer/learning_observer/webapp_helpers.py`](../../learning_observer/learning_observer/webapp_helpers.py) |
 
+### Dashboard Settings (`dashboard_settings` namespace)
+
+| YAML path | Description | Default | Used in |
+| --- | --- | --- | --- |
+| `dashboard_settings.logging_enabled` | Determine if we should log dashboard sessions. | `false` | [`learning_observer/learning_observer/dashboard.py`](../../learning_observer/learning_observer/dashboard.py) |
+
 ### Redis connection (`redis_connection` namespace)
 
 | YAML path | Description | Default | Used in |
