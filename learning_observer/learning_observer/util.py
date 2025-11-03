@@ -302,6 +302,8 @@ async def async_generator_to_list(gen):
 def get_domain_from_email(email):
     '''Helper function to extract the domain from an email address
     '''
+    if email is None:
+        return None
     if '@' in email:
         return email.split('@')[1]
     return None
