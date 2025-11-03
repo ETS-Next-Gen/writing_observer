@@ -121,7 +121,7 @@ input_group = dbc.InputGroup([
         id=_legend_button, color='primary'),
     dbc.Popover(
         id=_legend_children, target=_legend_button,
-        trigger='click', body=True, placement='bottom'),
+        trigger='focus', body=True, placement='bottom'),
     lodrc.ProfileSidebarAIO(class_name='rounded-0 rounded-end', color='secondary'),
 ], class_name='align-items-center')
 

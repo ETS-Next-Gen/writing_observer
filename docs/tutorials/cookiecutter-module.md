@@ -91,6 +91,8 @@ To see live data, send synthetic writing events using the helper script.
    This sends five concurrent simulated students worth of Google Docs events to the default local endpoint using the helper found at `scripts/stream_writing.py`.
 3. Refresh your browser. The default reducer counts incoming events, so you should see the totals increase on the Dash page included with the template. Both the reducer and the dashboard live alongside `module.py` in your generated package.
 
+A common cause for missing data is having 0 reducer output available in storage. Check your [Key Value Store](../concepts/key_value_store.md) settings to assess how the reducer output is being stored.
+
 ## 7. Next steps
 
 * Customize the reducer in `reducers.py` to compute the metrics your dashboard requires. See the [reducers concept overview](../concepts/reducers.md) for guidance.
