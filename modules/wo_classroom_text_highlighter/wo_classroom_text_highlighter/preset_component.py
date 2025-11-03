@@ -2,8 +2,14 @@
 presets the user wants displayed.
 TODO create a react component that does this
 '''
+import asyncio
 from dash import html, dcc, clientside_callback, callback, Output, Input, State, ALL, exceptions, Patch, ctx
 import dash_bootstrap_components as dbc
+
+import learning_observer.constants as c
+import learning_observer.dash_integration
+import learning_observer.kvs
+import learning_observer.stream_analytics.helpers as sa_helpers
 
 import wo_classroom_text_highlighter.options
 
@@ -16,8 +22,36 @@ _tray = f'{_prefix}-tray'
 _set_item = f'{_prefix}-set-item'
 _remove_item = f'{_prefix}-remove-item'
 
+# TODO many dashboards will likely use some form of presets tied to the user
+# this ought to be generic enough that we can easily add it to each dashboard
+def preset_components():
+    pass
 
-def create_layout():
+
+async def get_preset_components():
+    return wo_classroom_text_highlighter.options.PRESETS
+    current_user = await learning_observer.dash_integration.get_active_user_from_dash()
+    if c.USER_ID not in current_user or not current_user[c.USER_ID]:
+        raise KeyError(f'User id not found in active user')
+    key = _make_key(current_user[c.USER_ID])
+    kvs = learning_observer.kvs.KVS()
+    presets = await kvs[key]
+    if presets is None:
+        presets = wo_classroom_text_highlighter.options.PRESETS
+        await kvs.set(key, presets)
+    return presets
+
+
+def _make_key(user_id):
+    return sa_helpers.make_key(
+        preset_components,
+        {sa_helpers.KeyField.STUDENT: user_id},
+        sa_helpers.KeyStateType.INTERNAL
+    )
+
+
+async def create_layout():
+    kvs_presets = await get_preset_components()
     add_preset = dbc.InputGroup([
         dbc.Input(id=_add_input, placeholder='Preset name', type='text', value=''),
         dbc.InputGroupText(html.I(className='fas fa-circle-question'), id=_add_help),
@@ -33,9 +67,7 @@ def create_layout():
     return html.Div([
         add_preset,
         html.Div(id=_tray),
-        # TODO we ought to store the presets on the server instead of browser storage
-        # TODO we need to migrate the old options to new ones
-        dcc.Store(id=_store, data=wo_classroom_text_highlighter.options.PRESETS, storage_type='local')
+        dcc.Store(id=_store, data=kvs_presets, storage_type='local')
     ], id=_prefix)
 
 
@@ -88,6 +120,7 @@ def create_tray_items_from_store(ts, data):
     return [html.Div(create_tray_item(preset), className='d-inline-block me-1 mb-1') for preset in reversed(data.keys())]
 
 
+# TODO we should fetch from redis and then reset in redis
 @callback(
     Output(_store, 'data', allow_duplicate=True),
     Input({'type': _remove_item, 'index': ALL}, 'submit_n_clicks'),

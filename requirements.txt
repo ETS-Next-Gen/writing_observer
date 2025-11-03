@@ -7,7 +7,7 @@ asyncio_redis   # pubsub
 asyncpg         # used in prototypes
 cookiecutter
 cryptography
-dash
+dash[async]
 dash_renderjson
 docopt
 dash-bootstrap-components

@@ -20,10 +20,11 @@ import asyncio
 import dash
 from dash import Dash, html, clientside_callback, callback, Output, Input
 import dash_bootstrap_components as dbc
-from flask import request
+import flask
 
 from lo_dash_react_components import LOConnection
 
+import learning_observer.auth
 import learning_observer.constants
 import learning_observer.prestartup
 import learning_observer.paths
@@ -70,6 +71,14 @@ def thirdparty_url(filename):
 
 def static_url(filename):
     return f"/static/{filename}"
+
+
+def get_aiohttp_request_from_dash():
+    return flask.request.environ['aiohttp.request']
+
+
+async def get_active_user_from_dash():
+    return await learning_observer.auth.get_active_user(get_aiohttp_request_from_dash())
 
 
 test_layout = html.Div(children=[
@@ -208,7 +217,8 @@ def load_dash_pages():
         external_scripts=all_dash_resources('SCRIPTS'),
         assets_folder=compile_dash_assets(),
         assets_url_path='dash/assets',
-        update_title=None
+        update_title=None,
+        use_async=True
     )
 
     app.layout = html.Div([html.Div(id=impersonation_header_id), dash.page_container])
@@ -243,7 +253,7 @@ def load_dash_pages():
     Output(impersonation_header_id, 'children'),
     Input(impersonation_header_id, 'id') # triggers on page load
 )
-def update_impersonation_header(id):
+async def update_impersonation_header(id):
     '''Add impersonation header if we are impersonating
     a user. This includes a 'Stop' button
 
@@ -254,7 +264,7 @@ def update_impersonation_header(id):
     This does not feel like the optimal workflow for this, but it
     does achieve the goal of wrapping a page in a header.
     '''
-    session = asyncio.run(aiohttp_session.get_session(request.environ['aiohttp.request']))
+    session = await aiohttp_session.get_session(get_aiohttp_request_from_dash())
     if learning_observer.constants.IMPERSONATING_AS in session:
         return html.Div([
             # TODO clean up text for who we are impersonating
