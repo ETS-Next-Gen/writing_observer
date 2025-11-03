@@ -467,7 +467,8 @@ async def dispatch_named_execution_dag(dag_name):
     except KeyError:
         debug_log(await dag_not_found(dag_name))
     finally:
-        return query
+        pass
+    return query
 
 
 async def dispatch_defined_execution_dag(dag):
@@ -486,7 +487,8 @@ async def dispatch_defined_execution_dag(dag):
         debug_log(await dag_incorrect_format(e))
         return query
     finally:
-        return query
+        pass
+    return query
 
 
 DAG_DISPATCH = {dict: dispatch_defined_execution_dag, str: dispatch_named_execution_dag}
@@ -586,6 +588,8 @@ def _find_student_or_resource(d):
     return []
 
 
+# We track protocol log creation per-process so that concurrent websocket
+# connections produce unique filenames even when they open at the same time.
 DASHBOARD_PROTOCOL_LOG_COUNTER = 0
 DASHBOARD_PROTOCOL_LOG_LOCK = asyncio.Lock()
 
@@ -608,6 +612,7 @@ async def websocket_dashboard_handler(request):
         'user_email': (active_user or {}).get('email'),
         'user_role': (active_user or {}).get('role'),
     }
+    # Fetch PMSS setting flag for dashboard logging, scoped by user's email domain
     user_domain = learning_observer.util.get_domain_from_email(user_context['user_email'])
     dashboard_protocol_logging_enabled = learning_observer.settings.pmss_settings.logging_enabled(types=['dashboard_settings'], attributes={'domain': user_domain})
 
@@ -618,6 +623,8 @@ async def websocket_dashboard_handler(request):
 
     # TODO this is similar to our incoming student event log file names
     # this ought to be abstracted to a helper function
+    # The combination of timestamp / user / process / counter creates
+    # unique filenames for each dashboard session
     protocol_log_filename = "{timestamp}-{user:-<15}-{remote:-<15}-{counter:0>10}-{pid}.dashboard".format(
         timestamp=datetime.datetime.utcnow().isoformat(),
         user=(user_context.get('user_id') or 'UNKNOWN')[:15],
@@ -629,6 +636,7 @@ async def websocket_dashboard_handler(request):
     is_protocol_log_closed = False
 
     def close_protocol_log():
+        '''Close the structured protocol log if logging is enabled.'''
         if not dashboard_protocol_logging_enabled:
             return
         nonlocal is_protocol_log_closed
@@ -720,8 +728,8 @@ async def websocket_dashboard_handler(request):
             pending_updates.append(update)
 
     async def _send_pending_updates_to_client():
-        '''If our batch has any items, send them to the client
-        then wait before checking again.
+        '''If our queue has any items, send them to the client, clear
+        the queue, then wait before checking again.
         '''
         while True:
             async with pending_updates_lock:
