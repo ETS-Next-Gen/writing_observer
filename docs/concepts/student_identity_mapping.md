@@ -17,10 +17,11 @@ This flow is intentionally simple: the reducer captures whatever the client repo
 
 ## Operating the script
 
-The email mapping script is normally run in the same environment as other KVS maintenance tasks. It requires access to the same credentials file that reducers use. A manual run looks like this:
+The email mapping script is normally run in the same environment as other KVS maintenance tasks. It requires access to the same credentials file that the main server use. Thus, we need to run the script from the `learning_observer` directory. A manual run looks like this:
 
 ```bash
-python scripts/map_emails_to_ids_in_kvs.py
+cd learning_observer/
+python ../scripts/map_emails_to_ids_in_kvs.py
 ```
 
 The script performs a full scan every time it runs, so it is safe to execute multiple times or to schedule as a recurring job.
