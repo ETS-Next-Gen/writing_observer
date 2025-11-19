@@ -457,7 +457,7 @@ def register_extra_views(app):
         if 'static_json' in view:
             views.append(aiohttp.web.get(
                 f'/views/{view["module"]}/{view["suburl"]}/',
-                lambda x: aiohttp.web.json_response(view['static_json'])
+                lambda request, data=view['static_json']: aiohttp.web.json_response(data)
             ))
         elif 'method' in view and 'handler' in view:
             views.append(HTTP_METHOD_MAPPING[view['method']](
