@@ -223,6 +223,8 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor',
             'http://purl.imsglobal.org/vocab/lis/v2/system/person#SysAdmin'
         ]
+        # TODO currently we only authorize when the user is a teacher
+        # we need to assess how we view students.
         is_instructor = any(r in roles for r in instructor_roles)
 
         # Include the LTI Launch Context
@@ -246,7 +248,8 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             'family_name': claims.get('family_name', ''),
             'picture': claims.get('picture', ''),
             'role': learning_observer.auth.ROLES.TEACHER if is_instructor else learning_observer.auth.ROLES.STUDENT,
-            'authorized': is_instructor,
+            # TODO determine how to determine authorized for both instructors and students
+            'authorized': True,
             'lti_context': lti_context
             # TODO figure out backto. With google sso, we had a state we could store things in
             # 'back_to': request.query.get('state')
