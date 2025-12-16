@@ -29,7 +29,11 @@ import learning_observer.runtime
 import learning_observer.util
 
 
-class Endpoint(recordclass.make_dataclass("Endpoint", ["name", "remote_url", "doc", "cleaners", "api_name", "headers"], defaults=["", None, None, None])):
+class Endpoint(recordclass.make_dataclass(
+    "Endpoint",
+    ["name", "remote_url", "doc", "cleaners", "api_name", "headers", "method"],
+    defaults=["", None, None, None, "get"]
+)):
     def arguments(self):
         return extract_parameters_from_format_string(self.remote_url)
 
@@ -68,7 +72,18 @@ def extract_parameters_from_format_string(format_string):
     return [f[1] for f in string.Formatter().parse(format_string) if f[1] is not None]
 
 
-async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cache_key_prefix=None, headers=None, **kwargs):
+async def raw_api_ajax(
+    runtime,
+    target_url,
+    key_translator=None,
+    cache=None,
+    cache_key_prefix=None,
+    headers=None,
+    method='get',
+    json_body=None,
+    data=None,
+    **kwargs
+):
     '''
     Make an AJAX call to an API, managing auth + auth.
 
@@ -90,7 +105,8 @@ async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cac
         headers = {}
     headers.update(request.get(constants.AUTH_HEADERS, {}))
 
-    cache_available = cache is not None and cache_key_prefix is not None
+    method = method.lower()
+    cache_available = method == 'get' and cache is not None and cache_key_prefix is not None
 
     if cache_available:
         cache_key = f"{cache_key_prefix}/{learning_observer.auth.encode_id('session', user[constants.USER_ID])}/{learning_observer.util.url_pathname(url)}"
@@ -103,20 +119,38 @@ async def raw_api_ajax(runtime, target_url, key_translator=None, cache=None, cac
                 return response_data
 
     async with aiohttp.ClientSession(loop=request.app.loop) as client:
-        async with client.get(url, headers=headers) as resp:
-            response = await resp.json()
+        request_kwargs = {'headers': headers}
+        if json_body is not None:
+            request_kwargs['json'] = json_body
+        if data is not None:
+            request_kwargs['data'] = data
+
+        async with client.request(method.upper(), url, **request_kwargs) as resp:
+            content_type = resp.headers.get('Content-Type', '')
+
+            # Many LTI-compliant endpoints return vendor-specific JSON media types
+            # (e.g., application/vnd.ims.lti-nrps.v2.membershipcontainer+json).
+            # Treat any content type containing "json" as JSON, but fall back to
+            # text if parsing fails.
+            if 'json' in content_type.lower():
+                try:
+                    response = await resp.json()
+                except Exception:
+                    response = await resp.text()
+            else:
+                response = await resp.text()
             learning_observer.log_event.log_ajax(target_url, response, request)
 
             if cache_available:
                 if settings.feature_flag('use_clean_ajax') is not None:
                     await cache.set(cache_key, json.dumps(response, indent=2))
 
-            if key_translator:
+            if key_translator and isinstance(response, (dict, list)):
                 return learning_observer.util.translate_json_keys(response, key_translator)
             return response
 
 
-def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_prefix=None, name=None, headers=None):
+def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_prefix=None, name=None, headers=None, method='get'):
     '''
     This is a helper which allows us to create a function which calls specific
     API endpoints.
@@ -125,13 +159,18 @@ def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_pr
         '''
         Make an AJAX request to the API
         '''
+        json_body = kwargs.pop('json_body', None)
+        data = kwargs.pop('data', None)
         return await raw_api_ajax(
-            runtime, 
-            remote_url, 
-            key_translator, 
-            cache, 
+            runtime,
+            remote_url,
+            key_translator,
+            cache,
             cache_key_prefix,
             headers,
+            method,
+            json_body=json_body,
+            data=data,
             **kwargs
         )
 
@@ -177,7 +216,7 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
         aiohttp.web.get(f"/{api_name}", api_docs_handler)
     ])
 
-    def make_ajax_raw_handler(remote_url):
+    def make_ajax_raw_handler(remote_url, method):
         '''
         Creates a handler to forward API requests to the client.
         '''
@@ -190,6 +229,8 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
                 key_translator,
                 cache,
                 cache_key_prefix,
+                method=method,
+                json_body=await request.json() if method != 'get' else None,
                 **request.match_info
             )
             return aiohttp.web.json_response(response)
@@ -232,12 +273,13 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
     for e in endpoints:
         function_name = f"raw_{e.name}"
         raw_function = raw_access_partial(
-            remote_url=e.remote_url, 
+            remote_url=e.remote_url,
             key_translator=key_translator,
             cache=cache,
             cache_key_prefix=cache_key_prefix,
             name=e.name,
-            headers=e.headers
+            headers=e.headers,
+            method=e.method
         )
         result_functions[function_name] = raw_function
         cleaners = e._cleaners()
@@ -258,10 +300,11 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
                 name=cleaners[c]['name']
             )
 
+        route_factory = getattr(aiohttp.web, e.method.lower())
         app.add_routes([
-            aiohttp.web.get(
+            route_factory(
                 e._local_url(),
-                make_ajax_raw_handler(e.remote_url)
+                make_ajax_raw_handler(e.remote_url, e.method)
             )
         ])
 

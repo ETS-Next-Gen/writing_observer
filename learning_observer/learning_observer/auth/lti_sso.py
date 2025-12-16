@@ -223,7 +223,12 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor',
             'http://purl.imsglobal.org/vocab/lis/v2/system/person#SysAdmin'
         ]
+        learner_roles = [
+            'http://purl.imsglobal.org/vocab/lis/v2/institution/person#Learner',
+            'http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'
+        ]
         is_instructor = any(r in roles for r in instructor_roles)
+        is_learner = any(r in roles for r in learner_roles)
 
         # Include the LTI Launch Context
         # HACK in Canvas, each course has 2 IDs:
@@ -246,7 +251,7 @@ async def handle_oidc_launch(request: web.Request) -> web.Response:
             'family_name': claims.get('family_name', ''),
             'picture': claims.get('picture', ''),
             'role': learning_observer.auth.ROLES.TEACHER if is_instructor else learning_observer.auth.ROLES.STUDENT,
-            'authorized': is_instructor,
+            'authorized': is_instructor or is_learner,
             'lti_context': lti_context
             # TODO figure out backto. With google sso, we had a state we could store things in
             # 'back_to': request.query.get('state')

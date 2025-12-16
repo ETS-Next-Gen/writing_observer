@@ -220,6 +220,30 @@ async def chromebook_auth(request, event, source):
     }
 
 
+@register_event_auth('lti_session')
+async def lti_session_auth(request, event, source):
+    """Authenticate websocket events using the existing LTI session.
+
+    When a dashboard is launched through LTI, the launch flow stores the
+    verified user information (including the subject identifier and course
+    context) in the aiohttp session via :func:`update_session_user_info`. If a
+    websocket request reuses that session, we can surface the same metadata for
+    incoming events so reducers can attribute them correctly.
+    """
+
+    session = await aiohttp_session.get_session(request)
+    user = session.get(constants.USER)
+    if not user:
+        return False
+
+    return {
+        'sec': 'authenticated',
+        constants.USER_ID: user[constants.USER_ID],
+        'providence': 'lti',
+        'lti_context': user.get('lti_context')
+    }
+
+
 @register_event_auth("hash_identify")
 async def hash_identify(request, event, source):
     '''
