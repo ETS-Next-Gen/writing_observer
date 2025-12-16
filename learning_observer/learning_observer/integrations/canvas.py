@@ -1,7 +1,6 @@
 import pmss
 import re
 
-import learning_observer.kvs
 import learning_observer.constants as constants
 import learning_observer.settings as settings
 
@@ -18,11 +17,18 @@ pmss.register_field(
 def setup_canvas_provider(provider):
     base_url = settings.pmss_settings.api_domain(types=['auth', 'lti', provider])
 
-    ENDPOINTS = list(map(lambda x: util.Endpoint(*x, api_name=provider), [
-        ('course_list', base_url + '/api/lti/courses/{courseId}/names_and_roles'),
-        ('course_roster', base_url + '/api/lti/courses/{courseId}/names_and_roles'),
-        ('course_lineitems', base_url + '/api/lti/courses/{courseId}/line_items'),
-    ]))
+    ENDPOINTS = [
+        util.Endpoint('course_list', base_url + '/api/lti/courses/{courseId}/names_and_roles', api_name=provider),
+        util.Endpoint('course_roster', base_url + '/api/lti/courses/{courseId}/names_and_roles', api_name=provider),
+        util.Endpoint('course_lineitems', base_url + '/api/lti/courses/{courseId}/line_items', api_name=provider),
+        util.Endpoint(
+            'lineitem_scores',
+            base_url + '/api/lti/courses/{courseId}/line_items/{lineItemId}/scores',
+            api_name=provider,
+            headers={'Content-Type': 'application/vnd.ims.lis.v1.score+json'},
+            method='post'
+        )
+    ]
 
     register_cleaner = util.make_cleaner_registrar(ENDPOINTS)
 
@@ -129,11 +135,27 @@ def setup_canvas_provider(provider):
         if not isinstance(line_items, list):
             # If it's not already a list, check for lineItems property that might contain the list
             line_items = canvas_json.get('lineItems', [])
+        normalized_line_items = []
+        for item in line_items:
+            if not isinstance(item, dict):
+                continue
 
+            raw_id = item.get('id')
+            line_item_id = raw_id
+            if isinstance(raw_id, str):
+                raw_id = raw_id.rstrip('/')
+                # Canvas returns the full line item URL; extract the trailing ID segment
+                line_item_id = raw_id.rsplit('/', 1)[-1]
+
+            normalized = dict(item)
+            normalized['lti_id'] = raw_id
+            normalized['id'] = line_item_id
+            normalized_line_items.append(normalized)
         # Sort by due date if available, otherwise by title
-        line_items.sort(
+        normalized_line_items.sort(
             key=lambda x: x.get('endDateTime', x.get('label', 'ZZ')),
         )
-        return line_items
+        print('Canvas', normalized_line_items)
+        return normalized_line_items
 
     return register_canvas_endpoints
