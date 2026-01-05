@@ -97,7 +97,6 @@ async def raw_api_ajax(
     request = runtime.get_request()
     url = target_url.format(**kwargs)
     user = await learning_observer.auth.get_active_user(request)
-
     if constants.AUTH_HEADERS not in request or user is None:
         raise aiohttp.web.HTTPUnauthorized(text="Please log in")
 

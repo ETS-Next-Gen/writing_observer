@@ -11,6 +11,7 @@ Practical instructions for achieving specific goals within Learning Observer. Us
 - :doc:`Run with Docker <docs/how-to/docker>` - Learn how to containerize the stack, manage images, and operate the project using Docker Compose.
 - :doc:`Writing Observer Extension <docs/how-to/extension>` - Install, configure, and validate the Writing Observer browser extension for capturing events.
 - :doc:`Interactive Environments <docs/how-to/interactive_environments>` - Connect Learning Observer to Jupyter and other live coding setups for iterative development.
+- :doc:`Impersonate Users <docs/how-to/impersonation>` - Start and stop acting as another user while keeping dashboards informed.
 
 .. toctree::
    :hidden:
@@ -25,3 +26,4 @@ Practical instructions for achieving specific goals within Learning Observer. Us
    docs/how-to/docker.md
    docs/how-to/extension.md
    docs/how-to/interactive_environments.md
+   docs/how-to/impersonation.md

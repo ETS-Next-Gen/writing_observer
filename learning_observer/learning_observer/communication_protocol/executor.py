@@ -494,6 +494,7 @@ async def _extract_fields_with_provenance_for_students(students, student_path):
     The provenance is the current history of the communication protocol for each item.
     '''
     async for s in ensure_async_generator(students):
+        # TODO if the item is just a string, we should use it instead of trying to get a nested item
         s_field = get_nested_dict_value(s, student_path, '')
         field = {
             learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field
@@ -513,6 +514,7 @@ async def _extract_fields_with_provenance_for_students_and_resources(students, s
     The provenance is the current history of the communication protocol for each item.
     '''
     async for s, r in async_zip(students, resources):
+        # TODO if the item is just a string, we should use it instead of trying to get a nested item
         s_field = get_nested_dict_value(s, student_path, '')
         r_field = get_nested_dict_value(r, resources_path, '')
         fields = {
