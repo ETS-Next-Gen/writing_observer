@@ -181,6 +181,16 @@ class _RedisKVS(_KVS):
         await self.connect()
         return await learning_observer.redis_connection.keys()
 
+    async def clear(self):
+        '''
+        Remove all keys from the redis-backed KVS.
+
+        This uses ``FLUSHDB`` on the configured Redis connection, which clears
+        the entire database. Use cautiously in shared environments.
+        '''
+        await self.connect()
+        return await (await learning_observer.redis_connection.connection()).flushdb()
+
     async def remove(self, key):
         '''
         Remove item from the KVS.
@@ -294,6 +304,23 @@ class FilesystemKVS(_KVS):
             for f in os.listdir(self.path):
                 keys.append(self.safe_filename_to_key(f))
         return keys
+
+    async def clear(self):
+        '''
+        Remove all entries stored in the filesystem-backed KVS.
+
+        The base directory is preserved, but all contained files (and
+        directories when ``subdirs`` is enabled) are removed.
+        '''
+        if self.subdirs:
+            for root, dirs, files in os.walk(self.path, topdown=False):
+                for f in files:
+                    os.remove(os.path.join(root, f))
+                for d in dirs:
+                    os.rmdir(os.path.join(root, d))
+        else:
+            for f in os.listdir(self.path):
+                os.remove(os.path.join(self.path, f))
 
 
 # TODO change the keys to variables

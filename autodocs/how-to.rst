@@ -5,6 +5,7 @@ Practical instructions for achieving specific goals within Learning Observer. Us
 
 - :doc:`Communication Protocol <docs/how-to/communication_protocol>` - How to query data from reducers or system endpoints for dashboards.
 - :doc:`Build Dashboards <docs/how-to/dashboards>` - Walk through creating dashboards from reducer outputs, including layout choices and data wiring.
+- :doc:`Offline Reducer Replay <docs/how-to/offline_replay>` - Explain how to repopulate reducer content with study logs.
 - :doc:`Serve as LTI application<docs/how-to/lti>` - Cover how to install Learning Observer as an LTI application.
 - :doc:`Connect LO Blocks to Canvas via Learning Observer<docs/how-to/connect_lo_blocks_to_canvas>` - Show how to connect launch LO Blocks through Learning Observer from within Canvas.
 - :doc:`Configure Multiple Roster Sources<docs/how-to/multiple_roster_sources>` - Allow the system to dynamically choose a roster source given a user's context.
@@ -20,6 +21,7 @@ Practical instructions for achieving specific goals within Learning Observer. Us
 
    docs/how-to/communication_protocol.md
    docs/how-to/dashboards.md
+   docs/how-to/offline_replay.md
    docs/how-to/lti.md
    docs/how-to/connect_lo_blocks_to_canvas.md
    docs/how-to/multiple_roster_sources.md

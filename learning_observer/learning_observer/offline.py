@@ -4,11 +4,10 @@ Learning Observer Library
 Helpers to support the use of Learning Observer in scripts, in
 other applications, and in Jupyter notebooks.
 '''
-import argparse
 import asyncio
-from cgi import print_arguments
+import gzip
+import itertools
 import json
-import sys
 import os
 
 import names
@@ -75,10 +74,11 @@ async def process_file(
     pipeline=None
 ):
     '''
-    Process a single log file.
+    Process a single study log file.
 
     Args:
-        file_path (str): The path to the log file to process.
+        file_path (str): The path to the study log file to process
+                         (``*.study.log`` or ``*.study.log.gz``).
         source (str): The source of events (e.g. org.mitros.dynamic_assessment)
                       If not specified, the source will be inferred from the
                       events.
@@ -89,7 +89,8 @@ async def process_file(
         Number of events processed, source, and userid
 
     If `source` is not specified, the source will be inferred from the
-    log file.
+    log file. Only study logs should be used for replay to ensure the
+    appended timestamp and metadata are handled correctly.
 
     If `userid` is not specified, a username will be generated with
     `names.get_first_name()`. We do this because we don't want to
@@ -104,25 +105,41 @@ async def process_file(
     # Opener returns an iterator of events. It handles diverse sources:
     # lists, log files, and compressed log files
     def opener():
-        return events_list
+        if events_list is not None:
+            return iter(events_list)
 
-    if file_path is not None:
-        if file_path.endswith('.log'):
-            def file_opener():
-                return open(file_path)
-        elif file_path.endswith('.log.gz'):
-            def file_opener():
-                return gzip.open(file_path)
+        if file_path is None:
+            raise ValueError("Either events_list or file_path must be provided")
+
+        def decode_event(line):
+            # Study logs append a timestamp separated by a tab; strip it off before decoding
+            line = line.decode("utf-8") if isinstance(line, bytes) else line
+            if "\t" in line:
+                payload, suffix = line.rsplit("\t", 1)
+                line = payload
+            return json.loads(line)
+
+        if file_path.endswith('.study.log'):
+            file_handle = open(file_path, 'r')
+        elif file_path.endswith('.study.log.gz'):
+            file_handle = gzip.open(file_path, 'rt')
         else:
-            raise ValueError("Unknown file type: " + file_path)
+            raise ValueError("Unknown study log type (expected .study.log or .study.log.gz): " + file_path)
 
-        def opener():
-            return (json.loads(line) for line in file_opener().readlines())
+        with file_handle as fp:
+            for line in fp:
+                yield decode_event(line)
+
+    # We need to inspect the events to determine source, but also reuse them for processing
+    events_iter, events_for_processing = itertools.tee(opener())
 
     if source is None:
-        for event in opener:
-            source = event['client']['source']
-            break
+        try:
+            first_event = next(events_iter)
+        except StopIteration:
+            raise ValueError("No events available to infer source")
+        source = first_event['client']['source']
+        events_for_processing = itertools.chain([first_event], events_for_processing)
 
     # In most cases, for development, a dummy name is good.
     if userid is None:
@@ -140,9 +157,9 @@ async def process_file(
         pipeline = await learning_observer.incoming_student_event.student_event_pipeline(metadata)
     else:
         pipeline = await pipeline(metadata)
-    print(pipeline)
+
     n = 0  # Number of events processed
-    for event in opener():
+    for event in events_for_processing:
         try:
             await pipeline(event)
             n += 1
@@ -155,15 +172,15 @@ async def process_file(
 
 async def process_files(files):
     '''
-    Process a list of log files.
+    Process a list of study log files.
 
     Args:
-        files (list): A list of log files to process.
+        files (list): A list of study log files to process.
 
     Returns:
         Total number of events processed
 
-    This function will process each file in the list, and print the
+    This function will process each study log file in the list, and print the
     results.
     '''
     total = 0
@@ -177,7 +194,7 @@ async def process_files(files):
 
 async def process_dir(path=os.getcwd()):
     '''
-    Process all log files in a directory.
+    Process all study log files in a directory.
 
     Args:
         path (str): The path to the directory to process.
@@ -185,10 +202,16 @@ async def process_dir(path=os.getcwd()):
     Returns:
         Number of files processed, total number of events processed
 
-    This function will process all log files in the directory, and
-    print the results.
+    This function will process all study log files (``*.study.log`` or
+    ``*.study.log.gz``) in the directory, and print the results. These logs
+    include replay metadata and should be used instead of raw ``.log`` files
+    when re-running offline analyses.
     '''
-    files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.log')]
+    files = [
+        os.path.join(path, f)
+        for f in os.listdir(path)
+        if f.endswith('.study.log') or f.endswith('.study.log.gz')
+    ]
     events_processed = await process_files(files)
     return len(files), events_processed
 
