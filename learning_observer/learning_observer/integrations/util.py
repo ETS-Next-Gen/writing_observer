@@ -314,6 +314,21 @@ def make_cleaner_registrar(endpoints):
     '''
     Creates a register_cleaner function specific to a list of endpoints.
 
+    Cleaners are pure post-processing functions that reshape provider JSON
+    responses into Learning Observer's shared integration format. They should:
+
+    * Accept a raw provider payload (already key-translated when a
+      ``key_translator`` is provided to :func:`register_endpoints`).
+    * Return JSON-serializable Python objects (dicts/lists) without
+      aiohttp-specific types so the same function works as both a web handler
+      and an in-process helper.
+    * Normalize identifiers and key casing consistently across providers (for
+      example, Google/Canvas/Schoology rosters all emit ``user_id`` and keep
+      nested ``profile`` structures) and apply deterministic sorting so callers
+      can rely on stable ordering. In practice this means matching each
+      integrator's native payload into the common roster/course list formats
+      documented in the cleaners themselves.
+
     Returns:
         A function that can be used as a decorator to register cleaners.
     '''
