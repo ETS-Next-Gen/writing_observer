@@ -498,7 +498,7 @@ async def incoming_websocket_handler(request):
         async for event in events:
             # Extract metadata
             if event['event'] in ['save_blob', 'fetch_blob']:
-                user_id = event['auth']['user_id']
+                user_id = event['auth']['safe_user_id']
                 source = event['source']
                 activity = event['activity']
 
