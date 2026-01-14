@@ -20,6 +20,8 @@ import learning_observer.util
 
 from learning_observer.log_event import debug_log
 
+import learning_observer.stream_analytics.time_on_task
+
 REDUCER_MODULES = None
 LAST_UPDATED = None
 
