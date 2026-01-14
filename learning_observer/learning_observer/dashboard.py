@@ -564,6 +564,8 @@ def _scope_segment_for_provenance_key(key):
         if field_name.endswith('_id'):
             return f"{field_name}s"
         return f"{field_name}s"
+    if key == 'CLASS':
+        return 'classes'
     return f"{key.lower()}s"
 
 
