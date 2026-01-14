@@ -472,11 +472,14 @@ def _normalize_scope_field_key(key):
 def _scope_field_candidates(field):
     if isinstance(field, learning_observer.stream_analytics.fields.KeyField):
         base = field.name
+        plural = f'{base.lower()}s'
+        if base == 'CLASS':
+            plural = 'classes'
         return [
             base,
             f'KeyField.{base}',
             base.lower(),
-            f'{base.lower()}s'
+            plural
         ]
 
     if isinstance(field, learning_observer.stream_analytics.helpers.EventField):
