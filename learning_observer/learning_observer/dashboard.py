@@ -652,6 +652,9 @@ def _find_student_or_resource(d):
         if isinstance(provenance, dict):
             provenance_data = provenance.get('provenance', provenance)
             provenance_key = provenance.get('key')
+        while isinstance(provenance_data, dict) and set(provenance_data.keys()) <= {'key', 'provenance'}:
+            provenance_key = provenance_data.get('key', provenance_key)
+            provenance_data = provenance_data.get('provenance', provenance_data)
         output = []
         if isinstance(provenance_data, dict):
             reducer = _find_reducer_from_provenance_key(provenance_key)
