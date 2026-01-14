@@ -498,18 +498,28 @@ async def incoming_websocket_handler(request):
         async for event in events:
             # Extract metadata
             if event['event'] in ['save_blob', 'fetch_blob']:
-                user_id = event['auth']['safe_user_id']
+                # we previously used the `user_id` key for storing blobs
+                # we should be using the `safe_user_id` instead
+                safe_user_id = event['auth']['safe_user_id']
+                legacy_user_id = event['auth']['user_id']
                 source = event['source']
                 activity = event['activity']
 
             # Save, fetch, or ignore (continue)
             if event['event'] == 'save_blob':
                 await learning_observer.blob_storage.save_blob(
-                    user_id, source, activity,
+                    safe_user_id, source, activity,
                     event['blob']
                 )
             elif event['event'] == 'fetch_blob':
-                blob = await learning_observer.blob_storage.fetch_blob(user_id, source, activity)
+                # Try fetching via our safe user id and fallback to the legacy user id
+                blob = await learning_observer.blob_storage.fetch_blob(
+                    safe_user_id, source, activity
+                )
+                if blob is None and legacy_user_id and legacy_user_id != safe_user_id:
+                    blob = await learning_observer.blob_storage.fetch_blob(
+                        legacy_user_id, source, activity
+                    )
                 await ws.send_json({
                     'status': 'fetch_blob',
                     'data': blob
