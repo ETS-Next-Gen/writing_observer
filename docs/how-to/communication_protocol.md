@@ -71,8 +71,10 @@ from learning_observer.communication_protocol import query
 
 roster = query.call("get_course_roster", args={"course_id": course_id})
 reducer_keys = query.keys(
-    reducer="reading_fluency",
-    entities=query.variable(roster, "students"),
+    "reading_fluency",
+    scope_fields={
+        "student": {"values": query.variable(roster), "path": "user_id"},
+    },
 )
 reducer_docs = query.select(
     keys=reducer_keys,
@@ -91,6 +93,44 @@ Guidelines:
 * Use `query.variable(node, path=None)` for downstream access to prior outputs.
 * Encapsulate repeated or complex logic in functions for reuse and testing.
 * Use explicit names and keyword arguments—avoid positional arguments for clarity.
+
+### Defining reducer scopes for `keys` (preferred vs. legacy)
+
+Reducers define a scope (e.g., student, student+document, student+document+tab). When
+building a `keys` node, pass scope values that align with the reducer scope so the
+executor can build the right Redis keys.
+
+**Preferred: `scope_fields` (supports arbitrary scopes)**
+
+Use `scope_fields` to supply each scope axis with a `values` iterable and a `path`
+into each item. The scope field names should match the reducer scope: `student`,
+`doc_id`, `tab_id`, `page_id`, etc.
+
+```python
+reducer_keys = query.keys(
+    "writing_observer.some_tabbed_reducer",
+    scope_fields={
+        "student": {"values": query.variable("roster"), "path": "user_id"},
+        "doc_id": {"values": query.variable("documents"), "path": "doc_id"},
+        "tab_id": {"values": query.variable("tabs"), "path": "tab_id"},
+    },
+)
+```
+
+**Legacy: `STUDENTS`/`RESOURCES`**
+
+The older hack only supported student-only or student+document scopes. It is still
+accepted for backward compatibility, but prefer `scope_fields` for new work.
+
+```python
+reducer_keys = query.keys(
+    "writing_observer.last_document",
+    STUDENTS=query.variable("roster"),
+    STUDENTS_path="user_id",
+    RESOURCES=query.variable("documents"),
+    RESOURCES_path="doc_id",
+)
+```
 
 ## 6. Define Exports and Integrations
 
