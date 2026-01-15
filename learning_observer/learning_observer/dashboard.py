@@ -652,12 +652,10 @@ def _find_student_or_resource(d):
         if isinstance(provenance, dict):
             provenance_data = provenance.get('provenance', provenance)
             provenance_key = provenance.get('key')
-        while isinstance(provenance_data, dict) and set(provenance_data.keys()) <= {'key', 'provenance'}:
-            if not provenance_data:
-                break
+        while isinstance(provenance_data, dict) and 'provenance' in provenance_data:
             provenance_key = provenance_data.get('key', provenance_key)
-            next_provenance = provenance_data.get('provenance', provenance_data)
-            if next_provenance is provenance_data:
+            next_provenance = provenance_data.get('provenance')
+            if next_provenance is None or next_provenance is provenance_data:
                 break
             provenance_data = next_provenance
         output = []
