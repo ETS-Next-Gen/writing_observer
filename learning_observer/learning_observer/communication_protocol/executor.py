@@ -465,75 +465,182 @@ async def handle_select(keys, fields=learning_observer.communication_protocol.qu
         yield query_response_element
 
 
-# @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
-def handle_keys(function, value_path, **kwargs):
-    """
-    We WANT TO dispatch this function whenever we process a DISPATCH_MODES.KEYS node.
-    Whenever a user wants to perform a select operation, they first must make sure their
-    keys are formatted properly. This method builds the keys to access the appropriate
-    reducers output.
-
-    We have not yet implemented this because there is not a clear way of how different
-    sets of KeyFields should interact with one another. The easy solution is when we
-    just have a single KeyField. For example, with Students, we iterate over each one
-    and create the key. It is not clear how each item in the superset of KeyField
-    combinations should behave.
-
-    Currently we use `hack_handle_keys` instead.
-    """
-    return unimplemented_handler()
+def _normalize_scope_field_key(key):
+    return str(key).strip().lower()
 
 
-async def _extract_fields_with_provenance_for_students(students, student_path):
-    '''This is a helper function for the `hack_handle_keys` function.
-    This function prepares the key field dictionary and the provenance
-    for each student.
+def _scope_field_candidates(field):
+    if isinstance(field, learning_observer.stream_analytics.fields.KeyField):
+        base = field.name
+        plural = f'{base.lower()}s'
+        if base == 'CLASS':
+            plural = 'classes'
+        return [
+            base,
+            f'KeyField.{base}',
+            base.lower(),
+            plural
+        ]
+
+    if isinstance(field, learning_observer.stream_analytics.helpers.EventField):
+        base = field.event
+        candidates = [
+            base,
+            f'EventField.{base}',
+            base.lower(),
+            base.upper()
+        ]
+        if base == 'doc_id':
+            candidates.extend(['RESOURCE', 'RESOURCES', 'resource', 'resources'])
+        return candidates
+
+    return []
+
+
+def _normalize_scope_field_specs(raw_specs):
+    normalized = {}
+    for key, spec in raw_specs.items():
+        normalized_key = _normalize_scope_field_key(key)
+        if isinstance(spec, dict):
+            values = spec.get('values', spec.get('value', spec.get('items', spec.get('data'))))
+            path = spec.get('path', spec.get('value_path'))
+        else:
+            values = spec
+            path = None
+        normalized[normalized_key] = {
+            'values': values,
+            'path': path
+        }
+    return normalized
+
+
+def _provenance_key_for_field(field):
+    if isinstance(field, learning_observer.stream_analytics.fields.KeyField):
+        return field.name
+    if isinstance(field, learning_observer.stream_analytics.helpers.EventField):
+        if field.event == 'doc_id':
+            return 'RESOURCE'
+        return f'EventField.{field.event}'
+    return str(field)
+
+
+async def _async_zip_many(iterables):
+    generators = [ensure_async_generator(it) for it in iterables]
+    try:
+        while True:
+            values = await asyncio.gather(*[gen.__anext__() for gen in generators])
+            yield values
+    except StopAsyncIteration:
+        return
+
+
+async def _extract_fields_with_provenance(scope_specs):
+    '''Prepare the key field dictionary and provenance for each scope tuple.
     The key field dictionary is used to create the key we are attempting
     to fetch from the KVS (used later in `hack_handle_keys`). The passed in
-    `item_path` is used for setting the appropriate dictionary value.
+    `path` is used for setting the appropriate dictionary value.
     The provenance is the current history of the communication protocol for each item.
     '''
-    async for s in ensure_async_generator(students):
-        # TODO if the item is just a string, we should use it instead of trying to get a nested item
-        s_field = get_nested_dict_value(s, student_path, '')
-        field = {
-            learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field
-        }
-        provenance = s.get('provenance', {'value': s})
-        provenance[student_path] = s_field
-        yield field, {'STUDENT': provenance}
+    if not scope_specs:
+        return
 
+    if len(scope_specs) == 1:
+        field, values, path = scope_specs[0]
+        async for item in ensure_async_generator(values):
+            field_value = get_nested_dict_value(item, path or '', '')
+            fields = {field: field_value}
+            item_provenance = item.get('provenance', {'value': item}) if isinstance(item, dict) else {'value': item}
+            if path:
+                item_provenance[path] = field_value
+            provenance = {_provenance_key_for_field(field): item_provenance}
+            yield fields, provenance
+        return
 
-async def _extract_fields_with_provenance_for_students_and_resources(students, student_path, resources, resources_path):
-    '''This is a helper function for the `hack_handle_keys` function.
-    This function prepares the key field dictionary and the provenance
-    for each student/resource pair.
-    The key field dictionary is used to create the key we are attempting
-    to fetch from the KVS (used later in `hack_handle_keys`). The passed in
-    `item_path` is used for setting the appropriate dictionary value.
-    The provenance is the current history of the communication protocol for each item.
-    '''
-    async for s, r in async_zip(students, resources):
-        # TODO if the item is just a string, we should use it instead of trying to get a nested item
-        s_field = get_nested_dict_value(s, student_path, '')
-        r_field = get_nested_dict_value(r, resources_path, '')
-        fields = {
-            learning_observer.stream_analytics.fields.KeyField.STUDENT: s_field,
-            learning_observer.stream_analytics.helpers.EventField('doc_id'): r_field
-        }
-        s_provenance = s.get('provenance', {'value': s})
-        s_provenance[student_path] = s_field
-        r_provenance = r.get('provenance', {'value': r})
-        r_provenance[resources_path] = r_field
-        provenance = {
-            'STUDENT': s_provenance,
-            'RESOURCE': r_provenance
-        }
+    iterables = [values for _, values, _ in scope_specs]
+    async for items in _async_zip_many(iterables):
+        fields = {}
+        provenance = {}
+        for (field, _, path), item in zip(scope_specs, items):
+            field_value = get_nested_dict_value(item, path or '', '')
+            fields[field] = field_value
+            item_provenance = item.get('provenance', {'value': item}) if isinstance(item, dict) else {'value': item}
+            if path:
+                item_provenance[path] = field_value
+            provenance[_provenance_key_for_field(field)] = item_provenance
         yield fields, provenance
 
 
+def _resolve_scope_specs(scope, kwargs):
+    scope_specs = {}
+    raw_scope_specs = kwargs.get('scope_fields', {})
+    if isinstance(raw_scope_specs, dict):
+        scope_specs.update(_normalize_scope_field_specs(raw_scope_specs))
+
+    allowed_scope_keys = set()
+    for field in scope:
+        allowed_scope_keys.update(
+            _normalize_scope_field_key(candidate)
+            for candidate in _scope_field_candidates(field)
+        )
+
+    for key, value in kwargs.items():
+        if key in {'scope_fields', 'STUDENTS', 'STUDENTS_path', 'RESOURCES', 'RESOURCES_path'}:
+            continue
+        if key.endswith('_path'):
+            continue
+        path_key = f"{key}_path"
+        if path_key in kwargs:
+            scope_specs.setdefault(
+                _normalize_scope_field_key(key),
+                {'values': value, 'path': kwargs[path_key]}
+            )
+
+    if 'STUDENTS' in kwargs:
+        scope_specs.setdefault(
+            'student',
+            {'values': kwargs['STUDENTS'], 'path': kwargs.get('STUDENTS_path')}
+        )
+    if 'RESOURCES' in kwargs:
+        scope_specs.setdefault(
+            'doc_id',
+            {'values': kwargs['RESOURCES'], 'path': kwargs.get('RESOURCES_path')}
+        )
+
+    unexpected_scope_keys = set(scope_specs.keys()) - allowed_scope_keys
+    if unexpected_scope_keys:
+        raise DAGExecutionException(
+            'Provided scope fields do not match reducer scope.',
+            inspect.currentframe().f_code.co_name,
+            {
+                'scope': [str(field) for field in scope],
+                'unexpected_fields': sorted(unexpected_scope_keys)
+            }
+        )
+
+    specs = []
+    for field in sorted(scope, key=str):
+        field_specs = None
+        for candidate in _scope_field_candidates(field):
+            candidate_key = _normalize_scope_field_key(candidate)
+            if candidate_key in scope_specs:
+                field_specs = scope_specs[candidate_key]
+                break
+        if field_specs is None:
+            return None
+        specs.append((field, field_specs['values'], field_specs.get('path')))
+
+    return specs
+
+
+def _find_reducer_by_key(function):
+    for reducer in learning_observer.module_loader.reducers():
+        if reducer.get('id') == function or reducer.get('string_id') == function:
+            return reducer
+    return None
+
+
 @handler(learning_observer.communication_protocol.query.DISPATCH_MODES.KEYS)
-async def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCES=None, RESOURCES_path=None):
+async def handle_keys(function, **kwargs):
     """
     This function is a HACK that is being used instead of `handle_keys` for any
     `DISPATCH_MODE.KEYS` nodes.
@@ -542,17 +649,18 @@ async def hack_handle_keys(function, STUDENTS=None, STUDENTS_path=None, RESOURCE
     keys are formatted properly. This method builds the keys to access the appropriate
     reducers output.
 
-    This function only supports the creation of Student keys and Student/Resource pair keys.
+    This function supports creation of keys based on the reducer scope.
     We create a list of fields needed for the `make_key()` function as well as the provenance
     associated with each. These are zipped together and returned to the user.
     """
     # TODO do something if `func` is not found
-    func = next((item for item in learning_observer.module_loader.reducers() if item['id'] == function), None)
-    fields_and_provenances = None
-    if STUDENTS is not None and RESOURCES is None:
-        fields_and_provenances = _extract_fields_with_provenance_for_students(STUDENTS, STUDENTS_path)
-    elif STUDENTS is not None and RESOURCES is not None:
-        fields_and_provenances = _extract_fields_with_provenance_for_students_and_resources(STUDENTS, STUDENTS_path, RESOURCES, RESOURCES_path)
+    func = _find_reducer_by_key(function)
+    if func is None:
+        return
+    scope_specs = _resolve_scope_specs(func.get('scope', []), kwargs)
+    if scope_specs is None:
+        return
+    fields_and_provenances = _extract_fields_with_provenance(scope_specs)
 
     if fields_and_provenances is None:
         return

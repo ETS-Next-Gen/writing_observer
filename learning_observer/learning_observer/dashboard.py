@@ -554,6 +554,82 @@ async def _create_dag_generator(client_query, target, request):
     return await _prepare_dag_as_generator(client_query, query, target, request)
 
 
+def _scope_segment_for_provenance_key(key):
+    if key == 'RESOURCE':
+        return 'documents'
+    if key.startswith('EventField.'):
+        field_name = key.split('EventField.', 1)[1]
+        if field_name == 'doc_id':
+            return 'documents'
+        if field_name.endswith('_id'):
+            return f"{field_name}s"
+        return f"{field_name}s"
+    if key == 'CLASS':
+        return 'classes'
+    return f"{key.lower()}s"
+
+
+def _provenance_key_for_scope_field(field):
+    if isinstance(field, sa_helpers.KeyField):
+        return field.name
+    if isinstance(field, sa_helpers.EventField):
+        if field.event == 'doc_id':
+            return 'RESOURCE'
+        return f'EventField.{field.event}'
+    return str(field)
+
+
+def _scope_key_order_for_reducer(reducer):
+    if not reducer:
+        return []
+    scope = reducer.get('scope', [])
+    ordered_scope = sorted(
+        scope,
+        key=lambda field: (0 if isinstance(field, sa_helpers.KeyField) else 1, getattr(field, 'name', str(field)))
+    )
+    return [_provenance_key_for_scope_field(field) for field in ordered_scope]
+
+
+def _find_reducer_from_provenance_key(key):
+    if not key:
+        return None
+    parts = key.split(',')
+    if len(parts) < 2:
+        return None
+    reducer_name = parts[1]
+    for reducer in learning_observer.module_loader.reducers():
+        function_name = sa_helpers.fully_qualified_function_name(reducer['function'])
+        if function_name == reducer_name:
+            return reducer
+    return None
+
+
+def _value_from_provenance_entry(key, entry):
+    if not isinstance(entry, dict):
+        return entry
+    if key == 'STUDENT':
+        for candidate in ('user_id', 'student_id', 'id'):
+            if candidate in entry:
+                return entry[candidate]
+    if key in ('RESOURCE', 'EventField.doc_id'):
+        for candidate in ('doc_id', 'resource_id', 'id'):
+            if candidate in entry:
+                return entry[candidate]
+    if key == 'CLASS':
+        for candidate in ('class_id', 'id'):
+            if candidate in entry:
+                return entry[candidate]
+    if key == 'TEACHER':
+        for candidate in ('user_id', 'teacher_id', 'id'):
+            if candidate in entry:
+                return entry[candidate]
+    if key.startswith('EventField.'):
+        field_name = key.split('EventField.', 1)[1]
+        if field_name in entry:
+            return entry[field_name]
+    return entry.get('value')
+
+
 def _find_student_or_resource(d):
     '''HACK the communication protocol does not provide an easy way to
     determine which student or student/document pair is being updated.
@@ -563,28 +639,52 @@ def _find_student_or_resource(d):
     user output. However, this method assumes that the provenance is still
     around.
     This method digs into the provenance and extracts the corresponding
-    student or student/document id. This information is used to tell the
-    client which items in their data-tree to update (i.e. update Billy's
-    History Essay with this new information).
+    scope ids. This information is used to tell the client which items in
+    their data-tree to update (i.e. update Billy's History Essay with this
+    new information).
     '''
     if not isinstance(d, dict):
         return []
     if 'provenance' in d:
         provenance = d['provenance']
+        provenance_data = provenance
+        provenance_key = None
+        if isinstance(provenance, dict):
+            provenance_data = provenance.get('provenance', provenance)
+            provenance_key = provenance.get('key')
+        while isinstance(provenance_data, dict) and 'provenance' in provenance_data:
+            provenance_key = provenance_data.get('key', provenance_key)
+            next_provenance = provenance_data.get('provenance')
+            if next_provenance is None or next_provenance is provenance_data:
+                break
+            provenance_data = next_provenance
         output = []
-        if 'STUDENT' in provenance:
-            output.append('students')
-            output.append(str(provenance['STUDENT']['user_id']))
-        if 'RESOURCE' in provenance:
-            if 'doc_id' in provenance['RESOURCE']:
-                output.append('documents')
-                output.append(str(provenance['RESOURCE']['doc_id']))
-            if 'assignment_id' in provenance['RESOURCE']:
-                output.append('assignments')
-                output.append(str(provenance['RESOURCE']['assignment_id']))
+        if isinstance(provenance_data, dict):
+            reducer = _find_reducer_from_provenance_key(provenance_key)
+            scope_order = _scope_key_order_for_reducer(reducer)
+            scope_order_index = {key: idx for idx, key in enumerate(scope_order)} if scope_order else {}
+            if scope_order_index:
+                ordered_entries = sorted(
+                    ((key, entry) for key, entry in provenance_data.items() if key in scope_order_index),
+                    key=lambda item: scope_order_index[item[0]]
+                )
+            else:
+                ordered_entries = provenance_data.items()
+            for key, entry in ordered_entries:
+                if scope_order_index and key not in scope_order_index:
+                    continue
+                segment = _scope_segment_for_provenance_key(key)
+                if segment is None:
+                    continue
+                value = _value_from_provenance_entry(key, entry)
+                if value is None:
+                    continue
+                output.append(segment)
+                output.append(str(value))
+
         if output:
             return output
-        return _find_student_or_resource(provenance)
+        return _find_student_or_resource(provenance_data)
     return []
 
 
