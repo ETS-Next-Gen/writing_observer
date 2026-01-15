@@ -653,16 +653,26 @@ def _find_student_or_resource(d):
             provenance_data = provenance.get('provenance', provenance)
             provenance_key = provenance.get('key')
         while isinstance(provenance_data, dict) and set(provenance_data.keys()) <= {'key', 'provenance'}:
+            if not provenance_data:
+                break
             provenance_key = provenance_data.get('key', provenance_key)
-            provenance_data = provenance_data.get('provenance', provenance_data)
+            next_provenance = provenance_data.get('provenance', provenance_data)
+            if next_provenance is provenance_data:
+                break
+            provenance_data = next_provenance
         output = []
         if isinstance(provenance_data, dict):
             reducer = _find_reducer_from_provenance_key(provenance_key)
+            if reducer is None:
+                return []
             scope_order = _scope_key_order_for_reducer(reducer)
+            if not scope_order:
+                return []
             scope_order_index = {key: idx for idx, key in enumerate(scope_order)}
             ordered_entries = sorted(
-                provenance_data.items(),
-                key=lambda item: scope_order_index.get(item[0], len(scope_order_index))
+                ((key, entry) for key, entry in provenance_data.items() if key in scope_order_index),
+                key=lambda item: scope_order_index[item[0]]
+
             )
             for key, entry in ordered_entries:
                 segment = _scope_segment_for_provenance_key(key)
