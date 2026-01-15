@@ -78,6 +78,21 @@ export function googledocs_id_from_url(url) {
     return null;
 }
 
+export function tab_id_from_url(url) {
+    /*
+      Given a URL like:
+        https://docs.google.com/document/d/<doc_id>/edit?tab=t.95yb7msfl8ul
+      extract the associated tab ID:
+        t.95yb7msfl8ul
+      Return null if not a valid URL or tab param.
+    */
+    var match = url.match(/[?&]tab=([^&]+)/i);
+    if (match) {
+        return match[1];
+    }
+    return null;
+}
+
 var writing_lasthash = "";
 function unique_id() {
     /*
