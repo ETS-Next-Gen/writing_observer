@@ -663,18 +663,18 @@ def _find_student_or_resource(d):
         output = []
         if isinstance(provenance_data, dict):
             reducer = _find_reducer_from_provenance_key(provenance_key)
-            if reducer is None:
-                return []
             scope_order = _scope_key_order_for_reducer(reducer)
-            if not scope_order:
-                return []
-            scope_order_index = {key: idx for idx, key in enumerate(scope_order)}
-            ordered_entries = sorted(
-                ((key, entry) for key, entry in provenance_data.items() if key in scope_order_index),
-                key=lambda item: scope_order_index[item[0]]
-
-            )
+            scope_order_index = {key: idx for idx, key in enumerate(scope_order)} if scope_order else {}
+            if scope_order_index:
+                ordered_entries = sorted(
+                    ((key, entry) for key, entry in provenance_data.items() if key in scope_order_index),
+                    key=lambda item: scope_order_index[item[0]]
+                )
+            else:
+                ordered_entries = provenance_data.items()
             for key, entry in ordered_entries:
+                if scope_order_index and key not in scope_order_index:
+                    continue
                 segment = _scope_segment_for_provenance_key(key)
                 if segment is None:
                     continue
