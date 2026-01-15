@@ -78,7 +78,7 @@ export function googledocs_id_from_url(url) {
     return null;
 }
 
-export function tab_id_from_url(url) {
+export function googledocs_tab_id_from_url(url) {
     /*
       Given a URL like:
         https://docs.google.com/document/d/<doc_id>/edit?tab=t.95yb7msfl8ul
