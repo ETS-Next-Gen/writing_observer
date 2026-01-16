@@ -5,7 +5,7 @@
 /* For debugging purposes: we know the extension is active */
 // document.body.style.border = "1px solid blue";
 
-import { googledocs_id_from_url, treeget } from './writing_common';
+import { googledocs_id_from_url, googledocs_tab_id_from_url, treeget } from './writing_common';
 /*
    General Utility Functions
 */
@@ -49,6 +49,7 @@ function log_event(event_type, event) {
         "type": "http://schema.learning-observer.org/writing-observer/",
         "title": google_docs_title(),
         "id": doc_id(),
+        "tab_id": tab_id(),
         "url": window.location.href,
     };
 
@@ -74,6 +75,18 @@ function doc_id() {
         return googledocs_id_from_url(window.location.href);
     } catch(error) {
         log_error("Couldn't read document id");
+        return null;
+    }
+}
+
+function tab_id() {
+    /*
+      Extract the Google document's current Tab ID from the window
+    */
+    try {
+        return googledocs_tab_id_from_url(window.location.href);
+    } catch(error) {
+        log_error("Couldn't read document's tab id");
         return null;
     }
 }

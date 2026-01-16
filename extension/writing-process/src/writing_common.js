@@ -78,6 +78,30 @@ export function googledocs_id_from_url(url) {
     return null;
 }
 
+export function googledocs_tab_id_from_url(url) {
+    /*
+      Given a URL like:
+        https://docs.google.com/document/d/<doc_id>/edit?tab=t.95yb7msfl8ul
+        https://docs.google.com/document/d/<doc_id>/edit?tab=t.95yb7msfl8ul#heading=h.abc123
+      extract the associated tab ID:
+        t.95yb7msfl8ul
+      Return null if not a valid Google Docs URL or tab param.
+
+      Regex explanation:
+      1. `/.*:\/\/` - match any protocol (http/https) followed by ://
+      2. `docs\.google\.com\/document\/` - match google docs domain
+      3. `.*` - match any characters until we find the tab param
+      4. `[?&]tab=` - match tab parameter in query string
+      5. `([^&#]+)` - capture tab value, stopping at & (next param) or # (hash fragment)
+      6. `/i` - case insensitive
+    */
+    var match = url.match(/.*:\/\/docs\.google\.com\/document\/.*[?&]tab=([^&#]+)/i);
+    if (match) {
+        return match[1];
+    }
+    return null;
+}
+
 var writing_lasthash = "";
 function unique_id() {
     /*
