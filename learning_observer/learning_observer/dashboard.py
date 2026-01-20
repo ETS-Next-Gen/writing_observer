@@ -59,7 +59,8 @@ pmss.register_field(
 pmss.register_field(
     name='logging_enabled',
     type=pmss.pmsstypes.TYPES.boolean,
-    description='Log dashboard sessions to .dashboard.log files',
+    description='Allow data to be logged or not. Used in within namespaces '\
+                'such as `dashboard_settings` or `lms_integration`.',
     default=False
 )
 
