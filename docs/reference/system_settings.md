@@ -47,6 +47,12 @@ runtime.
 | --- | --- | --- | --- |
 | `dashboard_settings.logging_enabled` | Determine if we should log dashboard sessions. | `false` | [`learning_observer/learning_observer/dashboard.py`](../../learning_observer/learning_observer/dashboard.py) |
 
+### LMS Integration (`lms_integration` namespace)
+
+| YAML path | Description | Default | Used in |
+| --- | --- | --- | --- |
+| `lms_integration.logging_enabled` | Determine if we should log lms integration calls. | `false` | [`learning_observer/learning_observer/log_event.py`](../../learning_observer/learning_observer/log_event.py) |
+
 ### Redis connection (`redis_connection` namespace)
 
 | YAML path | Description | Default | Used in |

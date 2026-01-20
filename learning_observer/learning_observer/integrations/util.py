@@ -82,6 +82,8 @@ async def raw_api_ajax(
     method='get',
     json_body=None,
     data=None,
+    api_name=None,
+    endpoint_name=None,
     **kwargs
 ):
     '''
@@ -139,6 +141,24 @@ async def raw_api_ajax(
             else:
                 response = await resp.text()
             learning_observer.log_event.log_ajax(target_url, response, request)
+            lms_payload = {
+                'event': 'lms_integration',
+                'api_name': api_name,
+                'endpoint': endpoint_name,
+                'method': method.upper(),
+                'url': url,
+                'params': kwargs,
+                'response': response
+            }
+            if json_body is not None:
+                lms_payload['request_json'] = json_body
+            if data is not None:
+                lms_payload['request_data'] = data
+            try:
+                lms_payload[learning_observer.constants.USER] = request[learning_observer.constants.USER]
+            except KeyError:
+                lms_payload[learning_observer.constants.USER] = None
+            learning_observer.log_event.log_lms_integration(lms_payload)
 
             if cache_available:
                 if settings.feature_flag('use_clean_ajax') is not None:
@@ -149,7 +169,17 @@ async def raw_api_ajax(
             return response
 
 
-def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_prefix=None, name=None, headers=None, method='get'):
+def raw_access_partial(
+    remote_url,
+    key_translator=None,
+    cache=None,
+    cache_key_prefix=None,
+    name=None,
+    headers=None,
+    method='get',
+    api_name=None,
+    endpoint_name=None
+):
     '''
     This is a helper which allows us to create a function which calls specific
     API endpoints.
@@ -170,6 +200,8 @@ def raw_access_partial(remote_url, key_translator=None, cache=None, cache_key_pr
             method,
             json_body=json_body,
             data=data,
+            api_name=api_name,
+            endpoint_name=endpoint_name,
             **kwargs
         )
 
@@ -278,7 +310,9 @@ def register_endpoints(app, endpoints, api_name, key_translator=None, cache=None
             cache_key_prefix=cache_key_prefix,
             name=e.name,
             headers=e.headers,
-            method=e.method
+            method=e.method,
+            api_name=api_name,
+            endpoint_name=e.name
         )
         result_functions[function_name] = raw_function
         cleaners = e._cleaners()

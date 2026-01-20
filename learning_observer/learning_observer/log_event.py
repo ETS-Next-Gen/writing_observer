@@ -313,6 +313,27 @@ def log_ajax(url, resp_json, request):
     with open(filename, "w") as ajax_log_fp:
         ajax_log_fp.write(encoded_payload)
 
+
+def log_lms_integration(payload):
+    '''
+    Log LMS integration payloads for long-term analysis.
+
+    Captures LMS data like rosters, courses, and grades so we can
+    review historical context beyond immediate runtime.
+    '''
+    user = payload.get(learning_observer.constants.USER, {}) or {}
+    user_domain = learning_observer.util.get_domain_from_email(user.get('email'))
+    should_log = settings.pmss_settings.logging_enabled(
+        types=['lms_integration'],
+        attributes={'domain': user_domain}
+    )
+    if not should_log:
+        return
+    payload.setdefault('timestamp', datetime.datetime.utcnow().isoformat())
+    encoded_payload = json.dumps(payload, sort_keys=True, default=str)
+    log_event(encoded_payload, filename="lms_integration", preencoded=True)
+
+
 def close_logfile(filename):
     # remove the file from the dict storing open log files and close it
     if filename not in files:
