@@ -9,6 +9,7 @@ import collections
 import concurrent.futures
 import functools
 import inspect
+import weakref
 
 import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.util
@@ -23,51 +24,106 @@ from learning_observer.communication_protocol.exception import DAGExecutionExcep
 
 
 class _SharedAsyncIterable:
+    """Fan out one async iterable to multiple consumers without runaway memory use.
+
+    The execution DAG can reuse a single async iterable in multiple downstream nodes.
+    We do not want to eagerly drain the source in a background task, because that
+    defeats backpressure and retains every item indefinitely. This wrapper only
+    pulls items when a consumer needs them and discards items once every consumer
+    has advanced past them.
+    """
     def __init__(self, source):
         self._source = source
+        self._source_iter = source.__aiter__()
         self._buffer = []
+        self._start_index = 0
         self._done = False
         self._exception = None
         self._condition = asyncio.Condition()
-        self._task = asyncio.create_task(self._pump())
+        self._fetch_lock = asyncio.Lock()
+        self._iterators = weakref.WeakSet()
 
-    async def _pump(self):
-        try:
-            async for item in self._source:
-                async with self._condition:
-                    self._buffer.append(item)
-                    self._condition.notify_all()
-        except Exception as e:
+    async def _fetch_next(self, target_index):
+        async with self._fetch_lock:
             async with self._condition:
-                self._exception = e
-                self._done = True
+                if self._exception is not None or self._done:
+                    return
+                if target_index < self._start_index + len(self._buffer):
+                    return
+            # Only fetch when a consumer needs a new item to avoid eager draining.
+            try:
+                item = await self._source_iter.__anext__()
+            except StopAsyncIteration:
+                async with self._condition:
+                    self._done = True
+                    self._condition.notify_all()
+                return
+            except Exception as e:
+                async with self._condition:
+                    self._exception = e
+                    self._done = True
+                    self._condition.notify_all()
+                raise
+            async with self._condition:
+                self._buffer.append(item)
                 self._condition.notify_all()
-            raise
+
+    async def _trim_buffer(self):
         async with self._condition:
-            self._done = True
-            self._condition.notify_all()
+            if not self._iterators:
+                # No active consumers, so we can drop everything immediately.
+                self._start_index += len(self._buffer)
+                self._buffer.clear()
+                return
+            # Drop any buffered items that all active consumers have passed.
+            min_index = min(iterator._index for iterator in self._iterators)
+            trim_count = min_index - self._start_index
+            if trim_count > 0:
+                del self._buffer[:trim_count]
+                self._start_index = min_index
+
+    def _discard_iterator(self, iterator):
+        if iterator not in self._iterators:
+            return
+        self._iterators.discard(iterator)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        # Schedule trimming outside of __del__ to avoid blocking finalization.
+        loop.create_task(self._trim_buffer())
 
     def __aiter__(self):
-        return _SharedAsyncIterator(self)
+        iterator = _SharedAsyncIterator(self)
+        self._iterators.add(iterator)
+        return iterator
 
 
 class _SharedAsyncIterator:
+    """Advance through the shared buffer and coordinate with other consumers."""
     def __init__(self, shared):
         self._shared = shared
-        self._index = 0
+        self._index = shared._start_index
 
     async def __anext__(self):
         while True:
             async with self._shared._condition:
-                if self._index < len(self._shared._buffer):
-                    item = self._shared._buffer[self._index]
+                buffer_offset = self._index - self._shared._start_index
+                if buffer_offset < len(self._shared._buffer):
+                    item = self._shared._buffer[buffer_offset]
                     self._index += 1
-                    return item
+                    break
                 if self._shared._exception is not None:
                     raise self._shared._exception
                 if self._shared._done:
                     raise StopAsyncIteration
-                await self._shared._condition.wait()
+            # Trigger a fetch if we are caught up with the shared buffer.
+            await self._shared._fetch_next(self._index)
+        await self._shared._trim_buffer()
+        return item
+
+    def __del__(self):
+        self._shared._discard_iterator(self)
 
 
 dispatch = learning_observer.communication_protocol.query.dispatch
