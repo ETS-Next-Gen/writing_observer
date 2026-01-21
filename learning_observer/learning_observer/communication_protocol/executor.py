@@ -21,6 +21,55 @@ from learning_observer.log_event import debug_log
 from learning_observer.util import get_nested_dict_value, clean_json, ensure_async_generator, async_zip
 from learning_observer.communication_protocol.exception import DAGExecutionException
 
+
+class _SharedAsyncIterable:
+    def __init__(self, source):
+        self._source = source
+        self._buffer = []
+        self._done = False
+        self._exception = None
+        self._condition = asyncio.Condition()
+        self._task = asyncio.create_task(self._pump())
+
+    async def _pump(self):
+        try:
+            async for item in self._source:
+                async with self._condition:
+                    self._buffer.append(item)
+                    self._condition.notify_all()
+        except Exception as e:
+            async with self._condition:
+                self._exception = e
+                self._done = True
+                self._condition.notify_all()
+            raise
+        async with self._condition:
+            self._done = True
+            self._condition.notify_all()
+
+    def __aiter__(self):
+        return _SharedAsyncIterator(self)
+
+
+class _SharedAsyncIterator:
+    def __init__(self, shared):
+        self._shared = shared
+        self._index = 0
+
+    async def __anext__(self):
+        while True:
+            async with self._shared._condition:
+                if self._index < len(self._shared._buffer):
+                    item = self._shared._buffer[self._index]
+                    self._index += 1
+                    return item
+                if self._shared._exception is not None:
+                    raise self._shared._exception
+                if self._shared._done:
+                    raise StopAsyncIteration
+                await self._shared._condition.wait()
+
+
 dispatch = learning_observer.communication_protocol.query.dispatch
 
 
@@ -877,16 +926,32 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                       f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
+            if isinstance(nodes[node_name], collections.abc.AsyncIterable) and not isinstance(nodes[node_name], _SharedAsyncIterable):
+                nodes[node_name] = _SharedAsyncIterable(nodes[node_name])
+
 
         visited.add(node_name)
         return nodes[node_name]
 
     out = {}
+    async_generator_cache = {}
     for e in target_nodes:
         if e in target_errors:
             out[e] = _clean_json_via_generator(target_errors[e])
-        else:
-            out[e] = _clean_json_via_generator(await visit(e))
+            continue
+
+        node_result = await visit(e)
+        if isinstance(node_result, collections.abc.AsyncIterable):
+            cached = async_generator_cache.get(id(node_result))
+            if cached is None:
+                cached = _clean_json_via_generator(node_result)
+                async_generator_cache[id(node_result)] = cached
+            out[e] = cached
+            continue
+
+        out[e] = _clean_json_via_generator(node_result)
+
+
     return out
 
     # Include execution history in output if operating in development settings
