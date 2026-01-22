@@ -21,12 +21,7 @@ import learning_observer.paths
 
 import pmss
 
-pmss_settings = pmss.init(
-    prog=__name__,
-    description="A system for monitoring",
-    epilog="For more information, see PMSS documentation.",
-    rulesets=[pmss.YAMLFileRuleset(filename=learning_observer.paths.config_file())]
-)
+pmss_settings = None
 
 # If we e.g. `import settings` and `import learning_observer.settings`, we
 # will load startup code twice, and end up with double the global variables.
@@ -49,6 +44,56 @@ def str_to_bool(arg):
     raise argparse.ArgumentTypeError('Boolean like value expected.')
 
 
+def _expand_ruleset_paths(ruleset_paths):
+    if not ruleset_paths:
+        return [learning_observer.paths.config_file()]
+
+    expanded_paths = []
+    for ruleset_path in ruleset_paths:
+        if not os.path.exists(ruleset_path):
+            raise FileNotFoundError(
+                f"PMSS ruleset path not found: {ruleset_path}"
+            )
+        if os.path.isdir(ruleset_path):
+            entries = [
+                os.path.join(ruleset_path, entry)
+                for entry in sorted(os.listdir(ruleset_path))
+            ]
+            expanded_paths.extend(
+                entry for entry in entries if os.path.isfile(entry)
+            )
+        else:
+            expanded_paths.append(ruleset_path)
+    return expanded_paths
+
+
+def _build_rulesets(ruleset_paths):
+    rulesets = []
+    for ruleset_path in _expand_ruleset_paths(ruleset_paths):
+        if ruleset_path.endswith(('.yaml', '.yml')):
+            rulesets.append(pmss.YAMLFileRuleset(filename=ruleset_path))
+        elif ruleset_path.endswith('.pmss'):
+            rulesets.append(pmss.PMSSFileRuleset(filename=ruleset_path))
+        else:
+            print(
+                f"Skipping PMSS ruleset file {ruleset_path}; "
+                "unsupported suffix."
+            )
+    return rulesets
+
+
+def init_pmss_settings(ruleset_paths=None):
+    global pmss_settings
+    if pmss_settings is None:
+        pmss_settings = pmss.init(
+            prog=__name__,
+            description="A system for monitoring",
+            epilog="For more information, see PMSS documentation.",
+            rulesets=_build_rulesets(ruleset_paths)
+        )
+    return pmss_settings
+
+
 def parse_and_validate_arguments():
     '''
     Parse and validate command line arguments; for now, just the
@@ -64,6 +109,12 @@ def parse_and_validate_arguments():
         '--config-file',
         help='Specify an alternative configuration file',
         default=learning_observer.paths.config_file())
+
+    parser.add_argument(
+        '--pmss-rulesets',
+        help='List of PMSS ruleset files or a directory of rulesets.',
+        nargs='+',
+        default=[learning_observer.paths.config_file()])
 
     parser.add_argument(
         '--watchdog',
@@ -112,6 +163,7 @@ def parse_and_validate_arguments():
                 config_file=args.config_file
             )
         )
+    init_pmss_settings(args.pmss_rulesets)
     return args
 
 
