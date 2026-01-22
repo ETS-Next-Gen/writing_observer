@@ -25,6 +25,15 @@ To view all settings and what they do, checkout the [System Settings Reference](
   boundaries, third-party credentials, or feature flags in one place and keep
   those choices under version control.
 
+## Defining which settings files to use
+
+To load alternate or additional PMSS rulesets, start the server with
+`--pmss-rulesets` and pass one or more file paths or a directory.  The startup
+logic expands directories into sorted file lists, then loads each file as a
+`YAMLFileRuleset` when it ends in `.yaml`/`.yml` or a `PMSSFileRuleset` when it
+ends in `.pmss`.  Any other file suffix is skipped with a warning so you can
+keep README files or notes alongside the rulesets without breaking startup.
+
 ## The role of `creds.yaml`
 
 Most installations load configuration from `creds.yaml`.  When the process

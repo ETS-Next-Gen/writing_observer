@@ -55,6 +55,8 @@ def init(settings=INTERACTIVE_SETTINGS):
     # anything before we've loaded the settings. This might not be necessary,
     # depending on the (still-changing) startup order
     learning_observer.log_event.DEBUG_LOG_LEVEL = learning_observer.log_event.LogLevel.NONE
+    # TODO: Allow offline callers to pass PMSS ruleset files or directories.
+    learning_observer.settings.init_pmss_settings()
     learning_observer.settings.load_settings(settings)
     learning_observer.prestartup.startup_checks_and_init()
     learning_observer.kvs.kvs_startup_check()  # Set up the KVS

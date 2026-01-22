@@ -26,6 +26,11 @@ from learning_observer import offline
 # Prepare the in-memory KVS and reducers for offline replay
 offline.init('creds.yaml')
 
+# TODO: Offline replay currently initializes PMSS with default rulesets only.
+# If you need custom `.pmss` overlays or alternate YAML files, update the
+# offline initializer to accept ruleset paths.
+
+
 # Replace this path with the study log you want to replay
 log_path = "/path/to/your/session.study.log"
 
