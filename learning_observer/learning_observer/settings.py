@@ -209,6 +209,10 @@ def load_settings(config):
     '''
     global settings
 
+    # Ensure PMSS is initialized for callers that skip CLI parsing.
+    # If CLI parsing already ran, the init call is a no-op.
+    init_pmss_settings()
+
     if isinstance(config, str):
         with open(config, 'r') as f:
             settings = yaml.safe_load(f)
