@@ -129,3 +129,34 @@ authentication, safety checks, and analytics while keeping the event format
 itself lightweight. Clients only need to agree on the JSON structure of events,
 while the server handles durability and routing responsibilities on their
 behalf.
+
+## Configuring domain-based event blacklisting
+
+Incoming events can be blacklisted through PMSS rules so that specific domains
+either continue streaming, are told to retry later, or drop events entirely.
+The `blacklist_event_action` setting controls the action and defaults to
+`TRANSMIT`. Define rules under the `incoming_events` namespace and include a
+`domain` attribute to scope the behavior per organization. When the action is
+`MAINTAIN`, the `blacklist_time_limit` setting controls whether the client
+should wait a short time or stop sending forever.
+
+```pmss
+incoming_events {
+  blacklist_event_action: TRANSMIT;
+}
+
+incoming_events[domain="example.org"] {
+  blacklist_event_action: DROP;
+}
+
+incoming_events[domain="pilot.example.edu"] {
+  blacklist_event_action: MAINTAIN;
+  blacklist_time_limit: DAYS;
+}
+```
+
+When a client connects, the server extracts a candidate domain from the event
+payload and uses it to resolve the `blacklist_event_action` setting. If
+a rule returns `DROP`, the client is instructed to stop sending events.
+`MAINTAIN` asks the client to retain events and retry after a delay (as defined
+by `blacklist_time_limit`), while `TRANSMIT` streams events normally.
