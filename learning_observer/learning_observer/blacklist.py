@@ -20,6 +20,26 @@ class TIME_LIMITS:
 time_limits = ['PERMANENT', 'MINUTES', 'DAYS']
 [setattr(TIME_LIMITS, limit, limit) for limit in time_limits]
 
+
+def _parse_blacklist_time_limit(value):
+    if isinstance(value, str):
+        normalized = value.strip().upper()
+        if normalized in time_limits:
+            return normalized
+        try:
+            numeric_value = float(normalized)
+        except ValueError as exc:
+            raise ValueError(f"Value '{value}' is not a valid blacklist time limit.") from exc
+        if numeric_value.is_integer():
+            return int(numeric_value)
+        return numeric_value
+    if isinstance(value, bool):
+        raise ValueError(f"Value '{value}' is not a valid blacklist time limit.")
+    if isinstance(value, (int, float)):
+        return int(value) if isinstance(value, float) and value.is_integer() else value
+    raise ValueError(f"Value '{value}' is not a valid blacklist time limit.")
+
+
 # Register blacklist settings
 pmss.parser('blacklist_event_action', parent='string', choices=action_modes, transform=None)
 pmss.register_field(
@@ -28,11 +48,11 @@ pmss.register_field(
     description='How to treat incoming events for blacklist checks.',
     default=ACTIONS.TRANSMIT
 )
-pmss.parser('blacklist_time_limit', parent='string', choices=time_limits, transform=None)
+pmss.parser('blacklist_time_limit', transform=_parse_blacklist_time_limit)
 pmss.register_field(
     name='blacklist_time_limit',
     type='blacklist_time_limit',
-    description='Time limits for MAINTAIN/PERMANENT blacklist responses.',
+    description='Time limits for MAINTAINing blacklist responses. One of PERMANENT / MINUTES / DAYS or a number of milliseconds.',
     default=TIME_LIMITS.MINUTES
 )
 
