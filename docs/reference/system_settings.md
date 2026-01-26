@@ -137,6 +137,13 @@ runtime.
 | `event_auth.hash_identify` | Enables hash-based identity hints (e.g., `/page#user=alice`) for one-off experiments. | disabled | [`learning_observer/learning_observer/auth/events.py`](../../learning_observer/learning_observer/auth/events.py) |
 | `event_auth.testcase_auth` | Allows automated tests to tag events with deterministic user IDs. | disabled | [`learning_observer/learning_observer/auth/events.py`](../../learning_observer/learning_observer/auth/events.py) |
 
+### Incoming events blacklist (`incoming_events` namespace)
+
+| YAML path | Description | Default | Used in |
+| --- | --- | --- | --- |
+| `incoming_events.blacklist_event_action` | Action to take for incoming events (`TRANSMIT`, `MAINTAIN`, or `DROP`) when blacklist rules match. | `TRANSMIT` | [`learning_observer/learning_observer/blacklist.py`](../../learning_observer/learning_observer/blacklist.py) |
+| `incoming_events.blacklist_time_limit` | Time limit to return when `blacklist_event_action` is `MAINTAIN` (`PERMANENT`, `MINUTES`, or `DAYS`). | `MINUTES` | [`learning_observer/learning_observer/blacklist.py`](../../learning_observer/learning_observer/blacklist.py) |
+
 ## Modules
 
 Modules can define their own PMSS namespaces under `modules.<module_name>`.
