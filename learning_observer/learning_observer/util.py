@@ -146,7 +146,7 @@ def get_nested_dict_value(d, key_str=None, default=MissingType.Missing):
         key_str = ''
     keys = key_str.split('.')
     for key in keys:
-        if d is not None and key in d:
+        if isinstance(d, dict) and key in d:
             d = d[key]
         elif key == '':
             d = d
