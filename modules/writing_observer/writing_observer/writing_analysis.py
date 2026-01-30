@@ -262,6 +262,59 @@ async def document_list(event, internal_state):
     return False, False
 
 
+def _extract_tab_title(client):
+    mouseclick = client.get("mouseclick", {})
+    class_name = mouseclick.get("target.className", "") or ""
+    if "chapter-label-content" in class_name:
+        title = mouseclick.get("target.innerText")
+        if title:
+            return title
+    return None
+
+
+def _extract_tab_id(event):
+    client = event.get("client", {}) or {}
+    tab_id = client.get("tab_id") or event.get("tab_id")
+    if tab_id:
+        return tab_id
+    url = client.get("url") or client.get("object", {}).get("url") or event.get("url")
+    if not url:
+        return None
+    match = re.search(r"tab=([^&#]+)", url)
+    return match.group(1) if match else None
+
+
+@kvs_pipeline(scope=gdoc_scope, null_state={"tabs": {}})
+async def tab_list_reducer(event, internal_state):
+    '''
+    Track per-document tab metadata (tab_id, title, last_accessed) per student.
+    '''
+    if internal_state is None:
+        internal_state = {"tabs": {}}
+
+    client = event.get("client", {}) or {}
+    tab_id = _extract_tab_id(event)
+    if not tab_id:
+        return False, False
+
+    tabs = internal_state.get("tabs") or {}
+    entry = tabs.get(tab_id, {})
+
+    title = _extract_tab_title(client) or entry.get("title")
+    server_time = event.get("server", {}).get("time")
+    if server_time is None:
+        server_time = client.get("timestamp") or client.get("metadata", {}).get("ts")
+
+    tabs[tab_id] = {
+        "tab_id": tab_id,
+        "title": title,
+        "last_accessed": server_time,
+    }
+
+    internal_state["tabs"] = tabs
+    return internal_state, internal_state
+
+
 @kvs_pipeline(scope=student_scope)
 async def last_document(event, internal_state):
     '''
