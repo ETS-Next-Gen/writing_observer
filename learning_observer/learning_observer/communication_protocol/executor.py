@@ -613,10 +613,24 @@ def _normalize_scope_field_specs(raw_specs):
             values = spec
             path = None
         normalized[normalized_key] = {
-            'values': values,
+            'values': _normalize_scope_values(values),
             'path': path
         }
     return normalized
+
+
+def _normalize_scope_values(values):
+    if values is None:
+        return [None]
+    if isinstance(values, collections.abc.AsyncIterable):
+        return values
+    if isinstance(values, dict):
+        return values
+    if isinstance(values, (str, bytes)):
+        return [values]
+    if isinstance(values, collections.abc.Iterable):
+        return values
+    return [values]
 
 
 def _provenance_key_for_field(field):
@@ -697,18 +711,18 @@ def _resolve_scope_specs(scope, kwargs):
         if path_key in kwargs:
             scope_specs.setdefault(
                 _normalize_scope_field_key(key),
-                {'values': value, 'path': kwargs[path_key]}
+                {'values': _normalize_scope_values(value), 'path': kwargs[path_key]}
             )
 
     if 'STUDENTS' in kwargs:
         scope_specs.setdefault(
             'student',
-            {'values': kwargs['STUDENTS'], 'path': kwargs.get('STUDENTS_path')}
+            {'values': _normalize_scope_values(kwargs['STUDENTS']), 'path': kwargs.get('STUDENTS_path')}
         )
     if 'RESOURCES' in kwargs:
         scope_specs.setdefault(
             'doc_id',
-            {'values': kwargs['RESOURCES'], 'path': kwargs.get('RESOURCES_path')}
+            {'values': _normalize_scope_values(kwargs['RESOURCES']), 'path': kwargs.get('RESOURCES_path')}
         )
 
     unexpected_scope_keys = set(scope_specs.keys()) - allowed_scope_keys

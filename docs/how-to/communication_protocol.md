@@ -102,8 +102,9 @@ executor can build the right Redis keys.
 
 **Preferred: `scope_fields` (supports arbitrary scopes)**
 
-Use `scope_fields` to supply each scope axis with a `values` iterable and a `path`
-into each item. The scope field names should match the reducer scope: `student`,
+Use `scope_fields` to supply each scope axis with either a `values` iterable or a
+single value (applied across all items), plus an optional `path` into each item.
+The scope field names should match the reducer scope: `student`,
 `doc_id`, `tab_id`, `page_id`, etc.
 
 ```python
@@ -113,6 +114,8 @@ reducer_keys = query.keys(
         "student": {"values": query.variable("roster"), "path": "user_id"},
         "doc_id": {"values": query.variable("documents"), "path": "doc_id"},
         "tab_id": {"values": query.variable("tabs"), "path": "tab_id"},
+        # or a single value
+        "student": "bobs_user_id"
     },
 )
 ```
