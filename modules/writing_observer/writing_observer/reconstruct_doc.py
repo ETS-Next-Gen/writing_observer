@@ -357,6 +357,7 @@ def nm(doc, nmc, nmr, **kwargs):
 # these can't be handled like plain 'is' or 'ds' because the include different fields
 # (e.g., 'sugid', presumably, suggestion id.)
 dispatch = {
+    'ac': null, # new tab title
     'ae': null,
     'ase': null,  # suggestion
     'ast': null,  # suggestion. Image?
@@ -371,6 +372,7 @@ dispatch = {
     'is': insert,
     'iss': null,  # suggested insertion
     'mefd': null,  # suggestion
+    'mkch': null,  # name of the first tab
     'mlti': multi,
     'msfd': null,  # suggestion
     'nm': nm,   # named command for tabs
@@ -390,6 +392,7 @@ dispatch = {
     'sl': null,
     'ste': null,  # suggestion
     'sue': null,  # suggestion
+    'ucp': null,  # updated tab title
     'uefd': null,  # suggestion
     'use': null,  # suggestion
     'umv': null,

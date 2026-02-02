@@ -267,14 +267,104 @@ async def document_list(event, internal_state):
     return False, False
 
 
-def _extract_tab_title(client):
-    mouseclick = client.get("mouseclick", {})
-    class_name = mouseclick.get("target.className", "") or ""
-    if "chapter-label-content" in class_name:
-        title = mouseclick.get("target.innerText")
-        if title:
-            return title
-    return None
+def _iter_commands_from_client(client):
+    """Yield command dicts from either bundles (google_docs_save) or history (document_history)."""
+    event_type = client.get("event")
+
+    if event_type == "google_docs_save":
+        for bundle in client.get("bundles") or []:
+            for command in bundle.get("commands") or []:
+                if isinstance(command, dict):
+                    yield command
+
+    elif event_type == "document_history":
+        history = client.get("history") or {}
+        changelog = history.get("changelog") or []
+        # Each changelog item is expected to be like: [<command_dict>, ...]
+        for item in changelog:
+            if isinstance(item, (list, tuple)) and item and isinstance(item[0], dict):
+                yield item[0]
+
+
+def _iter_leaf_commands(client):
+    for cmd in _iter_commands_from_client(client):
+        if not isinstance(cmd, dict):
+            continue
+
+        if cmd.get("ty") == "mlti":
+            for sub in cmd.get("mts") or []:
+                if isinstance(sub, dict):
+                    yield sub
+        else:
+            yield cmd
+
+
+def _get_event_time(event, client):
+    """Resolve the timestamp once per event, with fallback."""
+    server_time = (event.get("server") or {}).get("time")
+    if server_time is not None:
+        return server_time
+    return client.get("timestamp") or (client.get("metadata") or {}).get("ts")
+
+
+def extract_from_ucp(command):
+    if command.get("ty") != "ucp":
+        return None, None
+    d = command.get("d")
+    try:
+        return d[0], d[1][1][1]
+    except (TypeError, IndexError, KeyError):
+        return None, None
+
+
+def extract_from_mkch(command):
+    if command.get("ty") != "mkch":
+        return None, None
+
+    d = command.get("d")
+    try:
+        return 't.0', d[0][1]
+    except (TypeError, IndexError, KeyError, AttributeError):
+        return None, None
+
+
+def extract_from_ac(command):
+    if command.get("ty") != "ac":
+        return None, None
+
+    d = command.get("d")
+    try:
+        return d[0], d[1][1]
+    except (TypeError, IndexError, KeyError, AttributeError):
+        return None, None
+
+
+TITLE_EXTRACTORS = {
+    "ucp": extract_from_ucp,
+    "mkch": extract_from_mkch,
+    "ac": extract_from_ac,
+}
+
+
+def _extract_all_tab_titles(client):
+    """
+    Extract all (tab_id, title) pairs from leaf commands (including those inside mlti).
+    """
+    event_type = client.get("event")
+    if event_type not in ("google_docs_save", "document_history"):
+        return []
+
+    out = []
+    for cmd in _iter_leaf_commands(client):
+        ty = cmd.get("ty")
+        extractor = TITLE_EXTRACTORS.get(ty)
+        if not extractor:
+            continue
+        tab_id, title = extractor(cmd)
+        if tab_id is None:
+            continue
+        out.append((tab_id, title))
+    return out
 
 
 def _extract_tab_id(event):
@@ -290,31 +380,40 @@ def _extract_tab_id(event):
 
 
 @kvs_pipeline(scope=gdoc_scope, null_state={"tabs": {}})
-async def tab_list_reducer(event, internal_state):
-    '''
+async def tab_list(event, internal_state):
+    """
     Track per-document tab metadata (tab_id, title, last_accessed) per student.
-    '''
-    if internal_state is None:
-        internal_state = {"tabs": {}}
 
-    client = event.get("client", {}) or {}
-    tab_id = _extract_tab_id(event)
-    if not tab_id:
-        return False, False
-
+    Rules:
+      - If client.tab_id exists AND is already in state: ONLY update last_accessed for that tab.
+      - Still add new tabs discovered in commands (and set last_accessed for those new tabs).
+      - For existing tabs discovered in commands: update title if present, but do NOT touch last_accessed
+        unless it's the active existing tab (handled first).
+    """
+    internal_state = internal_state or {"tabs": {}}
     tabs = internal_state.get("tabs") or {}
-    entry = tabs.get(tab_id, {})
 
-    title = _extract_tab_title(client) or entry.get("title")
-    server_time = event.get("server", {}).get("time")
-    if server_time is None:
-        server_time = client.get("timestamp") or client.get("metadata", {}).get("ts")
+    client = event.get("client") or {}
+    server_time = _get_event_time(event, client)
 
-    tabs[tab_id] = {
-        "tab_id": tab_id,
-        "title": title,
-        "last_accessed": server_time,
-    }
+    active_tab_id = _extract_tab_id(event)
+
+    # 1) Only bump last_accessed for the active tab IF it already exists in state
+    if active_tab_id is not None and active_tab_id in tabs:
+        tabs[active_tab_id]["last_accessed"] = server_time
+
+    # 2) Add/update titles for all extracted tabs
+    for tab_id, title in _extract_all_tab_titles(client):
+        if tab_id not in tabs:
+            # New tab: initialize and set last_accessed now
+            tabs[tab_id] = {
+                "title": title,
+                "last_accessed": server_time,
+            }
+        else:
+            # Existing tab: update title if we learned one; do not update last_accessed here
+            if title is not None:
+                tabs[tab_id]["title"] = title
 
     internal_state["tabs"] = tabs
     return internal_state, internal_state
