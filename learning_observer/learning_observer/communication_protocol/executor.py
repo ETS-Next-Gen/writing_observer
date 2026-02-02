@@ -9,6 +9,7 @@ import collections
 import concurrent.futures
 import functools
 import inspect
+import weakref
 
 import learning_observer.communication_protocol.query
 import learning_observer.communication_protocol.util
@@ -20,6 +21,110 @@ import learning_observer.stream_analytics.helpers
 from learning_observer.log_event import debug_log
 from learning_observer.util import get_nested_dict_value, clean_json, ensure_async_generator, async_zip
 from learning_observer.communication_protocol.exception import DAGExecutionException
+
+
+class _SharedAsyncIterable:
+    """Fan out one async iterable to multiple consumers without runaway memory use.
+
+    The execution DAG can reuse a single async iterable in multiple downstream nodes.
+    We do not want to eagerly drain the source in a background task, because that
+    defeats backpressure and retains every item indefinitely. This wrapper only
+    pulls items when a consumer needs them and discards items once every consumer
+    has advanced past them.
+    """
+    def __init__(self, source):
+        self._source = source
+        self._source_iter = source.__aiter__()
+        self._buffer = []
+        self._start_index = 0
+        self._done = False
+        self._exception = None
+        self._condition = asyncio.Condition()
+        self._fetch_lock = asyncio.Lock()
+        self._iterators = weakref.WeakSet()
+
+    async def _fetch_next(self, target_index):
+        async with self._fetch_lock:
+            async with self._condition:
+                if self._exception is not None or self._done:
+                    return
+                if target_index < self._start_index + len(self._buffer):
+                    return
+            # Only fetch when a consumer needs a new item to avoid eager draining.
+            try:
+                item = await self._source_iter.__anext__()
+            except StopAsyncIteration:
+                async with self._condition:
+                    self._done = True
+                    self._condition.notify_all()
+                return
+            except Exception as e:
+                async with self._condition:
+                    self._exception = e
+                    self._done = True
+                    self._condition.notify_all()
+                raise
+            async with self._condition:
+                self._buffer.append(item)
+                self._condition.notify_all()
+
+    async def _trim_buffer(self):
+        async with self._condition:
+            if not self._iterators:
+                # No active consumers, so we can drop everything immediately.
+                self._start_index += len(self._buffer)
+                self._buffer.clear()
+                return
+            # Drop any buffered items that all active consumers have passed.
+            min_index = min(iterator._index for iterator in self._iterators)
+            trim_count = min_index - self._start_index
+            if trim_count > 0:
+                del self._buffer[:trim_count]
+                self._start_index = min_index
+
+    def _discard_iterator(self, iterator):
+        if iterator not in self._iterators:
+            return
+        self._iterators.discard(iterator)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        # Schedule trimming outside of __del__ to avoid blocking finalization.
+        loop.create_task(self._trim_buffer())
+
+    def __aiter__(self):
+        iterator = _SharedAsyncIterator(self)
+        self._iterators.add(iterator)
+        return iterator
+
+
+class _SharedAsyncIterator:
+    """Advance through the shared buffer and coordinate with other consumers."""
+    def __init__(self, shared):
+        self._shared = shared
+        self._index = shared._start_index
+
+    async def __anext__(self):
+        while True:
+            async with self._shared._condition:
+                buffer_offset = self._index - self._shared._start_index
+                if buffer_offset < len(self._shared._buffer):
+                    item = self._shared._buffer[buffer_offset]
+                    self._index += 1
+                    break
+                if self._shared._exception is not None:
+                    raise self._shared._exception
+                if self._shared._done:
+                    raise StopAsyncIteration
+            # Trigger a fetch if we are caught up with the shared buffer.
+            await self._shared._fetch_next(self._index)
+        await self._shared._trim_buffer()
+        return item
+
+    def __del__(self):
+        self._shared._discard_iterator(self)
+
 
 dispatch = learning_observer.communication_protocol.query.dispatch
 
@@ -799,8 +904,9 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         target_node = exports[key].get('returns')
         if target_node not in nodes:
             # Export exists, but its `returns` node is missing from the DAG
-            target_nodes.append(target_node)
-            target_errors[target_node] = DAGExecutionException(
+            target_name = f'__missing_export__:{key}'
+            target_nodes.append(target_name)
+            target_errors[target_name] = DAGExecutionException(
                 f'Target DAG node `{target_node}` not found in execution_dag.',
                 inspect.currentframe().f_code.co_name,
                 {'target_node': target_node, 'available_nodes': list(nodes.keys())}
@@ -877,16 +983,32 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
                       f'{error_texts}')
         else:
             nodes[node_name] = await dispatch_node(nodes[node_name])
+            if isinstance(nodes[node_name], collections.abc.AsyncIterable) and not isinstance(nodes[node_name], _SharedAsyncIterable):
+                nodes[node_name] = _SharedAsyncIterable(nodes[node_name])
+
 
         visited.add(node_name)
         return nodes[node_name]
 
     out = {}
+    async_iterable_cache = {}
     for e in target_nodes:
         if e in target_errors:
             out[e] = _clean_json_via_generator(target_errors[e])
-        else:
-            out[e] = _clean_json_via_generator(await visit(e))
+            continue
+
+        node_result = await visit(e)
+        if isinstance(node_result, collections.abc.AsyncIterable):
+            shared_iterable = async_iterable_cache.get(id(node_result))
+            if shared_iterable is None:
+                shared_iterable = node_result
+                async_iterable_cache[id(node_result)] = shared_iterable
+            out[e] = _clean_json_via_generator(shared_iterable)
+            continue
+
+        out[e] = _clean_json_via_generator(node_result)
+
+
     return out
 
     # Include execution history in output if operating in development settings
