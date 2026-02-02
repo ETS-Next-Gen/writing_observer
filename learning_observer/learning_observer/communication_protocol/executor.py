@@ -990,7 +990,7 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         return nodes[node_name]
 
     out = {}
-    async_generator_cache = {}
+    async_iterable_cache = {}
     for e in target_nodes:
         if e in target_errors:
             out[e] = _clean_json_via_generator(target_errors[e])
@@ -998,11 +998,11 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
 
         node_result = await visit(e)
         if isinstance(node_result, collections.abc.AsyncIterable):
-            cached = async_generator_cache.get(id(node_result))
-            if cached is None:
-                cached = _clean_json_via_generator(node_result)
-                async_generator_cache[id(node_result)] = cached
-            out[e] = cached
+            shared_iterable = async_iterable_cache.get(id(node_result))
+            if shared_iterable is None:
+                shared_iterable = node_result
+                async_iterable_cache[id(node_result)] = shared_iterable
+            out[e] = _clean_json_via_generator(shared_iterable)
             continue
 
         out[e] = _clean_json_via_generator(node_result)
