@@ -407,6 +407,7 @@ async def tab_list(event, internal_state):
         if tab_id not in tabs:
             # New tab: initialize and set last_accessed now
             tabs[tab_id] = {
+                "tab_id": tab_id,
                 "title": title,
                 "last_accessed": server_time,
             }
