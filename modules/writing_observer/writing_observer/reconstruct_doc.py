@@ -40,6 +40,7 @@ class google_text(object):
         new_object._text = ""
         new_object._position = 0
         new_object._edit_metadata = {}
+        new_object._tabs = {}
         new_object.fix_validity()
         return new_object
 
@@ -100,6 +101,14 @@ class google_text(object):
         new_object._text = json_rep.get('text', '')
         new_object._position = json_rep.get('position', 0)
         new_object._edit_metadata = json_rep.get('edit_metadata', {})
+
+        if 'tabs' in json_rep and json_rep['tabs']:
+            new_object._tabs = {}
+            for tab_id, tab_data in json_rep['tabs'].items():
+                new_object._tabs[tab_id] = google_text.from_json(tab_data)
+        else:
+            new_object._tabs = {}
+
         new_object.fix_validity()
         return new_object
 
@@ -155,11 +164,14 @@ class google_text(object):
         '''
         This serializes to JSON.
         '''
-        return {
+        result = {
             'text': self._text,
             'position': self._position,
             'edit_metadata': self._edit_metadata
         }
+        if self._tabs:
+            result['tabs'] = {tab_id: tab.json for tab_id, tab in self._tabs.items()}
+        return result
 
 
 def get_parsed_text(self):
@@ -169,6 +181,15 @@ def get_parsed_text(self):
     return self._text.replace(PLACEHOLDER, "")
 
 
+def dispatch_command(doc, cmd):
+    if cmd['ty'] in dispatch:
+        doc = dispatch[cmd['ty']](doc, **cmd)
+    else:
+        print("Unrecogized Google Docs command: " + repr(cmd['ty']))
+        # TODO: Log issue and fix it!
+    return doc
+
+
 def command_list(doc, commands):
     '''
     This will process a list of commands. It is helpful either when
@@ -176,11 +197,7 @@ def command_list(doc, commands):
     new `save` requests.
     '''
     for item in commands:
-        if item['ty'] in dispatch:
-            doc = dispatch[item['ty']](doc, **item)
-        else:
-            print("Unrecogized Google Docs command: " + repr(item['ty']))
-            # TODO: Log issue and fix it!
+        doc = dispatch_command(doc, item)
     return doc
 
 
@@ -301,6 +318,34 @@ def null(doc, **kwargs):
     return doc
 
 
+def nm(doc, nmc, nmr, **kwargs):
+    '''
+    Handle named commands for tabs (sub-documents).
+
+    * `nmc` is the command to execute
+    * `nmr` is the name/reference list, which contains the target tab ID
+    '''
+    # Find the target tab from the nmr list
+    target_tab = None
+    for item in reversed(nmr or []):
+        if isinstance(item, str) and item.startswith("t."):
+            target_tab = item
+            break
+
+    if target_tab is None:
+        # No tab specified, apply to main document
+        doc = dispatch_command(doc, nmc)
+    else:
+        # Ensure the tab exists
+        if target_tab not in doc._tabs:
+            doc._tabs[target_tab] = google_text()
+
+        # Apply the command to the sub-document
+        doc._tabs[target_tab] = dispatch_command(doc._tabs[target_tab], nmc)
+
+    return doc
+
+
 # This dictionary maps the `ty` parameter to the function which
 # handles data of that type.
 
@@ -312,6 +357,7 @@ def null(doc, **kwargs):
 # these can't be handled like plain 'is' or 'ds' because the include different fields
 # (e.g., 'sugid', presumably, suggestion id.)
 dispatch = {
+    'ac': null, # new tab title
     'ae': null,
     'ase': null,  # suggestion
     'ast': null,  # suggestion. Image?
@@ -326,8 +372,10 @@ dispatch = {
     'is': insert,
     'iss': null,  # suggested insertion
     'mefd': null,  # suggestion
+    'mkch': null,  # name of the first tab
     'mlti': multi,
     'msfd': null,  # suggestion
+    'nm': nm,   # named command for tabs
     'null': null,
     'ord': null,
     'ras': null,  # suggestion. Autospell?
@@ -344,6 +392,7 @@ dispatch = {
     'sl': null,
     'ste': null,  # suggestion
     'sue': null,  # suggestion
+    'ucp': null,  # updated tab title
     'uefd': null,  # suggestion
     'use': null,  # suggestion
     'umv': null,
