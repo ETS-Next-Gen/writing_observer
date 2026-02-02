@@ -64,6 +64,8 @@ if NEW:
 else:
     gdoc_scope = student_scope  # HACK for backwards-compatibility
 
+gdoc_tab_scope = Scope([KeyField.STUDENT, EventField('doc_id'), EventField('tab_id')])
+
 
 @learning_observer.communication_protocol.integration.publish_function('writing_observer.activity_map')
 def determine_activity_status(last_ts):
@@ -71,7 +73,6 @@ def determine_activity_status(last_ts):
     return {'status': status}
 
 
-@kvs_pipeline(scope=gdoc_scope)
 async def time_on_task(event, internal_state):
     '''
     This adds up time intervals between successive timestamps. If the interval
@@ -85,6 +86,10 @@ async def time_on_task(event, internal_state):
         learning_observer.settings.module_setting('writing_obersver', 'time_on_task_threshold')
     )
     return internal_state, internal_state
+
+
+gdoc_scope_time_on_task = kvs_pipeline(scope=gdoc_scope)(time_on_task)
+gdoc_tab_scope_time_on_task = kvs_pipeline(scope=gdoc_tab_scope)(time_on_task)
 
 
 @kvs_pipeline(scope=gdoc_scope)
