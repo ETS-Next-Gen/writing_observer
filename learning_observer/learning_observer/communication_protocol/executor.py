@@ -904,8 +904,9 @@ async def execute_dag(endpoint, parameters, functions, target_exports):
         target_node = exports[key].get('returns')
         if target_node not in nodes:
             # Export exists, but its `returns` node is missing from the DAG
-            target_nodes.append(target_node)
-            target_errors[target_node] = DAGExecutionException(
+            target_name = f'__missing_export__:{key}'
+            target_nodes.append(target_name)
+            target_errors[target_name] = DAGExecutionException(
                 f'Target DAG node `{target_node}` not found in execution_dag.',
                 inspect.currentframe().f_code.co_name,
                 {'target_node': target_node, 'available_nodes': list(nodes.keys())}
