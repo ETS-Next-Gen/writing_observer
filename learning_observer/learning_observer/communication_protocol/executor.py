@@ -619,18 +619,36 @@ def _normalize_scope_field_specs(raw_specs):
     return normalized
 
 
+class _ScopeSingleton:
+    def __init__(self, value):
+        self.value = value
+
+
 def _normalize_scope_values(values):
     if values is None:
-        return [None]
+        return _ScopeSingleton(None)
     if isinstance(values, collections.abc.AsyncIterable):
         return values
     if isinstance(values, dict):
         return values
     if isinstance(values, (str, bytes)):
-        return [values]
+        return _ScopeSingleton(values)
     if isinstance(values, collections.abc.Iterable):
         return values
-    return [values]
+    return _ScopeSingleton(values)
+
+
+async def _repeat_value(value):
+    while True:
+        yield value
+
+
+def _expand_scope_values(values, repeat=False):
+    if isinstance(values, _ScopeSingleton):
+        if repeat:
+            return _repeat_value(values.value)
+        return [values.value]
+    return values
 
 
 def _provenance_key_for_field(field):
@@ -665,7 +683,7 @@ async def _extract_fields_with_provenance(scope_specs):
 
     if len(scope_specs) == 1:
         field, values, path = scope_specs[0]
-        async for item in ensure_async_generator(values):
+        async for item in ensure_async_generator(_expand_scope_values(values, repeat=False)):
             field_value = get_nested_dict_value(item, path or '', '')
             fields = {field: field_value}
             item_provenance = item.get('provenance', {'value': item}) if isinstance(item, dict) else {'value': item}
@@ -675,7 +693,7 @@ async def _extract_fields_with_provenance(scope_specs):
             yield fields, provenance
         return
 
-    iterables = [values for _, values, _ in scope_specs]
+    iterables = [_expand_scope_values(values, repeat=True) for _, values, _ in scope_specs]
     async for items in _async_zip_many(iterables):
         fields = {}
         provenance = {}
