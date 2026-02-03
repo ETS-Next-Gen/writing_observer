@@ -602,18 +602,125 @@ def _scope_field_candidates(field):
     return []
 
 
+# ==============================================================================
+# Scope Value Handling
+# ==============================================================================
+#
+# Scope fields can be specified as:
+# 1. A single value (string, None, etc.) - broadcast across all items
+# 2. An iterable of values - one per scope entry
+# 3. An async iterable - same as above, but async
+#
+# SingleValue wraps case 1 to distinguish it from iterables.
+
+
+class SingleValue:
+    """Wrapper indicating a single value to broadcast across all scope items.
+
+    When building keys across multiple scope dimensions, single values are
+    repeated infinitely so they can be zipped with finite iterables from
+    other dimensions.
+
+    Example: student="bob_id" with documents=[doc1, doc2, doc3] produces
+    keys for (bob_id, doc1), (bob_id, doc2), (bob_id, doc3).
+    """
+    __slots__ = ('value',)
+
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return f'SingleValue({self.value!r})'
+
+
+def _is_single_value(value):
+    """Check if value is a SingleValue wrapper."""
+    return isinstance(value, SingleValue)
+
+
+def _normalize_scope_value(value):
+    """Normalize a scope field value for consistent handling.
+
+    - None, strings, and other scalars become SingleValue (broadcast)
+    - Lists and iterables pass through (one item per scope entry)
+    - Async iterables pass through unchanged
+    - Dicts pass through (will be iterated or accessed via path)
+    """
+    if value is None:
+        return SingleValue(None)
+    if _is_single_value(value):
+        return value
+    if isinstance(value, collections.abc.AsyncIterable):
+        return value
+    if isinstance(value, (str, bytes)):
+        return SingleValue(value)
+    if isinstance(value, dict):
+        # Dicts represent structured data, not a collection to iterate
+        return value
+    if isinstance(value, collections.abc.Iterable):
+        return value
+    return SingleValue(value)
+
+
+async def _repeat_forever(value):
+    """Async generator that yields the same value indefinitely."""
+    while True:
+        yield value
+
+
+def _expand_scope_value(value, *, broadcast=False):
+    """Convert a normalized scope value to an iterable.
+
+    Args:
+        value: A normalized scope value (SingleValue or iterable).
+        broadcast: If True, single values repeat infinitely for zipping
+                   with other dimensions. If False, yield once.
+
+    Returns:
+        An iterable (sync or async) suitable for iteration.
+    """
+    if _is_single_value(value):
+        return _repeat_forever(value.value) if broadcast else [value.value]
+    return value
+
+
+def _parse_scope_spec(spec):
+    """Parse a scope specification into (values, path).
+
+    Supports formats:
+        roster                                    -> (roster, None)
+        {"values": roster, "path": "user_id"}    -> (roster, "user_id")
+        {"value": roster}                        -> (roster, None)
+
+    Returns:
+        Tuple of (values, path) where path may be None.
+    """
+    if not isinstance(spec, dict):
+        return spec, None
+
+    # Check for known value keys in priority order
+    for key in ('values', 'value', 'items', 'data'):
+        if key in spec:
+            values = spec[key]
+            path = spec.get('path') or spec.get('value_path')
+            return values, path
+
+    # No recognized keys - treat entire dict as the value
+    return spec, None
+
+
 def _normalize_scope_field_specs(raw_specs):
+    """Normalize scope field specifications to a consistent format.
+
+    Returns:
+        Dict mapping normalized field names to {"values": ..., "path": ...}
+    """
     normalized = {}
     for key, spec in raw_specs.items():
         normalized_key = _normalize_scope_field_key(key)
-        if isinstance(spec, dict):
-            values = spec.get('values', spec.get('value', spec.get('items', spec.get('data'))))
-            path = spec.get('path', spec.get('value_path'))
-        else:
-            values = spec
-            path = None
+        values, path = _parse_scope_spec(spec)
         normalized[normalized_key] = {
-            'values': values,
+            'values': _normalize_scope_value(values),
             'path': path
         }
     return normalized
@@ -640,18 +747,14 @@ async def _async_zip_many(iterables):
 
 
 async def _extract_fields_with_provenance(scope_specs):
-    '''Prepare the key field dictionary and provenance for each scope tuple.
-    The key field dictionary is used to create the key we are attempting
-    to fetch from the KVS (used later in `hack_handle_keys`). The passed in
-    `path` is used for setting the appropriate dictionary value.
-    The provenance is the current history of the communication protocol for each item.
-    '''
+    """Prepare the key field dictionary and provenance for each scope tuple."""
     if not scope_specs:
         return
 
     if len(scope_specs) == 1:
+        # Single dimension: simple iteration
         field, values, path = scope_specs[0]
-        async for item in ensure_async_generator(values):
+        async for item in ensure_async_generator(_expand_scope_value(values, broadcast=False)):
             field_value = get_nested_dict_value(item, path or '', '')
             fields = {field: field_value}
             item_provenance = item.get('provenance', {'value': item}) if isinstance(item, dict) else {'value': item}
@@ -661,7 +764,11 @@ async def _extract_fields_with_provenance(scope_specs):
             yield fields, provenance
         return
 
-    iterables = [values for _, values, _ in scope_specs]
+    # Multiple dimensions: zip with broadcasting for single values
+    # Avoid infinite iteration when all dimensions are single values.
+    broadcast = not all(_is_single_value(values) for _, values, _ in scope_specs)
+    iterables = [_expand_scope_value(values, broadcast=broadcast) for _, values, _ in scope_specs]
+
     async for items in _async_zip_many(iterables):
         fields = {}
         provenance = {}
@@ -697,18 +804,18 @@ def _resolve_scope_specs(scope, kwargs):
         if path_key in kwargs:
             scope_specs.setdefault(
                 _normalize_scope_field_key(key),
-                {'values': value, 'path': kwargs[path_key]}
+                {'values': _normalize_scope_value(value), 'path': kwargs[path_key]}
             )
 
     if 'STUDENTS' in kwargs:
         scope_specs.setdefault(
             'student',
-            {'values': kwargs['STUDENTS'], 'path': kwargs.get('STUDENTS_path')}
+            {'values': _normalize_scope_value(kwargs['STUDENTS']), 'path': kwargs.get('STUDENTS_path')}
         )
     if 'RESOURCES' in kwargs:
         scope_specs.setdefault(
             'doc_id',
-            {'values': kwargs['RESOURCES'], 'path': kwargs.get('RESOURCES_path')}
+            {'values': _normalize_scope_value(kwargs['RESOURCES']), 'path': kwargs.get('RESOURCES_path')}
         )
 
     unexpected_scope_keys = set(scope_specs.keys()) - allowed_scope_keys
