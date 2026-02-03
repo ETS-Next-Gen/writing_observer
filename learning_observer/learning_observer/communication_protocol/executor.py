@@ -765,7 +765,10 @@ async def _extract_fields_with_provenance(scope_specs):
         return
 
     # Multiple dimensions: zip with broadcasting for single values
-    iterables = [_expand_scope_value(values, broadcast=True) for _, values, _ in scope_specs]
+    # Avoid infinite iteration when all dimensions are single values.
+    broadcast = not all(_is_single_value(values) for _, values, _ in scope_specs)
+    iterables = [_expand_scope_value(values, broadcast=broadcast) for _, values, _ in scope_specs]
+
     async for items in _async_zip_many(iterables):
         fields = {}
         provenance = {}
